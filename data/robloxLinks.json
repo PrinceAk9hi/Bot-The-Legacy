@@ -1,0 +1,184 @@
+{
+    "547192186547077130": {
+        "discordUserId": "547192186547077130",
+        "robloxUserId": "1573424827",
+        "robloxUsername": "PrinceAk9hi",
+        "source": "panel_change_roblox",
+        "linkedAt": 1787319819276,
+        "updatedAt": 1787340573835,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1440083663239909381": {
+        "discordUserId": "1440083663239909381",
+        "robloxUserId": "2464982793",
+        "robloxUsername": "SCP2021DEAD",
+        "source": "command_link",
+        "linkedAt": 1787321082060,
+        "updatedAt": 1787321082060,
+        "lastSync": {
+            "status": "failed",
+            "rank": 5,
+            "timestamp": 1787321292606,
+            "error": "{\"errors\":[{\"code\":26,\"message\":\"You cannot change the user's role to the same role.\",\"userFacingMessage\":\"Tu ne peux pas modifier le rôle d'un membre pour qu'il conserve le même rôle.\"}]}"
+        }
+    },
+    "1354396902673748089": {
+        "discordUserId": "1354396902673748089",
+        "robloxUserId": "3250156177",
+        "robloxUsername": "l_artiste2011",
+        "source": "command_link",
+        "linkedAt": 1787321582569,
+        "updatedAt": 1787321582569,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "883087428016046150": {
+        "discordUserId": "883087428016046150",
+        "robloxUserId": "2938272508",
+        "robloxUsername": "Atz_tegof",
+        "source": "command_link",
+        "linkedAt": 1787321611466,
+        "updatedAt": 1787321611466,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "815269907633143881": {
+        "discordUserId": "815269907633143881",
+        "robloxUserId": "2458115546",
+        "robloxUsername": "im_girlsssss",
+        "source": "command_link",
+        "linkedAt": 1787321675602,
+        "updatedAt": 1787321675602,
+        "lastSync": {
+            "status": "success",
+            "rank": null,
+            "timestamp": 1787323325278,
+            "error": null
+        }
+    },
+    "672477367066820671": {
+        "discordUserId": "672477367066820671",
+        "robloxUserId": "1561098677",
+        "robloxUsername": "SynnNao",
+        "source": "command_link",
+        "linkedAt": 1787321774840,
+        "updatedAt": 1787321774840,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1105511636955054171": {
+        "discordUserId": "1105511636955054171",
+        "robloxUserId": "2792662276",
+        "robloxUsername": "loulou_mira",
+        "source": "command_link",
+        "linkedAt": 1787321812518,
+        "updatedAt": 1787321812518,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "947878139923673130": {
+        "discordUserId": "947878139923673130",
+        "robloxUserId": "1646709320",
+        "robloxUsername": "lzz_kakashi",
+        "source": "command_link",
+        "linkedAt": 1787321851178,
+        "updatedAt": 1787321851178,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1078733029205364766": {
+        "discordUserId": "1078733029205364766",
+        "robloxUserId": "2951663624",
+        "robloxUsername": "Kali_lamas",
+        "source": "command_link",
+        "linkedAt": 1787321890699,
+        "updatedAt": 1787321890699,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1435693752323805234": {
+        "discordUserId": "1435693752323805234",
+        "robloxUserId": "7090428316",
+        "robloxUsername": "Rifle_Meister",
+        "source": "command_link",
+        "linkedAt": 1787322097018,
+        "updatedAt": 1787322097018,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1144303281926057995": {
+        "discordUserId": "1144303281926057995",
+        "robloxUserId": "9023252007",
+        "robloxUsername": "ems_uss",
+        "source": "command_link",
+        "linkedAt": 1787322224349,
+        "updatedAt": 1787322224349,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "855147411591921705": {
+        "discordUserId": "855147411591921705",
+        "robloxUserId": "11145275582",
+        "robloxUsername": "nxscxs_prime",
+        "source": "command_link",
+        "linkedAt": 1787324678106,
+        "updatedAt": 1787324678106,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    },
+    "1191761183909351579": {
+        "discordUserId": "1191761183909351579",
+        "robloxUserId": "8136617086",
+        "robloxUsername": "ENZO_LAMS07",
+        "source": "command_link",
+        "linkedAt": 1787325223905,
+        "updatedAt": 1787325223905,
+        "lastSync": {
+            "status": "never",
+            "rank": null,
+            "timestamp": null,
+            "error": null
+        }
+    }
+}

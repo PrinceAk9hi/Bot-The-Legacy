@@ -36,11 +36,8 @@ console.log(
 // IMPORTS
 // ======================================================
 
-const fs =
-    require("fs");
-
-const path =
-    require("path");
+const fs = require("fs");
+const path = require("path");
 
 const {
     Client,
@@ -56,6 +53,9 @@ const {
 // ======================================================
 // SYSTÈMES
 // ======================================================
+
+const registerLogsSystem =
+    require("./systems/logs");
 
 const registerRecruitmentSystem =
     require("./systems/recrutement");
@@ -73,7 +73,7 @@ const registerActivityStats =
     require("./systems/activityStats");
 
 // ======================================================
-// PERSISTANCE CH / MN / PSEUDOS
+// PERSISTANCE
 // ======================================================
 
 const {
@@ -191,10 +191,13 @@ function loadCommands() {
     const files =
         fs.readdirSync(
             commandsPath
-        ).filter(
-            file =>
-                file.endsWith(".js")
-        );
+        )
+            .filter(
+                file =>
+                    file.endsWith(
+                        ".js"
+                    )
+            );
 
     console.log("");
     console.log(
@@ -290,71 +293,76 @@ function loadCommands() {
 // ======================================================
 
 client.reloadCommands =
-async function () {
-    const commands =
-        loadCommands();
+    async function () {
+        const commands =
+            loadCommands();
 
-    const rest =
-        new REST({
-            version:
-                "10"
-        }).setToken(
-            process.env.TOKEN
+        const rest =
+            new REST({
+                version:
+                    "10"
+            }).setToken(
+                process.env.TOKEN
+            );
+
+        // Supprime les anciennes commandes globales
+        await rest.put(
+            Routes.applicationCommands(
+                client.user.id
+            ),
+            {
+                body: []
+            }
         );
 
-    // Supprime les anciennes commandes globales
-    await rest.put(
-        Routes.applicationCommands(
-            client.user.id
-        ),
-        {
-            body: []
+        let guildCount =
+            0;
+
+        for (
+            const guild
+            of client.guilds.cache.values()
+        ) {
+            try {
+                await rest.put(
+                    Routes.applicationGuildCommands(
+                        client.user.id,
+                        guild.id
+                    ),
+                    {
+                        body:
+                            commands
+                    }
+                );
+
+                guildCount++;
+
+            } catch (error) {
+                console.error(
+                    `❌ Update ${guild.name} :`,
+                    error
+                );
+            }
         }
-    );
 
-    let guildCount =
-        0;
+        return {
+            commands:
+                commands.length,
 
-    for (
-        const guild
-        of client.guilds.cache.values()
-    ) {
-        try {
-            await rest.put(
-                Routes.applicationGuildCommands(
-                    client.user.id,
-                    guild.id
-                ),
-                {
-                    body:
-                        commands
-                }
-            );
-
-            guildCount++;
-
-        } catch (error) {
-            console.error(
-                `❌ Update ${guild.name} :`,
-                error
-            );
-        }
-    }
-
-    return {
-        commands:
-            commands.length,
-
-        guilds:
-            guildCount
+            guilds:
+                guildCount
+        };
     };
-};
 
 // ======================================================
 // LANCEMENT DES SYSTÈMES
 // ======================================================
 
-// Candidatures / recrutements
+// Logs AVANT les autres systèmes
+registerLogsSystem(
+    client
+);
+
+// Candidatures
 registerRecruitmentSystem(
     client
 );
@@ -369,12 +377,12 @@ registerTempVoiceSystem(
     client
 );
 
-// Panel changement compte Roblox
+// Roblox
 registerRobloxLinkPanel(
     client
 );
 
-// Statistiques Discord
+// Statistiques
 registerActivityStats(
     client
 );
@@ -503,7 +511,7 @@ async function getUserPanelMembers(
 ) {
     if (
         interaction.user.id !==
-            ownerId
+        ownerId
     ) {
         return {
             success:
@@ -657,23 +665,6 @@ async function handleUserButton(
             return true;
         }
 
-        if (
-            result.error ===
-                "PROTECTED_USER"
-        ) {
-            await interaction.followUp({
-                content:
-                    "🛡️ Ce membre est protégé.",
-
-                flags:
-                    MessageFlags.Ephemeral
-            }).catch(
-                () => {}
-            );
-
-            return true;
-        }
-
         await interaction.followUp({
             content:
                 "❌ Impossible de récupérer le membre.",
@@ -693,10 +684,7 @@ async function handleUserButton(
     } =
         result;
 
-    // ==================================================
     // BRING
-    // ==================================================
-
     if (
         action ===
             "bring"
@@ -766,10 +754,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
     // BACK
-    // ==================================================
-
     if (
         action ===
             "back"
@@ -849,10 +834,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
     // DISCONNECT
-    // ==================================================
-
     if (
         action ===
             "disconnect"
@@ -906,10 +888,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
-    // MENOTTE
-    // ==================================================
-
+    // MN
     if (
         action ===
             "mn"
@@ -955,10 +934,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
-    // DÉMENOTTE
-    // ==================================================
-
+    // DMN
     if (
         action ===
             "dmn"
@@ -983,29 +959,11 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
     // CH
-    // ==================================================
-
     if (
         action ===
             "ch"
     ) {
-        if (
-            target.id ===
-                owner.id
-        ) {
-            await interaction.followUp({
-                content:
-                    "❌ Tu ne peux pas te mettre toi-même en CH.",
-
-                flags:
-                    MessageFlags.Ephemeral
-            });
-
-            return true;
-        }
-
         client.chiens.set(
             target.id,
             {
@@ -1045,10 +1003,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
     // UCH
-    // ==================================================
-
     if (
         action ===
             "uch"
@@ -1073,10 +1028,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
-    // LOCK PSEUDO
-    // ==================================================
-
+    // LOCK NAME
     if (
         action ===
             "lockname"
@@ -1108,10 +1060,7 @@ async function handleUserButton(
         return true;
     }
 
-    // ==================================================
-    // UNLOCK PSEUDO
-    // ==================================================
-
+    // UNLOCK NAME
     if (
         action ===
             "unlockname"
@@ -1190,16 +1139,6 @@ async function handleUserChannelSelect(
     if (
         !result.success
     ) {
-        await interaction.followUp({
-            content:
-                "❌ Impossible d'utiliser ce menu.",
-
-            flags:
-                MessageFlags.Ephemeral
-        }).catch(
-            () => {}
-        );
-
         return true;
     }
 
@@ -1209,9 +1148,7 @@ async function handleUserChannelSelect(
     const channelId =
         interaction.values?.[0];
 
-    if (
-        !channelId
-    ) {
+    if (!channelId) {
         return true;
     }
 
@@ -1264,10 +1201,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
-            // ==================================================
             // AUTOCOMPLETE
-            // ==================================================
-
             if (
                 interaction.isAutocomplete()
             ) {
@@ -1312,10 +1246,7 @@ client.on(
                 return;
             }
 
-            // ==================================================
-            // BOUTONS /USER
-            // ==================================================
-
+            // /USER BUTTONS
             if (
                 interaction.isButton() &&
                 interaction.customId
@@ -1330,10 +1261,7 @@ client.on(
                 return;
             }
 
-            // ==================================================
-            // MENU /USER
-            // ==================================================
-
+            // /USER CHANNEL SELECT
             if (
                 interaction.isChannelSelectMenu() &&
                 interaction.customId
@@ -1348,20 +1276,6 @@ client.on(
                 return;
             }
 
-            // ==================================================
-            // IMPORTANT
-            // ==================================================
-            //
-            // Les interactions suivantes sont gérées
-            // directement par leurs systèmes :
-            //
-            // tpv_*   → systems/tempVoice.js
-            // stats_* → systems/activityStats.js
-            // legacy_change_roblox
-            //          → systems/robloxLinkPanel.js
-            //
-            // ==================================================
-
             if (
                 !interaction.isChatInputCommand()
             ) {
@@ -1373,9 +1287,7 @@ client.on(
                     interaction.commandName
                 );
 
-            if (
-                !command
-            ) {
+            if (!command) {
                 if (
                     !interaction.replied &&
                     !interaction.deferred
@@ -1394,8 +1306,11 @@ client.on(
                 return;
             }
 
+            const startedAt =
+                Date.now();
+
             // ==================================================
-            // PROTECTION GLOBALE
+            // PROTECTION
             // ==================================================
 
             const protectedTarget =
@@ -1414,12 +1329,34 @@ client.on(
                     interaction
                 );
 
+                await client.logs
+                    ?.logCommand(
+                        interaction,
+                        {
+                            status:
+                                "blocked",
+
+                            durationMs:
+                                Date.now() -
+                                startedAt,
+
+                            note:
+                                `Cible protégée : ${protectedTarget}`
+                        }
+                    )
+                    .catch(
+                        () => {}
+                    );
+
                 return;
             }
 
             console.log(
                 `⚡ Commande reçue : /${interaction.commandName} par ${interaction.user.tag}`
             );
+
+            let executionError =
+                null;
 
             try {
                 await command.execute(
@@ -1428,6 +1365,9 @@ client.on(
                 );
 
             } catch (error) {
+                executionError =
+                    error;
+
                 console.error(
                     `❌ /${interaction.commandName} :`,
                     error
@@ -1466,6 +1406,36 @@ client.on(
                 } catch {}
             }
 
+            // ==================================================
+            // LOG AUTOMATIQUE
+            // ==================================================
+
+            await client.logs
+                ?.logCommand(
+                    interaction,
+                    {
+                        status:
+                            executionError
+                                ? "error"
+                                : "success",
+
+                        error:
+                            executionError,
+
+                        durationMs:
+                            Date.now() -
+                            startedAt
+                    }
+                )
+                .catch(
+                    error => {
+                        console.error(
+                            "❌ Log commande :",
+                            error
+                        );
+                    }
+                );
+
         } catch (error) {
             console.error(
                 "❌ Interaction globale :",
@@ -1488,10 +1458,6 @@ client.on(
         try {
             const guild =
                 newState.guild;
-
-            // ==================================================
-            // PROTECTION
-            // ==================================================
 
             if (
                 isProtectedUser(
@@ -1528,10 +1494,7 @@ client.on(
                 return;
             }
 
-            // ==================================================
             // MENOTTE
-            // ==================================================
-
             const menotte =
                 client.menottes.get(
                     newState.id
@@ -1558,10 +1521,7 @@ client.on(
                 }
             }
 
-            // ==================================================
             // CH
-            // ==================================================
-
             for (
                 const [
                     targetId,
@@ -1615,7 +1575,6 @@ client.on(
                     continue;
                 }
 
-                // Maître change de vocal
                 if (
                     newState.id ===
                         data.maitreId &&
@@ -1633,7 +1592,6 @@ client.on(
                         );
                 }
 
-                // Cible change de vocal
                 if (
                     newState.id ===
                         targetId &&
@@ -1726,14 +1684,10 @@ client.on(
 );
 
 // ======================================================
-// RESTAURATION CH / MN
+// RESTAURATION
 // ======================================================
 
 async function restoreActiveVoiceControls() {
-    // ==================================================
-    // MENOTTES
-    // ==================================================
-
     for (
         const [
             memberId,
@@ -1793,10 +1747,6 @@ async function restoreActiveVoiceControls() {
                 );
         }
     }
-
-    // ==================================================
-    // CH
-    // ==================================================
 
     for (
         const [
@@ -1897,20 +1847,12 @@ client.once(
         );
 
         try {
-            // ==================================================
-            // COMMANDES
-            // ==================================================
-
             const result =
                 await client.reloadCommands();
 
             console.log(
                 `✅ ${result.commands} commande(s) enregistrée(s) !`
             );
-
-            // ==================================================
-            // DEBUG COMMANDES
-            // ==================================================
 
             console.log(
                 "🔎 /rank autocomplete :",
@@ -1924,115 +1866,33 @@ client.once(
 
             console.log(
                 "👤 /user :",
-                client.commands.has(
-                    "user"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "🔻 /derank :",
-                client.commands.has(
-                    "derank"
-                )
+                client.commands.has("user")
                     ? "✅ chargé"
                     : "❌ absent"
             );
 
             console.log(
                 "🐕 /ch :",
-                client.commands.has(
-                    "ch"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "🦴 /uch :",
-                client.commands.has(
-                    "uch"
-                )
+                client.commands.has("ch")
                     ? "✅ chargé"
                     : "❌ absent"
             );
 
             console.log(
                 "🔒 /mn :",
-                client.commands.has(
-                    "mn"
-                )
+                client.commands.has("mn")
                     ? "✅ chargé"
                     : "❌ absent"
             );
 
             console.log(
-                "🔓 /umn :",
+                "📜 /setuplogs :",
                 client.commands.has(
-                    "umn"
+                    "setuplogs"
                 )
                     ? "✅ chargé"
                     : "❌ absent"
             );
-
-            console.log(
-                "🧪 /test :",
-                client.commands.has(
-                    "test"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "🛑 /fintest :",
-                client.commands.has(
-                    "fintest"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "🏢 /setuptpv :",
-                client.commands.has(
-                    "setuptpv"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "ℹ️ /setupinfos :",
-                client.commands.has(
-                    "setupinfos"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "📊 /setupstats :",
-                client.commands.has(
-                    "setupstats"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            console.log(
-                "🔗 /link :",
-                client.commands.has(
-                    "link"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
-
-            // ==================================================
-            // SYSTÈMES
-            // ==================================================
 
             console.log("");
             console.log(
@@ -2062,6 +1922,13 @@ client.once(
             );
 
             console.log(
+                "📜 Logs complets :",
+                client.logs
+                    ? "✅ actif"
+                    : "❌ absent"
+            );
+
+            console.log(
                 "💾 Persistance CH/MN : ✅ active"
             );
 
@@ -2077,10 +1944,6 @@ client.once(
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             );
 
-            // ==================================================
-            // RESTAURATION
-            // ==================================================
-
             await restoreActiveVoiceControls();
 
         } catch (error) {
@@ -2093,7 +1956,7 @@ client.once(
 );
 
 // ======================================================
-// SAUVEGARDE AVANT ARRÊT
+// ARRÊT
 // ======================================================
 
 process.on(

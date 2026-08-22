@@ -38,12 +38,10 @@ function hasPermission(member) {
 }
 
 // ======================================================
-// SCAN
+// SCAN DES MEMBRES
 // ======================================================
 
-async function scanMembers(guild) {
-    await guild.members.fetch();
-
+function scanMembers(guild) {
     const members =
         guild.members.cache.filter(
             member =>
@@ -89,7 +87,7 @@ async function scanMembers(guild) {
 }
 
 // ======================================================
-// TEXTE LISTE
+// TEXTES
 // ======================================================
 
 function buildLinkedText(linked) {
@@ -145,10 +143,6 @@ module.exports = {
                 "Vérifier les comptes Roblox reliés des membres Legacy"
             ),
 
-    // ==================================================
-    // EXECUTION
-    // ==================================================
-
     async execute(interaction) {
         await interaction.deferReply({
             flags:
@@ -156,6 +150,10 @@ module.exports = {
         });
 
         try {
+            // ==================================================
+            // PERMISSIONS
+            // ==================================================
+
             if (
                 !hasPermission(
                     interaction.member
@@ -167,10 +165,18 @@ module.exports = {
                 });
             }
 
+            // ==================================================
+            // SCAN
+            // ==================================================
+
             const result =
-                await scanMembers(
+                scanMembers(
                     interaction.guild
                 );
+
+            // ==================================================
+            // EMBED
+            // ==================================================
 
             const embed =
                 new EmbedBuilder()
@@ -195,7 +201,10 @@ module.exports = {
                             value:
                                 buildLinkedText(
                                     result.linked
-                                )
+                                ),
+
+                            inline:
+                                false
                         },
 
                         {
@@ -205,7 +214,10 @@ module.exports = {
                             value:
                                 buildUnlinkedText(
                                     result.unlinked
-                                )
+                                ),
+
+                            inline:
+                                false
                         }
                     )
                     .setFooter({
@@ -213,6 +225,10 @@ module.exports = {
                             "The Legacy • Liaison Roblox"
                     })
                     .setTimestamp();
+
+            // ==================================================
+            // BOUTON LINK ALL
+            // ==================================================
 
             const row =
                 new ActionRowBuilder()

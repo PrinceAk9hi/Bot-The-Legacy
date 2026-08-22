@@ -27,19 +27,15 @@ const CHANGE_MODAL_ID =
 const LINK_ALL_BUTTON_ID =
     "legacy_link_all";
 
-// Rôle des membres Legacy à vérifier
 const MEMBER_ROLE_ID =
     "1458391977073574012";
 
-// Salon où se trouve le bouton pour changer/lier Roblox
 const ROBLOX_HELP_CHANNEL_ID =
     "1506762774397845534";
 
-// Salon des nouvelles liaisons
 const LINK_LOG_CHANNEL_ID =
     "1540535302701981816";
 
-// Rôles autorisés à utiliser Link All
 const ALLOWED_ROLES = [
     "1458414705717805189", // Fondateur
     "1467277541696868412", // Souverain
@@ -62,7 +58,7 @@ function hasLinkAllPermission(
 }
 
 // ======================================================
-// LOG NOUVELLE LIAISON
+// ANNONCE LIAISON
 // ======================================================
 
 async function sendLinkAnnouncement({
@@ -92,7 +88,6 @@ async function sendLinkAnnouncement({
 
     let content;
 
-    // Nouvelle liaison
     if (!existing) {
         content =
 `## 🔗 Nouvelle liaison Roblox
@@ -101,10 +96,8 @@ async function sendLinkAnnouncement({
 
 > **Discord :** <@${member.id}>
 > **Roblox :** \`${robloxUsername}\``;
-    }
 
-    // Modification d'une liaison existante
-    else {
+    } else {
         content =
 `## 🔄 Compte Roblox modifié
 
@@ -158,158 +151,166 @@ async function handleLinkAll(
             MessageFlags.Ephemeral
     });
 
-    // ==================================================
-    // RÉCUPÉRER TOUS LES MEMBRES
-    // ==================================================
+    try {
+        // ==================================================
+        // MEMBRES DÉJÀ PRÉSENTS DANS LE CACHE
+        // ==================================================
 
-    await interaction.guild.members.fetch();
-
-    const members =
-        interaction.guild.members.cache.filter(
-            member =>
-                !member.user.bot &&
-                member.roles.cache.has(
-                    MEMBER_ROLE_ID
-                )
-        );
-
-    const unlinked =
-        [];
-
-    const linked =
-        [];
-
-    for (
-        const member
-        of members.values()
-    ) {
-        const link =
-            getRobloxLink(
-                member.id
+        const members =
+            interaction.guild.members.cache.filter(
+                member =>
+                    !member.user.bot &&
+                    member.roles.cache.has(
+                        MEMBER_ROLE_ID
+                    )
             );
 
-        if (link) {
-            linked.push(
-                member
-            );
+        const linked =
+            [];
 
-        } else {
-            unlinked.push(
-                member
-            );
+        const unlinked =
+            [];
+
+        for (
+            const member
+            of members.values()
+        ) {
+            const link =
+                getRobloxLink(
+                    member.id
+                );
+
+            if (link) {
+                linked.push(
+                    member
+                );
+
+            } else {
+                unlinked.push(
+                    member
+                );
+            }
         }
-    }
 
-    // ==================================================
-    // TOUT LE MONDE EST RELIÉ
-    // ==================================================
+        // ==================================================
+        // PERSONNE À CONTACTER
+        // ==================================================
 
-    if (
-        unlinked.length ===
-        0
-    ) {
-        return interaction.editReply({
-            content:
-                "✅ Tous les membres concernés ont déjà relié leur compte Roblox."
-        });
-    }
+        if (
+            unlinked.length ===
+            0
+        ) {
+            return interaction.editReply({
+                content:
+                    "✅ Tous les membres concernés ont déjà relié leur compte Roblox."
+            });
+        }
 
-    // ==================================================
-    // LIEN VERS LE SALON
-    // ==================================================
+        // ==================================================
+        // LIEN VERS LE SALON
+        // ==================================================
 
-    const channelUrl =
-        `https://discord.com/channels/${interaction.guild.id}/${ROBLOX_HELP_CHANNEL_ID}`;
+        const channelUrl =
+            `https://discord.com/channels/${interaction.guild.id}/${ROBLOX_HELP_CHANNEL_ID}`;
 
-    let sent =
-        0;
+        let sent =
+            0;
 
-    let failed =
-        0;
+        let failed =
+            0;
 
-    const failedMembers =
-        [];
+        const failedMembers =
+            [];
 
-    // ==================================================
-    // ENVOI DES MP
-    // ==================================================
+        // ==================================================
+        // ENVOI MP
+        // ==================================================
 
-    for (
-        const member
-        of unlinked
-    ) {
-        try {
-            const row =
-                new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setLabel(
-                                "Relier mon compte Roblox"
-                            )
-                            .setEmoji(
-                                "🔗"
-                            )
-                            .setStyle(
-                                ButtonStyle.Link
-                            )
-                            .setURL(
-                                channelUrl
-                            )
-                    );
+        for (
+            const member
+            of unlinked
+        ) {
+            try {
+                const row =
+                    new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setLabel(
+                                    "Relier mon compte Roblox"
+                                )
+                                .setEmoji(
+                                    "🔗"
+                                )
+                                .setStyle(
+                                    ButtonStyle.Link
+                                )
+                                .setURL(
+                                    channelUrl
+                                )
+                        );
 
-            const embed =
-                new EmbedBuilder()
-                    .setColor(
-                        0x3B6475
-                    )
-                    .setTitle(
-                        "🔗 Ton compte Roblox n'est pas relié"
-                    )
-                    .setDescription(
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x3B6475
+                        )
+                        .setTitle(
+                            "🔗 Ton compte Roblox n'est pas relié"
+                        )
+                        .setDescription(
 `Bonjour <@${member.id}>,
 
 Nous avons remarqué que ton compte Discord n'est actuellement relié à **aucun compte Roblox** sur **The Legacy**.
 
 Merci de relier ton compte Roblox afin que tes informations et tes futurs grades puissent être synchronisés correctement.
 
-Clique simplement sur le bouton ci-dessous pour accéder directement au salon prévu à cet effet.`
-                    )
-                    .setFooter({
-                        text:
-                            "The Legacy • Roblox"
-                    })
-                    .setTimestamp();
+Clique sur le bouton ci-dessous pour accéder directement au salon prévu à cet effet.`
+                        )
+                        .setFooter({
+                            text:
+                                "The Legacy • Roblox"
+                        })
+                        .setTimestamp();
 
-            await member.send({
-                embeds: [
-                    embed
-                ],
+                await member.send({
+                    embeds: [
+                        embed
+                    ],
 
-                components: [
-                    row
-                ]
-            });
+                    components: [
+                        row
+                    ]
+                });
 
-            sent++;
+                sent++;
 
-        } catch (error) {
-            failed++;
+                // Petite pause pour éviter de spammer Discord
+                await new Promise(
+                    resolve =>
+                        setTimeout(
+                            resolve,
+                            350
+                        )
+                );
 
-            failedMembers.push(
-                member.id
-            );
+            } catch (error) {
+                failed++;
 
-            console.log(
-                `⚠️ Impossible d'envoyer le MP Roblox à ${member.user.tag}`
-            );
+                failedMembers.push(
+                    member.id
+                );
+
+                console.log(
+                    `⚠️ MP Roblox impossible : ${member.user.tag}`
+                );
+            }
         }
-    }
 
-    // ==================================================
-    // RÉCAPITULATIF
-    // ==================================================
+        // ==================================================
+        // RÉCAP
+        // ==================================================
 
-    let content =
+        let content =
 `## 🔗 Link All terminé
 
 👥 **Membres vérifiés :** ${members.size}
@@ -317,111 +318,121 @@ Clique simplement sur le bouton ci-dessous pour accéder directement au salon pr
 📩 **MP envoyés :** ${sent}
 ❌ **MP impossibles :** ${failed}`;
 
-    if (
-        failedMembers.length
-    ) {
-        content +=
+        if (
+            failedMembers.length
+        ) {
+            content +=
 `\n\n### Membres n'acceptant pas les MP
 ${failedMembers
     .map(
         id =>
             `> <@${id}>`
     )
-    .join(
-        "\n"
-    )
+    .join("\n")
     .substring(
         0,
         800
     )}`;
-    }
+        }
 
-    await interaction.editReply({
-        content
-    });
+        await interaction.editReply({
+            content
+        });
 
-    // ==================================================
-    // LOGS COMPLETS
-    // ==================================================
+        // ==================================================
+        // LOG CENTRAL
+        // ==================================================
 
-    if (
-        interaction.client.logs
-            ?.logSpecial
-    ) {
-        await interaction.client.logs
-            .logSpecial(
-                interaction.guild,
-                "roblox",
-                {
-                    title:
-                        "🔗 Link All",
+        if (
+            interaction.client.logs
+                ?.logSpecial
+        ) {
+            await interaction.client.logs
+                .logSpecial(
+                    interaction.guild,
+                    "roblox",
+                    {
+                        title:
+                            "🔗 Link All",
 
-                    description:
-                        `<@${interaction.user.id}> a lancé une vérification globale des comptes Roblox.`,
+                        description:
+                            `<@${interaction.user.id}> a lancé une vérification globale des comptes Roblox.`,
 
-                    fields: [
-                        {
-                            name:
-                                "Membres",
+                        fields: [
+                            {
+                                name:
+                                    "Membres",
 
-                            value:
-                                String(
-                                    members.size
-                                ),
+                                value:
+                                    String(
+                                        members.size
+                                    ),
 
-                            inline:
-                                true
-                        },
+                                inline:
+                                    true
+                            },
 
-                        {
-                            name:
-                                "Déjà reliés",
+                            {
+                                name:
+                                    "Déjà reliés",
 
-                            value:
-                                String(
-                                    linked.length
-                                ),
+                                value:
+                                    String(
+                                        linked.length
+                                    ),
 
-                            inline:
-                                true
-                        },
+                                inline:
+                                    true
+                            },
 
-                        {
-                            name:
-                                "MP envoyés",
+                            {
+                                name:
+                                    "MP envoyés",
 
-                            value:
-                                String(
-                                    sent
-                                ),
+                                value:
+                                    String(
+                                        sent
+                                    ),
 
-                            inline:
-                                true
-                        },
+                                inline:
+                                    true
+                            },
 
-                        {
-                            name:
-                                "MP impossibles",
+                            {
+                                name:
+                                    "MP impossibles",
 
-                            value:
-                                String(
-                                    failed
-                                ),
+                                value:
+                                    String(
+                                        failed
+                                    ),
 
-                            inline:
-                                true
-                        }
-                    ]
-                }
-            )
-            .catch(
-                () => {}
-            );
+                                inline:
+                                    true
+                            }
+                        ]
+                    }
+                )
+                .catch(
+                    () => {}
+                );
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Link All :",
+            error
+        );
+
+        return interaction.editReply({
+            content:
+                `❌ Une erreur est survenue.\n\`${error.message}\``
+        });
     }
 }
 
 // ======================================================
-// SYSTEME
+// SYSTÈME
 // ======================================================
 
 function registerRobloxLinkPanel(
@@ -544,6 +555,9 @@ function registerRobloxLinkPanel(
                     // ==================================================
 
                     const member =
+                        interaction.guild.members.cache.get(
+                            interaction.user.id
+                        ) ||
                         await interaction.guild.members
                             .fetch(
                                 interaction.user.id
@@ -560,7 +574,7 @@ function registerRobloxLinkPanel(
                     }
 
                     // ==================================================
-                    // ANCIENNE LIAISON AVANT MODIFICATION
+                    // ANCIENNE LIAISON
                     // ==================================================
 
                     const oldLink =
@@ -576,7 +590,7 @@ function registerRobloxLinkPanel(
                             : null;
 
                     // ==================================================
-                    // REUTILISER /LINK
+                    // RÉUTILISER /LINK
                     // ==================================================
 
                     const linkCommand =
@@ -610,7 +624,7 @@ function registerRobloxLinkPanel(
                         });
 
                     // ==================================================
-                    // ERREURS ROBLOX
+                    // ERREURS
                     // ==================================================
 
                     if (!result.success) {
@@ -658,7 +672,7 @@ function registerRobloxLinkPanel(
                             });
 
                     // ==================================================
-                    // ANNONCE PUBLIQUE DE LA LIAISON
+                    // ANNONCE
                     // ==================================================
 
                     await sendLinkAnnouncement({

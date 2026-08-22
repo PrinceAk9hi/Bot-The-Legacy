@@ -73,13 +73,28 @@ const CONFIG = {
 };
 
 // ======================================================
+// REFUS / FERMETURE
+// ======================================================
+
+const REFUSED_CLOSE_DELAY =
+    12 * 60 * 60 * 1000;
+
+const REFUSED_CHECK_INTERVAL =
+    60 * 1000;
+
+// ======================================================
 // COULEURS
 // ======================================================
 
 const COLORS = {
-    attente: 0x2B2D31,
-    accepte: 0x57F287,
-    refuse: 0xED4245
+    attente:
+        0x2B2D31,
+
+    accepte:
+        0x57F287,
+
+    refuse:
+        0xED4245
 };
 
 // ======================================================
@@ -99,16 +114,25 @@ const candidaturesPath =
         "candidatures.json"
     );
 
-if (!fs.existsSync(dataDir)) {
+if (
+    !fs.existsSync(
+        dataDir
+    )
+) {
     fs.mkdirSync(
         dataDir,
         {
-            recursive: true
+            recursive:
+                true
         }
     );
 }
 
-if (!fs.existsSync(candidaturesPath)) {
+if (
+    !fs.existsSync(
+        candidaturesPath
+    )
+) {
     fs.writeFileSync(
         candidaturesPath,
         "{}",
@@ -129,7 +153,9 @@ function lireCandidatures() {
     }
 }
 
-function sauvegarderCandidatures(data) {
+function sauvegarderCandidatures(
+    data
+) {
     fs.writeFileSync(
         candidaturesPath,
         JSON.stringify(
@@ -147,82 +173,127 @@ function sauvegarderCandidatures(data) {
 
 const QUESTIONS = [
     {
-        key: "question1",
-        titre: "Question 1",
+        key:
+            "question1",
+
+        titre:
+            "Question 1",
+
         texte:
-`> @ Roblox :`
+            "> @ Roblox :"
     },
 
     {
-        key: "question2",
-        titre: "Question 2",
+        key:
+            "question2",
+
+        titre:
+            "Question 2",
+
         texte:
 `> Présentation (Prénom IRL, âge, les passions qui t'animent, 2 défauts et 2 qualités) :
+
 > -# 3 à 5 lignes attendues !`
     },
 
     {
-        key: "question3",
-        titre: "Question 3",
+        key:
+            "question3",
+
+        titre:
+            "Question 3",
+
         texte:
-`> Ton temps de jeu sur School RP :`
+            "> Ton temps de jeu sur School RP :"
     },
 
     {
-        key: "question4",
-        titre: "Question 4",
+        key:
+            "question4",
+
+        titre:
+            "Question 4",
+
         texte:
-`> Ton casier judiciaire (avec des explications attendues) :`
+            "> Ton casier judiciaire (avec des explications attendues) :"
     },
 
     {
-        key: "question5",
-        titre: "Question 5",
+        key:
+            "question5",
+
+        titre:
+            "Question 5",
+
         texte:
-`> As-tu déjà fait partie d'une ou plusieurs familles ? (Explications attendues de pourquoi vous n'êtes plus dedans) :`
+            "> As-tu déjà fait partie d'une ou plusieurs familles ? (Explications attendues de pourquoi vous n'êtes plus dedans) :"
     },
 
     {
-        key: "question6",
-        titre: "Question 6",
+        key:
+            "question6",
+
+        titre:
+            "Question 6",
+
         texte:
-`> Ton ambition, ta vision de notre famille, ce que tu cherches dans notre famille (3 à 5 ligne attendues) :`
+            "> Ton ambition, ta vision de notre famille, ce que tu cherches dans notre famille (3 à 5 ligne attendues) :"
     },
 
     {
-        key: "question7",
-        titre: "Question 7",
+        key:
+            "question7",
+
+        titre:
+            "Question 7",
+
         texte:
-`> Comment as-tu connu notre famille :`
+            "> Comment as-tu connu notre famille :"
     },
 
     {
-        key: "question8",
-        titre: "Question 8",
+        key:
+            "question8",
+
+        titre:
+            "Question 8",
+
         texte:
-`> Sur quels appareils joues-tu :`
+            "> Sur quels appareils joues-tu :"
     },
 
     {
-        key: "question9",
-        titre: "Question 9",
+        key:
+            "question9",
+
+        titre:
+            "Question 9",
+
         texte:
-`> Peux-tu être en vocal tout en jouant en même temps :`
+            "> Peux-tu être en vocal tout en jouant en même temps :"
     },
 
     {
-        key: "question10",
-        titre: "Question 10",
+        key:
+            "question10",
+
+        titre:
+            "Question 10",
+
         texte:
-`> Es-tu prêt(e) à démontrer, par ton activté, ton engagement, et ta loyauté, que tu mérites de rejoindre notre famille ? (3 à 5 lignes attendues) :`
+            "> Es-tu prêt(e) à démontrer, par ton activté, ton engagement, et ta loyauté, que tu mérites de rejoindre notre famille ? (3 à 5 lignes attendues) :"
     },
 
     {
-        key: "question11",
-        titre: "Question 11",
+        key:
+            "question11",
+
+        titre:
+            "Question 11",
+
         texte:
 `> Nous souhaitons t’informer, futur candidat, que l’activité entraîne un rank-up et que l’inactivité entraîne un derank, également, si les conditions ne sont pas remplit lors de ta candidature, la durée de ta période en test peut se voir être plus longue.
->
+
 > Confirmes-tu avoir pris connaissance de ces informations ?`
     }
 ];
@@ -234,7 +305,9 @@ const questionnairesActifs =
 // HELPERS
 // ======================================================
 
-function cleanChannelName(name) {
+function cleanChannelName(
+    name
+) {
     return name
         .toLowerCase()
         .normalize("NFD")
@@ -246,15 +319,22 @@ function cleanChannelName(name) {
             /[^a-z0-9-_]/g,
             ""
         )
-        .substring(0, 50) ||
+        .substring(
+            0,
+            50
+        ) ||
         "membre";
 }
 
-function formatDuree(ms) {
+function formatDuree(
+    ms
+) {
     const secondes =
         Math.max(
             0,
-            Math.floor(ms / 1000)
+            Math.floor(
+                ms / 1000
+            )
         );
 
     const minutes =
@@ -272,12 +352,17 @@ function formatDuree(ms) {
     return `${minutes}m ${reste}s`;
 }
 
-function safeField(text) {
+function safeField(
+    text
+) {
     if (!text) {
         return "Aucune réponse";
     }
 
-    if (text.length <= 500) {
+    if (
+        text.length <=
+        500
+    ) {
         return text;
     }
 
@@ -295,19 +380,26 @@ async function getMember(
     id
 ) {
     return guild.members
-        .fetch(id)
-        .catch(() => null);
+        .fetch(
+            id
+        )
+        .catch(
+            () => null
+        );
 }
 
-function recruteurAutorise(member) {
+function recruteurAutorise(
+    member
+) {
     return [
         CONFIG.responsableRecrutement,
         CONFIG.gestionRecrutement,
         CONFIG.fondation
-    ].some(roleId =>
-        member.roles.cache.has(
-            roleId
-        )
+    ].some(
+        roleId =>
+            member.roles.cache.has(
+                roleId
+            )
     );
 }
 
@@ -327,60 +419,86 @@ async function logAction(
             CONFIG.salonLogs
         );
 
-    if (!salon?.isTextBased()) {
+    if (
+        !salon?.isTextBased()
+    ) {
         return;
     }
 
     const embed =
         new EmbedBuilder()
-            .setTitle(title)
+            .setTitle(
+                title
+            )
             .addFields(
                 {
                     name:
                         "Exécutant",
+
                     value:
                         `<@${executant.id}>\n\`${executant.id}\``,
+
                     inline:
                         true
                 },
+
                 {
                     name:
                         "Membre",
+
                     value:
                         `<@${cible.id}>\n\`${cible.id}\``,
+
                     inline:
                         true
                 }
             )
             .setTimestamp();
 
-    if (description) {
+    if (
+        description
+    ) {
         embed.setDescription(
             description
         );
     }
 
     await salon.send({
-        embeds: [embed]
-    }).catch(() => {});
+        embeds: [
+            embed
+        ]
+    }).catch(
+        () => {}
+    );
 }
 
 // ======================================================
 // TRANSCRIPT
 // ======================================================
 
-async function createTranscript(channel) {
-    let messages = [];
+async function createTranscript(
+    channel
+) {
+    let messages =
+        [];
+
     let before;
 
-    while (messages.length < 500) {
+    while (
+        messages.length <
+        500
+    ) {
         const fetched =
             await channel.messages.fetch({
-                limit: 100,
+                limit:
+                    100,
+
                 before
             });
 
-        if (!fetched.size) {
+        if (
+            !fetched.size
+        ) {
             break;
         }
 
@@ -391,7 +509,10 @@ async function createTranscript(channel) {
         before =
             fetched.last().id;
 
-        if (fetched.size < 100) {
+        if (
+            fetched.size <
+            100
+        ) {
             break;
         }
     }
@@ -404,21 +525,26 @@ async function createTranscript(channel) {
 
     const contenu =
         messages
-            .map(message => {
-                const date =
-                    new Date(
-                        message.createdTimestamp
-                    ).toLocaleString(
-                        "fr-FR"
-                    );
+            .map(
+                message => {
+                    const date =
+                        new Date(
+                            message.createdTimestamp
+                        )
+                            .toLocaleString(
+                                "fr-FR"
+                            );
 
-                return (
-                    `[${date}] ` +
-                    `${message.author.tag} (${message.author.id}) : ` +
-                    `${message.content || "[Embed / composant / pièce jointe]"}`
-                );
-            })
-            .join("\n");
+                    return (
+                        `[${date}] ` +
+                        `${message.author.tag} (${message.author.id}) : ` +
+                        `${message.content || "[Embed / composant / pièce jointe]"}`
+                    );
+                }
+            )
+            .join(
+                "\n"
+            );
 
     return Buffer.from(
         contenu ||
@@ -428,10 +554,354 @@ async function createTranscript(channel) {
 }
 
 // ======================================================
+// BOUTON FERMETURE REFUS
+// ======================================================
+
+function createCloseRefusedButton(
+    userId,
+    ticketId
+) {
+    return new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(
+                    `legacy_close_refused_${userId}_${ticketId}`
+                )
+                .setLabel(
+                    "Fermer le ticket"
+                )
+                .setEmoji(
+                    "🗑️"
+                )
+                .setStyle(
+                    ButtonStyle.Danger
+                )
+        );
+}
+
+// ======================================================
+// MP REFUS
+// ======================================================
+
+async function envoyerMPRefus(
+    membre
+) {
+    try {
+        await membre.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(
+                        COLORS.refuse
+                    )
+                    .setTitle(
+                        "Mise à jour de votre candidature"
+                    )
+                    .setDescription(
+`Bonjour <@${membre.id}>,
+
+Suite à ta candidature pour rejoindre **The Legacy**, nous t'annonçons que celle-ci a été **refusée**.
+
+Tu peux retrouver les informations concernant cette décision directement dans ton ticket de candidature, tant que celui-ci est encore ouvert.
+
+Tu pourras déposer une nouvelle candidature dans un délai d'**un mois**.
+
+**The Legacy**`
+                    )
+                    .setTimestamp()
+            ]
+        });
+
+        return true;
+
+    } catch {
+        return false;
+    }
+}
+
+// ======================================================
+// LOG FERMETURE TICKET
+// ======================================================
+
+async function logTicketClosure(
+    guild,
+    {
+        candidateId,
+        closedById = null,
+        ticketName,
+        transcript,
+        automatic = false
+    }
+) {
+    const logs =
+        guild.channels.cache.get(
+            CONFIG.salonLogs
+        );
+
+    if (
+        !logs?.isTextBased()
+    ) {
+        return;
+    }
+
+    const embed =
+        new EmbedBuilder()
+            .setColor(
+                COLORS.refuse
+            )
+            .setTitle(
+                automatic
+                    ? "🕒 Ticket refusé fermé automatiquement"
+                    : "🗑️ Ticket refusé fermé"
+            )
+            .setDescription(
+                [
+                    `**Candidat :** <@${candidateId}>`,
+                    `**ID :** \`${candidateId}\``,
+                    `**Ticket :** \`${ticketName}\``,
+                    "",
+                    automatic
+                        ? "**Fermeture :** automatique après 12 heures"
+                        : `**Fermé par :** <@${closedById}>`
+                ].join(
+                    "\n"
+                )
+            )
+            .setTimestamp();
+
+    const payload = {
+        embeds: [
+            embed
+        ]
+    };
+
+    if (
+        transcript
+    ) {
+        payload.files = [
+            new AttachmentBuilder(
+                transcript,
+                {
+                    name:
+                        `candidature-refusee-${candidateId}.txt`
+                }
+            )
+        ];
+    }
+
+    await logs.send(
+        payload
+    ).catch(
+        () => {}
+    );
+}
+
+// ======================================================
+// FERMETURE TICKET REFUSÉ
+// ======================================================
+
+async function closeRefusedTicket(
+    client,
+    guild,
+    ticket,
+    candidateId,
+    {
+        closedById = null,
+        automatic = false
+    } = {}
+) {
+    if (
+        !ticket
+    ) {
+        return false;
+    }
+
+    const candidatures =
+        lireCandidatures();
+
+    const candidature =
+        candidatures[
+            candidateId
+        ];
+
+    if (
+        candidature
+    ) {
+        candidature.ticketClosedAt =
+            Date.now();
+
+        candidature.ticketClosedBy =
+            automatic
+                ? "AUTO_12H"
+                : closedById;
+
+        sauvegarderCandidatures(
+            candidatures
+        );
+    }
+
+    let transcript =
+        null;
+
+    if (
+        ticket.isTextBased()
+    ) {
+        transcript =
+            await createTranscript(
+                ticket
+            ).catch(
+                () => null
+            );
+    }
+
+    await logTicketClosure(
+        guild,
+        {
+            candidateId,
+
+            closedById,
+
+            ticketName:
+                ticket.name,
+
+            transcript,
+
+            automatic
+        }
+    );
+
+    await ticket.delete(
+        automatic
+            ? "Candidature refusée • fermeture automatique après 12h"
+            : "Candidature refusée • fermeture manuelle"
+    ).catch(
+        error => {
+            console.error(
+                "❌ Fermeture ticket refusé :",
+                error
+            );
+        }
+    );
+
+    return true;
+}
+
+// ======================================================
+// VÉRIFICATION DES TICKETS REFUSÉS
+// ======================================================
+
+async function checkExpiredRefusedTickets(
+    client
+) {
+    const candidatures =
+        lireCandidatures();
+
+    let changed =
+        false;
+
+    for (
+        const [
+            candidateId,
+            candidature
+        ]
+        of Object.entries(
+            candidatures
+        )
+    ) {
+        if (
+            candidature.decision !==
+                "refused" ||
+            !candidature.closeAt ||
+            candidature.ticketClosedAt
+        ) {
+            continue;
+        }
+
+        if (
+            Date.now() <
+            candidature.closeAt
+        ) {
+            continue;
+        }
+
+        const ticketId =
+            candidature.ticketId;
+
+        if (
+            !ticketId
+        ) {
+            candidature.ticketClosedAt =
+                Date.now();
+
+            candidature.ticketClosedBy =
+                "AUTO_12H";
+
+            changed =
+                true;
+
+            continue;
+        }
+
+        const ticket =
+            await client.channels
+                .fetch(
+                    ticketId
+                )
+                .catch(
+                    () => null
+                );
+
+        if (
+            !ticket
+        ) {
+            candidature.ticketClosedAt =
+                Date.now();
+
+            candidature.ticketClosedBy =
+                "AUTO_12H";
+
+            changed =
+                true;
+
+            continue;
+        }
+
+        const guild =
+            ticket.guild;
+
+        if (
+            !guild
+        ) {
+            continue;
+        }
+
+        await closeRefusedTicket(
+            client,
+            guild,
+            ticket,
+            candidateId,
+            {
+                automatic:
+                    true
+            }
+        );
+    }
+
+    if (
+        changed
+    ) {
+        sauvegarderCandidatures(
+            candidatures
+        );
+    }
+}
+
+// ======================================================
 // EMBEDS STATUTS
 // ======================================================
 
-function embedAttente(membre) {
+function embedAttente(
+    membre
+) {
     return new EmbedBuilder()
         .setColor(
             COLORS.attente
@@ -450,7 +920,9 @@ Nous vous invitons à faire preuve de patience. Une réponse vous sera communiqu
         );
 }
 
-function embedAccepte(membre) {
+function embedAccepte(
+    membre
+) {
     return new EmbedBuilder()
         .setColor(
             COLORS.accepte
@@ -473,7 +945,9 @@ Les sessions d'entretien seront mis dans ce salon : <#${CONFIG.salonAnnonceEntre
         );
 }
 
-function embedRefuse(membre) {
+function embedRefuse(
+    membre
+) {
     return new EmbedBuilder()
         .setColor(
             COLORS.refuse
@@ -492,6 +966,8 @@ Nous vous remercions pour le temps que vous avez consacré à votre candidature 
 
 **L'héritage récompense ceux qui savent patienter**.
 
+> 🗑️ Ce ticket peut être fermé avec le bouton ci-dessous. Dans le cas contraire, il sera automatiquement supprimé dans **12 heures**.
+
 > <@${membre.id}>`
         );
 }
@@ -507,7 +983,8 @@ function createReviewButtons(
     decision = "pending"
 ) {
     const decisionPrise =
-        decision !== "pending";
+        decision !==
+        "pending";
 
     let ddsLabel =
         "DDS";
@@ -518,7 +995,10 @@ function createReviewButtons(
     let ddsStyle =
         ButtonStyle.Secondary;
 
-    if (ddsStatus === "pending") {
+    if (
+        ddsStatus ===
+        "pending"
+    ) {
         ddsLabel =
             "DDS déjà en cours...";
 
@@ -526,7 +1006,10 @@ function createReviewButtons(
             true;
     }
 
-    if (ddsStatus === "received") {
+    if (
+        ddsStatus ===
+        "received"
+    ) {
         ddsLabel =
             "Résultat DDS reçu";
 
@@ -537,8 +1020,11 @@ function createReviewButtons(
             ButtonStyle.Success;
     }
 
-    if (decisionPrise) {
-        ddsDisabled = true;
+    if (
+        decisionPrise
+    ) {
+        ddsDisabled =
+            true;
     }
 
     return new ActionRowBuilder()
@@ -548,7 +1034,8 @@ function createReviewButtons(
                     `legacy_accept_${userId}_${ticketId}`
                 )
                 .setLabel(
-                    decision === "accepted"
+                    decision ===
+                    "accepted"
                         ? "Accepté"
                         : "Accepter"
                 )
@@ -564,7 +1051,8 @@ function createReviewButtons(
                     `legacy_refuse_${userId}_${ticketId}`
                 )
                 .setLabel(
-                    decision === "refused"
+                    decision ===
+                    "refused"
                         ? "Refusé"
                         : "Refuser"
                 )
@@ -611,12 +1099,12 @@ function createFormEmbed(
             )
             .setThumbnail(
                 membre.user.displayAvatarURL({
-                    size: 512
+                    size:
+                        512
                 })
             )
             .setDescription(
-`**Statut :** En attente d'examen
-**Temps total :** \`${formatDuree(totalDuration)}\`
+`**Statut :** En attente d'examen **Temps total :** \`${formatDuree(totalDuration)}\`
 
 **Discord :** <@${membre.id}>
 **ID Discord :** \`${membre.id}\`
@@ -688,16 +1176,22 @@ async function updateReviewMessage(
     const channel =
         await client.channels.fetch(
             candidature.reviewChannelId
-        ).catch(() => null);
+        ).catch(
+            () => null
+        );
 
-    if (!channel?.isTextBased()) {
+    if (
+        !channel?.isTextBased()
+    ) {
         return;
     }
 
     const message =
         await channel.messages.fetch(
             candidature.reviewMessageId
-        ).catch(() => null);
+        ).catch(
+            () => null
+        );
 
     if (!message) {
         return;
@@ -713,7 +1207,10 @@ async function updateReviewMessage(
     let statut =
         "En attente";
 
-    if (decision === "accepted") {
+    if (
+        decision ===
+        "accepted"
+    ) {
         color =
             COLORS.accepte;
 
@@ -721,7 +1218,10 @@ async function updateReviewMessage(
             "Acceptée";
     }
 
-    if (decision === "refused") {
+    if (
+        decision ===
+        "refused"
+    ) {
         color =
             COLORS.refuse;
 
@@ -731,13 +1231,19 @@ async function updateReviewMessage(
 
     const embeds =
         message.embeds.map(
-            (oldEmbed, index) => {
+            (
+                oldEmbed,
+                index
+            ) => {
                 const embed =
                     EmbedBuilder.from(
                         oldEmbed
                     );
 
-                if (index === 0) {
+                if (
+                    index ===
+                    0
+                ) {
                     embed
                         .setColor(
                             color
@@ -787,8 +1293,11 @@ async function lancerQuestionnaire(
         membre.id
     );
 
-    const answers = {};
-    const durations = {};
+    const answers =
+        {};
+
+    const durations =
+        {};
 
     const debutTotal =
         Date.now();
@@ -830,13 +1339,16 @@ async function lancerQuestionnaire(
                     filter:
                         message =>
                             message.author.id ===
-                            membre.id &&
+                                membre.id &&
                             !message.author.bot,
 
-                    max: 1,
+                    max:
+                        1,
 
                     time:
-                        5 * 60 * 1000,
+                        5 *
+                        60 *
+                        1000,
 
                     errors: [
                         "time"
@@ -851,7 +1363,9 @@ async function lancerQuestionnaire(
             ) {
                 await questionMessage
                     .delete()
-                    .catch(() => {});
+                    .catch(
+                        () => {}
+                    );
 
                 await channel.send({
                     embeds: [
@@ -889,11 +1403,15 @@ async function lancerQuestionnaire(
             await Promise.all([
                 questionMessage
                     .delete()
-                    .catch(() => {}),
+                    .catch(
+                        () => {}
+                    ),
 
                 response
                     .delete()
-                    .catch(() => {})
+                    .catch(
+                        () => {}
+                    )
             ]);
         }
 
@@ -927,7 +1445,9 @@ async function envoyerNouvelleRecrue(
             CONFIG.salonNouvelleRecrue
         );
 
-    if (!salon?.isTextBased()) {
+    if (
+        !salon?.isTextBased()
+    ) {
         return;
     }
 
@@ -970,9 +1490,133 @@ module.exports =
 function registerRecruitmentSystem(
     client
 ) {
+    // ==================================================
+    // RESTAURATION DES FERMETURES 12H
+    // ==================================================
+
+    client.once(
+        Events.ClientReady,
+        async () => {
+            await checkExpiredRefusedTickets(
+                client
+            ).catch(
+                error =>
+                    console.error(
+                        "❌ Vérification tickets refusés :",
+                        error
+                    )
+            );
+
+            setInterval(
+                () => {
+                    checkExpiredRefusedTickets(
+                        client
+                    ).catch(
+                        error =>
+                            console.error(
+                                "❌ Fermeture automatique candidature :",
+                                error
+                            )
+                    );
+                },
+                REFUSED_CHECK_INTERVAL
+            );
+
+            console.log(
+                "🕒 Fermeture automatique des candidatures refusées : ✅ 12h"
+            );
+        }
+    );
+
     client.on(
         Events.InteractionCreate,
         async interaction => {
+
+            // ==================================================
+            // FERMER TICKET REFUSÉ
+            // ==================================================
+
+            if (
+                interaction.isButton() &&
+                interaction.customId.startsWith(
+                    "legacy_close_refused_"
+                )
+            ) {
+                const parts =
+                    interaction.customId.split(
+                        "_"
+                    );
+
+                const candidateId =
+                    parts[3];
+
+                const ticketId =
+                    parts[4];
+
+                const isCandidate =
+                    interaction.user.id ===
+                    candidateId;
+
+                const isRecruiter =
+                    recruteurAutorise(
+                        interaction.member
+                    );
+
+                if (
+                    !isCandidate &&
+                    !isRecruiter
+                ) {
+                    return interaction.reply({
+                        content:
+                            "❌ Tu ne peux pas fermer ce ticket.",
+
+                        flags:
+                            MessageFlags.Ephemeral
+                    });
+                }
+
+                if (
+                    interaction.channel.id !==
+                    ticketId
+                ) {
+                    return interaction.reply({
+                        content:
+                            "❌ Ce bouton ne correspond pas à ce ticket.",
+
+                        flags:
+                            MessageFlags.Ephemeral
+                    });
+                }
+
+                await interaction.reply({
+                    content:
+                        "🗑️ Fermeture du ticket...",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                });
+
+                setTimeout(
+                    async () => {
+                        await closeRefusedTicket(
+                            client,
+                            interaction.guild,
+                            interaction.channel,
+                            candidateId,
+                            {
+                                closedById:
+                                    interaction.user.id,
+
+                                automatic:
+                                    false
+                            }
+                        );
+                    },
+                    1500
+                );
+
+                return;
+            }
 
             // ==================================================
             // REJOINDRE
@@ -1001,7 +1645,9 @@ function registerRecruitmentSystem(
                             `candidature:${membre.id}`
                     );
 
-                if (existing) {
+                if (
+                    existing
+                ) {
                     return interaction.editReply({
                         content:
                             `❌ Tu possèdes déjà une candidature : ${existing}`
@@ -1091,7 +1737,9 @@ function registerRecruitmentSystem(
                                 .setLabel(
                                     "Formulaire de candidature"
                                 )
-                                .setEmoji("📝")
+                                .setEmoji(
+                                    "📝"
+                                )
                                 .setStyle(
                                     ButtonStyle.Primary
                                 ),
@@ -1103,7 +1751,9 @@ function registerRecruitmentSystem(
                                 .setLabel(
                                     "Annuler ma candidature"
                                 )
-                                .setEmoji("✖️")
+                                .setEmoji(
+                                    "✖️"
+                                )
                                 .setStyle(
                                     ButtonStyle.Danger
                                 )
@@ -1137,6 +1787,7 @@ Pour chaque question :
 > **Tu dois envoyer toute ta réponse dans UN SEUL MESSAGE.**
 
 Une fois ta réponse envoyée :
+
 - elle est enregistrée automatiquement ;
 - le message de la question est supprimé ;
 - ton message de réponse est supprimé ;
@@ -1195,6 +1846,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     return interaction.reply({
                         content:
                             "❌ Ce n'est pas ta candidature.",
+
                         flags:
                             MessageFlags.Ephemeral
                     });
@@ -1215,7 +1867,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonLogs
                     );
 
-                if (logs?.isTextBased()) {
+                if (
+                    logs?.isTextBased()
+                ) {
                     await logs.send({
                         embeds: [
                             new EmbedBuilder()
@@ -1267,7 +1921,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                             .delete(
                                 "Candidature annulée"
                             )
-                            .catch(() => {});
+                            .catch(
+                                () => {}
+                            );
                     },
                     2500
                 );
@@ -1297,6 +1953,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     return interaction.reply({
                         content:
                             "❌ Ce questionnaire ne t'appartient pas.",
+
                         flags:
                             MessageFlags.Ephemeral
                     });
@@ -1342,7 +1999,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         membre
                     );
 
-                if (!resultat) {
+                if (
+                    !resultat
+                ) {
                     return;
                 }
 
@@ -1381,7 +2040,16 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         null,
 
                     decision:
-                        "pending"
+                        "pending",
+
+                    closeAt:
+                        null,
+
+                    ticketClosedAt:
+                        null,
+
+                    ticketClosedBy:
+                        null
                 };
 
                 sauvegarderCandidatures(
@@ -1401,7 +2069,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonFormulaires
                     );
 
-                if (!salonForm?.isTextBased()) {
+                if (
+                    !salonForm?.isTextBased()
+                ) {
                     return interaction.channel.send({
                         content:
                             "❌ Salon de réception des candidatures introuvable."
@@ -1493,6 +2163,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     return interaction.reply({
                         content:
                             "❌ Ce panel ne t'appartient pas.",
+
                         flags:
                             MessageFlags.Ephemeral
                     });
@@ -1504,10 +2175,13 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         targetId
                     );
 
-                if (!cible) {
+                if (
+                    !cible
+                ) {
                     return interaction.reply({
                         content:
                             "❌ Membre introuvable.",
+
                         flags:
                             MessageFlags.Ephemeral
                     });
@@ -1536,7 +2210,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         .setStyle(
                             TextInputStyle.Paragraph
                         )
-                        .setRequired(true);
+                        .setRequired(
+                            true
+                        );
 
                 const date =
                     new TextInputBuilder()
@@ -1552,7 +2228,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         .setStyle(
                             TextInputStyle.Short
                         )
-                        .setRequired(true);
+                        .setRequired(
+                            true
+                        );
 
                 const pdt =
                     new TextInputBuilder()
@@ -1568,7 +2246,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         .setStyle(
                             TextInputStyle.Short
                         )
-                        .setRequired(true);
+                        .setRequired(
+                            true
+                        );
 
                 const discord =
                     new TextInputBuilder()
@@ -1578,14 +2258,18 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         .setLabel(
                             "@ Discord du candidat"
                         )
-                        .setPlaceholder("@")
+                        .setPlaceholder(
+                            "@"
+                        )
                         .setValue(
                             `@${cible.user.username}`
                         )
                         .setStyle(
                             TextInputStyle.Short
                         )
-                        .setRequired(true);
+                        .setRequired(
+                            true
+                        );
 
                 modal.addComponents(
                     new ActionRowBuilder()
@@ -1646,7 +2330,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         candidateId
                     );
 
-                if (!cible) {
+                if (
+                    !cible
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Candidat introuvable."
@@ -1682,7 +2368,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonCR
                     );
 
-                if (!salon?.isTextBased()) {
+                if (
+                    !salon?.isTextBased()
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Le salon des comptes-rendus est introuvable."
@@ -1699,37 +2387,47 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         )
                         .setThumbnail(
                             cible.user.displayAvatarURL({
-                                size: 512
+                                size:
+                                    512
                             })
                         )
                         .addFields(
                             {
                                 name:
                                     "Présentation + Communication",
+
                                 value:
                                     presentation
                             },
+
                             {
                                 name:
                                     "Date arrivée / refus + Accepté / Ref",
+
                                 value:
                                     date
                             },
+
                             {
                                 name:
                                     "Durée de la PDT",
+
                                 value:
                                     pdt
                             },
+
                             {
                                 name:
                                     "@ Discord du candidat",
+
                                 value:
                                     `${discord}\n<@${cible.id}>\n\`${cible.id}\``
                             },
+
                             {
                                 name:
                                     "Recruteur",
+
                                 value:
                                     `<@${recruiterId}>`
                             }
@@ -1800,7 +2498,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         candidateId
                     ];
 
-                if (!candidature) {
+                if (
+                    !candidature
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Aucune candidature enregistrée pour ce membre."
@@ -1849,12 +2549,15 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                                 {
                                     name:
                                         "Membre",
+
                                     value:
                                         `<@${candidateId}>\n\`${candidateId}\``
                                 },
+
                                 {
                                     name:
                                         "@ Roblox",
+
                                     value:
                                         candidature.answers?.question1 ||
                                         "Inconnu"
@@ -1908,7 +2611,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         userId
                     );
 
-                if (!membre) {
+                if (
+                    !membre
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Membre introuvable."
@@ -1932,7 +2637,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         ticketId
                     );
 
-                if (ticket?.isTextBased()) {
+                if (
+                    ticket?.isTextBased()
+                ) {
                     await ticket.send({
                         content:
                             `<@${membre.id}>`,
@@ -1957,6 +2664,11 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         userId
                     ].decision =
                         "accepted";
+
+                    candidatures[
+                        userId
+                    ].closeAt =
+                        null;
 
                     sauvegarderCandidatures(
                         candidatures
@@ -2024,7 +2736,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         userId
                     );
 
-                if (!membre) {
+                if (
+                    !membre
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Membre introuvable."
@@ -2035,6 +2749,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     await membre.roles.add(
                         CONFIG.roleRefuse
                     );
+
                 } catch (error) {
                     return interaction.editReply({
                         content:
@@ -2042,12 +2757,76 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     });
                 }
 
+                const closeAt =
+                    Date.now() +
+                    REFUSED_CLOSE_DELAY;
+
+                const candidatures =
+                    lireCandidatures();
+
+                if (
+                    !candidatures[
+                        userId
+                    ]
+                ) {
+                    candidatures[
+                        userId
+                    ] = {
+                        userId,
+
+                        ticketId,
+
+                        date:
+                            Date.now()
+                    };
+                }
+
+                candidatures[
+                    userId
+                ].decision =
+                    "refused";
+
+                candidatures[
+                    userId
+                ].ticketId =
+                    ticketId;
+
+                candidatures[
+                    userId
+                ].refusedAt =
+                    Date.now();
+
+                candidatures[
+                    userId
+                ].closeAt =
+                    closeAt;
+
+                candidatures[
+                    userId
+                ].ticketClosedAt =
+                    null;
+
+                candidatures[
+                    userId
+                ].ticketClosedBy =
+                    null;
+
+                sauvegarderCandidatures(
+                    candidatures
+                );
+
+                // ==========================================
+                // MESSAGE DANS LE TICKET
+                // ==========================================
+
                 const ticket =
                     interaction.guild.channels.cache.get(
                         ticketId
                     );
 
-                if (ticket?.isTextBased()) {
+                if (
+                    ticket?.isTextBased()
+                ) {
                     await ticket.send({
                         content:
                             `<@${membre.id}>`,
@@ -2056,27 +2835,25 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                             embedRefuse(
                                 membre
                             )
+                        ],
+
+                        components: [
+                            createCloseRefusedButton(
+                                membre.id,
+                                ticketId
+                            )
                         ]
                     });
                 }
 
-                const candidatures =
-                    lireCandidatures();
+                // ==========================================
+                // MP UNIQUEMENT SI REFUS
+                // ==========================================
 
-                if (
-                    candidatures[
-                        userId
-                    ]
-                ) {
-                    candidatures[
-                        userId
-                    ].decision =
-                        "refused";
-
-                    sauvegarderCandidatures(
-                        candidatures
+                const dmSent =
+                    await envoyerMPRefus(
+                        membre
                     );
-                }
 
                 await updateReviewMessage(
                     client,
@@ -2087,12 +2864,29 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     interaction.guild,
                     "❌ Candidature refusée",
                     interaction.user,
-                    membre.user
+                    membre.user,
+                    [
+                        "Ticket programmé pour fermeture automatique dans 12 heures.",
+                        dmSent
+                            ? "✅ MP de refus envoyé."
+                            : "⚠️ Impossible d'envoyer le MP."
+                    ].join(
+                        "\n"
+                    )
                 );
 
                 return interaction.editReply({
                     content:
-                        `❌ Candidature de **${membre.user.username}** refusée.`
+                        [
+                            `❌ Candidature de **${membre.user.username}** refusée.`,
+                            "",
+                            "🕒 Le ticket sera automatiquement supprimé dans **12 heures**.",
+                            dmSent
+                                ? "📩 Le candidat a reçu un MP."
+                                : "⚠️ Le candidat n'accepte pas les MP du bot."
+                        ].join(
+                            "\n"
+                        )
                 });
             }
 
@@ -2170,7 +2964,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonDDS
                     );
 
-                if (!salon?.isTextBased()) {
+                if (
+                    !salon?.isTextBased()
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Salon DDS introuvable."
@@ -2353,7 +3149,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 const requesterId =
                     parts[3];
 
-                const sanctions = [];
+                const sanctions =
+                    [];
 
                 for (
                     let i = 1;
@@ -2367,7 +3164,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                             )
                             .trim();
 
-                    if (value) {
+                    if (
+                        value
+                    ) {
                         sanctions.push(
                             `**Sanction ${i} :**\n${value}`
                         );
@@ -2384,7 +3183,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonReponseDDS
                     );
 
-                if (!salon?.isTextBased()) {
+                if (
+                    !salon?.isTextBased()
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Salon réponse DDS introuvable."
@@ -2407,6 +3208,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                                 {
                                     name:
                                         "Membre concerné",
+
                                     value:
                                         `<@${candidateId}>\n\`${candidateId}\``
                                 }
@@ -2483,7 +3285,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonReponseDDS
                     );
 
-                if (!salon?.isTextBased()) {
+                if (
+                    !salon?.isTextBased()
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Salon introuvable."
@@ -2574,7 +3378,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         CONFIG.salonReponseDDS
                     );
 
-                if (!salon?.isTextBased()) {
+                if (
+                    !salon?.isTextBased()
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Salon introuvable."
@@ -2676,7 +3482,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         targetId
                     );
 
-                if (!cible) {
+                if (
+                    !cible
+                ) {
                     return interaction.editReply({
                         content:
                             "❌ Membre introuvable."
@@ -2684,7 +3492,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 }
 
                 if (
-                    action === "accept"
+                    action ===
+                    "accept"
                 ) {
                     for (
                         const roleId
@@ -2714,7 +3523,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 }
 
                 if (
-                    action === "refuse"
+                    action ===
+                    "refuse"
                 ) {
                     await cible.roles.add(
                         CONFIG.roleRefuse
@@ -2734,7 +3544,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 }
 
                 if (
-                    action === "attente"
+                    action ===
+                    "attente"
                 ) {
                     if (
                         !cible.voice.channel
@@ -2763,7 +3574,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 }
 
                 if (
-                    action === "move"
+                    action ===
+                    "move"
                 ) {
                     if (
                         !interaction.member

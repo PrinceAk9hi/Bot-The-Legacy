@@ -49,7 +49,7 @@ module.exports = {
             }
 
             // ==================================================
-            // TON VOCAL
+            // VOCAL DE L'UTILISATEUR
             // ==================================================
 
             const destination =
@@ -63,7 +63,7 @@ module.exports = {
             }
 
             // ==================================================
-            // MEMBRE
+            // MEMBRE CIBLE
             // ==================================================
 
             const user =
@@ -75,11 +75,13 @@ module.exports = {
                 interaction.guild.members.cache.get(
                     user.id
                 ) ||
-                await interaction.guild.members.fetch(
-                    user.id
-                ).catch(
-                    () => null
-                );
+                await interaction.guild.members
+                    .fetch(
+                        user.id
+                    )
+                    .catch(
+                        () => null
+                    );
 
             if (!member) {
                 return interaction.editReply({
@@ -101,6 +103,10 @@ module.exports = {
                         `❌ <@${member.id}> n'est actuellement dans aucun vocal.`
                 });
             }
+
+            // ==================================================
+            // DÉJÀ DANS LE MÊME VOCAL
+            // ==================================================
 
             if (
                 currentChannel.id ===
@@ -131,7 +137,7 @@ module.exports = {
             }
 
             // ==================================================
-            // MÉMORISER L'ANCIEN VOCAL
+            // ENREGISTRER L'ANCIEN VOCAL
             // ==================================================
 
             if (
@@ -143,7 +149,13 @@ module.exports = {
 
             interaction.client.previousVoice.set(
                 member.id,
-                currentChannel.id
+                {
+                    guildId:
+                        interaction.guild.id,
+
+                    channelId:
+                        currentChannel.id
+                }
             );
 
             // ==================================================
@@ -172,7 +184,7 @@ module.exports = {
                                 "🔊 Déplacement vocal",
 
                             description:
-                                `<@${interaction.user.id}> a déplacé <@${member.id}> dans son vocal.`,
+                                `<@${interaction.user.id}> a utilisé **/mv** sur <@${member.id}>.`,
 
                             fields: [
                                 {
@@ -203,6 +215,10 @@ module.exports = {
                         () => {}
                     );
             }
+
+            // ==================================================
+            // CONFIRMATION
+            // ==================================================
 
             return interaction.editReply({
                 content:

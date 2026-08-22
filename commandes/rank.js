@@ -109,8 +109,7 @@ function getRawOption(
     const option =
         interaction.options.data.find(
             item =>
-                item.name ===
-                optionName
+                item.name === optionName
         );
 
     if (!option) {
@@ -345,7 +344,7 @@ async function sendPublicMessage({
         return;
     }
 
-    let embed = null;
+    let content = null;
 
     // ==================================================
     // GRADE
@@ -355,74 +354,26 @@ async function sendPublicMessage({
         category === "grade" &&
         action === "add"
     ) {
-        embed =
-            new EmbedBuilder()
-                .setColor(
-                    RANK_CONFIG.rankupColor
-                )
-                .setTitle(
-                    "🎉 RANKUP"
-                )
-                .setDescription(
-                    `**<@${member.id}> vient d'évoluer au sein de The Legacy !**`
-                )
-                .addFields(
-                    {
-                        name:
-                            "Ancien grade",
+        const evolution =
+            oldRank &&
+            oldRank !== newRank
+                ? `> **${oldRank}** → **${newRank}**`
+                : `> **Nouveau grade :** ${newRank}`;
 
-                        value:
-                            `\`${oldRank || "Aucun"}\``,
+        content =
+`## 👑 Évolution au sein de The Legacy
 
-                        inline:
-                            true
-                    },
+Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de **The Legacy** !
 
-                    {
-                        name:
-                            "Nouveau grade",
+${evolution}
 
-                        value:
-                            `\`${newRank}\``,
+Cette évolution récompense ton **implication**, ton **activité** et ton **investissement** au sein de la famille.
 
-                        inline:
-                            true
-                    },
+Continue ainsi, l'héritage se construit étape par étape. 🪽${note ? `
 
-                    {
-                        name:
-                            "Rankup effectué par",
+> 📝 **Note :** ${note}` : ""}
 
-                        value:
-                            `<@${moderator.id}>`,
-
-                        inline:
-                            false
-                    }
-                );
-
-        if (note) {
-            embed.addFields({
-                name:
-                    "📝 Note du staff",
-
-                value:
-                    note.substring(
-                        0,
-                        1024
-                    ),
-
-                inline:
-                    false
-            });
-        }
-
-        embed
-            .setFooter({
-                text:
-                    "Félicitations pour cette évolution. 🩵"
-            })
-            .setTimestamp();
+-# Rank effectué par <@${moderator.id}>`;
     }
 
     // ==================================================
@@ -433,35 +384,20 @@ async function sendPublicMessage({
         category === "gestion" &&
         action === "add"
     ) {
-        embed =
-            new EmbedBuilder()
-                .setColor(
-                    RANK_CONFIG.managementColor
-                )
-                .setTitle(
-                    "🛡️ NOUVELLE RESPONSABILITÉ"
-                )
-                .setDescription(
-`<@${member.id}> rejoint désormais :
+        content =
+`## ⚙️ Nouvelle responsabilité
 
-**${roleName}**
+Félicitations à <@${member.id}> qui rejoint désormais une nouvelle gestion au sein de **The Legacy** !
 
-Attribué par <@${moderator.id}>.`
-                )
-                .setTimestamp();
+> **${roleName}**
 
-        if (note) {
-            embed.addFields({
-                name:
-                    "📝 Note",
+Cette nouvelle responsabilité témoigne de la confiance qui t'est accordée et de ton investissement au sein de la famille.
 
-                value:
-                    note.substring(
-                        0,
-                        1024
-                    )
-            });
-        }
+Nous comptons sur toi pour représenter cette gestion avec sérieux et implication. 🪽${note ? `
+
+> 📝 **Note :** ${note}` : ""}
+
+-# Attribution effectuée par <@${moderator.id}>`;
     }
 
     // ==================================================
@@ -472,35 +408,20 @@ Attribué par <@${moderator.id}>.`
         category === "responsable" &&
         action === "add"
     ) {
-        embed =
-            new EmbedBuilder()
-                .setColor(
-                    RANK_CONFIG.responsibleColor
-                )
-                .setTitle(
-                    "👑 NOUVEAU RESPONSABLE"
-                )
-                .setDescription(
-`<@${member.id}> devient désormais :
+        content =
+`## 👑 Nouvelle responsabilité
 
-**${roleName}**
+Félicitations à <@${member.id}> qui devient désormais :
 
-Attribué par <@${moderator.id}>.`
-                )
-                .setTimestamp();
+> **${roleName}**
 
-        if (note) {
-            embed.addFields({
-                name:
-                    "📝 Note",
+Cette évolution marque une nouvelle étape au sein de **The Legacy** et représente la confiance qui t'est accordée pour encadrer et faire évoluer ta gestion.
 
-                value:
-                    note.substring(
-                        0,
-                        1024
-                    )
-            });
-        }
+Félicitations pour cette nouvelle responsabilité. 🪽${note ? `
+
+> 📝 **Note :** ${note}` : ""}
+
+-# Attribution effectuée par <@${moderator.id}>`;
     }
 
     // ==================================================
@@ -511,33 +432,35 @@ Attribué par <@${moderator.id}>.`
         action === "remove" &&
         RANK_CONFIG.publishRemovals
     ) {
-        embed =
-            new EmbedBuilder()
-                .setColor(
-                    RANK_CONFIG.removalColor
-                )
-                .setTitle(
-                    "🔄 MODIFICATION DES RESPONSABILITÉS"
-                )
-                .setDescription(
-`Le rôle :
+        content =
+`## 🔄 Modification des responsabilités
 
-**${roleName}**
+Une modification vient d'être effectuée concernant <@${member.id}>.
 
-a été retiré à <@${member.id}>.
+> **Rôle retiré :** ${roleName}
 
-**Modification effectuée par :**
-<@${moderator.id}>`
-                )
-                .setTimestamp();
+${category === "grade"
+    ? `Le membre ne possède désormais plus le grade **${roleName}**.`
+    : `Cette responsabilité a été retirée au membre.`}${note ? `
+
+> 📝 **Note :** ${note}` : ""}
+
+-# Modification effectuée par <@${moderator.id}>`;
     }
 
-    if (!embed) {
+    if (!content) {
         return;
     }
 
     await channel.send({
-        embeds: [embed]
+        content,
+
+        allowedMentions: {
+            users: [
+                member.id,
+                moderator.id
+            ]
+        }
     }).catch(error => {
         console.error(
             "❌ Message public /rank :",
@@ -725,7 +648,6 @@ module.exports = {
                 memberId
             );
 
-            // Pas encore de catégorie sélectionnée
             if (!category) {
                 return interaction.respond(
                     []
@@ -778,9 +700,6 @@ module.exports = {
                                 )
                         );
 
-                    // Si le membre possède au moins
-                    // un rôle de cette catégorie,
-                    // on affiche uniquement ceux-là.
                     if (
                         possessed.length > 0
                     ) {
@@ -1054,8 +973,6 @@ Vérifie son ID dans \`config/ranks.js\`.`
                 if (
                     action === "add"
                 ) {
-                    // Retire UNIQUEMENT les autres
-                    // grades principaux.
                     for (
                         const [
                             key,
@@ -1392,4 +1309,4 @@ Vérifie son ID dans \`config/ranks.js\`.`
             }).catch(() => {});
         }
     }
-}
+};

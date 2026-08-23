@@ -8421,48 +8421,183 @@ async function runDay(
 // START GAME
 // ======================================================
 
-async function startGame(
-    client,
-    game
+// ==================================================
+// START
+// ==================================================
+
+if (
+    id.startsWith(
+        "lg_lobby_start_"
+    )
 ) {
+    console.log(
+        "🐺 [LOUP-GAROU] Bouton Démarrer reçu :",
+        id
+    );
+
+    const gameId =
+        id.slice(
+            "lg_lobby_start_".length
+        );
+
+    console.log(
+        "🐺 [LOUP-GAROU] ID partie :",
+        gameId
+    );
+
+    let game =
+        getGame(
+            gameId
+        );
+
+    // ==================================================
+    // FALLBACK :
+    // si jamais l'ID du message n'est plus retrouvé,
+    // on cherche la partie active du serveur.
+    // ==================================================
+
+    if (
+        !game
+    ) {
+        console.warn(
+            `⚠️ [LOUP-GAROU] Partie ${gameId} introuvable par ID. Recherche par serveur...`
+        );
+
+        const guildGame =
+            getGuildGame(
+                interaction.guild.id
+            );
+
+        if (
+            guildGame &&
+            guildGame.id ===
+                gameId
+        ) {
+            game =
+                guildGame;
+        }
+    }
+
+    // ==================================================
+    // PARTIE INTROUVABLE
+    // ==================================================
+
+    if (
+        !game
+    ) {
+        console.error(
+            `❌ [LOUP-GAROU] Partie ${gameId} totalement introuvable.`
+        );
+
+        await replyPrivate(
+            interaction,
+            {
+                content:
+                    "❌ Cette partie n'existe plus dans la mémoire du bot.\n\nAnnule ce lobby puis relance `/loupgarou lancer`."
+            }
+        );
+
+        return true;
+    }
+
+    console.log(
+        "🐺 [LOUP-GAROU] Partie trouvée :",
+        {
+            id:
+                game.id,
+
+            status:
+                game.status,
+
+            phase:
+                game.phase,
+
+            players:
+                game.players.length,
+
+            voiceChannelId:
+                game.voiceChannelId,
+
+            hostId:
+                game.hostId
+        }
+    );
+
+    // ==================================================
+    // STATUT
+    // ==================================================
+
     if (
         game.status !==
         "lobby"
     ) {
-        return {
-            ok: false,
+        console.warn(
+            `⚠️ [LOUP-GAROU] Démarrage refusé : statut "${game.status}".`
+        );
 
-            reason:
-                "Cette partie a déjà commencé."
-        };
+        await replyPrivate(
+            interaction,
+            {
+                content:
+                    `❌ Cette partie n'est plus dans le lobby.\n\n**Statut actuel :** \`${game.status}\`\n**Phase :** \`${game.phase}\``
+            }
+        );
+
+        return true;
     }
+
+    // ==================================================
+    // HÔTE
+    // ==================================================
+
+    if (
+        interaction.user.id !==
+        game.hostId
+    ) {
+        console.log(
+            `⚠️ [LOUP-GAROU] ${interaction.user.id} a tenté de démarrer sans être l'hôte.`
+        );
+
+        await replyPrivate(
+            interaction,
+            {
+                content:
+                    "❌ Seul l'hôte peut démarrer la partie."
+            }
+        );
+
+        return true;
+    }
+
+    // ==================================================
+    // JOUEURS
+    // ==================================================
 
     if (
         game.players.length <
-        CONFIG.minPlayers
+        MIN_PLAYERS
     ) {
-        return {
-            ok: false,
+        console.log(
+            `⚠️ [LOUP-GAROU] Pas assez de joueurs : ${game.players.length}/${MIN_PLAYERS}`
+        );
 
-            reason:
-                `Il faut au minimum ${CONFIG.minPlayers} joueurs.`
-        };
+        await replyPrivate(
+            interaction,
+            {
+                content:
+                    `❌ Il faut au moins **${MIN_PLAYERS} joueurs**.\n\n👥 Joueurs actuellement inscrits : **${game.players.length}/${MIN_PLAYERS}**`
+            }
+        );
+
+        return true;
     }
 
-    if (
-        game.players.length >
-        CONFIG.maxPlayers
-    ) {
-        return {
-            ok: false,
-
-            reason:
-                `La partie est limitée à ${CONFIG.maxPlayers} joueurs.`
-        };
-    }
+    // ==================================================
+    // COMPOSITION
+    // ==================================================
 
     const composition =
-        resolveGameComposition(
+        resolveCurrentComposition(
             game
         );
 
@@ -8471,168 +8606,206 @@ async function startGame(
             .validation
             .valid
     ) {
-        return {
-            ok: false,
+        console.log(
+            "⚠️ [LOUP-GAROU] Composition invalide :",
+            composition
+                .validation
+                .errors
+        );
 
-            reason:
-                composition
-                    .validation
-                    .errors
-                    .join(
-                        "\n"
-                    )
-        };
+        await replyPrivate(
+            interaction,
+            {
+                content:
+`❌ La composition n'est pas valide.
+
+${composition.validation.errors
+    .map(
+        error =>
+            `• ${error}`
+    )
+    .join("\n")}`
+            }
+        );
+
+        return true;
     }
 
-    const voiceValidation =
-        await validatePlayersInVoice(
-            client,
-            game
-        );
+    // ==================================================
+    // CONFIRMATION IMMÉDIATE DU CLIC
+    // ==================================================
 
-    if (
-        !voiceValidation.ok
-    ) {
-        return voiceValidation;
-    }
+    await interaction.deferUpdate();
 
-    const guild =
-        client.guilds.cache.get(
-            game.guildId
-        );
+    await interaction.followUp({
+        content:
+`🐺 **Démarrage du Loup-Garou en cours...**
 
-    try {
-        await voice.connectToVoice(
-            guild,
-            game.voiceChannelId
-        );
+✅ Lobby validé
+✅ ${game.players.length} joueurs
+✅ Composition validée
 
-    } catch (error) {
-        return {
-            ok: false,
+🔊 Connexion au vocal et vérification des messages privés...`,
 
-            reason:
-                error.message
-        };
-    }
-
-    const dmCheck =
-        await preflightDMs(
-            client,
-            game
-        );
-
-    if (
-        !dmCheck.ok
-    ) {
-        voice.disconnect(
-            game.guildId
-        );
-
-        return dmCheck;
-    }
-
-    await captureMuteBaseline(
-        client,
-        game
-    );
-
-    game.status =
-        "running";
-
-    game.phase =
-        "distributing";
-
-    saveGame(
-        game
-    );
-
-    try {
-        await distributeRoles(
-            client,
-            game,
-            composition.roleCounts
-        );
-
-    } catch (error) {
-        game.status =
-            "lobby";
-
-        game.phase =
-            "lobby";
-
-        saveGame(
-            game
-        );
-
-        voice.disconnect(
-            game.guildId
-        );
-
-        return {
-            ok: false,
-
-            reason:
-                error.message
-        };
-    }
-
-    voice.setVolumes(
-        game.guildId,
-        {
-            narration:
-                game.config
-                    .narrationVolume,
-
-            sounds:
-                game.config
-                    .soundVolume,
-
-            ambience:
-                game.config
-                    .ambienceVolume
+        flags:
+            MessageFlags.Ephemeral
+    }).catch(
+        error => {
+            console.error(
+                "⚠️ [LOUP-GAROU] Impossible d'envoyer le message de progression :",
+                error
+            );
         }
     );
 
-    voice.setDiscreteMode?.(
-        game.guildId,
-        Boolean(
-            game.config
-                .discreteMode
-        )
+    console.log(
+        `🚀 [LOUP-GAROU] Démarrage de la partie ${game.id}...`
     );
 
-    await voice.narrateKeyAndWait(
-        game.guildId,
-        "gameStart"
-    );
+    const startedAt =
+        Date.now();
 
-    setTimeout(
-        () => {
-            runNight(
+    let result;
+
+    try {
+        result =
+            await loupgarouSystem.startGame(
                 client,
                 game
-            ).catch(
-                error => {
-                    console.error(
-                        "❌ runNight :",
-                        error
-                    );
-                }
             );
-        },
-        1_000
+
+    } catch (error) {
+        console.error(
+            `❌ [LOUP-GAROU] startGame() a planté pour ${game.id} :`,
+            error
+        );
+
+        await interaction.followUp({
+            content:
+                `❌ **Erreur pendant le démarrage du Loup-Garou.**\n\n\`${error.message || "Erreur inconnue"}\``,
+
+            flags:
+                MessageFlags.Ephemeral
+        }).catch(
+            () => {}
+        );
+
+        await refreshLobbyMessage(
+            interaction,
+            game
+        );
+
+        return true;
+    }
+
+    console.log(
+        `🐺 [LOUP-GAROU] startGame() terminé en ${Date.now() - startedAt} ms :`,
+        result
     );
 
-    return {
-        ok: true,
+    // ==================================================
+    // START REFUSÉ
+    // ==================================================
 
-        warnings:
-            composition
-                .validation
-                .warnings ||
+    if (
+        !result ||
+        !result.ok
+    ) {
+        const reason =
+            result?.reason ||
+            "Le moteur n'a retourné aucune raison.";
+
+        console.error(
+            `❌ [LOUP-GAROU] Impossible de démarrer ${game.id} :`,
+            reason
+        );
+
+        await interaction.followUp({
+            content:
+`❌ **Impossible de démarrer la partie.**
+
+${reason}`,
+
+            flags:
+                MessageFlags.Ephemeral
+        }).catch(
+            () => {}
+        );
+
+        await refreshLobbyMessage(
+            interaction,
+            game
+        );
+
+        return true;
+    }
+
+    // ==================================================
+    // PARTIE LANCÉE
+    // ==================================================
+
+    console.log(
+        `✅ [LOUP-GAROU] Partie ${game.id} démarrée avec ${game.players.length} joueurs.`
+    );
+
+    await interaction.message.edit({
+        content:
+            "🐺 **La partie commence. Les rôles sont envoyés en message privé...**",
+
+        embeds: [
+            loupgarouSystem.buildGameEmbed(
+                game
+            )
+        ],
+
+        components:
             []
-    };
+    }).catch(
+        error => {
+            console.error(
+                "⚠️ [LOUP-GAROU] Impossible de modifier le lobby après démarrage :",
+                error
+            );
+        }
+    );
+
+    await interaction.followUp({
+        content:
+            "✅ **La partie est lancée !** Les rôles ont été distribués et la première nuit va commencer.",
+
+        flags:
+            MessageFlags.Ephemeral
+    }).catch(
+        () => {}
+    );
+
+    // ==================================================
+    // WARNINGS
+    // ==================================================
+
+    if (
+        result.warnings
+            ?.length
+    ) {
+        await interaction.followUp({
+            content:
+`⚠️ Partie lancée avec quelques avertissements :
+
+${result.warnings
+    .map(
+        warning =>
+            `• ${warning}`
+    )
+    .join("\n")}`,
+
+            flags:
+                MessageFlags.Ephemeral
+        }).catch(
+            () => {}
+        );
+    }
+
+    return true;
 }
 
 // ======================================================

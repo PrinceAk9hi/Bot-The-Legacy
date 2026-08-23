@@ -362,12 +362,19 @@ function formatDuration(
         60;
 
     if (
-        minutes === 0
+        minutes ===
+        0
     ) {
         return `${hours}h`;
     }
 
-    return `${hours}h${String(minutes).padStart(2, "0")}`;
+    return (
+        `${hours}h${String(minutes)
+            .padStart(
+                2,
+                "0"
+            )}`
+    );
 }
 
 // ======================================================
@@ -416,7 +423,7 @@ function createRoomName(
     }
 
     // ==================================================
-    // AUCUN PLACEHOLDER → AJOUT AUTOMATIQUE
+    // AUCUN PLACEHOLDER
     // ==================================================
 
     else {
@@ -481,11 +488,15 @@ function getActivity(
                 "Spotify"
         );
 
-    if (spotify) {
+    if (
+        spotify
+    ) {
         if (
             spotify.details
         ) {
-            return `Spotify • ${spotify.details}`;
+            return (
+                `Spotify • ${spotify.details}`
+            );
         }
 
         return "Spotify";
@@ -499,13 +510,15 @@ function getActivity(
         ) ||
         activities[0];
 
-    if (!activity) {
+    if (
+        !activity
+    ) {
         return "Aucune activité";
     }
 
     if (
         activity.name ===
-            "Custom Status"
+        "Custom Status"
     ) {
         return activity.state
             ? activity.state
@@ -595,13 +608,11 @@ function registerJoin(
             [];
     }
 
-    // Temps de cette session vocale
     room.joinTimes[
         memberId
     ] =
         Date.now();
 
-    // Ordre historique d'arrivée
     if (
         !room.joinOrder.includes(
             memberId
@@ -671,7 +682,9 @@ function buildRequestText(
                     )
                     .join(", ")
                 : "Aucun membre indisponible."
-        ].join("\n");
+        ].join(
+            "\n"
+        );
     }
 
     if (
@@ -681,14 +694,18 @@ function buildRequestText(
             `${EMOJIS.manager} **Appel d'un gérant**`,
             "",
             room.lastRequestResult
-        ].join("\n");
+        ].join(
+            "\n"
+        );
     }
 
     return [
         `${EMOJIS.manager} **Appel d'un gérant**`,
         "",
         `${EMOJIS.arrow} Aucune demande en cours.`
-    ].join("\n");
+    ].join(
+        "\n"
+    );
 }
 
 // ======================================================
@@ -706,28 +723,32 @@ function buildPanelEmbed(
 
     const membersText =
         humans.length
-            ? humans.map(
-                member => {
-                    const joinedAt =
-                        room.joinTimes?.[
-                            member.id
-                        ] ||
-                        Date.now();
+            ? humans
+                .map(
+                    member => {
+                        const joinedAt =
+                            room.joinTimes?.[
+                                member.id
+                            ] ||
+                            Date.now();
 
-                    const owner =
-                        member.id ===
-                        room.ownerId;
+                        const owner =
+                            member.id ===
+                            room.ownerId;
 
-                    return [
-                        `${owner ? `${EMOJIS.owner} ` : ""}**<@${member.id}>**`,
-                        `${EMOJIS.arrow} ${getLegacyGrade(member)}`,
-                        `${EMOJIS.arrow} ${EMOJIS.clock} ${formatDuration(Date.now() - joinedAt)}`,
-                        `${EMOJIS.arrow} ${EMOJIS.activity} ${getActivity(member)}`
-                    ].join("\n");
-                }
-            ).join(
-                "\n\n"
-            )
+                        return [
+                            `${owner ? `${EMOJIS.owner} ` : ""}**<@${member.id}>**`,
+                            `${EMOJIS.arrow} ${getLegacyGrade(member)}`,
+                            `${EMOJIS.arrow} ${EMOJIS.clock} ${formatDuration(Date.now() - joinedAt)}`,
+                            `${EMOJIS.arrow} ${EMOJIS.activity} ${getActivity(member)}`
+                        ].join(
+                            "\n"
+                        );
+                    }
+                )
+                .join(
+                    "\n\n"
+                )
             : "*Aucun joueur présent.*";
 
     const noteSection =
@@ -736,11 +757,13 @@ function buildPanelEmbed(
                 "",
                 `${EMOJIS.settings} **Note du bureau**`,
                 room.note
-            ].join("\n")
+            ].join(
+                "\n"
+            )
             : "";
 
     const description = [
-        `## ${EMOJIS.settings} Panel Vocal`,
+        `## ${EMOJIS.settings} Panel de gestion - Vocal de ${channel.name}`,
         "",
         `${EMOJIS.owner} **Propriétaire**`,
         `<@${room.ownerId}>`,
@@ -775,7 +798,9 @@ function buildPanelEmbed(
                 value !==
                 null
         )
-        .join("\n");
+        .join(
+            "\n"
+        );
 
     return new EmbedBuilder()
         .setColor(
@@ -797,6 +822,10 @@ function buildPanelEmbed(
 function createPanelComponents(
     room
 ) {
+    // ==================================================
+    // LIGNE 1
+    // ==================================================
+
     const row1 =
         new ActionRowBuilder()
             .addComponents(
@@ -866,8 +895,30 @@ function createPanelComponents(
                         !room.request.closed
                             ? ButtonStyle.Danger
                             : ButtonStyle.Primary
+                    ),
+
+                // ======================================
+                // LEGACY GAMES
+                // ======================================
+
+                new ButtonBuilder()
+                    .setCustomId(
+                        `tpv_games_${room.channelId}`
+                    )
+                    .setLabel(
+                        "Jeux"
+                    )
+                    .setEmoji(
+                        "🎮"
+                    )
+                    .setStyle(
+                        ButtonStyle.Secondary
                     )
             );
+
+    // ==================================================
+    // INVITER JOUEUR
+    // ==================================================
 
     const row2 =
         new ActionRowBuilder()
@@ -879,9 +930,17 @@ function createPanelComponents(
                     .setPlaceholder(
                         "👤 Inviter un joueur"
                     )
-                    .setMinValues(1)
-                    .setMaxValues(1)
+                    .setMinValues(
+                        1
+                    )
+                    .setMaxValues(
+                        1
+                    )
             );
+
+    // ==================================================
+    // INVITER RÔLE
+    // ==================================================
 
     const row3 =
         new ActionRowBuilder()
@@ -893,9 +952,17 @@ function createPanelComponents(
                     .setPlaceholder(
                         "🧩 Inviter une gestion complète / un rôle"
                     )
-                    .setMinValues(1)
-                    .setMaxValues(1)
+                    .setMinValues(
+                        1
+                    )
+                    .setMaxValues(
+                        1
+                    )
             );
+
+    // ==================================================
+    // GESTION PROPRIÉTAIRE
+    // ==================================================
 
     const row4 =
         new ActionRowBuilder()
@@ -942,6 +1009,10 @@ function createPanelComponents(
                             )
                     )
             );
+
+    // ==================================================
+    // FONDATION
+    // ==================================================
 
     const row5 =
         new ActionRowBuilder()
@@ -1097,7 +1168,7 @@ async function updatePanelInternal(
     }
 
     // ==================================================
-    // RECHERCHE ANCIEN PANEL DU BOT
+    // RECHERCHE ANCIEN PANEL
     // ==================================================
 
     const messages =
@@ -1122,7 +1193,7 @@ async function updatePanelInternal(
                         embed =>
                             embed.description
                                 ?.includes(
-                                    "Panel Vocal"
+                                    "Panel de gestion"
                                 )
                     )
             );
@@ -1255,7 +1326,9 @@ async function assignOwner(
                 users: [
                     oldOwnerId,
                     newOwnerId
-                ].filter(Boolean)
+                ].filter(
+                    Boolean
+                )
             }
         }).catch(
             () => {}
@@ -1451,10 +1524,6 @@ async function createRoom(
             return;
         }
 
-        // ==================================================
-        // NOM AVEC LE MEMBRE
-        // ==================================================
-
         const roomName =
             createRoomName(
                 config.initialName,
@@ -1544,10 +1613,6 @@ async function createRoom(
 
         saveRooms();
 
-        // ==================================================
-        // DÉPLACEMENT
-        // ==================================================
-
         await member.voice
             .setChannel(
                 channel.id
@@ -1560,10 +1625,6 @@ async function createRoom(
                     );
                 }
             );
-
-        // ==================================================
-        // UN SEUL PANEL
-        // ==================================================
 
         await updatePanel(
             guild,
@@ -1681,7 +1742,7 @@ function buildManagerRequestEmbed(
 
     if (
         request.status ===
-            "taken"
+        "taken"
     ) {
         status =
             `✅ Pris en charge par <@${request.handlerId}>`;
@@ -1689,7 +1750,7 @@ function buildManagerRequestEmbed(
 
     if (
         request.status ===
-            "later"
+        "later"
     ) {
         status =
             `🟠 <@${request.handlerId}> arrive dans 15 à 30 minutes`;
@@ -1731,7 +1792,9 @@ function buildManagerRequestEmbed(
                         )
                         .join(", ")
                     : "Aucun."
-            ].join("\n")
+            ].join(
+                "\n"
+            )
         )
         .setFooter({
             text:
@@ -1878,7 +1941,9 @@ function registerTempVoiceSystem(
                     guildId
                 ),
 
-        rooms
+        rooms,
+
+        updatePanel
     };
 
     // ==================================================
@@ -1911,9 +1976,12 @@ function registerTempVoiceSystem(
                     );
 
                 const channel =
-                    guild?.channels.cache.get(
-                        channelId
-                    );
+                    guild
+                        ?.channels
+                        .cache
+                        .get(
+                            channelId
+                        );
 
                 if (
                     !channel
@@ -2013,105 +2081,27 @@ function registerTempVoiceSystem(
                             `${oldState.id} a quitté le bureau`
                         );
 
-                        const humans =
+                        // ======================================
+                        // VIDE → SUPPRESSION DIRECTE
+                        // ======================================
+
+                        const humansAfterLeave =
                             getHumanMembers(
                                 channel
+                            ).filter(
+                                member =>
+                                    member.id !==
+                                    oldState.id
                             );
 
-                        // ======================================
-                        // VIDE
-                        // =====================================
-                    
-                        // ======================================
-// VIDE → SUPPRESSION DIRECTE
-// ======================================
-
-const humansAfterLeave =
-    getHumanMembers(
-        channel
-    ).filter(
-        member =>
-            member.id !==
-            oldState.id
-    );
-
-if (
-    humansAfterLeave.length ===
-    0
-) {
-    console.log(
-        `🗑️ TPV vide → suppression immédiate : ${channel.name}`
-    );
-
-    // Désactiver l'éventuelle requête gérant
-    if (
-        room.request
-            ?.messageId
-    ) {
-        const requestChannel =
-            guild.channels.cache.get(
-                MANAGER_REQUEST_CHANNEL_ID
-            );
-
-        const requestMessage =
-            await requestChannel
-                ?.messages
-                .fetch(
-                    room.request.messageId
-                )
-                .catch(
-                    () => null
-                );
-
-        if (
-            requestMessage
-        ) {
-            await requestMessage
-                .edit({
-                    components:
-                        requestButtons(
-                            true
-                        )
-                })
-                .catch(
-                    () => {}
-                );
-        }
-    }
-
-    // Supprimer de la mémoire
-    rooms.delete(
-        channel.id
-    );
-
-    // Supprimer la queue du panel
-    panelUpdateQueues.delete(
-        channel.id
-    );
-
-    // Sauvegarder avant suppression
-    saveRooms();
-
-    // Supprimer le vocal immédiatement
-    await channel
-        .delete(
-            "Bureau TPV vide"
-        )
-        .catch(
-            error =>
-                console.error(
-                    "❌ Suppression TPV vide :",
-                    error
-                )
-        );
-
-    return;
-}
-
                         if (
-                            humans.length ===
+                            humansAfterLeave.length ===
                             0
                         ) {
+                            console.log(
+                                `🗑️ TPV vide → suppression immédiate : ${channel.name}`
+                            );
+
                             if (
                                 room.request
                                     ?.messageId
@@ -2151,18 +2141,22 @@ if (
                                 channel.id
                             );
 
-                            saveRooms();
-
                             panelUpdateQueues.delete(
                                 channel.id
                             );
+
+                            saveRooms();
 
                             await channel
                                 .delete(
                                     "Bureau TPV vide"
                                 )
                                 .catch(
-                                    () => {}
+                                    error =>
+                                        console.error(
+                                            "❌ Suppression TPV vide :",
+                                            error
+                                        )
                                 );
 
                             return;
@@ -2229,6 +2223,12 @@ if (
                         guild.channels.cache.get(
                             newState.channelId
                         );
+
+                    if (
+                        !channel
+                    ) {
+                        return;
+                    }
 
                     registerJoin(
                         room,
@@ -2359,11 +2359,12 @@ if (
 
                     if (
                         interaction.customId ===
-                            "tpv_request_unavailable"
+                        "tpv_request_unavailable"
                     ) {
                         if (
                             !Array.isArray(
-                                room.request.unavailableIds
+                                room.request
+                                    .unavailableIds
                             )
                         ) {
                             room.request.unavailableIds =
@@ -2427,7 +2428,7 @@ if (
 
                     if (
                         interaction.customId ===
-                            "tpv_request_take"
+                        "tpv_request_take"
                     ) {
                         room.request.status =
                             "taken";
@@ -2467,10 +2468,6 @@ if (
                             room
                         );
 
-                        // ==================================
-                        // DÉJÀ EN VOC
-                        // ==================================
-
                         if (
                             interaction.member
                                 .voice
@@ -2492,13 +2489,8 @@ if (
                                 flags:
                                     MessageFlags.Ephemeral
                             });
-                        }
 
-                        // ==================================
-                        // PAS EN VOC
-                        // ==================================
-
-                        else {
+                        } else {
                             await interaction.followUp({
                                 content:
                                     `✅ Demande prise en charge.\n🔊 [Rejoindre directement le bureau](https://discord.com/channels/${guild.id}/${room.channelId})`,
@@ -2517,7 +2509,7 @@ if (
 
                     if (
                         interaction.customId ===
-                            "tpv_request_later"
+                        "tpv_request_later"
                     ) {
                         room.request.status =
                             "later";
@@ -2605,10 +2597,6 @@ if (
                         });
                     }
 
-                    // ======================================
-                    // DEMANDE DÉJÀ ACTIVE
-                    // ======================================
-
                     if (
                         room.request &&
                         !room.request.closed
@@ -2621,10 +2609,6 @@ if (
                                 MessageFlags.Ephemeral
                         });
                     }
-
-                    // ======================================
-                    // COOLDOWN 15 MIN
-                    // ======================================
 
                     const cooldown =
                         getManagerCooldown(
@@ -2670,9 +2654,12 @@ if (
                         );
 
                     const foundationRole =
-                        interaction.guild.roles.cache.get(
-                            FOUNDATION_ROLE_ID
-                        );
+                        interaction.guild
+                            .roles
+                            .cache
+                            .get(
+                                FOUNDATION_ROLE_ID
+                            );
 
                     room.request = {
                         reason,
@@ -2716,9 +2703,12 @@ if (
                     );
 
                     const requestChannel =
-                        interaction.guild.channels.cache.get(
-                            MANAGER_REQUEST_CHANNEL_ID
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                MANAGER_REQUEST_CHANNEL_ID
+                            );
 
                     if (
                         !requestChannel
@@ -2814,7 +2804,99 @@ if (
                     if (
                         !room
                     ) {
-                        return;
+                        return interaction.reply({
+                            content:
+                                "❌ Ce bureau vocal n'existe plus.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        }).catch(
+                            () => {}
+                        );
+                    }
+
+                    const channel =
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
+
+                    if (
+                        !channel
+                    ) {
+                        return interaction.reply({
+                            content:
+                                "❌ Le salon vocal est introuvable.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        }).catch(
+                            () => {}
+                        );
+                    }
+
+                    // ======================================
+                    // LEGACY GAMES
+                    //
+                    // Accessible à tous les membres
+                    // actuellement présents dans le TPV.
+                    // ======================================
+
+                    if (
+                        action ===
+                        "games"
+                    ) {
+                        if (
+                            interaction.member
+                                .voice
+                                .channelId !==
+                            channelId
+                        ) {
+                            return interaction.reply({
+                                content:
+                                    "❌ Tu dois être présent dans ce vocal pour ouvrir les **Legacy Games**.",
+
+                                flags:
+                                    MessageFlags.Ephemeral
+                            });
+                        }
+
+                        const legacyGames =
+                            interaction.client
+                                .commands
+                                ?.get(
+                                    "legacygames"
+                                );
+
+                        if (
+                            !legacyGames
+                                ?.legacyGamesSystem
+                                ?.openHub
+                        ) {
+                            return interaction.reply({
+                                content:
+                                    "❌ Le système **Legacy Games** n'est pas disponible pour le moment.",
+
+                                flags:
+                                    MessageFlags.Ephemeral
+                            });
+                        }
+
+                        addHistory(
+                            room,
+                            `${interaction.user.id} a ouvert Legacy Games`
+                        );
+
+                        saveRooms();
+
+                        return legacyGames
+                            .legacyGamesSystem
+                            .openHub(
+                                interaction,
+                                channelId
+                            );
                     }
 
                     // ======================================
@@ -2823,7 +2905,7 @@ if (
 
                     if (
                         action ===
-                            "call"
+                        "call"
                     ) {
                         if (
                             !isOwner(
@@ -2880,6 +2962,9 @@ if (
 
                     // ======================================
                     // OWNER ONLY
+                    //
+                    // Rename / Note / Toggle restent
+                    // réservés au propriétaire.
                     // ======================================
 
                     if (
@@ -2903,31 +2988,32 @@ if (
 
                     if (
                         action ===
-                            "toggle"
+                        "toggle"
                     ) {
                         room.closed =
                             !room.closed;
 
-                        const channel =
-                            interaction.guild.channels.cache.get(
-                                channelId
+                        await channel
+                            .permissionOverwrites
+                            .edit(
+                                interaction.guild
+                                    .roles
+                                    .everyone,
+                                {
+                                    Connect:
+                                        !room.closed
+                                }
                             );
 
-                        await channel.permissionOverwrites.edit(
-                            interaction.guild.roles.everyone,
-                            {
-                                Connect:
-                                    !room.closed
-                            }
-                        );
-
-                        await channel.permissionOverwrites.edit(
-                            room.ownerId,
-                            {
-                                Connect:
-                                    true
-                            }
-                        );
+                        await channel
+                            .permissionOverwrites
+                            .edit(
+                                room.ownerId,
+                                {
+                                    Connect:
+                                        true
+                                }
+                            );
 
                         addHistory(
                             room,
@@ -2938,7 +3024,8 @@ if (
 
                         saveRooms();
 
-                        await interaction.deferUpdate();
+                        await interaction
+                            .deferUpdate();
 
                         await updatePanel(
                             interaction.guild,
@@ -2954,7 +3041,7 @@ if (
 
                     if (
                         action ===
-                            "rename"
+                        "rename"
                     ) {
                         const modal =
                             new ModalBuilder()
@@ -3004,7 +3091,7 @@ if (
 
                     if (
                         action ===
-                            "note"
+                        "note"
                     ) {
                         const modal =
                             new ModalBuilder()
@@ -3099,9 +3186,24 @@ if (
                             );
 
                     const channel =
-                        interaction.guild.channels.cache.get(
-                            channelId
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
+
+                    if (
+                        !channel
+                    ) {
+                        return interaction.reply({
+                            content:
+                                "❌ Vocal introuvable.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        });
+                    }
 
                     await channel.setName(
                         name
@@ -3234,32 +3336,45 @@ if (
                     }
 
                     const memberId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const channel =
-                        interaction.guild.channels.cache.get(
-                            channelId
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
+
+                    if (
+                        !channel
+                    ) {
+                        return;
+                    }
+
+                    await channel
+                        .permissionOverwrites
+                        .edit(
+                            memberId,
+                            {
+                                ViewChannel:
+                                    true,
+
+                                Connect:
+                                    true,
+
+                                Speak:
+                                    true,
+
+                                SendMessages:
+                                    false,
+
+                                AddReactions:
+                                    false
+                            }
                         );
-
-                    await channel.permissionOverwrites.edit(
-                        memberId,
-                        {
-                            ViewChannel:
-                                true,
-
-                            Connect:
-                                true,
-
-                            Speak:
-                                true,
-
-                            SendMessages:
-                                false,
-
-                            AddReactions:
-                                false
-                        }
-                    );
 
                     addHistory(
                         room,
@@ -3317,32 +3432,45 @@ if (
                     }
 
                     const roleId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const channel =
-                        interaction.guild.channels.cache.get(
-                            channelId
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
+
+                    if (
+                        !channel
+                    ) {
+                        return;
+                    }
+
+                    await channel
+                        .permissionOverwrites
+                        .edit(
+                            roleId,
+                            {
+                                ViewChannel:
+                                    true,
+
+                                Connect:
+                                    true,
+
+                                Speak:
+                                    true,
+
+                                SendMessages:
+                                    false,
+
+                                AddReactions:
+                                    false
+                            }
                         );
-
-                    await channel.permissionOverwrites.edit(
-                        roleId,
-                        {
-                            ViewChannel:
-                                true,
-
-                            Connect:
-                                true,
-
-                            Speak:
-                                true,
-
-                            SendMessages:
-                                false,
-
-                            AddReactions:
-                                false
-                        }
-                    );
 
                     addHistory(
                         room,
@@ -3400,7 +3528,9 @@ if (
                     }
 
                     const action =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const labels = {
                         exclude:
@@ -3415,7 +3545,9 @@ if (
 
                     return interaction.reply({
                         content:
-                            labels[action],
+                            labels[
+                                action
+                            ],
 
                         components: [
                             new ActionRowBuilder()
@@ -3459,10 +3591,14 @@ if (
                             );
 
                     const action =
-                        parts[2];
+                        parts[
+                            2
+                        ];
 
                     const channelId =
-                        parts[3];
+                        parts[
+                            3
+                        ];
 
                     const room =
                         rooms.get(
@@ -3480,10 +3616,13 @@ if (
                     }
 
                     const memberId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const member =
-                        await interaction.guild.members
+                        await interaction.guild
+                            .members
                             .fetch(
                                 memberId
                             )
@@ -3492,9 +3631,12 @@ if (
                             );
 
                     const channel =
-                        interaction.guild.channels.cache.get(
-                            channelId
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
 
                     if (
                         !member ||
@@ -3509,10 +3651,11 @@ if (
 
                     if (
                         action ===
-                            "exclude"
+                        "exclude"
                     ) {
                         if (
-                            member.voice.channelId ===
+                            member.voice
+                                .channelId ===
                             channelId
                         ) {
                             await member.voice
@@ -3522,13 +3665,15 @@ if (
                                 );
                         }
 
-                        await channel.permissionOverwrites.edit(
-                            memberId,
-                            {
-                                Connect:
-                                    false
-                            }
-                        );
+                        await channel
+                            .permissionOverwrites
+                            .edit(
+                                memberId,
+                                {
+                                    Connect:
+                                        false
+                                }
+                            );
 
                         addHistory(
                             room,
@@ -3552,30 +3697,32 @@ if (
 
                     if (
                         action ===
-                            "permissions"
+                        "permissions"
                     ) {
-                        await channel.permissionOverwrites.edit(
-                            memberId,
-                            {
-                                ViewChannel:
-                                    true,
+                        await channel
+                            .permissionOverwrites
+                            .edit(
+                                memberId,
+                                {
+                                    ViewChannel:
+                                        true,
 
-                                Connect:
-                                    true,
+                                    Connect:
+                                        true,
 
-                                Speak:
-                                    true,
+                                    Speak:
+                                        true,
 
-                                MoveMembers:
-                                    true,
+                                    MoveMembers:
+                                        true,
 
-                                SendMessages:
-                                    false,
+                                    SendMessages:
+                                        false,
 
-                                AddReactions:
-                                    false
-                            }
-                        );
+                                    AddReactions:
+                                        false
+                                }
+                            );
 
                         addHistory(
                             room,
@@ -3599,7 +3746,7 @@ if (
 
                     if (
                         action ===
-                            "transfer"
+                        "transfer"
                     ) {
                         await assignOwner(
                             interaction.guild,
@@ -3663,12 +3810,23 @@ if (
                     }
 
                     const action =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const channel =
-                        interaction.guild.channels.cache.get(
-                            channelId
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
+
+                    if (
+                        !channel
+                    ) {
+                        return;
+                    }
 
                     // ======================================
                     // PRENDRE PROPRIÉTÉ
@@ -3676,7 +3834,7 @@ if (
 
                     if (
                         action ===
-                            "take_owner"
+                        "take_owner"
                     ) {
                         const oldOwner =
                             room.ownerId;
@@ -3704,7 +3862,7 @@ if (
 
                     if (
                         action ===
-                            "history"
+                        "history"
                     ) {
                         const history =
                             (
@@ -3747,7 +3905,7 @@ if (
                         return interaction.reply({
                             content:
                                 action ===
-                                    "bring"
+                                "bring"
                                     ? "🛡️ Choisis le joueur à ramener."
                                     : "🔒 Choisis le joueur à menotter dans ce bureau.",
 
@@ -3760,6 +3918,12 @@ if (
                                             )
                                             .setPlaceholder(
                                                 "Sélectionner un joueur"
+                                            )
+                                            .setMinValues(
+                                                1
+                                            )
+                                            .setMaxValues(
+                                                1
                                             )
                                     )
                             ],
@@ -3775,7 +3939,7 @@ if (
 
                     if (
                         action ===
-                            "move_room"
+                        "move_room"
                     ) {
                         return interaction.reply({
                             content:
@@ -3808,7 +3972,7 @@ if (
 
                     if (
                         action ===
-                            "move_all_here"
+                        "move_all_here"
                     ) {
                         return interaction.reply({
                             content:
@@ -3862,23 +4026,39 @@ if (
                             );
 
                     const action =
-                        parts[2];
+                        parts[
+                            2
+                        ];
 
                     const channelId =
-                        parts[3];
+                        parts[
+                            3
+                        ];
 
                     const memberId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const member =
-                        await interaction.guild.members
+                        await interaction.guild
+                            .members
                             .fetch(
                                 memberId
+                            )
+                            .catch(
+                                () => null
                             );
 
                     if (
+                        !member
+                    ) {
+                        return;
+                    }
+
+                    if (
                         action ===
-                            "bring"
+                        "bring"
                     ) {
                         await member.voice
                             .setChannel(
@@ -3896,27 +4076,30 @@ if (
 
                     if (
                         action ===
-                            "menotte"
+                        "menotte"
                     ) {
-                        interaction.client.menottes.set(
-                            memberId,
-                            {
-                                guildId:
-                                    interaction.guild.id,
+                        interaction.client
+                            .menottes
+                            .set(
+                                memberId,
+                                {
+                                    guildId:
+                                        interaction.guild.id,
 
-                                channelId,
+                                    channelId,
 
-                                moderatorId:
-                                    interaction.user.id
-                            }
-                        );
+                                    moderatorId:
+                                        interaction.user.id
+                                }
+                            );
 
                         interaction.client
                             .saveControlStates
                             ?.();
 
                         if (
-                            member.voice.channelId !==
+                            member.voice
+                                .channelId !==
                             channelId
                         ) {
                             await member.voice
@@ -3965,12 +4148,17 @@ if (
                             );
 
                     const destinationId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const source =
-                        interaction.guild.channels.cache.get(
-                            channelId
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                channelId
+                            );
 
                     if (
                         !source
@@ -4033,12 +4221,17 @@ if (
                             );
 
                     const sourceId =
-                        interaction.values[0];
+                        interaction.values[
+                            0
+                        ];
 
                     const source =
-                        interaction.guild.channels.cache.get(
-                            sourceId
-                        );
+                        interaction.guild
+                            .channels
+                            .cache
+                            .get(
+                                sourceId
+                            );
 
                     if (
                         !source

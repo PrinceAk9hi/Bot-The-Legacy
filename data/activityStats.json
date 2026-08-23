@@ -1,5 +1,5 @@
 {
-    "version": 2,
+    "version": 3,
     "initialized": true,
     "trackingStartedAt": 1786658400000,
     "legacyGlobal": {
@@ -11,23 +11,24 @@
             "discordId": "547192186547077130",
             "username": "ak9hi",
             "displayName": "Ak9hi",
-            "messages": 1251,
-            "voiceSeconds": 165831,
+            "messages": 2504,
+            "voiceSeconds": 330831,
             "firstSeenAt": 1787342108936,
-            "lastMessageAt": null,
+            "lastMessageAt": 1787359765867,
             "lastVoiceAt": 1787342940701,
             "legacyImported": true,
-            "legacyImportedAt": 1787342108936
+            "legacyImportedAt": 1787359030153,
+            "legacySourceKey": "ak9hi"
         },
         "1408963750504960194": {
             "discordId": "1408963750504960194",
             "username": "mr.bruce_9",
             "displayName": "𝓜𝓻 𝓑𝓻𝓾𝓬𝓮",
             "messages": 0,
-            "voiceSeconds": 11,
+            "voiceSeconds": 760,
             "firstSeenAt": 1787342108939,
             "lastMessageAt": null,
-            "lastVoiceAt": 1787342120539
+            "lastVoiceAt": 1787359408836
         },
         "1053733315728920637": {
             "discordId": "1053733315728920637",
@@ -43,13 +44,14 @@
             "discordId": "947878139923673130",
             "username": "esta_10",
             "displayName": "ESTA",
-            "messages": 445,
-            "voiceSeconds": 189213,
+            "messages": 890,
+            "voiceSeconds": 376473,
             "firstSeenAt": 1787342108941,
             "lastMessageAt": null,
             "lastVoiceAt": 1787345737436,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710088
+            "legacyImportedAt": 1787359030163,
+            "legacySourceKey": "esta"
         },
         "845774132451868682": {
             "discordId": "845774132451868682",
@@ -65,93 +67,105 @@
             "discordId": "815269907633143881",
             "username": "fuck_.you",
             "displayName": "Dark Meg ⛓️‍💥🖤🩸",
-            "messages": 579,
-            "voiceSeconds": 1284723,
+            "messages": 1158,
+            "voiceSeconds": 2566903,
             "firstSeenAt": 1787342108942,
-            "lastMessageAt": 1787344367729,
-            "lastVoiceAt": 1787346469153,
+            "lastMessageAt": 1787359093479,
+            "lastVoiceAt": 1787358020090,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710088
+            "legacyImportedAt": 1787359030159,
+            "legacySourceKey": "dark_meg"
         },
         "1191761183909351579": {
             "discordId": "1191761183909351579",
             "username": "ultra_.3",
             "displayName": "𓆩♛𓆪 𝑺𝑯𝑰𝑵𝑹𝑨 蒼空 𓆩✞𓆪",
-            "messages": 0,
-            "voiceSeconds": 113,
+            "messages": 101,
+            "voiceSeconds": 301233,
             "firstSeenAt": 1787342122192,
             "lastMessageAt": null,
-            "lastVoiceAt": 1787342235542
+            "lastVoiceAt": 1787358020089,
+            "legacyImported": true,
+            "legacySourceKey": "shinra",
+            "legacyImportedAt": 1787359030169
         },
         "883087428016046150": {
             "discordId": "883087428016046150",
             "username": "mini_jivoxx",
             "displayName": "𝐀𝐒𝐍𝐀𝐓𝐄",
-            "messages": 3,
-            "voiceSeconds": 0,
+            "messages": 245,
+            "voiceSeconds": 516540,
             "firstSeenAt": 1787342182188,
-            "lastMessageAt": 1787345946294,
-            "lastVoiceAt": null
+            "lastMessageAt": 1787359112765,
+            "lastVoiceAt": null,
+            "legacyImported": true,
+            "legacySourceKey": "asnate",
+            "legacyImportedAt": 1787359030164
         },
         "672477367066820671": {
             "discordId": "672477367066820671",
             "username": "mika_hael",
             "displayName": "Mme Mika  ° . ❁",
-            "messages": 684,
-            "voiceSeconds": 1335180,
+            "messages": 1368,
+            "voiceSeconds": 2671480,
             "firstSeenAt": 1787343710085,
             "lastMessageAt": null,
-            "lastVoiceAt": null,
+            "lastVoiceAt": 1787358020093,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710085
+            "legacyImportedAt": 1787359030155,
+            "legacySourceKey": "mme_mika"
         },
         "1078733029205364766": {
             "discordId": "1078733029205364766",
             "username": "zaltonne",
             "displayName": "Zone",
-            "messages": 581,
-            "voiceSeconds": 740760,
+            "messages": 1162,
+            "voiceSeconds": 1481520,
             "firstSeenAt": 1787343710088,
             "lastMessageAt": null,
             "lastVoiceAt": null,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710088
+            "legacyImportedAt": 1787359030159,
+            "legacySourceKey": "zone"
         },
         "1144303281926057995": {
             "discordId": "1144303281926057995",
             "username": "uss.ems",
             "displayName": "EMS.",
-            "messages": 158,
-            "voiceSeconds": 99720,
+            "messages": 316,
+            "voiceSeconds": 199440,
             "firstSeenAt": 1787343710092,
             "lastMessageAt": null,
             "lastVoiceAt": null,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710092
+            "legacyImportedAt": 1787359030168,
+            "legacySourceKey": "ems"
         },
         "1382838157199802518": {
             "discordId": "1382838157199802518",
             "username": "sikox_fire",
             "displayName": "\"Mirage\" )(.",
-            "messages": 22,
-            "voiceSeconds": 17580,
+            "messages": 44,
+            "voiceSeconds": 35160,
             "firstSeenAt": 1787343710097,
             "lastMessageAt": null,
             "lastVoiceAt": null,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710097
+            "legacyImportedAt": 1787359030172,
+            "legacySourceKey": "mirage"
         },
         "1435693752323805234": {
             "discordId": "1435693752323805234",
             "username": "berat270.",
             "displayName": "PASCAL 🫵👑",
-            "messages": 18,
-            "voiceSeconds": 29580,
+            "messages": 36,
+            "voiceSeconds": 59160,
             "firstSeenAt": 1787343710097,
             "lastMessageAt": null,
             "lastVoiceAt": null,
             "legacyImported": true,
-            "legacyImportedAt": 1787343710097
+            "legacyImportedAt": 1787359030173,
+            "legacySourceKey": "pascal"
         },
         "805418697497772062": {
             "discordId": "805418697497772062",
@@ -169,50 +183,45 @@
             "discordId": "1354396902673748089",
             "username": "esteban.grv18",
             "displayName": "𝐄𝐒𝐓𝐄𝐁𝐀𝐍",
-            "messages": 2,
-            "voiceSeconds": 0,
+            "messages": 234,
+            "voiceSeconds": 687240,
             "firstSeenAt": 1787345516645,
             "lastMessageAt": 1787346506019,
             "lastVoiceAt": null,
-            "legacyImported": false,
-            "legacySourceKey": null
+            "legacyImported": true,
+            "legacySourceKey": "esteban",
+            "legacyImportedAt": 1787359030166
+        },
+        "1105511636955054171": {
+            "discordId": "1105511636955054171",
+            "username": "zouzou_loul67",
+            "displayName": "𝑍𝑂𝑈𝑍𝑂𝑈 𝑅𝐴𝐵𝐵𝐼𝑇",
+            "messages": 47,
+            "voiceSeconds": 206820,
+            "firstSeenAt": 1787359030170,
+            "lastMessageAt": null,
+            "lastVoiceAt": null,
+            "legacyImported": true,
+            "legacySourceKey": "zouzou",
+            "legacyImportedAt": 1787359030170
         }
     },
-    "pendingLegacyMembers": [
-        {
-            "username": "snt.lgcy",
-            "displayName": "ASNATE",
-            "messages": 237,
-            "voiceMinutes": 8609,
-            "voiceSeconds": 516540
-        },
-        {
-            "username": "esteban.lgcy",
-            "displayName": "ESTEBAN",
-            "messages": 232,
-            "voiceMinutes": 11454,
-            "voiceSeconds": 687240
-        },
-        {
-            "username": "shinra.lgcy",
-            "displayName": "SHINRA",
-            "messages": 101,
-            "voiceMinutes": 5000,
-            "voiceSeconds": 300000
-        },
-        {
-            "username": "zouzou.lgcy",
-            "displayName": "ZOUZOU RABBIT",
-            "messages": 47,
-            "voiceMinutes": 3447,
-            "voiceSeconds": 206820
-        }
-    ],
+    "pendingLegacyMembers": [],
     "voiceSessions": {
+        "1191761183909351579": {
+            "guildId": "1458391729936793736",
+            "channelId": "1540489991438868521",
+            "startedAt": 1787359780412
+        },
         "815269907633143881": {
             "guildId": "1458391729936793736",
-            "channelId": "1529237121611858051",
-            "startedAt": 1787346526489
+            "channelId": "1507135977431367750",
+            "startedAt": 1787359780412
+        },
+        "672477367066820671": {
+            "guildId": "1458391729936793736",
+            "channelId": "1540489991438868521",
+            "startedAt": 1787359780412
         }
     },
     "panel": {

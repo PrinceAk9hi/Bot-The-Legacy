@@ -39,15 +39,7 @@ const PAGE_SIZE =
     5;
 
 // ======================================================
-// DONNÉES REPRISES DE L'ANCIEN SITE
-// ======================================================
-//
-// discordId est renseigné uniquement lorsqu'on connaît
-// déjà avec certitude l'ID Discord.
-//
-// aliases sert à retrouver automatiquement le compte
-// correspondant même si son nickname a changé.
-//
+// DONNÉES REPRISES DU SITE
 // ======================================================
 
 const INITIAL_MEMBERS = [
@@ -171,11 +163,15 @@ const INITIAL_MEMBERS = [
             ) * 60
     },
 
+    // ==================================================
+    // ASNATE
+    // ==================================================
+
     {
         key: "asnate",
 
         discordId:
-            "883087428016046150",
+            null,
 
         displayName:
             "ASNATE",
@@ -183,7 +179,8 @@ const INITIAL_MEMBERS = [
         aliases: [
             "ASNATE",
             "asnate",
-            "snt.lgcy"
+            "snt.lgcy",
+            "mini_jivoxx"
         ],
 
         messages:
@@ -196,6 +193,10 @@ const INITIAL_MEMBERS = [
             ) * 60
     },
 
+    // ==================================================
+    // ESTEBAN
+    // ==================================================
+
     {
         key: "esteban",
 
@@ -207,7 +208,8 @@ const INITIAL_MEMBERS = [
 
         aliases: [
             "ESTEBAN",
-            "esteban.lgcy"
+            "esteban.lgcy",
+            "esteban.grv18"
         ],
 
         messages:
@@ -245,6 +247,10 @@ const INITIAL_MEMBERS = [
             ) * 60
     },
 
+    // ==================================================
+    // SHINRA
+    // ==================================================
+
     {
         key: "shinra",
 
@@ -256,7 +262,8 @@ const INITIAL_MEMBERS = [
 
         aliases: [
             "SHINRA",
-            "shinra.lgcy"
+            "shinra.lgcy",
+            "ultra._3"
         ],
 
         messages:
@@ -269,6 +276,10 @@ const INITIAL_MEMBERS = [
             ) * 60
     },
 
+    // ==================================================
+    // ZOUZOU
+    // ==================================================
+
     {
         key: "zouzou",
 
@@ -280,7 +291,8 @@ const INITIAL_MEMBERS = [
 
         aliases: [
             "ZOUZOU RABBIT",
-            "zouzou.lgcy"
+            "zouzou.lgcy",
+            "zouzou_loul67"
         ],
 
         messages:
@@ -343,14 +355,14 @@ const INITIAL_MEMBERS = [
 ];
 
 // ======================================================
-// MÉMOIRE
+// MEMORY
 // ======================================================
 
 let stats =
     null;
 
 // ======================================================
-// FICHIERS
+// FILES
 // ======================================================
 
 function ensureFiles() {
@@ -382,13 +394,13 @@ function ensureFiles() {
 }
 
 // ======================================================
-// DEFAULT DATA
+// DEFAULT
 // ======================================================
 
 function createDefaultStats() {
     return {
         version:
-            2,
+            3,
 
         trackingStartedAt:
             TRACKING_STARTED_AT,
@@ -399,7 +411,10 @@ function createDefaultStats() {
         pendingLegacyMembers:
             INITIAL_MEMBERS.map(
                 member => ({
-                    ...member
+                    ...member,
+                    aliases: [
+                        ...(member.aliases || [])
+                    ]
                 })
             ),
 
@@ -420,7 +435,7 @@ function createDefaultStats() {
 }
 
 // ======================================================
-// SAUVEGARDE
+// SAVE
 // ======================================================
 
 function saveStats() {
@@ -450,7 +465,78 @@ function saveStats() {
 }
 
 // ======================================================
-// CHARGEMENT
+// RESYNC DES PROFILS EN ATTENTE
+// ======================================================
+
+function syncPendingLegacyMembers() {
+    if (
+        !Array.isArray(
+            stats.pendingLegacyMembers
+        )
+    ) {
+        stats.pendingLegacyMembers =
+            [];
+    }
+
+    const importedKeys =
+        new Set(
+            Object
+                .values(
+                    stats.members ||
+                    {}
+                )
+                .map(
+                    member =>
+                        member.legacySourceKey
+                )
+                .filter(
+                    Boolean
+                )
+        );
+
+    const newPending =
+        [];
+
+    for (
+        const source
+        of INITIAL_MEMBERS
+    ) {
+        if (
+            importedKeys.has(
+                source.key
+            )
+        ) {
+            continue;
+        }
+
+        const existing =
+            stats.pendingLegacyMembers.find(
+                item =>
+                    item.key ===
+                    source.key
+            );
+
+        newPending.push({
+            ...(existing || {}),
+            ...source,
+
+            aliases: [
+                ...new Set([
+                    ...(existing?.aliases || []),
+                    ...(source.aliases || [])
+                ])
+            ]
+        });
+    }
+
+    stats.pendingLegacyMembers =
+        newPending;
+
+    saveStats();
+}
+
+// ======================================================
+// LOAD
 // ======================================================
 
 function loadStats() {
@@ -486,18 +572,14 @@ function loadStats() {
             parsed;
 
         if (
-            !stats.members ||
-            typeof stats.members !==
-                "object"
+            !stats.members
         ) {
             stats.members =
                 {};
         }
 
         if (
-            !stats.voiceSessions ||
-            typeof stats.voiceSessions !==
-                "object"
+            !stats.voiceSessions
         ) {
             stats.voiceSessions =
                 {};
@@ -518,49 +600,10 @@ function loadStats() {
             };
         }
 
-        // ==================================================
-        // MIGRATION V1 → V2
-        // ==================================================
+        stats.version =
+            3;
 
-        if (
-            stats.version <
-            2
-        ) {
-            stats.version =
-                2;
-
-            if (
-                !Array.isArray(
-                    stats.pendingLegacyMembers
-                )
-            ) {
-                stats.pendingLegacyMembers =
-                    INITIAL_MEMBERS.map(
-                        member => ({
-                            ...member
-                        })
-                    );
-            }
-
-            // Convertir les anciens voiceMinutes
-            for (
-                const legacy
-                of stats.pendingLegacyMembers
-            ) {
-                if (
-                    legacy.voiceSeconds ===
-                        undefined &&
-                    legacy.voiceMinutes !==
-                        undefined
-                ) {
-                    legacy.voiceSeconds =
-                        legacy.voiceMinutes *
-                        60;
-                }
-            }
-
-            saveStats();
-        }
+        syncPendingLegacyMembers();
 
     } catch (error) {
         console.error(
@@ -576,7 +619,7 @@ function loadStats() {
 }
 
 // ======================================================
-// NORMALISATION NOM
+// NORMALIZE
 // ======================================================
 
 function normalizeName(
@@ -601,7 +644,7 @@ function normalizeName(
 }
 
 // ======================================================
-// MEMBRE
+// MEMBER
 // ======================================================
 
 function ensureMember(
@@ -673,29 +716,25 @@ function ensureMember(
 }
 
 // ======================================================
-// TROUVER UN MEMBRE POUR L'IMPORT
+// FIND MEMBER
 // ======================================================
 
 function findGuildMemberForLegacy(
     guild,
     legacy
 ) {
-    // ==================================================
-    // ID CONNU
-    // ==================================================
-
     if (
         legacy.discordId
     ) {
-        const byId =
+        const member =
             guild.members.cache.get(
                 legacy.discordId
             );
 
         if (
-            byId
+            member
         ) {
-            return byId;
+            return member;
         }
     }
 
@@ -711,17 +750,13 @@ function findGuildMemberForLegacy(
                 Boolean
             );
 
-    // ==================================================
-    // USERNAME / DISPLAY NAME / GLOBAL NAME
-    // ==================================================
-
     return guild.members.cache.find(
-        candidate => {
-            const candidateNames = [
-                candidate.user.username,
-                candidate.user.globalName,
-                candidate.displayName,
-                candidate.nickname
+        member => {
+            const names = [
+                member.user.username,
+                member.user.globalName,
+                member.displayName,
+                member.nickname
             ]
                 .map(
                     normalizeName
@@ -732,7 +767,7 @@ function findGuildMemberForLegacy(
 
             return aliases.some(
                 alias =>
-                    candidateNames.includes(
+                    names.includes(
                         alias
                     )
             );
@@ -741,29 +776,22 @@ function findGuildMemberForLegacy(
 }
 
 // ======================================================
-// IMPORT ANCIENNES STATS
+// MIGRATION
 // ======================================================
 
 async function migrateLegacyMembers(
     guild
 ) {
-    if (
-        !Array.isArray(
-            stats.pendingLegacyMembers
-        )
-    ) {
-        stats.pendingLegacyMembers =
-            INITIAL_MEMBERS.map(
-                member => ({
-                    ...member
-                })
-            );
-    }
+    syncPendingLegacyMembers();
 
     if (
         stats.pendingLegacyMembers.length ===
         0
     ) {
+        console.log(
+            "📊 Migration stats : tous les profils sont associés."
+        );
+
         return;
     }
 
@@ -804,7 +832,7 @@ async function migrateLegacyMembers(
             continue;
         }
 
-        const memberData =
+        const data =
             ensureMember(
                 discordMember.id,
                 {
@@ -817,16 +845,15 @@ async function migrateLegacyMembers(
             );
 
         if (
-            memberData.legacyImported &&
-            memberData.legacySourceKey ===
-                legacy.key
+            data.legacySourceKey ===
+            legacy.key
         ) {
             continue;
         }
 
-        memberData.messages =
+        data.messages =
             (
-                memberData.messages ||
+                data.messages ||
                 0
             ) +
             (
@@ -834,9 +861,9 @@ async function migrateLegacyMembers(
                 0
             );
 
-        memberData.voiceSeconds =
+        data.voiceSeconds =
             (
-                memberData.voiceSeconds ||
+                data.voiceSeconds ||
                 0
             ) +
             (
@@ -844,13 +871,13 @@ async function migrateLegacyMembers(
                 0
             );
 
-        memberData.legacyImported =
+        data.legacyImported =
             true;
 
-        memberData.legacySourceKey =
+        data.legacySourceKey =
             legacy.key;
 
-        memberData.legacyImportedAt =
+        data.legacyImportedAt =
             Date.now();
 
         console.log(
@@ -869,7 +896,7 @@ async function migrateLegacyMembers(
 }
 
 // ======================================================
-// TEMPS
+// FORMAT TIME
 // ======================================================
 
 function formatSeconds(
@@ -913,7 +940,7 @@ function formatSeconds(
 }
 
 // ======================================================
-// SESSION VOCALE
+// VOICE
 // ======================================================
 
 function getCurrentVoiceSeconds(
@@ -966,25 +993,20 @@ function getTotalVoiceSeconds(
     );
 }
 
-// ======================================================
-// START VOCAL
-// ======================================================
-
 function startVoiceSession(
     member,
     channelId
 ) {
-    const memberData =
-        ensureMember(
-            member.id,
-            {
-                username:
-                    member.user.username,
+    ensureMember(
+        member.id,
+        {
+            username:
+                member.user.username,
 
-                displayName:
-                    member.displayName
-            }
-        );
+            displayName:
+                member.displayName
+        }
+    );
 
     if (
         stats.voiceSessions[
@@ -1011,15 +1033,8 @@ function startVoiceSession(
             Date.now()
     };
 
-    memberData.lastVoiceAt =
-        Date.now();
-
     saveStats();
 }
-
-// ======================================================
-// CLOSE VOCAL
-// ======================================================
 
 function closeVoiceSession(
     memberId
@@ -1071,7 +1086,7 @@ function closeVoiceSession(
 }
 
 // ======================================================
-// CHECKPOINT SESSIONS
+// CHECKPOINT
 // ======================================================
 
 function checkpointVoiceSessions() {
@@ -1132,7 +1147,7 @@ function checkpointVoiceSessions() {
 }
 
 // ======================================================
-// TOTALS
+// GLOBAL TOTALS
 // ======================================================
 
 function getPendingMessageTotal() {
@@ -1172,52 +1187,50 @@ function getPendingVoiceSeconds() {
 }
 
 function getGlobalMessageTotal() {
-    const membersTotal =
-        Object.values(
-            stats.members
-        ).reduce(
-            (
-                total,
-                member
-            ) =>
-                total +
-                (
-                    member.messages ||
-                    0
-                ),
-            0
-        );
-
     return (
-        membersTotal +
+        Object
+            .values(
+                stats.members
+            )
+            .reduce(
+                (
+                    total,
+                    member
+                ) =>
+                    total +
+                    (
+                        member.messages ||
+                        0
+                    ),
+                0
+            ) +
         getPendingMessageTotal()
     );
 }
 
 function getGlobalVoiceSeconds() {
-    const membersTotal =
-        Object.keys(
-            stats.members
-        ).reduce(
-            (
-                total,
-                memberId
-            ) =>
-                total +
-                getTotalVoiceSeconds(
-                    memberId
-                ),
-            0
-        );
-
     return (
-        membersTotal +
+        Object
+            .keys(
+                stats.members
+            )
+            .reduce(
+                (
+                    total,
+                    memberId
+                ) =>
+                    total +
+                    getTotalVoiceSeconds(
+                        memberId
+                    ),
+                0
+            ) +
         getPendingVoiceSeconds()
     );
 }
 
 // ======================================================
-// CLASSEMENTS
+// RANKINGS
 // ======================================================
 
 function getMessageRanking() {
@@ -1267,19 +1280,7 @@ function getVoiceRanking() {
 }
 
 // ======================================================
-// ACTIVITÉ GÉNÉRALE
-// ======================================================
-//
-// EXACTEMENT le principe utilisé sur les anciens screens :
-//
-// Messages = pourcentage par rapport au meilleur
-// Vocal    = pourcentage par rapport au meilleur
-//
-// Activité = moyenne des deux.
-//
-// Exemple Ak9hi :
-// 100% messages + ~12% vocal / 2 ≈ 56%
-//
+// ACTIVITY
 // ======================================================
 
 function calculateActivityRanking() {
@@ -1319,25 +1320,21 @@ function calculateActivityRanking() {
     return members
         .map(
             member => {
-                const messages =
-                    member.messages ||
-                    0;
-
-                const voice =
-                    getTotalVoiceSeconds(
-                        member.discordId
-                    );
-
                 const messageScore =
                     (
-                        messages /
+                        (
+                            member.messages ||
+                            0
+                        ) /
                         maxMessages
                     ) *
                     100;
 
                 const voiceScore =
                     (
-                        voice /
+                        getTotalVoiceSeconds(
+                            member.discordId
+                        ) /
                         maxVoice
                     ) *
                     100;
@@ -1377,7 +1374,7 @@ function calculateActivityRanking() {
 }
 
 // ======================================================
-// BARRE DE PROGRESSION
+// PROGRESS BAR
 // ======================================================
 
 function createProgressBar(
@@ -1388,7 +1385,7 @@ function createProgressBar(
     if (
         !maxValue ||
         maxValue <=
-            0
+        0
     ) {
         return "░".repeat(
             size
@@ -1423,17 +1420,17 @@ function createProgressBar(
 }
 
 // ======================================================
-// POURCENTAGE
+// PERCENT
 // ======================================================
 
 function getPercentage(
     value,
-    maximum
+    max
 ) {
     if (
-        !maximum ||
-        maximum <=
-            0
+        !max ||
+        max <=
+        0
     ) {
         return 0;
     }
@@ -1441,14 +1438,14 @@ function getPercentage(
     return Math.round(
         (
             value /
-            maximum
+            max
         ) *
         100
     );
 }
 
 // ======================================================
-// ICONE RANG
+// RANK ICON
 // ======================================================
 
 function getRankIcon(
@@ -1479,7 +1476,7 @@ function getRankIcon(
 }
 
 // ======================================================
-// VALEUR RANKING
+// RANK VALUE
 // ======================================================
 
 function getRankingValue(
@@ -1514,10 +1511,6 @@ function getRankingValue(
     );
 }
 
-// ======================================================
-// FORMAT RANKING
-// ======================================================
-
 function formatRankingValue(
     type,
     value
@@ -1527,12 +1520,7 @@ function formatRankingValue(
         "messages"
     ) {
         return (
-            `${Number(value).toLocaleString("fr-FR")} ` +
-            (
-                Number(value) > 1
-                    ? "messages"
-                    : "message"
-            )
+            `${Number(value).toLocaleString("fr-FR")} messages`
         );
     }
 
@@ -1547,67 +1535,6 @@ function formatRankingValue(
 
     return `${value}% d'activité`;
 }
-
-// ======================================================
-// TITRE DU CLASSEMENT
-// ======================================================
-
-function getRankingTitle(
-    type
-) {
-    if (
-        type ===
-        "messages"
-    ) {
-        return "💬・Classement des messages";
-    }
-
-    if (
-        type ===
-        "voice"
-    ) {
-        return "🎙️・Classement vocal";
-    }
-
-    return "🏆・Activité générale";
-}
-
-// ======================================================
-// SOUS-TITRE
-// ======================================================
-
-function getRankingSubtitle(
-    type
-) {
-    if (
-        type ===
-        "messages"
-    ) {
-        return (
-            "*Classement basé sur les messages valides " +
-            "de plus de 10 caractères.*"
-        );
-    }
-
-    if (
-        type ===
-        "voice"
-    ) {
-        return (
-            "*Classement basé sur le temps cumulé " +
-            "dans les salons vocaux.*"
-        );
-    }
-
-    return (
-        "*Activité calculée à parts égales entre " +
-        "les messages et le temps vocal.*"
-    );
-}
-
-// ======================================================
-// RANKING DATA
-// ======================================================
 
 function getRankingByType(
     type
@@ -1630,7 +1557,7 @@ function getRankingByType(
 }
 
 // ======================================================
-// CLASSEMENT PREMIUM
+// RANKING EMBED
 // ======================================================
 
 function buildRankingEmbed(
@@ -1673,11 +1600,7 @@ function buildRankingEmbed(
             )
             : 0;
 
-    // ==================================================
-    // PODIUM
-    // ==================================================
-
-    const podiumLines =
+    const podium =
         ranking
             .slice(
                 0,
@@ -1711,23 +1634,18 @@ function buildRankingEmbed(
                         createProgressBar(
                             value,
                             maximum,
-                            15
+                            12
                         );
 
-                    let extra =
-                        "";
-
-                    if (
+                    const extra =
                         type ===
-                        "activity"
-                    ) {
-                        extra =
-                            `\n> 💬 ${member.messageScore}% • 🎙️ ${member.voiceScore}%`;
-                    }
+                            "activity"
+                            ? `\n> 💬 ${member.messageScore}% • 🎙️ ${member.voiceScore}%`
+                            : "";
 
                     return [
                         `${getRankIcon(rank)} **<@${member.discordId}>**`,
-                        `> **${formatRankingValue(type, value)}**`,
+                        `> ${formatRankingValue(type, value)}`,
                         `> \`${bar}\` **${percent}%**${extra}`
                     ].join(
                         "\n"
@@ -1735,23 +1653,17 @@ function buildRankingEmbed(
                 }
             );
 
-    // ==================================================
-    // PAGE
-    // ==================================================
-
     const start =
         page *
         PAGE_SIZE;
 
-    const pageMembers =
-        ranking.slice(
-            start,
-            start +
-            PAGE_SIZE
-        );
-
-    const pageLines =
-        pageMembers
+    const pageEntries =
+        ranking
+            .slice(
+                start,
+                start +
+                PAGE_SIZE
+            )
             .map(
                 (
                     member,
@@ -1762,7 +1674,6 @@ function buildRankingEmbed(
                         index +
                         1;
 
-                    // Top 3 déjà montré au-dessus
                     if (
                         rank <=
                         3
@@ -1776,24 +1687,9 @@ function buildRankingEmbed(
                             member
                         );
 
-                    if (
-                        type ===
-                        "activity"
-                    ) {
-                        return [
-                            `${getRankIcon(rank)} **<@${member.discordId}>**`,
-                            `> └ **${value}%** d'activité`,
-                            `> └ 💬 ${member.messageScore}% • 🎙️ ${member.voiceScore}%`
-                        ].join(
-                            "\n"
-                        );
-                    }
-
-                    return [
-                        `${getRankIcon(rank)} **<@${member.discordId}>**`,
+                    return (
+                        `${getRankIcon(rank)} **<@${member.discordId}>**\n` +
                         `> └ ${formatRankingValue(type, value)}`
-                    ].join(
-                        "\n"
                     );
                 }
             )
@@ -1801,17 +1697,13 @@ function buildRankingEmbed(
                 Boolean
             );
 
-    // ==================================================
-    // POSITION PERSONNELLE
-    // ==================================================
-
-    let viewerText =
+    let viewer =
         null;
 
     if (
         viewerId
     ) {
-        const viewerIndex =
+        const index =
             ranking.findIndex(
                 member =>
                     member.discordId ===
@@ -1819,123 +1711,109 @@ function buildRankingEmbed(
             );
 
         if (
-            viewerIndex !==
+            index !==
             -1
         ) {
-            const viewer =
+            const member =
                 ranking[
-                    viewerIndex
+                    index
                 ];
 
-            const value =
-                getRankingValue(
-                    type,
-                    viewer
-                );
-
-            viewerText =
+            viewer =
                 [
                     "### 👤 Ta position",
-                    `**#${viewerIndex + 1}** sur **${ranking.length}**`,
-                    `${formatRankingValue(type, value)}`
+                    `**#${index + 1}** sur **${ranking.length}**`,
+                    formatRankingValue(
+                        type,
+                        getRankingValue(
+                            type,
+                            member
+                        )
+                    )
                 ].join(
                     "\n"
                 );
         }
     }
 
-    // ==================================================
-    // DESCRIPTION
-    // ==================================================
+    let title =
+        "🏆・Activité générale";
 
-    const description = [
-        getRankingSubtitle(
-            type
-        ),
+    if (
+        type ===
+        "messages"
+    ) {
+        title =
+            "💬・Classement des messages";
+    }
 
-        "",
-
-        "### ✦ PODIUM",
-        "",
-
-        podiumLines.length
-            ? podiumLines.join(
-                "\n\n"
-            )
-            : "Aucune donnée.",
-
-        pageLines.length
-            ? ""
-            : null,
-
-        pageLines.length
-            ? "### ✦ SUITE DU CLASSEMENT"
-            : null,
-
-        pageLines.length
-            ? ""
-            : null,
-
-        pageLines.length
-            ? pageLines.join(
-                "\n\n"
-            )
-            : null,
-
-        viewerText
-            ? ""
-            : null,
-
-        viewerText
-            ? "━━━━━━━━━━━━━━━━━━━━"
-            : null,
-
-        viewerText,
-
-        "",
-        `📄 **Page ${page + 1} / ${totalPages}**`
-    ]
-        .filter(
-            value =>
-                value !==
-                null
-        )
-        .join(
-            "\n"
-        );
-
-    const embed =
-        new EmbedBuilder()
-            .setColor(
-                0x3B6475
-            )
-
-            .setTitle(
-                getRankingTitle(
-                    type
-                )
-            )
-
-            .setDescription(
-                description
-            )
-
-            .setFooter({
-                text:
-                    "The Legacy • Classements"
-            })
-
-            .setTimestamp();
+    if (
+        type ===
+        "voice"
+    ) {
+        title =
+            "🎙️・Classement vocal";
+    }
 
     return {
-        embed,
+        embed:
+            new EmbedBuilder()
+                .setColor(
+                    0x3B6475
+                )
+                .setTitle(
+                    title
+                )
+                .setDescription(
+                    [
+                        "### ✦ PODIUM",
+                        "",
+                        podium.length
+                            ? podium.join(
+                                "\n\n"
+                            )
+                            : "Aucune donnée.",
+                        "",
+                        pageEntries.length
+                            ? "### ✦ CLASSEMENT"
+                            : null,
+                        pageEntries.length
+                            ? pageEntries.join(
+                                "\n\n"
+                            )
+                            : null,
+                        viewer
+                            ? ""
+                            : null,
+                        viewer
+                            ? "━━━━━━━━━━━━━━━━━━━━"
+                            : null,
+                        viewer,
+                        "",
+                        `📄 **Page ${page + 1} / ${totalPages}**`
+                    ]
+                        .filter(
+                            value =>
+                                value !==
+                                null
+                        )
+                        .join(
+                            "\n"
+                        )
+                )
+                .setFooter({
+                    text:
+                        "The Legacy • Classements"
+                })
+                .setTimestamp(),
+
         page,
         totalPages
     };
 }
 
 // ======================================================
-// BOUTONS CLASSEMENT
+// RANK BUTTONS
 // ======================================================
 
 function createRankingButtons(
@@ -2019,7 +1897,7 @@ function createRankingButtons(
 }
 
 // ======================================================
-// ACTUELLEMENT EN VOCAL
+// CURRENT VOICE
 // ======================================================
 
 function getCurrentlyInVoice(
@@ -2043,43 +1921,29 @@ function buildMainEmbed(
         calculateActivityRanking();
 
     const podium =
-        activity.slice(
-            0,
-            3
-        );
-
-    const podiumText =
-        podium.length
-            ? podium.map(
+        activity
+            .slice(
+                0,
+                3
+            )
+            .map(
                 (
                     member,
                     index
-                ) => {
-                    const medals = [
-                        "🥇",
-                        "🥈",
-                        "🥉"
-                    ];
-
-                    return (
-                        `${medals[index]} <@${member.discordId}> ` +
-                        `— **${member.activity}%**`
-                    );
-                }
-            ).join(
-                "\n"
+                ) =>
+                    `${["🥇", "🥈", "🥉"][index]} <@${member.discordId}> — **${member.activity}%**`
             )
-            : "Aucune statistique.";
+            .join(
+                "\n"
+            );
 
     return new EmbedBuilder()
         .setColor(
             0x3B6475
         )
-
         .setTitle(
             "📊・Statistiques The Legacy"
         )
-
         .setDescription(
             [
                 `> Suivi actif depuis <t:${Math.floor(TRACKING_STARTED_AT / 1000)}:D>`,
@@ -2096,24 +1960,20 @@ function buildMainEmbed(
                 "━━━━━━━━━━━━━━━━━━━━",
                 "",
                 "### 🏆 Podium communautaire",
-                podiumText,
-                "",
-                "-# Les statistiques sont enregistrées directement par le bot."
+                podium || "Aucune donnée."
             ].join(
                 "\n"
             )
         )
-
         .setFooter({
             text:
                 "The Legacy • Activité Discord"
         })
-
         .setTimestamp();
 }
 
 // ======================================================
-// BOUTONS PRINCIPAUX
+// MAIN BUTTONS
 // ======================================================
 
 function createMainButtons() {
@@ -2194,45 +2054,21 @@ function createMainButtons() {
 }
 
 // ======================================================
-// POSITION
-// ======================================================
-
-function getPosition(
-    ranking,
-    memberId
-) {
-    const index =
-        ranking.findIndex(
-            member =>
-                member.discordId ===
-                memberId
-        );
-
-    return (
-        index ===
-        -1
-            ? null
-            : index +
-            1
-    );
-}
-
-// ======================================================
-// STATS PERSONNELLES
+// PERSONAL EMBED
 // ======================================================
 
 function buildPersonalEmbed(
-    discordMember
+    member
 ) {
     const data =
         ensureMember(
-            discordMember.id,
+            member.id,
             {
                 username:
-                    discordMember.user.username,
+                    member.user.username,
 
                 displayName:
-                    discordMember.displayName
+                    member.displayName
             }
         );
 
@@ -2246,99 +2082,82 @@ function buildPersonalEmbed(
         calculateActivityRanking();
 
     const messagePosition =
-        getPosition(
-            messageRanking,
-            discordMember.id
-        );
+        messageRanking.findIndex(
+            entry =>
+                entry.discordId ===
+                member.id
+        ) +
+        1;
 
     const voicePosition =
-        getPosition(
-            voiceRanking,
-            discordMember.id
-        );
+        voiceRanking.findIndex(
+            entry =>
+                entry.discordId ===
+                member.id
+        ) +
+        1;
 
     const activityPosition =
-        getPosition(
-            activityRanking,
-            discordMember.id
-        );
+        activityRanking.findIndex(
+            entry =>
+                entry.discordId ===
+                member.id
+        ) +
+        1;
 
     const activity =
         activityRanking.find(
-            member =>
-                member.discordId ===
-                discordMember.id
-        );
-
-    const isInVoice =
-        !!discordMember.voice.channelId;
-
-    const currentSession =
-        getCurrentVoiceSeconds(
-            discordMember.id
+            entry =>
+                entry.discordId ===
+                member.id
         );
 
     return new EmbedBuilder()
         .setColor(
             0x3B6475
         )
-
         .setAuthor({
             name:
-                discordMember.displayName,
+                member.displayName,
 
             iconURL:
-                discordMember.displayAvatarURL()
+                member.displayAvatarURL()
         })
-
         .setTitle(
             "📊・Mes statistiques"
         )
-
         .setDescription(
             [
                 "### 💬 Messages",
-                `**${(data.messages || 0).toLocaleString("fr-FR")}** messages`,
-                `> Classement : **${messagePosition ? `#${messagePosition}` : "Non classé"}**`,
+                `**${(data.messages || 0).toLocaleString("fr-FR")}**`,
+                `> Classement : **${messagePosition > 0 ? `#${messagePosition}` : "-"}**`,
                 "",
                 "### 🎙️ Temps vocal",
-                `**${formatSeconds(getTotalVoiceSeconds(discordMember.id))}**`,
-                `> Classement : **${voicePosition ? `#${voicePosition}` : "Non classé"}**`,
+                `**${formatSeconds(getTotalVoiceSeconds(member.id))}**`,
+                `> Classement : **${voicePosition > 0 ? `#${voicePosition}` : "-"}**`,
                 "",
                 "### 🏆 Activité générale",
                 `**${activity?.activity || 0}%**`,
-                `> Classement : **${activityPosition ? `#${activityPosition}` : "Non classé"}**`,
-                `> 💬 Messages : **${activity?.messageScore || 0}%**`,
-                `> 🎙️ Vocal : **${activity?.voiceScore || 0}%**`,
+                `> Classement : **${activityPosition > 0 ? `#${activityPosition}` : "-"}**`,
+                `> 💬 ${activity?.messageScore || 0}% • 🎙️ ${activity?.voiceScore || 0}%`,
                 "",
-                "### 🔊 Statut vocal",
-                isInVoice
-                    ? `🟢 Dans <#${discordMember.voice.channelId}>`
-                    : "⚫ Pas actuellement en vocal",
-                isInVoice
-                    ? `> Session actuelle : **${formatSeconds(currentSession)}**`
-                    : null
-            ]
-                .filter(
-                    value =>
-                        value !==
-                        null
-                )
-                .join(
-                    "\n"
-                )
+                "### 🔊 Statut",
+                member.voice.channelId
+                    ? `🟢 En vocal dans <#${member.voice.channelId}>`
+                    : "⚫ Hors vocal"
+            ].join(
+                "\n"
+            )
         )
-
         .setFooter({
             text:
                 "The Legacy • Profil d'activité"
         })
-
         .setTimestamp();
 }
 
 // ======================================================
-// BOUTON STATS PERSONNELLES
+// PERSONAL BUTTONS
 // ======================================================
 
 function createPersonalButtons() {
@@ -2350,7 +2169,7 @@ function createPersonalButtons() {
                         "stats_me_refresh"
                     )
                     .setLabel(
-                        "Actualiser mes statistiques"
+                        "Actualiser"
                     )
                     .setEmoji(
                         "🔄"
@@ -2363,7 +2182,7 @@ function createPersonalButtons() {
 }
 
 // ======================================================
-// REFRESH PANEL
+// REFRESH PUBLIC PANEL
 // ======================================================
 
 async function refreshPublicPanel(
@@ -2441,8 +2260,6 @@ async function installPanel(
         null;
 
     if (
-        stats.panel.guildId &&
-        stats.panel.channelId &&
         stats.panel.messageId
     ) {
         const oldGuild =
@@ -2467,13 +2284,9 @@ async function installPanel(
                 : null;
     }
 
-    // ==================================================
-    // MÊME SALON → UPDATE
-    // ==================================================
-
     if (
         oldMessage &&
-        stats.panel.channelId ===
+        oldMessage.channelId ===
             channel.id
     ) {
         await oldMessage.edit({
@@ -2490,10 +2303,6 @@ async function installPanel(
         return oldMessage;
     }
 
-    // ==================================================
-    // ANCIEN PANEL AILLEURS
-    // ==================================================
-
     if (
         oldMessage
     ) {
@@ -2504,10 +2313,6 @@ async function installPanel(
             () => {}
         );
     }
-
-    // ==================================================
-    // NOUVEAU PANEL
-    // ==================================================
 
     const message =
         await channel.send({
@@ -2538,21 +2343,7 @@ async function installPanel(
 }
 
 // ======================================================
-// SAVOIR SI LE BOUTON VIENT DU PANEL PUBLIC
-// ======================================================
-
-function isPublicPanelInteraction(
-    interaction
-) {
-    return (
-        interaction.message?.id &&
-        interaction.message.id ===
-            stats.panel.messageId
-    );
-}
-
-// ======================================================
-// OUVRIR / UPDATE UN CLASSEMENT
+// RESPOND RANKING
 // ======================================================
 
 async function respondWithRanking(
@@ -2580,14 +2371,9 @@ async function respondWithRanking(
             )
     };
 
-    // ==================================================
-    // CLIC DEPUIS LE PANEL PUBLIC
-    // ==================================================
-
     if (
-        isPublicPanelInteraction(
-            interaction
-        )
+        interaction.message?.id ===
+        stats.panel.messageId
     ) {
         return interaction.reply({
             ...payload,
@@ -2597,17 +2383,13 @@ async function respondWithRanking(
         });
     }
 
-    // ==================================================
-    // PAGINATION D'UN CLASSEMENT ÉPHÉMÈRE
-    // ==================================================
-
     return interaction.update(
         payload
     );
 }
 
 // ======================================================
-// SYSTEM
+// REGISTER SYSTEM
 // ======================================================
 
 function registerActivityStats(
@@ -2634,10 +2416,6 @@ function registerActivityStats(
     client.once(
         Events.ClientReady,
         async () => {
-            // ==========================================
-            // IMPORT ANCIENNES STATS
-            // ==========================================
-
             for (
                 const guild
                 of client.guilds.cache.values()
@@ -2647,16 +2425,8 @@ function registerActivityStats(
                 );
             }
 
-            // ==========================================
-            // NETTOYER LES ANCIENNES SESSIONS SAUVEGARDÉES
-            // ==========================================
-
             stats.voiceSessions =
                 {};
-
-            // ==========================================
-            // RESTAURER LES GENS ACTUELLEMENT EN VOCAL
-            // ==========================================
 
             for (
                 const guild
@@ -2701,7 +2471,7 @@ function registerActivityStats(
     );
 
     // ==================================================
-    // MESSAGES
+    // MESSAGE CREATE
     // ==================================================
 
     client.on(
@@ -2720,7 +2490,6 @@ function registerActivityStats(
                         ?.trim() ||
                     "";
 
-                // Plus de 10 caractères
                 if (
                     content.length <=
                     MESSAGE_MIN_LENGTH
@@ -2756,7 +2525,7 @@ function registerActivityStats(
 
             } catch (error) {
                 console.error(
-                    "❌ Stats MessageCreate :",
+                    "❌ Stats messages :",
                     error
                 );
             }
@@ -2764,7 +2533,7 @@ function registerActivityStats(
     );
 
     // ==================================================
-    // VOCAL
+    // VOICE STATE
     // ==================================================
 
     client.on(
@@ -2792,10 +2561,6 @@ function registerActivityStats(
                     return;
                 }
 
-                // ======================================
-                // ARRIVÉE
-                // ======================================
-
                 if (
                     !oldState.channelId &&
                     newState.channelId
@@ -2808,10 +2573,6 @@ function registerActivityStats(
                     return;
                 }
 
-                // ======================================
-                // DÉPART
-                // ======================================
-
                 if (
                     oldState.channelId &&
                     !newState.channelId
@@ -2822,10 +2583,6 @@ function registerActivityStats(
 
                     return;
                 }
-
-                // ======================================
-                // CHANGEMENT DE VOCAL
-                // ======================================
 
                 if (
                     oldState.channelId &&
@@ -2842,9 +2599,8 @@ function registerActivityStats(
                             newState.channelId;
 
                         saveStats();
-                    }
 
-                    else {
+                    } else {
                         startVoiceSession(
                             member,
                             newState.channelId
@@ -2854,7 +2610,7 @@ function registerActivityStats(
 
             } catch (error) {
                 console.error(
-                    "❌ Stats VoiceStateUpdate :",
+                    "❌ Stats voice :",
                     error
                 );
             }
@@ -2879,10 +2635,6 @@ function registerActivityStats(
                     return;
                 }
 
-                // ==========================================
-                // MES STATS
-                // ==========================================
-
                 if (
                     interaction.customId ===
                     "stats_me"
@@ -2902,10 +2654,6 @@ function registerActivityStats(
                     });
                 }
 
-                // ==========================================
-                // REFRESH MES STATS
-                // ==========================================
-
                 if (
                     interaction.customId ===
                     "stats_me_refresh"
@@ -2922,10 +2670,6 @@ function registerActivityStats(
                     });
                 }
 
-                // ==========================================
-                // REFRESH PANEL PUBLIC
-                // ==========================================
-
                 if (
                     interaction.customId ===
                     "stats_refresh"
@@ -2941,14 +2685,9 @@ function registerActivityStats(
 
                     return interaction.editReply({
                         content:
-                            "🔄 **Les statistiques ont été actualisées.**"
+                            "🔄 **Statistiques actualisées.**"
                     });
                 }
-
-                // ==========================================
-                // REFRESH CLASSEMENT
-                // stats_rankrefresh_messages_0
-                // ==========================================
 
                 if (
                     interaction.customId
@@ -2957,10 +2696,9 @@ function registerActivityStats(
                         )
                 ) {
                     const parts =
-                        interaction.customId
-                            .split(
-                                "_"
-                            );
+                        interaction.customId.split(
+                            "_"
+                        );
 
                     const type =
                         parts[2];
@@ -2970,18 +2708,6 @@ function registerActivityStats(
                             parts[3]
                         ) ||
                         0;
-
-                    if (
-                        ![
-                            "messages",
-                            "voice",
-                            "activity"
-                        ].includes(
-                            type
-                        )
-                    ) {
-                        return;
-                    }
 
                     const result =
                         buildRankingEmbed(
@@ -3004,15 +2730,10 @@ function registerActivityStats(
                     });
                 }
 
-                // ==========================================
-                // MESSAGES / VOCAL / ACTIVITÉ
-                // ==========================================
-
                 const parts =
-                    interaction.customId
-                        .split(
-                            "_"
-                        );
+                    interaction.customId.split(
+                        "_"
+                    );
 
                 if (
                     parts.length ===
@@ -3025,19 +2746,13 @@ function registerActivityStats(
                         parts[1]
                     )
                 ) {
-                    const type =
-                        parts[1];
-
-                    const page =
+                    return respondWithRanking(
+                        interaction,
+                        parts[1],
                         Number(
                             parts[2]
                         ) ||
-                        0;
-
-                    return respondWithRanking(
-                        interaction,
-                        type,
-                        page
+                        0
                     );
                 }
 
@@ -3054,7 +2769,7 @@ function registerActivityStats(
                 ) {
                     await interaction.reply({
                         content:
-                            "❌ Une erreur est survenue avec le système de statistiques.",
+                            "❌ Une erreur est survenue avec les statistiques.",
 
                         flags:
                             MessageFlags.Ephemeral
@@ -3067,7 +2782,7 @@ function registerActivityStats(
     );
 
     // ==================================================
-    // CHECKPOINT VOCAL CHAQUE MINUTE
+    // CHECKPOINT
     // ==================================================
 
     setInterval(
@@ -3078,7 +2793,7 @@ function registerActivityStats(
     );
 
     // ==================================================
-    // REFRESH PANEL TOUTES LES 5 MINUTES
+    // AUTO REFRESH
     // ==================================================
 
     setInterval(

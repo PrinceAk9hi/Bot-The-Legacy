@@ -18,13 +18,17 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
+const COLOR =
+    0x3B6475;
 
-const SUCCESS_COLOR = 0x57F287;
+const SUCCESS_COLOR =
+    0x57F287;
 
-const WARNING_COLOR = 0xFEE75C;
+const WARNING_COLOR =
+    0xFEE75C;
 
-const ERROR_COLOR = 0xED4245;
+const ERROR_COLOR =
+    0xED4245;
 
 // ======================================================
 // FICHIERS
@@ -63,7 +67,7 @@ const SUPPORTED_ACTION_TYPES = [
 ];
 
 // ======================================================
-// FICHIERS
+// FICHIER HISTORIQUE
 // ======================================================
 
 function ensureHistoryFile() {
@@ -75,7 +79,8 @@ function ensureHistoryFile() {
         fs.mkdirSync(
             DATA_DIR,
             {
-                recursive: true
+                recursive:
+                    true
             }
         );
     }
@@ -94,7 +99,7 @@ function ensureHistoryFile() {
 }
 
 // ======================================================
-// LECTURE HISTORIQUE GLOBAL
+// LECTURE
 // ======================================================
 
 function getActionHistory() {
@@ -135,7 +140,7 @@ function getActionHistory() {
 }
 
 // ======================================================
-// SAUVEGARDE HISTORIQUE
+// SAUVEGARDE
 // ======================================================
 
 function saveActionHistory(
@@ -167,7 +172,7 @@ function saveActionHistory(
 }
 
 // ======================================================
-// AJOUT ACTION HISTORIQUE
+// AJOUT
 // ======================================================
 
 function addActionHistory(
@@ -208,8 +213,9 @@ function addActionHistory(
             {},
 
         rolledBack:
-            entry.rolledBack ||
-            false,
+            Boolean(
+                entry.rolledBack
+            ),
 
         rolledBackAt:
             entry.rolledBackAt ||
@@ -232,7 +238,7 @@ function addActionHistory(
 }
 
 // ======================================================
-// MARQUER COMME ROLLBACK
+// MARK ROLLBACK
 // ======================================================
 
 function markAsRolledBack(
@@ -249,9 +255,7 @@ function markAsRolledBack(
                 actionId
         );
 
-    if (
-        !action
-    ) {
+    if (!action) {
         return false;
     }
 
@@ -270,7 +274,7 @@ function markAsRolledBack(
 }
 
 // ======================================================
-// DERNIÈRE ACTION GLOBALE
+// DERNIÈRE ACTION
 // ======================================================
 
 function getLastGlobalAction(
@@ -288,7 +292,10 @@ function getLastGlobalAction(
                     )
             )
             .sort(
-                (a, b) =>
+                (
+                    a,
+                    b
+                ) =>
                     (
                         b.timestamp ||
                         0
@@ -339,9 +346,7 @@ function findRole(
                 Boolean
             );
 
-    // ==================================================
-    // PAR ID
-    // ==================================================
+    // ID
 
     for (
         const value
@@ -357,25 +362,19 @@ function findRole(
                 /^<?@?&?(\d{16,22})>?$/
             );
 
-        if (
-            match
-        ) {
+        if (match) {
             const role =
                 guild.roles.cache.get(
                     match[1]
                 );
 
-            if (
-                role
-            ) {
+            if (role) {
                 return role;
             }
         }
     }
 
-    // ==================================================
-    // NOM EXACT
-    // ==================================================
+    // NOM
 
     for (
         const value
@@ -395,9 +394,7 @@ function findRole(
                     wanted
             );
 
-        if (
-            role
-        ) {
+        if (role) {
             return role;
         }
     }
@@ -406,7 +403,7 @@ function findRole(
 }
 
 // ======================================================
-// LE BOT PEUT-IL GÉRER LE RÔLE ?
+// HIÉRARCHIE RÔLES
 // ======================================================
 
 function canManageRole(
@@ -424,14 +421,9 @@ function canManageRole(
     }
 
     if (
-        role.managed
-    ) {
-        return false;
-    }
-
-    if (
+        role.managed ||
         role.id ===
-        guild.id
+            guild.id
     ) {
         return false;
     }
@@ -443,7 +435,7 @@ function canManageRole(
 }
 
 // ======================================================
-// EMBED SUCCÈS
+// EMBED SUCCESS
 // ======================================================
 
 function buildSuccessEmbed({
@@ -466,159 +458,6 @@ function buildSuccessEmbed({
                 `The Legacy • Rollback par ${interaction.user.username}`
         })
         .setTimestamp();
-}
-
-// ======================================================
-// RESTAURER RÔLE SUPPRIMÉ
-// ======================================================
-
-async function rollbackDeletedRole({
-    interaction,
-    action
-}) {
-    const guild =
-        interaction.guild;
-
-    const data =
-        action.data ||
-        {};
-
-    if (
-        !data.name
-    ) {
-        throw new Error(
-            "Les informations du rôle supprimé sont incomplètes."
-        );
-    }
-
-    // ==================================================
-    // RECRÉATION
-    // ==================================================
-
-    const newRole =
-        await guild.roles.create({
-            name:
-                data.name,
-
-            color:
-                data.color ??
-                undefined,
-
-            hoist:
-                Boolean(
-                    data.hoist
-                ),
-
-            mentionable:
-                Boolean(
-                    data.mentionable
-                ),
-
-            permissions:
-                data.permissions
-                    ? BigInt(
-                        data.permissions
-                    )
-                    : undefined,
-
-            reason:
-                `Rollback demandé par ${interaction.user.tag}`
-        });
-
-    // ==================================================
-    // POSITION
-    // ==================================================
-
-    if (
-        Number.isInteger(
-            data.position
-        )
-    ) {
-        await newRole.setPosition(
-            data.position
-        ).catch(
-            () => {}
-        );
-    }
-
-    // ==================================================
-    // MEMBRES
-    // ==================================================
-
-    let restoredMembers =
-        0;
-
-    let failedMembers =
-        0;
-
-    const memberIds =
-        Array.isArray(
-            data.memberIds
-        )
-            ? data.memberIds
-            : [];
-
-    for (
-        const memberId
-        of memberIds
-    ) {
-        const member =
-            guild.members.cache.get(
-                memberId
-            ) ||
-            await guild.members
-                .fetch(
-                    memberId
-                )
-                .catch(
-                    () => null
-                );
-
-        if (
-            !member
-        ) {
-            failedMembers++;
-            continue;
-        }
-
-        try {
-            await member.roles.add(
-                newRole,
-                "Restauration /rollback"
-            );
-
-            restoredMembers++;
-
-        } catch {
-            failedMembers++;
-        }
-    }
-
-    return {
-        embed:
-            buildSuccessEmbed({
-                interaction,
-
-                title:
-                    "Rôle restauré",
-
-                description:
-`Le rôle **${newRole.name}** a été recréé.
-
-**Ancien ID :** \`${data.id || "Inconnu"}\`
-**Nouvel ID :** \`${newRole.id}\`
-
-👥 **Membres restaurés :** ${restoredMembers}
-${failedMembers > 0
-    ? `⚠️ **Échecs :** ${failedMembers}`
-    : "✅ Tous les membres enregistrés ont récupéré le rôle."}
-
-> Le rôle possède obligatoirement un **nouvel ID Discord**.`
-            }),
-
-        recreatedId:
-            newRole.id
-    };
 }
 
 // ======================================================
@@ -665,7 +504,7 @@ function deserializeOverwrites(
 }
 
 // ======================================================
-// TYPE DE SALON RESTAURABLE
+// TYPES SALONS
 // ======================================================
 
 function isSupportedChannelType(
@@ -684,28 +523,61 @@ function isSupportedChannelType(
 }
 
 // ======================================================
-// RESTAURER SALON
+// OPTIONS FORUM
 // ======================================================
 
-async function rollbackDeletedChannel({
-    interaction,
-    action
-}) {
-    const guild =
-        interaction.guild;
-
-    const data =
-        action.data ||
-        {};
-
+function deserializeForumTags(
+    tags
+) {
     if (
-        !data.name
+        !Array.isArray(
+            tags
+        )
     ) {
-        throw new Error(
-            "Les informations du salon sont incomplètes."
-        );
+        return [];
     }
 
+    return tags
+        .filter(
+            tag =>
+                tag?.name
+        )
+        .map(
+            tag => ({
+                name:
+                    tag.name,
+
+                moderated:
+                    Boolean(
+                        tag.moderated
+                    ),
+
+                emoji:
+                    tag.emoji
+                        ? {
+                            id:
+                                tag.emoji.id ||
+                                undefined,
+
+                            name:
+                                tag.emoji.name ||
+                                undefined
+                        }
+                        : undefined
+            })
+        );
+}
+
+// ======================================================
+// CRÉER SALON DEPUIS SNAPSHOT
+// ======================================================
+
+async function createChannelFromSnapshot({
+    guild,
+    data,
+    interaction,
+    forcedParentId = undefined
+}) {
     const channelType =
         Number(
             data.type
@@ -717,30 +589,9 @@ async function rollbackDeletedChannel({
         )
     ) {
         throw new Error(
-            `Le type de salon ${channelType} n'est pas encore restaurable automatiquement.`
+            `Le type de salon ${channelType} n'est pas restaurable automatiquement.`
         );
     }
-
-    // ==================================================
-    // CATÉGORIE
-    // ==================================================
-
-    let parentId =
-        null;
-
-    if (
-        data.parentId &&
-        guild.channels.cache.has(
-            data.parentId
-        )
-    ) {
-        parentId =
-            data.parentId;
-    }
-
-    // ==================================================
-    // OPTIONS
-    // ==================================================
 
     const options = {
         name:
@@ -758,21 +609,48 @@ async function rollbackDeletedChannel({
             `Rollback demandé par ${interaction.user.tag}`
     };
 
+    // ==================================================
+    // PARENT
+    // ==================================================
+
+    let parentId =
+        null;
+
     if (
-        parentId
+        forcedParentId !==
+        undefined
+    ) {
+        parentId =
+            forcedParentId;
+
+    } else if (
+        data.parentId &&
+        guild.channels.cache.has(
+            data.parentId
+        )
+    ) {
+        parentId =
+            data.parentId;
+    }
+
+    if (
+        parentId &&
+        channelType !==
+            ChannelType.GuildCategory
     ) {
         options.parent =
             parentId;
     }
 
     // ==================================================
-    // TEXT / ANNOUNCEMENT
+    // TEXT / ANNOUNCEMENT / FORUM
     // ==================================================
 
     if (
         [
             ChannelType.GuildText,
-            ChannelType.GuildAnnouncement
+            ChannelType.GuildAnnouncement,
+            ChannelType.GuildForum
         ].includes(
             channelType
         )
@@ -806,10 +684,86 @@ async function rollbackDeletedChannel({
                     0
                 );
         }
+
+        if (
+            data.defaultAutoArchiveDuration
+        ) {
+            options.defaultAutoArchiveDuration =
+                Number(
+                    data.defaultAutoArchiveDuration
+                );
+        }
+
+        if (
+            data.defaultThreadRateLimitPerUser !==
+            undefined
+        ) {
+            options.defaultThreadRateLimitPerUser =
+                Number(
+                    data.defaultThreadRateLimitPerUser ||
+                    0
+                );
+        }
     }
 
     // ==================================================
-    // VOICE
+    // FORUM
+    // ==================================================
+
+    if (
+        channelType ===
+        ChannelType.GuildForum
+    ) {
+        const tags =
+            deserializeForumTags(
+                data.availableTags
+            );
+
+        if (
+            tags.length
+        ) {
+            options.availableTags =
+                tags;
+        }
+
+        if (
+            data.defaultReactionEmoji
+        ) {
+            options.defaultReactionEmoji =
+                {
+                    emojiId:
+                        data.defaultReactionEmoji.id ||
+                        null,
+
+                    emojiName:
+                        data.defaultReactionEmoji.name ||
+                        null
+                };
+        }
+
+        if (
+            data.defaultSortOrder !==
+            undefined &&
+            data.defaultSortOrder !==
+            null
+        ) {
+            options.defaultSortOrder =
+                data.defaultSortOrder;
+        }
+
+        if (
+            data.defaultForumLayout !==
+            undefined &&
+            data.defaultForumLayout !==
+            null
+        ) {
+            options.defaultForumLayout =
+                data.defaultForumLayout;
+        }
+    }
+
+    // ==================================================
+    // VOICE / STAGE
     // ==================================================
 
     if (
@@ -823,9 +777,22 @@ async function rollbackDeletedChannel({
         if (
             data.bitrate
         ) {
+            /*
+                Si l'ancien bitrate dépasse maintenant
+                la limite du serveur, Discord refuserait.
+
+                On limite donc à la limite actuelle.
+            */
+
             options.bitrate =
-                Number(
-                    data.bitrate
+                Math.min(
+                    Number(
+                        data.bitrate
+                    ),
+                    guild.maximumBitrate ||
+                    Number(
+                        data.bitrate
+                    )
                 );
         }
 
@@ -839,31 +806,153 @@ async function rollbackDeletedChannel({
                     0
                 );
         }
+
+        if (
+            data.rtcRegion !==
+            undefined
+        ) {
+            options.rtcRegion =
+                data.rtcRegion ||
+                null;
+        }
+
+        if (
+            data.videoQualityMode !==
+            undefined
+        ) {
+            options.videoQualityMode =
+                data.videoQualityMode;
+        }
     }
 
-    // ==================================================
-    // CRÉATION
-    // ==================================================
-
-    const channel =
+    const created =
         await guild.channels.create(
             options
         );
-
-    // ==================================================
-    // POSITION
-    // ==================================================
 
     if (
         Number.isInteger(
             data.position
         )
     ) {
-        await channel.setPosition(
+        await created.setPosition(
             data.position
         ).catch(
             () => {}
         );
+    }
+
+    return created;
+}
+
+// ======================================================
+// RÔLE SUPPRIMÉ
+// ======================================================
+
+async function rollbackDeletedRole({
+    interaction,
+    action
+}) {
+    const guild =
+        interaction.guild;
+
+    const data =
+        action.data ||
+        {};
+
+    if (!data.name) {
+        throw new Error(
+            "Les informations du rôle supprimé sont incomplètes."
+        );
+    }
+
+    const newRole =
+        await guild.roles.create({
+            name:
+                data.name,
+
+            color:
+                data.color ??
+                undefined,
+
+            hoist:
+                Boolean(
+                    data.hoist
+                ),
+
+            mentionable:
+                Boolean(
+                    data.mentionable
+                ),
+
+            permissions:
+                data.permissions
+                    ? BigInt(
+                        data.permissions
+                    )
+                    : undefined,
+
+            reason:
+                `Rollback demandé par ${interaction.user.tag}`
+        });
+
+    if (
+        Number.isInteger(
+            data.position
+        )
+    ) {
+        await newRole.setPosition(
+            data.position
+        ).catch(
+            () => {}
+        );
+    }
+
+    let restoredMembers =
+        0;
+
+    let failedMembers =
+        0;
+
+    const memberIds =
+        Array.isArray(
+            data.memberIds
+        )
+            ? data.memberIds
+            : [];
+
+    for (
+        const memberId
+        of memberIds
+    ) {
+        const member =
+            guild.members.cache.get(
+                memberId
+            ) ||
+            await guild.members
+                .fetch(
+                    memberId
+                )
+                .catch(
+                    () => null
+                );
+
+        if (!member) {
+            failedMembers++;
+            continue;
+        }
+
+        try {
+            await member.roles.add(
+                newRole,
+                "Restauration /rollback"
+            );
+
+            restoredMembers++;
+
+        } catch {
+            failedMembers++;
+        }
     }
 
     return {
@@ -872,10 +961,62 @@ async function rollbackDeletedChannel({
                 interaction,
 
                 title:
-                    channelType ===
-                        ChannelType.GuildCategory
-                        ? "Catégorie restaurée"
-                        : "Salon restauré",
+                    "Rôle restauré",
+
+                description:
+`Le rôle **${newRole.name}** a été recréé.
+
+**Ancien ID :** \`${data.id || "Inconnu"}\`
+**Nouvel ID :** \`${newRole.id}\`
+
+👥 **Membres restaurés :** ${restoredMembers}
+${failedMembers
+    ? `⚠️ **Échecs :** ${failedMembers}`
+    : "✅ Tous les membres enregistrés ont récupéré le rôle."}
+
+> Le rôle possède obligatoirement un **nouvel ID Discord**.`
+            }),
+
+        recreatedId:
+            newRole.id
+    };
+}
+
+// ======================================================
+// SALON SUPPRIMÉ
+// ======================================================
+
+async function rollbackDeletedChannel({
+    interaction,
+    action
+}) {
+    const guild =
+        interaction.guild;
+
+    const data =
+        action.data ||
+        {};
+
+    if (!data.name) {
+        throw new Error(
+            "Les informations du salon sont incomplètes."
+        );
+    }
+
+    const channel =
+        await createChannelFromSnapshot({
+            guild,
+            data,
+            interaction
+        });
+
+    return {
+        embed:
+            buildSuccessEmbed({
+                interaction,
+
+                title:
+                    "Salon restauré",
 
                 description:
 `**${channel.name}** a été recréé avec les informations sauvegardées.
@@ -883,11 +1024,11 @@ async function rollbackDeletedChannel({
 **Ancien ID :** \`${data.id || "Inconnu"}\`
 **Nouvel ID :** \`${channel.id}\`
 
-${parentId
-    ? `📁 **Catégorie :** <#${parentId}>`
+${channel.parentId
+    ? `📁 **Catégorie :** <#${channel.parentId}>`
     : "📁 **Catégorie :** aucune / catégorie d'origine indisponible"}
 
-> Discord ne permet pas de restaurer l'ancien ID : le salon recréé possède donc un nouvel identifiant.`
+> Discord ne permet pas de restaurer l'ancien ID.`
             }),
 
         recreatedId:
@@ -896,7 +1037,177 @@ ${parentId
 }
 
 // ======================================================
-// RESTAURER MESSAGE
+// CATÉGORIE + ENFANTS
+// ======================================================
+
+async function rollbackDeletedCategory({
+    interaction,
+    action
+}) {
+    const guild =
+        interaction.guild;
+
+    const data =
+        action.data ||
+        {};
+
+    if (!data.name) {
+        throw new Error(
+            "Les informations de la catégorie sont incomplètes."
+        );
+    }
+
+    // ==================================================
+    // CATÉGORIE
+    // ==================================================
+
+    const category =
+        await createChannelFromSnapshot({
+            guild,
+            data: {
+                ...data,
+
+                type:
+                    ChannelType.GuildCategory
+            },
+
+            interaction,
+
+            forcedParentId:
+                null
+        });
+
+    // ==================================================
+    // ENFANTS
+    // ==================================================
+
+    const children =
+        Array.isArray(
+            data.children
+        )
+            ? [
+                ...data.children
+            ].sort(
+                (
+                    a,
+                    b
+                ) =>
+                    (
+                        a.position ||
+                        0
+                    ) -
+                    (
+                        b.position ||
+                        0
+                    )
+            )
+            : [];
+
+    let restored =
+        0;
+
+    let failed =
+        0;
+
+    const recreatedChannels =
+        [];
+
+    for (
+        const child
+        of children
+    ) {
+        try {
+            const recreated =
+                await createChannelFromSnapshot({
+                    guild,
+
+                    data:
+                        child,
+
+                    interaction,
+
+                    forcedParentId:
+                        category.id
+                });
+
+            recreatedChannels.push({
+                oldId:
+                    child.id,
+
+                newId:
+                    recreated.id,
+
+                name:
+                    recreated.name
+            });
+
+            restored++;
+
+        } catch (error) {
+            failed++;
+
+            console.error(
+                `❌ Rollback enfant ${child.name} :`,
+                error
+            );
+        }
+    }
+
+    // ==================================================
+    // EMBED
+    // ==================================================
+
+    const restoredList =
+        recreatedChannels.length
+            ? recreatedChannels
+                .slice(
+                    0,
+                    15
+                )
+                .map(
+                    item =>
+                        `• <#${item.newId}> — ancien \`${item.oldId || "?"}\``
+                )
+                .join(
+                    "\n"
+                )
+            : "Aucun salon recréé.";
+
+    return {
+        embed:
+            buildSuccessEmbed({
+                interaction,
+
+                title:
+                    "Catégorie restaurée",
+
+                description:
+`📁 **${category.name}** a été recréée.
+
+**Ancien ID catégorie :** \`${data.id || "Inconnu"}\`
+**Nouvel ID catégorie :** \`${category.id}\`
+
+### Salons
+✅ **Restaurés : ${restored}**
+${failed
+    ? `⚠️ **Échecs : ${failed}**`
+    : "✅ Aucun échec."}
+
+${restoredList}
+
+> La structure, les permissions et la majorité des paramètres ont été restaurés.
+> Les nouveaux salons et la nouvelle catégorie possèdent forcément de nouveaux IDs Discord.`
+            }),
+
+        recreatedId:
+            category.id,
+
+        recreatedChannels
+    };
+}
+
+// ======================================================
+// MESSAGE
 // ======================================================
 
 async function rollbackDeletedMessage({
@@ -913,9 +1224,7 @@ async function rollbackDeletedMessage({
     const channelId =
         data.channelId;
 
-    if (
-        !channelId
-    ) {
+    if (!channelId) {
         throw new Error(
             "Le salon d'origine du message n'a pas été enregistré."
         );
@@ -944,20 +1253,12 @@ async function rollbackDeletedMessage({
 
     const payload = {};
 
-    // ==================================================
-    // CONTENU
-    // ==================================================
-
     if (
         data.content
     ) {
         payload.content =
             data.content;
     }
-
-    // ==================================================
-    // EMBEDS
-    // ==================================================
 
     if (
         Array.isArray(
@@ -972,23 +1273,13 @@ async function rollbackDeletedMessage({
             );
     }
 
-    // ==================================================
-    // SÉCURITÉ SI VIDE
-    // ==================================================
-
     if (
         !payload.content &&
         !payload.embeds
     ) {
         payload.content =
-`↩️ **Message restauré**
-
-Le contenu original n'était plus intégralement disponible.`;
+            "↩️ **Message restauré**\n\nLe contenu original n'était plus intégralement disponible.";
     }
-
-    // ==================================================
-    // INFORMATION AUTEUR
-    // ==================================================
 
     if (
         data.authorId
@@ -1019,7 +1310,7 @@ Le contenu original n'était plus intégralement disponible.`;
 `Le message supprimé a été republié dans <#${channel.id}>.
 
 **Ancien ID :** \`${data.id || "Inconnu"}\`
-**Nouveau message :** [Accéder au message](${message.url})
+**Nouveau message :** ${message.url}
 
 > Le message restauré est envoyé par le bot et possède un nouvel ID.`
             }),
@@ -1030,7 +1321,7 @@ Le contenu original n'était plus intégralement disponible.`;
 }
 
 // ======================================================
-// ROLLBACK ROLE ADD / REMOVE
+// ROLE ADD / REMOVE
 // ======================================================
 
 async function rollbackRoleChange({
@@ -1049,9 +1340,7 @@ async function rollbackRoleChange({
         data.memberId ||
         data.userId;
 
-    if (
-        !targetId
-    ) {
+    if (!targetId) {
         throw new Error(
             "Le membre concerné n'est pas enregistré."
         );
@@ -1069,9 +1358,7 @@ async function rollbackRoleChange({
                 () => null
             );
 
-    if (
-        !member
-    ) {
+    if (!member) {
         throw new Error(
             "Le membre concerné n'est plus présent sur le serveur."
         );
@@ -1081,12 +1368,12 @@ async function rollbackRoleChange({
         findRole(
             guild,
             data.roleId,
-            data.roleName
+            data.roleName,
+            data.newRank,
+            data.oldRank
         );
 
-    if (
-        !role
-    ) {
+    if (!role) {
         throw new Error(
             "Le rôle concerné est introuvable."
         );
@@ -1104,13 +1391,16 @@ async function rollbackRoleChange({
     }
 
     // ==================================================
-    // SI LE BOT AVAIT AJOUTÉ LE RÔLE
-    // ON LE RETIRE
+    // AJOUT → RETIRER
     // ==================================================
 
     if (
-        action.type ===
-        "role_add"
+        [
+            "role_add",
+            "rank_add"
+        ].includes(
+            action.type
+        )
     ) {
         if (
             member.roles.cache.has(
@@ -1129,19 +1419,21 @@ async function rollbackRoleChange({
                     interaction,
 
                     title:
-                        "Ajout de rôle annulé",
+                        action.type ===
+                        "rank_add"
+                            ? "Rankup annulé"
+                            : "Ajout de rôle annulé",
 
                     description:
-`<@${member.id}> a perdu le rôle <@&${role.id}>.
+`<@${member.id}> a perdu <@&${role.id}>.
 
-> L'ajout de rôle précédent a été annulé.`
+> L'action précédente a été annulée.`
                 })
         };
     }
 
     // ==================================================
-    // SI LE BOT AVAIT RETIRÉ LE RÔLE
-    // ON LE REMET
+    // RETRAIT → REMETTRE
     // ==================================================
 
     if (
@@ -1161,18 +1453,21 @@ async function rollbackRoleChange({
                 interaction,
 
                 title:
-                    "Retrait de rôle annulé",
+                    action.type ===
+                    "rank_remove"
+                        ? "Derank annulé"
+                        : "Retrait de rôle annulé",
 
                 description:
-`<@${member.id}> a récupéré le rôle <@&${role.id}>.
+`<@${member.id}> a récupéré <@&${role.id}>.
 
-> Le retrait précédent a été annulé.`
+> L'action précédente a été annulée.`
             })
     };
 }
 
 // ======================================================
-// RANK HISTORY FALLBACK
+// LEGACY RANK HISTORY
 // ======================================================
 
 function getRolledBackRankIds(
@@ -1215,10 +1510,6 @@ function getRolledBackRankIds(
     return ids;
 }
 
-// ======================================================
-// DERNIÈRE ACTION RANK
-// ======================================================
-
 function getLastRankActionFallback() {
     const history =
         getRankHistory();
@@ -1252,7 +1543,10 @@ function getLastRankActionFallback() {
                     )
             )
             .sort(
-                (a, b) =>
+                (
+                    a,
+                    b
+                ) =>
                     (
                         b.timestamp ||
                         0
@@ -1265,10 +1559,6 @@ function getLastRankActionFallback() {
         null
     );
 }
-
-// ======================================================
-// ROLLBACK ANCIEN HISTORIQUE RANK
-// ======================================================
 
 async function rollbackLegacyRank({
     interaction,
@@ -1289,9 +1579,7 @@ async function rollbackLegacyRank({
                 () => null
             );
 
-    if (
-        !member
-    ) {
+    if (!member) {
         throw new Error(
             "Le membre concerné par ce rank n'est plus présent."
         );
@@ -1313,10 +1601,6 @@ async function rollbackLegacyRank({
 
     const changes =
         [];
-
-    // ==================================================
-    // ACTION ADD
-    // ==================================================
 
     if (
         action.action ===
@@ -1353,29 +1637,22 @@ async function rollbackLegacyRank({
             oldRole &&
             !member.roles.cache.has(
                 oldRole.id
+            ) &&
+            canManageRole(
+                guild,
+                oldRole
             )
         ) {
-            if (
-                canManageRole(
-                    guild,
-                    oldRole
-                )
-            ) {
-                await member.roles.add(
-                    oldRole,
-                    "Rollback"
-                );
+            await member.roles.add(
+                oldRole,
+                "Rollback"
+            );
 
-                changes.push(
-                    `➕ <@&${oldRole.id}>`
-                );
-            }
+            changes.push(
+                `➕ <@&${oldRole.id}>`
+            );
         }
     }
-
-    // ==================================================
-    // ACTION REMOVE
-    // ==================================================
 
     if (
         action.action ===
@@ -1385,9 +1662,7 @@ async function rollbackLegacyRank({
             currentRole ||
             oldRole;
 
-        if (
-            !roleToRestore
-        ) {
+        if (!roleToRestore) {
             throw new Error(
                 "Impossible de retrouver le rôle retiré."
             );
@@ -1419,10 +1694,6 @@ async function rollbackLegacyRank({
             );
         }
     }
-
-    // ==================================================
-    // MARQUEUR DANS RANK HISTORY
-    // ==================================================
 
     addRankHistory({
         userId:
@@ -1477,7 +1748,7 @@ ${changes.length
 }
 
 // ======================================================
-// DESCRIPTION ACTION
+// DESCRIPTION
 // ======================================================
 
 function describeAction(
@@ -1502,9 +1773,7 @@ function describeAction(
             );
 
         case "message_delete":
-            return (
-                "Suppression d'un message"
-            );
+            return "Suppression d'un message";
 
         case "role_add":
             return (
@@ -1545,10 +1814,6 @@ module.exports = {
                 "Annuler la dernière action réversible effectuée via le bot"
             ),
 
-    // ==================================================
-    // EXECUTION
-    // ==================================================
-
     async execute(
         interaction
     ) {
@@ -1573,9 +1838,7 @@ module.exports = {
                     PermissionFlagsBits.ManageRoles
                 );
 
-            if (
-                !allowed
-            ) {
+            if (!allowed) {
                 return interaction.editReply({
                     content:
                         "❌ Tu n'as pas la permission d'utiliser `/rollback`."
@@ -1583,7 +1846,7 @@ module.exports = {
             }
 
             // ==================================================
-            // HISTORIQUE GLOBAL
+            // HISTORIQUES
             // ==================================================
 
             const globalAction =
@@ -1591,16 +1854,8 @@ module.exports = {
                     interaction.guild.id
                 );
 
-            // ==================================================
-            // ANCIEN HISTORIQUE RANK
-            // ==================================================
-
             const rankAction =
                 getLastRankActionFallback();
-
-            // ==================================================
-            // CHOISIR LA PLUS RÉCENTE
-            // ==================================================
 
             let useGlobal =
                 false;
@@ -1637,7 +1892,7 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
             }
 
             // ==================================================
-            // HISTORIQUE RANK ANCIEN
+            // LEGACY RANK
             // ==================================================
 
             if (
@@ -1646,6 +1901,7 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
                 const result =
                     await rollbackLegacyRank({
                         interaction,
+
                         action:
                             rankAction
                     });
@@ -1658,7 +1914,7 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
             }
 
             // ==================================================
-            // ACTION GLOBALE
+            // GLOBAL
             // ==================================================
 
             const action =
@@ -1670,10 +1926,6 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
             switch (
                 action.type
             ) {
-                // ==============================================
-                // RÔLE SUPPRIMÉ
-                // ==============================================
-
                 case "role_delete":
                     result =
                         await rollbackDeletedRole({
@@ -1683,12 +1935,7 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
 
                     break;
 
-                // ==============================================
-                // SALON / CATÉGORIE SUPPRIMÉ
-                // ==============================================
-
                 case "channel_delete":
-                case "category_delete":
                     result =
                         await rollbackDeletedChannel({
                             interaction,
@@ -1697,9 +1944,14 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
 
                     break;
 
-                // ==============================================
-                // MESSAGE SUPPRIMÉ
-                // ==============================================
+                case "category_delete":
+                    result =
+                        await rollbackDeletedCategory({
+                            interaction,
+                            action
+                        });
+
+                    break;
 
                 case "message_delete":
                     result =
@@ -1710,12 +1962,10 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
 
                     break;
 
-                // ==============================================
-                // RÔLE AJOUTÉ / RETIRÉ
-                // ==============================================
-
                 case "role_add":
                 case "role_remove":
+                case "rank_add":
+                case "rank_remove":
                     result =
                         await rollbackRoleChange({
                             interaction,
@@ -1731,16 +1981,23 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
             }
 
             // ==================================================
-            // MARQUER COMME ANNULÉ
+            // MARQUAGE
             // ==================================================
 
-            markAsRolledBack(
-                action.id,
-                interaction.user.id
-            );
+            const marked =
+                markAsRolledBack(
+                    action.id,
+                    interaction.user.id
+                );
+
+            if (!marked) {
+                console.warn(
+                    `⚠️ Rollback effectué mais action ${action.id} non marquée.`
+                );
+            }
 
             // ==================================================
-            // LOG SYSTÈME
+            // LOG
             // ==================================================
 
             if (
@@ -1817,12 +2074,13 @@ Aucune action n'a été marquée comme restaurée.`
     },
 
     // ==================================================
-    // EXPORTS UTILES POUR L'INDEX FINAL
+    // EXPORTS
     // ==================================================
 
     actionHistory: {
         getActionHistory,
         saveActionHistory,
-        addActionHistory
+        addActionHistory,
+        markAsRolledBack
     }
 };

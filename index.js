@@ -51,7 +51,7 @@ const {
 } = require("discord.js");
 
 // ======================================================
-// SYSTÈMES
+// SYSTÈMES PRINCIPAUX
 // ======================================================
 
 const registerLogsSystem =
@@ -95,9 +95,13 @@ function isProtectedUser(
     userId
 ) {
     return (
-        !!userId &&
+        Boolean(
+            userId
+        ) &&
         PROTECTED_USER_IDS.has(
-            String(userId)
+            String(
+                userId
+            )
         )
     );
 }
@@ -153,7 +157,7 @@ client.isProtectedUser =
     isProtectedUser;
 
 // ======================================================
-// PERSISTANCE
+// PERSISTANCE CH / MN / PSEUDO
 // ======================================================
 
 loadControlStates(
@@ -188,16 +192,33 @@ function loadCommands() {
     const commandsJSON =
         [];
 
-    const files =
-        fs.readdirSync(
-            commandsPath
-        )
-            .filter(
-                file =>
-                    file.endsWith(
-                        ".js"
-                    )
-            );
+    let files =
+        [];
+
+    try {
+        files =
+            fs.readdirSync(
+                commandsPath
+            )
+                .filter(
+                    file =>
+                        file.endsWith(
+                            ".js"
+                        )
+                )
+                .sort();
+
+    } catch (error) {
+        console.error(
+            "❌ Impossible de lire le dossier commandes :",
+            error
+        );
+
+        client.commands =
+            collection;
+
+        return commandsJSON;
+    }
 
     console.log("");
     console.log(
@@ -231,12 +252,22 @@ function loadCommands() {
                 );
 
             if (
-                !command.data ||
+                !command?.data ||
                 typeof command.execute !==
                     "function"
             ) {
                 console.log(
                     `❌ Commande invalide : ${file}`
+                );
+
+                continue;
+            }
+
+            if (
+                !command.data.name
+            ) {
+                console.log(
+                    `❌ Nom de commande absent : ${file}`
                 );
 
                 continue;
@@ -289,6 +320,201 @@ function loadCommands() {
 }
 
 // ======================================================
+// RÉCUPÉRATION MODULE COMMANDE
+// ======================================================
+
+function getCommandModule(
+    name
+) {
+    return (
+        client.commands.get(
+            name
+        ) ||
+        null
+    );
+}
+
+// ======================================================
+// SYSTÈMES EXPORTÉS PAR LES COMMANDES
+// ======================================================
+
+function registerCommandSystems() {
+    // ==================================================
+    // MAINTENANCE
+    // ==================================================
+
+    try {
+        const maintenance =
+            getCommandModule(
+                "maintenance"
+            )
+                ?.maintenanceSystem;
+
+        maintenance
+            ?.register
+            ?.(client);
+
+        if (
+            maintenance
+        ) {
+            client.maintenanceSystem =
+                maintenance;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Maintenance :",
+            error
+        );
+    }
+
+    // ==================================================
+    // SURVEILLANCE
+    // ==================================================
+
+    try {
+        const surveillance =
+            getCommandModule(
+                "surveillance"
+            )
+                ?.surveillanceSystem;
+
+        surveillance
+            ?.register
+            ?.(client);
+
+        if (
+            surveillance
+        ) {
+            client.surveillanceSystem =
+                surveillance;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Surveillance :",
+            error
+        );
+    }
+
+    // ==================================================
+    // TRIBUNAL
+    // ==================================================
+
+    try {
+        const tribunal =
+            getCommandModule(
+                "tribunal"
+            )
+                ?.tribunalSystem;
+
+        tribunal
+            ?.register
+            ?.(client);
+
+        if (
+            tribunal
+        ) {
+            client.tribunalSystem =
+                tribunal;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Tribunal :",
+            error
+        );
+    }
+
+    // ==================================================
+    // LEGACY GAMES
+    // ==================================================
+
+    try {
+        const legacyGames =
+            getCommandModule(
+                "legacygames"
+            )
+                ?.legacyGamesSystem;
+
+        legacyGames
+            ?.register
+            ?.(client);
+
+        if (
+            legacyGames
+        ) {
+            client.legacyGamesSystem =
+                legacyGames;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Legacy Games :",
+            error
+        );
+    }
+
+    // ==================================================
+    // IMPOSTEUR
+    // ==================================================
+
+    try {
+        const imposteur =
+            getCommandModule(
+                "imposteur"
+            )
+                ?.imposteurSystem;
+
+        imposteur
+            ?.register
+            ?.(client);
+
+        if (
+            imposteur
+        ) {
+            client.imposteurSystem =
+                imposteur;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Imposteur :",
+            error
+        );
+    }
+
+    // ==================================================
+    // LOUP-GAROU
+    // ==================================================
+
+    try {
+        const loupgarou =
+            getCommandModule(
+                "loupgarou"
+            )
+                ?.loupgarouSystem;
+
+        loupgarou
+            ?.register
+            ?.(client);
+
+        if (
+            loupgarou
+        ) {
+            client.loupgarouSystem =
+                loupgarou;
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Register Loup-Garou :",
+            error
+        );
+    }
+}
+
+// ======================================================
 // /UPDATE
 // ======================================================
 
@@ -296,6 +522,11 @@ client.reloadCommands =
     async function () {
         const commands =
             loadCommands();
+
+        // Les différents register() doivent avoir leur
+        // propre protection __xxxRegistered afin de ne
+        // pas créer plusieurs listeners.
+        registerCommandSystems();
 
         const rest =
             new REST({
@@ -305,18 +536,26 @@ client.reloadCommands =
                 process.env.TOKEN
             );
 
-        // Supprime les anciennes commandes globales
+        // ==================================================
+        // SUPPRESSION COMMANDES GLOBALES
+        // ==================================================
+
         await rest.put(
             Routes.applicationCommands(
                 client.user.id
             ),
             {
-                body: []
+                body:
+                    []
             }
         );
 
         let guildCount =
             0;
+
+        // ==================================================
+        // COMMANDES SERVEUR
+        // ==================================================
 
         for (
             const guild
@@ -354,10 +593,10 @@ client.reloadCommands =
     };
 
 // ======================================================
-// LANCEMENT DES SYSTÈMES
+// LANCEMENT SYSTÈMES PRINCIPAUX
 // ======================================================
 
-// Logs AVANT les autres systèmes
+// Logs
 registerLogsSystem(
     client
 );
@@ -372,7 +611,7 @@ registerRecruitmentVoiceSystem(
     client
 );
 
-// Vocaux temporaires
+// TPV
 registerTempVoiceSystem(
     client
 );
@@ -382,10 +621,26 @@ registerRobloxLinkPanel(
     client
 );
 
-// Statistiques
+// Stats
 registerActivityStats(
     client
 );
+
+// ======================================================
+// PREMIER CHARGEMENT LOCAL DES COMMANDES
+// ======================================================
+
+try {
+    loadCommands();
+
+    registerCommandSystems();
+
+} catch (error) {
+    console.error(
+        "❌ Préchargement commandes :",
+        error
+    );
+}
 
 // ======================================================
 // PROTECTION OPTIONS SLASH
@@ -498,6 +753,242 @@ async function replyProtected(
             error
         );
     }
+}
+
+// ======================================================
+// MAINTENANCE
+// ======================================================
+
+function getMaintenanceSystem() {
+    return (
+        getCommandModule(
+            "maintenance"
+        )
+            ?.maintenanceSystem ||
+        client.maintenanceSystem ||
+        null
+    );
+}
+
+// ======================================================
+// RÉPONSE MAINTENANCE
+// ======================================================
+
+async function replyMaintenanceBlocked(
+    interaction,
+    result
+) {
+    const maintenanceSystem =
+        getMaintenanceSystem();
+
+    const embed =
+        maintenanceSystem
+            ?.buildMaintenanceBlockedEmbed
+            ? maintenanceSystem
+                .buildMaintenanceBlockedEmbed(
+                    result
+                )
+            : null;
+
+    const payload =
+        embed
+            ? {
+                embeds: [
+                    embed
+                ],
+
+                flags:
+                    MessageFlags.Ephemeral
+            }
+            : {
+                content:
+                    `🛠️ Cette fonctionnalité est actuellement en maintenance.\n\n**Raison :** ${result?.reason || "Aucune raison précisée."}`,
+
+                flags:
+                    MessageFlags.Ephemeral
+            };
+
+    try {
+        if (
+            interaction.deferred
+        ) {
+            const editPayload = {
+                ...payload
+            };
+
+            delete editPayload.flags;
+
+            await interaction.editReply(
+                editPayload
+            );
+
+            return;
+        }
+
+        if (
+            interaction.replied
+        ) {
+            await interaction.followUp(
+                payload
+            );
+
+            return;
+        }
+
+        await interaction.reply(
+            payload
+        );
+
+    } catch (error) {
+        console.error(
+            "❌ Réponse maintenance :",
+            error
+        );
+    }
+}
+
+// ======================================================
+// CHECK MAINTENANCE SLASH
+// ======================================================
+
+function checkCommandMaintenance(
+    commandName
+) {
+    const maintenanceSystem =
+        getMaintenanceSystem();
+
+    if (
+        !maintenanceSystem
+    ) {
+        return {
+            blocked:
+                false
+        };
+    }
+
+    try {
+        if (
+            typeof maintenanceSystem.checkCommandMaintenance ===
+                "function"
+        ) {
+            return (
+                maintenanceSystem
+                    .checkCommandMaintenance(
+                        commandName
+                    ) ||
+                {
+                    blocked:
+                        false
+                }
+            );
+        }
+
+        if (
+            typeof maintenanceSystem.check ===
+                "function"
+        ) {
+            return (
+                maintenanceSystem.check(
+                    commandName
+                ) ||
+                {
+                    blocked:
+                        false
+                }
+            );
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Check maintenance commande :",
+            error
+        );
+    }
+
+    return {
+        blocked:
+            false
+    };
+}
+
+// ======================================================
+// CHECK MAINTENANCE COMPONENT
+// ======================================================
+
+function checkComponentMaintenance(
+    interaction
+) {
+    const maintenanceSystem =
+        getMaintenanceSystem();
+
+    if (
+        !maintenanceSystem
+    ) {
+        return {
+            blocked:
+                false
+        };
+    }
+
+    try {
+        if (
+            typeof maintenanceSystem.checkComponentMaintenance ===
+                "function"
+        ) {
+            return (
+                maintenanceSystem
+                    .checkComponentMaintenance(
+                        interaction
+                    ) ||
+                {
+                    blocked:
+                        false
+                }
+            );
+        }
+
+        if (
+            typeof maintenanceSystem.check ===
+                "function"
+        ) {
+            return (
+                maintenanceSystem.check(
+                    interaction
+                ) ||
+                {
+                    blocked:
+                        false
+                }
+            );
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Check maintenance composant :",
+            error
+        );
+    }
+
+    return {
+        blocked:
+            false
+    };
+}
+
+// ======================================================
+// IDENTIFICATION SELECT MENU
+// ======================================================
+
+function isAnySelectInteraction(
+    interaction
+) {
+    return (
+        interaction.isStringSelectMenu?.() ||
+        interaction.isUserSelectMenu?.() ||
+        interaction.isChannelSelectMenu?.() ||
+        interaction.isRoleSelectMenu?.() ||
+        interaction.isMentionableSelectMenu?.()
+    );
 }
 
 // ======================================================
@@ -650,11 +1141,28 @@ async function handleUserButton(
     ) {
         if (
             result.error ===
-                "NOT_OWNER"
+            "NOT_OWNER"
         ) {
             await interaction.followUp({
                 content:
                     "❌ Seule la personne ayant ouvert ce panel peut utiliser ces boutons.",
+
+                flags:
+                    MessageFlags.Ephemeral
+            }).catch(
+                () => {}
+            );
+
+            return true;
+        }
+
+        if (
+            result.error ===
+            "PROTECTED_USER"
+        ) {
+            await interaction.followUp({
+                content:
+                    "🛡️ Ce membre est protégé.",
 
                 flags:
                     MessageFlags.Ephemeral
@@ -684,10 +1192,13 @@ async function handleUserButton(
     } =
         result;
 
+    // ==================================================
     // BRING
+    // ==================================================
+
     if (
         action ===
-            "bring"
+        "bring"
     ) {
         if (
             !owner.voice.channelId
@@ -754,10 +1265,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // BACK
+    // ==================================================
+
     if (
         action ===
-            "back"
+        "back"
     ) {
         const previous =
             client.previousVoice.get(
@@ -804,14 +1318,37 @@ async function handleUserButton(
             return true;
         }
 
+        const currentChannelId =
+            target.voice.channelId;
+
         try {
             await target.voice.setChannel(
                 previous.channelId
             );
 
-            client.previousVoice.delete(
-                target.id
-            );
+            // Permet un fonctionnement "toggle" proche
+            // de la commande /back dédiée.
+            if (
+                currentChannelId &&
+                currentChannelId !==
+                    previous.channelId
+            ) {
+                client.previousVoice.set(
+                    target.id,
+                    {
+                        guildId:
+                            interaction.guild.id,
+
+                        channelId:
+                            currentChannelId
+                    }
+                );
+
+            } else {
+                client.previousVoice.delete(
+                    target.id
+                );
+            }
 
             await interaction.followUp({
                 content:
@@ -834,10 +1371,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // DISCONNECT
+    // ==================================================
+
     if (
         action ===
-            "disconnect"
+        "disconnect"
     ) {
         if (
             !target.voice.channelId
@@ -888,10 +1428,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // MN
+    // ==================================================
+
     if (
         action ===
-            "mn"
+        "mn"
     ) {
         if (
             !target.voice.channelId
@@ -934,10 +1477,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // DMN
+    // ==================================================
+
     if (
         action ===
-            "dmn"
+        "dmn"
     ) {
         const existed =
             client.menottes.delete(
@@ -959,10 +1505,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // CH
+    // ==================================================
+
     if (
         action ===
-            "ch"
+        "ch"
     ) {
         client.chiens.set(
             target.id,
@@ -1003,10 +1552,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // UCH
+    // ==================================================
+
     if (
         action ===
-            "uch"
+        "uch"
     ) {
         const existed =
             client.chiens.delete(
@@ -1028,10 +1580,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // LOCK NAME
+    // ==================================================
+
     if (
         action ===
-            "lockname"
+        "lockname"
     ) {
         client.lockedNames.set(
             target.id,
@@ -1060,10 +1615,13 @@ async function handleUserButton(
         return true;
     }
 
+    // ==================================================
     // UNLOCK NAME
+    // ==================================================
+
     if (
         action ===
-            "unlockname"
+        "unlockname"
     ) {
         const existed =
             client.lockedNames.delete(
@@ -1084,6 +1642,16 @@ async function handleUserButton(
 
         return true;
     }
+
+    await interaction.followUp({
+        content:
+            "❌ Action inconnue.",
+
+        flags:
+            MessageFlags.Ephemeral
+    }).catch(
+        () => {}
+    );
 
     return true;
 }
@@ -1116,6 +1684,13 @@ async function handleUserChannelSelect(
         parts[3];
 
     if (
+        !ownerId ||
+        !targetId
+    ) {
+        return true;
+    }
+
+    if (
         isProtectedUser(
             targetId
         )
@@ -1139,6 +1714,21 @@ async function handleUserChannelSelect(
     if (
         !result.success
     ) {
+        if (
+            result.error ===
+            "NOT_OWNER"
+        ) {
+            await interaction.followUp({
+                content:
+                    "❌ Seule la personne ayant ouvert ce panel peut utiliser ce menu.",
+
+                flags:
+                    MessageFlags.Ephemeral
+            }).catch(
+                () => {}
+            );
+        }
+
         return true;
     }
 
@@ -1148,7 +1738,9 @@ async function handleUserChannelSelect(
     const channelId =
         interaction.values?.[0];
 
-    if (!channelId) {
+    if (
+        !channelId
+    ) {
         return true;
     }
 
@@ -1194,6 +1786,493 @@ async function handleUserChannelSelect(
 }
 
 // ======================================================
+// HELPERS ROUTAGE COMPOSANTS
+// ======================================================
+
+async function runCommandButtonHandler(
+    commandName,
+    interaction
+) {
+    const command =
+        getCommandModule(
+            commandName
+        );
+
+    if (
+        !command ||
+        typeof command.handleButton !==
+            "function"
+    ) {
+        return false;
+    }
+
+    return Boolean(
+        await command.handleButton(
+            interaction,
+            client
+        )
+    );
+}
+
+async function runCommandSelectHandler(
+    commandName,
+    interaction
+) {
+    const command =
+        getCommandModule(
+            commandName
+        );
+
+    if (
+        !command ||
+        typeof command.handleSelect !==
+            "function"
+    ) {
+        return false;
+    }
+
+    return Boolean(
+        await command.handleSelect(
+            interaction,
+            client
+        )
+    );
+}
+
+async function runCommandModalHandler(
+    commandName,
+    interaction
+) {
+    const command =
+        getCommandModule(
+            commandName
+        );
+
+    if (
+        !command ||
+        typeof command.handleModal !==
+            "function"
+    ) {
+        return false;
+    }
+
+    return Boolean(
+        await command.handleModal(
+            interaction,
+            client
+        )
+    );
+}
+
+// ======================================================
+// DÉTECTION DES COMPOSANTS LOUP-GAROU
+//
+// LegacyGames utilise également des IDs lg_.
+// On détecte donc d'abord les IDs clairement réservés
+// au Loup-Garou.
+// ======================================================
+
+function isLoupgarouComponentId(
+    customId
+) {
+    if (
+        !customId
+    ) {
+        return false;
+    }
+
+    const prefixes = [
+        "lg_info_role_",
+        "lg_info_rules_",
+        "lg_info_game_",
+
+        "lg_choice_",
+        "lg_action_",
+
+        "lg_rules_group_",
+        "lg_rules_role_",
+
+        "lg_mayor_join_",
+        "lg_mayor_leave_",
+        "lg_mayor_vote_",
+
+        "lg_day_vote_",
+
+        // Lobby / configuration Loup-Garou
+        "lg_lobby_",
+        "lg_join_",
+        "lg_leave_",
+        "lg_start_",
+        "lg_cancel_",
+        "lg_config_",
+        "lg_preset_",
+        "lg_custom_",
+        "lg_rule_",
+        "lg_role_"
+    ];
+
+    return prefixes.some(
+        prefix =>
+            customId.startsWith(
+                prefix
+            )
+    );
+}
+
+// ======================================================
+// ROUTEUR BOUTONS COMMANDES
+// ======================================================
+
+async function routeCommandButton(
+    interaction
+) {
+    const customId =
+        interaction.customId ||
+        "";
+
+    // Loup-Garou en priorité seulement pour ses IDs connus.
+    if (
+        isLoupgarouComponentId(
+            customId
+        )
+    ) {
+        try {
+            const handled =
+                await runCommandButtonHandler(
+                    "loupgarou",
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                "❌ Bouton loupgarou :",
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    const modules = [
+        "wanted",
+        "ship",
+        "union",
+        "tribunal",
+        "legacygames",
+        "imposteur",
+        "loupgarou"
+    ];
+
+    for (
+        const name
+        of modules
+    ) {
+        // On ne relance pas deux fois Loup-Garou.
+        if (
+            name ===
+                "loupgarou" &&
+            isLoupgarouComponentId(
+                customId
+            )
+        ) {
+            continue;
+        }
+
+        try {
+            const handled =
+                await runCommandButtonHandler(
+                    name,
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                `❌ Bouton ${name} :`,
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ======================================================
+// ROUTEUR SELECTS
+// ======================================================
+
+async function routeCommandSelect(
+    interaction
+) {
+    const customId =
+        interaction.customId ||
+        "";
+
+    if (
+        isLoupgarouComponentId(
+            customId
+        )
+    ) {
+        try {
+            const handled =
+                await runCommandSelectHandler(
+                    "loupgarou",
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                "❌ Select loupgarou :",
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    const modules = [
+        "legacygames",
+        "imposteur",
+        "tribunal",
+        "loupgarou"
+    ];
+
+    for (
+        const name
+        of modules
+    ) {
+        if (
+            name ===
+                "loupgarou" &&
+            isLoupgarouComponentId(
+                customId
+            )
+        ) {
+            continue;
+        }
+
+        try {
+            const handled =
+                await runCommandSelectHandler(
+                    name,
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                `❌ Select ${name} :`,
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ======================================================
+// ROUTEUR MODALS
+// ======================================================
+
+async function routeCommandModal(
+    interaction
+) {
+    const customId =
+        interaction.customId ||
+        "";
+
+    if (
+        isLoupgarouComponentId(
+            customId
+        )
+    ) {
+        try {
+            const handled =
+                await runCommandModalHandler(
+                    "loupgarou",
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                "❌ Modal loupgarou :",
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    const modules = [
+        "legacygames",
+        "tribunal",
+        "imposteur",
+        "loupgarou"
+    ];
+
+    for (
+        const name
+        of modules
+    ) {
+        if (
+            name ===
+                "loupgarou" &&
+            isLoupgarouComponentId(
+                customId
+            )
+        ) {
+            continue;
+        }
+
+        try {
+            const handled =
+                await runCommandModalHandler(
+                    name,
+                    interaction
+                );
+
+            if (
+                handled
+            ) {
+                return true;
+            }
+
+        } catch (error) {
+            console.error(
+                `❌ Modal ${name} :`,
+                error
+            );
+
+            if (
+                !interaction.replied &&
+                !interaction.deferred
+            ) {
+                await interaction.reply({
+                    content:
+                        "❌ Une erreur est survenue.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ======================================================
 // INTERACTIONS
 // ======================================================
 
@@ -1201,7 +2280,10 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
+            // ==================================================
             // AUTOCOMPLETE
+            // ==================================================
+
             if (
                 interaction.isAutocomplete()
             ) {
@@ -1246,22 +2328,41 @@ client.on(
                 return;
             }
 
-            // /USER BUTTONS
-            if (
-                interaction.isButton() &&
-                interaction.customId
-                    .startsWith(
-                        "user_"
-                    )
-            ) {
-                await handleUserButton(
-                    interaction
-                );
+            // ==================================================
+            // MAINTENANCE DES COMPOSANTS
+            //
+            // IMPORTANT :
+            // elle passe AVANT /user et avant les jeux.
+            // ==================================================
 
-                return;
+            if (
+                interaction.isButton() ||
+                isAnySelectInteraction(
+                    interaction
+                ) ||
+                interaction.isModalSubmit()
+            ) {
+                const maintenance =
+                    checkComponentMaintenance(
+                        interaction
+                    );
+
+                if (
+                    maintenance.blocked
+                ) {
+                    await replyMaintenanceBlocked(
+                        interaction,
+                        maintenance
+                    );
+
+                    return;
+                }
             }
 
+            // ==================================================
             // /USER CHANNEL SELECT
+            // ==================================================
+
             if (
                 interaction.isChannelSelectMenu() &&
                 interaction.customId
@@ -1276,6 +2377,86 @@ client.on(
                 return;
             }
 
+            // ==================================================
+            // /USER BUTTONS
+            // ==================================================
+
+            if (
+                interaction.isButton() &&
+                interaction.customId
+                    .startsWith(
+                        "user_"
+                    )
+            ) {
+                await handleUserButton(
+                    interaction
+                );
+
+                return;
+            }
+
+            // ==================================================
+            // BUTTONS COMMANDES
+            // ==================================================
+
+            if (
+                interaction.isButton()
+            ) {
+                const handled =
+                    await routeCommandButton(
+                        interaction
+                    );
+
+                if (
+                    handled
+                ) {
+                    return;
+                }
+            }
+
+            // ==================================================
+            // SELECT MENUS COMMANDES
+            // ==================================================
+
+            if (
+                interaction.isStringSelectMenu() ||
+                interaction.isUserSelectMenu()
+            ) {
+                const handled =
+                    await routeCommandSelect(
+                        interaction
+                    );
+
+                if (
+                    handled
+                ) {
+                    return;
+                }
+            }
+
+            // ==================================================
+            // MODALS COMMANDES
+            // ==================================================
+
+            if (
+                interaction.isModalSubmit()
+            ) {
+                const handled =
+                    await routeCommandModal(
+                        interaction
+                    );
+
+                if (
+                    handled
+                ) {
+                    return;
+                }
+            }
+
+            // ==================================================
+            // SLASH UNIQUEMENT À PARTIR D'ICI
+            // ==================================================
+
             if (
                 !interaction.isChatInputCommand()
             ) {
@@ -1287,7 +2468,9 @@ client.on(
                     interaction.commandName
                 );
 
-            if (!command) {
+            if (
+                !command
+            ) {
                 if (
                     !interaction.replied &&
                     !interaction.deferred
@@ -1310,7 +2493,50 @@ client.on(
                 Date.now();
 
             // ==================================================
-            // PROTECTION
+            // MAINTENANCE
+            // ==================================================
+
+            const maintenance =
+                checkCommandMaintenance(
+                    interaction.commandName
+                );
+
+            if (
+                maintenance.blocked
+            ) {
+                console.log(
+                    `🛠️ /${interaction.commandName} bloquée : maintenance`
+                );
+
+                await replyMaintenanceBlocked(
+                    interaction,
+                    maintenance
+                );
+
+                await client.logs
+                    ?.logCommand(
+                        interaction,
+                        {
+                            status:
+                                "blocked",
+
+                            durationMs:
+                                Date.now() -
+                                startedAt,
+
+                            note:
+                                `Maintenance : ${maintenance.serviceLabel || maintenance.service || "service"}`
+                        }
+                    )
+                    .catch(
+                        () => {}
+                    );
+
+                return;
+            }
+
+            // ==================================================
+            // PROTECTION COMPTES
             // ==================================================
 
             const protectedTarget =
@@ -1357,6 +2583,10 @@ client.on(
 
             let executionError =
                 null;
+
+            // ==================================================
+            // EXECUTION
+            // ==================================================
 
             try {
                 await command.execute(
@@ -1441,6 +2671,22 @@ client.on(
                 "❌ Interaction globale :",
                 error
             );
+
+            try {
+                if (
+                    !interaction.replied &&
+                    !interaction.deferred
+                ) {
+                    await interaction.reply({
+                        content:
+                            "❌ Une erreur interne est survenue.",
+
+                        flags:
+                            MessageFlags.Ephemeral
+                    });
+                }
+
+            } catch {}
         }
     }
 );
@@ -1457,11 +2703,28 @@ client.on(
     ) => {
         try {
             const guild =
-                newState.guild;
+                newState.guild ||
+                oldState.guild;
+
+            if (
+                !guild
+            ) {
+                return;
+            }
+
+            const memberId =
+                newState.id ||
+                oldState.id;
+
+            if (
+                !memberId
+            ) {
+                return;
+            }
 
             if (
                 isProtectedUser(
-                    newState.id
+                    memberId
                 )
             ) {
                 let changed =
@@ -1469,7 +2732,7 @@ client.on(
 
                 if (
                     client.chiens.delete(
-                        newState.id
+                        memberId
                     )
                 ) {
                     changed =
@@ -1478,7 +2741,7 @@ client.on(
 
                 if (
                     client.menottes.delete(
-                        newState.id
+                        memberId
                     )
                 ) {
                     changed =
@@ -1494,34 +2757,61 @@ client.on(
                 return;
             }
 
+            // ==================================================
             // MENOTTE
+            // ==================================================
+
             const menotte =
                 client.menottes.get(
-                    newState.id
+                    memberId
                 );
 
             if (
                 menotte &&
                 menotte.guildId ===
-                    guild.id &&
-                newState.channelId &&
-                newState.channelId !==
-                    menotte.channelId
+                    guild.id
             ) {
-                try {
-                    await newState.setChannel(
-                        menotte.channelId
-                    );
+                const member =
+                    newState.member ||
+                    oldState.member;
 
-                } catch (error) {
-                    console.error(
-                        "❌ Menotte persistante :",
-                        error
-                    );
+                // S'il change vers un autre vocal,
+                // on le remet immédiatement.
+                if (
+                    newState.channelId &&
+                    newState.channelId !==
+                        menotte.channelId
+                ) {
+                    try {
+                        await newState.setChannel(
+                            menotte.channelId
+                        );
+
+                    } catch (error) {
+                        console.error(
+                            "❌ Menotte persistante :",
+                            error
+                        );
+                    }
+                }
+
+                // S'il se déconnecte complètement,
+                // on conserve la menotte en mémoire.
+                // Dès qu'il revient dans un vocal,
+                // le bloc ci-dessus le remettra.
+                if (
+                    !newState.channelId &&
+                    member
+                ) {
+                    // Aucun déplacement possible tant
+                    // qu'il n'est pas reconnecté.
                 }
             }
 
+            // ==================================================
             // CH
+            // ==================================================
+
             for (
                 const [
                     targetId,
@@ -1545,7 +2835,7 @@ client.on(
 
                 if (
                     data.guildId !==
-                        guild.id
+                    guild.id
                 ) {
                     continue;
                 }
@@ -1575,8 +2865,12 @@ client.on(
                     continue;
                 }
 
+                // ==================================================
+                // MAÎTRE CHANGE / REJOINT UN VOCAL
+                // ==================================================
+
                 if (
-                    newState.id ===
+                    memberId ===
                         data.maitreId &&
                     newState.channelId &&
                     cible.voice.channelId &&
@@ -1592,9 +2886,36 @@ client.on(
                         );
                 }
 
+                // ==================================================
+                // CH TENTE DE CHANGER DE VOCAL
+                // ==================================================
+
                 if (
-                    newState.id ===
+                    memberId ===
                         targetId &&
+                    newState.channelId &&
+                    maitre.voice.channelId &&
+                    newState.channelId !==
+                        maitre.voice.channelId
+                ) {
+                    await newState
+                        .setChannel(
+                            maitre.voice.channelId
+                        )
+                        .catch(
+                            () => {}
+                        );
+                }
+
+                // ==================================================
+                // CH REVIENT APRÈS S'ÊTRE DÉCONNECTÉ
+                // ==================================================
+
+                if (
+                    memberId ===
+                        targetId &&
+                    oldState.channelId ===
+                        null &&
                     newState.channelId &&
                     maitre.voice.channelId &&
                     newState.channelId !==
@@ -1654,16 +2975,24 @@ client.on(
             if (
                 !verrou ||
                 verrou.guildId !==
-                    newMember.guild.id ||
+                    newMember.guild.id
+            ) {
+                return;
+            }
+
+            const expectedNickname =
+                verrou.nickname;
+
+            if (
                 newMember.displayName ===
-                    verrou.nickname
+                expectedNickname
             ) {
                 return;
             }
 
             await newMember
                 .setNickname(
-                    verrou.nickname,
+                    expectedNickname,
                     "Pseudo verrouillé"
                 )
                 .catch(
@@ -1684,10 +3013,17 @@ client.on(
 );
 
 // ======================================================
-// RESTAURATION
+// RESTAURATION CH / MN
 // ======================================================
 
 async function restoreActiveVoiceControls() {
+    let changed =
+        false;
+
+    // ==================================================
+    // MENOTTES
+    // ==================================================
+
     for (
         const [
             memberId,
@@ -1706,6 +3042,9 @@ async function restoreActiveVoiceControls() {
                 memberId
             );
 
+            changed =
+                true;
+
             continue;
         }
 
@@ -1714,7 +3053,9 @@ async function restoreActiveVoiceControls() {
                 data.guildId
             );
 
-        if (!guild) {
+        if (
+            !guild
+        ) {
             continue;
         }
 
@@ -1748,6 +3089,10 @@ async function restoreActiveVoiceControls() {
         }
     }
 
+    // ==================================================
+    // CH
+    // ==================================================
+
     for (
         const [
             targetId,
@@ -1766,6 +3111,9 @@ async function restoreActiveVoiceControls() {
                 targetId
             );
 
+            changed =
+                true;
+
             continue;
         }
 
@@ -1774,7 +3122,9 @@ async function restoreActiveVoiceControls() {
                 data.guildId
             );
 
-        if (!guild) {
+        if (
+            !guild
+        ) {
             continue;
         }
 
@@ -1819,7 +3169,16 @@ async function restoreActiveVoiceControls() {
         }
     }
 
-    client.saveControlStates();
+    if (
+        changed
+    ) {
+        client.saveControlStates();
+
+    } else {
+        // Sauvegarde quand même pour garder
+        // le fichier dans un état cohérent.
+        client.saveControlStates();
+    }
 }
 
 // ======================================================
@@ -1847,17 +3206,32 @@ client.once(
         );
 
         try {
+            // ==================================================
+            // ENREGISTREMENT COMMANDES
+            // ==================================================
+
             const result =
                 await client.reloadCommands();
 
             console.log(
-                `✅ ${result.commands} commande(s) enregistrée(s) !`
+                `✅ ${result.commands} commande(s) enregistrée(s) sur ${result.guilds} serveur(s) !`
             );
+
+            console.log("");
+            console.log(
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            );
+
+            // ==================================================
+            // COMMANDES PRINCIPALES
+            // ==================================================
 
             console.log(
                 "🔎 /rank autocomplete :",
                 typeof client.commands
-                    .get("rank")
+                    .get(
+                        "rank"
+                    )
                     ?.autocomplete ===
                     "function"
                     ? "✅ présent"
@@ -1866,21 +3240,27 @@ client.once(
 
             console.log(
                 "👤 /user :",
-                client.commands.has("user")
+                client.commands.has(
+                    "user"
+                )
                     ? "✅ chargé"
                     : "❌ absent"
             );
 
             console.log(
                 "🐕 /ch :",
-                client.commands.has("ch")
+                client.commands.has(
+                    "ch"
+                )
                     ? "✅ chargé"
                     : "❌ absent"
             );
 
             console.log(
                 "🔒 /mn :",
-                client.commands.has("mn")
+                client.commands.has(
+                    "mn"
+                )
                     ? "✅ chargé"
                     : "❌ absent"
             );
@@ -1894,10 +3274,117 @@ client.once(
                     : "❌ absent"
             );
 
+            // ==================================================
+            // NOUVEAUX SYSTÈMES
+            // ==================================================
+
+            console.log(
+                "🛠️ Maintenance :",
+                client.commands.has(
+                    "maintenance"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "↩️ Rollback :",
+                client.commands.has(
+                    "rollback"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "👁️ Surveillance :",
+                client.commands.has(
+                    "surveillance"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "⚖️ Tribunal :",
+                client.commands.has(
+                    "tribunal"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "🎮 Legacy Games :",
+                client.commands.has(
+                    "legacygames"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "🕵️ Imposteur :",
+                client.commands.has(
+                    "imposteur"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "🐺 Loup-Garou :",
+                client.commands.has(
+                    "loupgarou"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "🎯 Wanted :",
+                client.commands.has(
+                    "wanted"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "💘 Ship :",
+                client.commands.has(
+                    "ship"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "💍 Union :",
+                client.commands.has(
+                    "union"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "📊 Analyse :",
+                client.commands.has(
+                    "analyse"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
             console.log("");
             console.log(
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             );
+
+            // ==================================================
+            // SYSTÈMES DE BASE
+            // ==================================================
 
             console.log(
                 "🎙️ Recrutement vocal : ✅ actif"
@@ -1944,6 +3431,10 @@ client.once(
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             );
 
+            // ==================================================
+            // RESTAURATION CH/MN
+            // ==================================================
+
             await restoreActiveVoiceControls();
 
         } catch (error) {
@@ -1956,44 +3447,79 @@ client.once(
 );
 
 // ======================================================
-// ARRÊT
+// ARRÊT PROPRE
+// ======================================================
+
+function saveBeforeExit() {
+    try {
+        client.saveControlStates();
+
+    } catch (error) {
+        console.error(
+            "❌ Sauvegarde ControlStates :",
+            error
+        );
+    }
+
+    try {
+        if (
+            typeof client.activityStats
+                ?.save ===
+                "function"
+        ) {
+            client.activityStats.save();
+
+        } else if (
+            typeof client.activityStats
+                ?.saveStats ===
+                "function"
+        ) {
+            client.activityStats.saveStats();
+        }
+
+    } catch (error) {
+        console.error(
+            "❌ Sauvegarde ActivityStats :",
+            error
+        );
+    }
+
+    console.log(
+        "💾 États sauvegardés avant arrêt."
+    );
+}
+
+// ======================================================
+// SIGINT
 // ======================================================
 
 process.on(
     "SIGINT",
     () => {
-        try {
-            client.saveControlStates();
-        } catch {}
+        saveBeforeExit();
 
-        try {
-            client.activityStats
-                ?.saveStats
-                ?.();
-        } catch {}
+        client.destroy();
 
-        console.log(
-            "💾 États sauvegardés avant arrêt."
+        process.exit(
+            0
         );
-
-        process.exit(0);
     }
 );
+
+// ======================================================
+// SIGTERM
+// ======================================================
 
 process.on(
     "SIGTERM",
     () => {
-        try {
-            client.saveControlStates();
-        } catch {}
+        saveBeforeExit();
 
-        try {
-            client.activityStats
-                ?.saveStats
-                ?.();
-        } catch {}
+        client.destroy();
 
-        process.exit(0);
+        process.exit(
+            0
+        );
     }
 );
 
@@ -2024,6 +3550,18 @@ process.on(
 // ======================================================
 // CONNEXION
 // ======================================================
+
+if (
+    !process.env.TOKEN
+) {
+    console.error(
+        "❌ Impossible de lancer le bot : TOKEN absent."
+    );
+
+    process.exit(
+        1
+    );
+}
 
 client.login(
     process.env.TOKEN

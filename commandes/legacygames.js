@@ -45,6 +45,7 @@ const DATA_FILE =
 const GAMES = {
     tictactoe: {
         emoji: "❌⭕",
+        menuEmoji: "❌",
         name: "Morpion",
         short:
             "Affronte un joueur sur une grille 3×3.",
@@ -652,7 +653,7 @@ function buildHubEmbed(
         )
             .map(
                 game =>
-`### ${game.emoji} ${game.name}
+                    `### ${game.emoji} ${game.name}
 ${game.description}`
             )
             .join(
@@ -718,6 +719,7 @@ function createHubComponents(
                     key
                 )
                 .setEmoji(
+                    game.menuEmoji ||
                     game.emoji
                 )
                 .setDescription(
@@ -960,9 +962,9 @@ function ticTacToeWinner(
         if (
             board[a] &&
             board[a] ===
-                board[b] &&
+            board[b] &&
             board[a] ===
-                board[c]
+            board[c]
         ) {
             return board[a];
         }
@@ -1669,7 +1671,9 @@ Personne ne connaît le moment exact de l'explosion...
 ${alive || "Aucun survivant."}
 
 ${session.finished
-    ? `🏆 <@${session.winner}> est le dernier survivant !`
+    ? session.winner
+        ? `🏆 <@${session.winner}> est le dernier survivant !`
+        : "💥 Aucun survivant."
     : `<@${session.holderId}>, passe vite la bombe !`}`
         )
         .setFooter({
@@ -2277,7 +2281,6 @@ async function startSelectedGame(
 // ======================================================
 
 module.exports = {
-
     data:
         new SlashCommandBuilder()
             .setName(
@@ -2857,10 +2860,6 @@ Les deux joueurs doivent choisir secrètement leur coup.
                 return true;
             }
 
-            // ==========================================
-            // PASSAGE DE LA BOMBE
-            // ==========================================
-
             session.holderId =
                 targetId;
 
@@ -3200,9 +3199,6 @@ Les deux joueurs doivent choisir secrètement leur coup.
                 session
             );
 
-            // IMPORTANT :
-            // Le deuxième joueur répond en éphémère,
-            // mais on modifie le message PUBLIC.
             const gameMessage =
                 await getSessionMessage(
                     client ||
@@ -3940,7 +3936,6 @@ ${ranking ||
                 return true;
             }
 
-            // PAS DE PAIRE
             session.locked =
                 true;
 
@@ -4076,7 +4071,7 @@ ${ranking ||
                 session.alive.filter(
                     userId =>
                         userId !==
-                            interaction.user.id &&
+                        interaction.user.id &&
                         voice?.members.has(
                             userId
                         )
@@ -4179,9 +4174,9 @@ ${ranking ||
                     guess
                 ) ||
                 guess <
-                    1 ||
+                1 ||
                 guess >
-                    100
+                100
             ) {
                 await interaction.reply({
                     content:
@@ -4672,10 +4667,10 @@ après **${session.history.length} tentative(s)**.`
                         ) {
                             if (
                                 session.type !==
-                                    "bomb" ||
+                                "bomb" ||
                                 session.finished ||
                                 Date.now() <
-                                    session.explodesAt
+                                session.explodesAt
                             ) {
                                 continue;
                             }
@@ -4714,10 +4709,6 @@ après **${session.history.length} tentative(s)**.`
                                     session
                                 );
 
-                            // ==================================
-                            // RETIRE LES JOUEURS AYANT QUITTÉ
-                            // ==================================
-
                             const voice =
                                 guild.channels.cache.get(
                                     session.voiceChannelId
@@ -4734,10 +4725,6 @@ après **${session.history.length} tentative(s)**.`
                                             )
                                     );
                             }
-
-                            // ==================================
-                            // LE PORTEUR A QUITTÉ
-                            // ==================================
 
                             if (
                                 !session.alive.includes(
@@ -4799,10 +4786,6 @@ après **${session.history.length} tentative(s)**.`
                                         eliminated
                                 );
 
-                            // ==================================
-                            // GAGNANT
-                            // ==================================
-
                             if (
                                 session.alive.length <=
                                 1
@@ -4845,10 +4828,6 @@ après **${session.history.length} tentative(s)**.`
                                 continue;
                             }
 
-                            // ==================================
-                            // NOUVEAU PORTEUR
-                            // ==================================
-
                             session.holderId =
                                 randomItem(
                                     session.alive
@@ -4867,11 +4846,6 @@ après **${session.history.length} tentative(s)**.`
                             updateSession(
                                 session
                             );
-
-                            // IMPORTANT :
-                            // on MODIFIE le message original
-                            // au lieu d'envoyer uniquement
-                            // un nouveau message séparé.
 
                             await message
                                 ?.edit({
@@ -4938,8 +4912,8 @@ après **${session.history.length} tentative(s)**.`
                             if (
                                 timestamp &&
                                 Date.now() -
-                                    timestamp >
-                                    maxAge
+                                timestamp >
+                                maxAge
                             ) {
                                 delete data.sessions[
                                     id

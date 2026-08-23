@@ -1335,6 +1335,10 @@ module.exports = {
                 "Organiser un procès humoristique The Legacy"
             )
 
+            // ==================================================
+            // OPTIONS OBLIGATOIRES
+            // ==================================================
+
             .addUserOption(option =>
                 option
                     .setName(
@@ -1361,32 +1365,6 @@ module.exports = {
                     )
                     .setRequired(
                         true
-                    )
-            )
-
-            .addUserOption(option =>
-                option
-                    .setName(
-                        "avocat"
-                    )
-                    .setDescription(
-                        "Avocat de la défense (facultatif)"
-                    )
-                    .setRequired(
-                        false
-                    )
-            )
-
-            .addUserOption(option =>
-                option
-                    .setName(
-                        "procureur"
-                    )
-                    .setDescription(
-                        "Procureur (facultatif)"
-                    )
-                    .setRequired(
-                        false
                     )
             )
 
@@ -1433,6 +1411,36 @@ module.exports = {
                             value:
                                 "personnalisee"
                         }
+                    )
+            )
+
+            // ==================================================
+            // OPTIONS FACULTATIVES
+            // ==================================================
+
+            .addUserOption(option =>
+                option
+                    .setName(
+                        "avocat"
+                    )
+                    .setDescription(
+                        "Avocat de la défense (facultatif)"
+                    )
+                    .setRequired(
+                        false
+                    )
+            )
+
+            .addUserOption(option =>
+                option
+                    .setName(
+                        "procureur"
+                    )
+                    .setDescription(
+                        "Procureur (facultatif)"
+                    )
+                    .setRequired(
+                        false
                     )
             )
 
@@ -2001,11 +2009,6 @@ module.exports = {
 
             return true;
         }
-
-        const previousVote =
-            tribunal.votes[
-                interaction.user.id
-            ];
 
         tribunal.votes[
             interaction.user.id

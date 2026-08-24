@@ -1,6 +1,6 @@
 // ======================================================
 // LOUP-GAROU — THE LEGACY
-// SYSTÈME VOCAL / NARRATION
+// SYSTÈME VOCAL / NARRATION / AMBIANCES
 // ======================================================
 
 const fs = require("fs");
@@ -20,7 +20,7 @@ const {
 const OpenAI = require("openai");
 
 // ======================================================
-// CONFIG
+// DOSSIERS
 // ======================================================
 
 const ASSETS_DIR = path.join(
@@ -38,20 +38,103 @@ const CACHE_DIR = path.join(
 );
 
 // ======================================================
+// AUDIO
+// ======================================================
+
+const AUDIO = {
+    night: {
+        file: "night.mp3",
+
+        // 1 min 09
+        durationMs: 69_000,
+
+        // ≈ 0.12 avec ambienceVolume = 0.18
+        volumeMultiplier: 0.67
+    },
+
+    dawn: {
+        file: "dawn.mp3",
+
+        // 47 secondes
+        durationMs: 47_000,
+
+        // ≈ 0.06 avec ambienceVolume = 0.18
+        volumeMultiplier: 0.33
+    },
+
+    vote: {
+        file: "vote.mp3",
+
+        // 2 min 17
+        durationMs: 137_000,
+
+        // ≈ 0.10 avec ambienceVolume = 0.18
+        volumeMultiplier: 0.56
+    },
+
+    death: {
+        file: "death.mp3",
+
+        // 2 secondes
+        durationMs: 2_000,
+
+        volumeMultiplier: 0.34
+    },
+
+    victory: {
+        file: "victory.mp3",
+
+        // 3 secondes
+        durationMs: 3_000,
+
+        volumeMultiplier: 0.40
+    }
+};
+
+// ======================================================
 // OPENAI
 // ======================================================
 
-const openai = process.env.OPENAI_API_KEY
-    ? new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
-    })
-    : null;
+const openai =
+    process.env.OPENAI_API_KEY
+        ? new OpenAI({
+            apiKey:
+                process.env.OPENAI_API_KEY
+        })
+        : null;
+
+// ======================================================
+// TTS
+// ======================================================
+
+// IMPORTANT :
+// Cette version est incluse dans le nom du cache.
+// Donc les anciennes voix "mystérieuses" ne seront pas
+// réutilisées après la modification du style vocal.
+
+const TTS_CACHE_VERSION =
+    "natural-alloy-speed15-v2";
+
+const TTS_CONFIG = {
+    model:
+        "gpt-4o-mini-tts",
+
+    voice:
+        "alloy",
+
+    speed:
+        1.5,
+
+    instructions:
+        "Parle en français de façon naturelle, fluide et claire, avec un ton de maître du jeu calme, vivant et agréable. La voix doit sembler humaine et spontanée. Ne prends pas une voix sombre, inquiétante, théâtrale ou excessivement mystérieuse. Articule correctement, reste légèrement immersif, mais parle comme quelqu'un qui anime naturellement une partie entre amis."
+};
 
 // ======================================================
 // RUNTIME
 // ======================================================
 
-const runtimes = new Map();
+const runtimes =
+    new Map();
 
 // ======================================================
 // NARRATIONS
@@ -68,7 +151,7 @@ const NARRATIONS = {
         "La première nuit commence. Certains rôles vont maintenant découvrir leurs pouvoirs.",
 
     dawn:
-        "Le jour se lève doucement sur le village.",
+        "Le jour se lève sur le village.",
 
     discussion:
         "Le village peut maintenant discuter. Observez, accusez et défendez-vous.",
@@ -132,7 +215,7 @@ const NARRATIONS = {
 };
 
 // ======================================================
-// FICHIERS
+// DOSSIERS
 // ======================================================
 
 function ensureDirectories() {
@@ -148,6 +231,56 @@ function ensureDirectories() {
             }
         );
     }
+}
+
+// ======================================================
+// OUTILS
+// ======================================================
+
+function clampVolume(
+    value,
+    fallback
+) {
+    const number =
+        Number(
+            value
+        );
+
+    if (
+        !Number.isFinite(
+            number
+        )
+    ) {
+        return fallback;
+    }
+
+    return Math.max(
+        0,
+        Math.min(
+            number,
+            2
+        )
+    );
+}
+
+function getAssetPath(
+    name
+) {
+    if (!name) {
+        return null;
+    }
+
+    const filePath =
+        path.join(
+            ASSETS_DIR,
+            name
+        );
+
+    return fs.existsSync(
+        filePath
+    )
+        ? filePath
+        : null;
 }
 
 // ======================================================
@@ -178,6 +311,7 @@ function getRuntime(
             connection:
                 null,
 
+            // Sons ponctuels + TTS
             queue:
                 [],
 
@@ -187,14 +321,26 @@ function getRuntime(
             currentResolve:
                 null,
 
-            ambienceTimer:
+            currentType:
                 null,
 
+            // Ambiance actuelle
             ambienceEnabled:
                 false,
 
+            ambienceName:
+                null,
+
             ambienceFile:
                 null,
+
+            ambienceVolumeMultiplier:
+                1,
+
+            // Permet d'éviter qu'un ancien Idle
+            // relance une mauvaise ambiance.
+            ambienceGeneration:
+                0,
 
             volumes: {
                 narration:
@@ -219,7 +365,7 @@ function getRuntime(
                     error
                 );
 
-                finishCurrentAudio(
+                handleAudioFinished(
                     runtime
                 );
             }
@@ -228,7 +374,7 @@ function getRuntime(
         player.on(
             AudioPlayerStatus.Idle,
             () => {
-                finishCurrentAudio(
+                handleAudioFinished(
                     runtime
                 );
             }
@@ -246,14 +392,19 @@ function getRuntime(
 }
 
 // ======================================================
-// FIN AUDIO
+// FIN D'UN AUDIO
 // ======================================================
 
-function finishCurrentAudio(
+function handleAudioFinished(
     runtime
 ) {
+    // ==================================================
+    // FIN D'UNE ACTION QUEUE
+    // ==================================================
+
     if (
-        runtime.currentResolve
+        runtime.currentType ===
+        "queue"
     ) {
         const resolve =
             runtime.currentResolve;
@@ -261,53 +412,105 @@ function finishCurrentAudio(
         runtime.currentResolve =
             null;
 
-        resolve();
+        runtime.currentType =
+            null;
+
+        runtime.processing =
+            false;
+
+        resolve?.();
+
+        processQueue(
+            runtime
+        ).catch(
+            error => {
+                console.error(
+                    "❌ Queue audio Loup-Garou :",
+                    error
+                );
+            }
+        );
+
+        return;
     }
 
-    runtime.processing =
-        false;
+    // ==================================================
+    // FIN D'UNE BOUCLE D'AMBIANCE
+    // ==================================================
 
-    processQueue(
-        runtime
-    ).catch(
-        error => {
-            console.error(
-                "❌ Queue audio Loup-Garou :",
-                error
+    if (
+        runtime.currentType ===
+        "ambience"
+    ) {
+        runtime.currentType =
+            null;
+
+        if (
+            runtime.queue.length
+        ) {
+            processQueue(
+                runtime
+            ).catch(
+                () => {}
+            );
+
+            return;
+        }
+
+        if (
+            runtime.ambienceEnabled &&
+            runtime.ambienceFile
+        ) {
+            setTimeout(
+                () => {
+                    if (
+                        runtime.ambienceEnabled &&
+                        !runtime.processing &&
+                        !runtime.queue.length &&
+                        runtime.currentType ===
+                            null
+                    ) {
+                        playAmbienceNow(
+                            runtime
+                        );
+                    }
+                },
+                100
             );
         }
-    );
+
+        return;
+    }
+
+    // ==================================================
+    // RIEN EN COURS
+    // ==================================================
+
+    if (
+        runtime.queue.length
+    ) {
+        processQueue(
+            runtime
+        ).catch(
+            () => {}
+        );
+
+        return;
+    }
+
+    if (
+        runtime.ambienceEnabled &&
+        runtime.ambienceFile
+    ) {
+        playAmbienceNow(
+            runtime
+        );
+    }
 }
 
 // ======================================================
 // VOLUMES
 // ======================================================
-
-function clampVolume(
-    value,
-    fallback
-) {
-    const number =
-        Number(
-            value
-        );
-
-    if (
-        !Number.isFinite(
-            number
-        )
-    ) {
-        return fallback;
-    }
-
-    return Math.max(
-        0,
-        Math.min(
-            number,
-            2
-        )
-    );
-}
 
 function setVolumes(
     guildId,
@@ -374,9 +577,7 @@ async function connectToVoice(
     guild,
     channelId
 ) {
-    if (
-        !guild
-    ) {
+    if (!guild) {
         throw new Error(
             "Serveur Discord introuvable."
         );
@@ -408,9 +609,7 @@ async function connectToVoice(
             guild.id
         );
 
-    if (
-        connection
-    ) {
+    if (connection) {
         try {
             connection.destroy();
         } catch {}
@@ -467,15 +666,22 @@ function disconnect(
             guildId
         );
 
-    if (
-        runtime
-    ) {
+    if (runtime) {
         stopAmbience(
             guildId
         );
 
         runtime.queue =
             [];
+
+        runtime.processing =
+            false;
+
+        runtime.currentType =
+            null;
+
+        runtime.currentResolve =
+            null;
 
         try {
             runtime.player.stop(
@@ -489,9 +695,7 @@ function disconnect(
             guildId
         );
 
-    if (
-        connection
-    ) {
+    if (connection) {
         try {
             connection.destroy();
         } catch {}
@@ -512,9 +716,12 @@ function makeSafeName(
     let hash =
         0;
 
+    const source =
+        `${TTS_CACHE_VERSION}|${text}`;
+
     for (
         let index = 0;
-        index < text.length;
+        index < source.length;
         index++
     ) {
         hash =
@@ -524,7 +731,7 @@ function makeSafeName(
                 ) -
                 hash
             ) +
-            text.charCodeAt(
+            source.charCodeAt(
                 index
             );
 
@@ -547,9 +754,7 @@ async function generateTTS(
 ) {
     ensureDirectories();
 
-    if (
-        !openai
-    ) {
+    if (!openai) {
         return null;
     }
 
@@ -574,16 +779,19 @@ async function generateTTS(
         const response =
             await openai.audio.speech.create({
                 model:
-                    "gpt-4o-mini-tts",
+                    TTS_CONFIG.model,
 
                 voice:
-                    "onyx",
+                    TTS_CONFIG.voice,
 
                 input:
                     text,
 
                 instructions:
-                    "Parle en français avec une voix sombre, mystérieuse, calme et immersive, comme le narrateur d'une partie de Loup-Garou."
+                    TTS_CONFIG.instructions,
+
+                speed:
+                    TTS_CONFIG.speed
             });
 
         const buffer =
@@ -609,32 +817,6 @@ async function generateTTS(
 }
 
 // ======================================================
-// AUDIO FILE
-// ======================================================
-
-function getAssetPath(
-    name
-) {
-    if (
-        !name
-    ) {
-        return null;
-    }
-
-    const filePath =
-        path.join(
-            ASSETS_DIR,
-            name
-        );
-
-    return fs.existsSync(
-        filePath
-    )
-        ? filePath
-        : null;
-}
-
-// ======================================================
 // QUEUE
 // ======================================================
 
@@ -654,18 +836,30 @@ function enqueue(
                 resolve
             });
 
-            processQueue(
-                runtime
-            ).catch(
-                error => {
-                    console.error(
-                        "❌ Queue audio :",
-                        error
-                    );
+            // Si une ambiance tourne actuellement,
+            // le TTS / SFX la coupe immédiatement.
+            // Elle reprendra automatiquement ensuite.
+            if (
+                runtime.currentType ===
+                "ambience"
+            ) {
+                runtime.player.stop(
+                    true
+                );
+            } else {
+                processQueue(
+                    runtime
+                ).catch(
+                    error => {
+                        console.error(
+                            "❌ Queue audio :",
+                            error
+                        );
 
-                    resolve();
-                }
-            );
+                        resolve();
+                    }
+                );
+            }
         }
     );
 }
@@ -678,17 +872,38 @@ async function processQueue(
     runtime
 ) {
     if (
-        runtime.processing
+        runtime.processing ||
+        runtime.currentType ===
+            "queue"
     ) {
+        return;
+    }
+
+    // Une ambiance est encore en train de s'arrêter.
+    if (
+        runtime.currentType ===
+        "ambience"
+    ) {
+        runtime.player.stop(
+            true
+        );
+
         return;
     }
 
     const action =
         runtime.queue.shift();
 
-    if (
-        !action
-    ) {
+    if (!action) {
+        if (
+            runtime.ambienceEnabled &&
+            runtime.ambienceFile
+        ) {
+            playAmbienceNow(
+                runtime
+            );
+        }
+
         return;
     }
 
@@ -734,9 +949,7 @@ async function processQueue(
             runtime.guildId
         );
 
-    if (
-        !connection
-    ) {
+    if (!connection) {
         runtime.processing =
             false;
 
@@ -770,11 +983,12 @@ async function processQueue(
     }
 
     if (
-        action.type ===
-        "ambience"
+        Number.isFinite(
+            action.volume
+        )
     ) {
         volume =
-            runtime.volumes.ambience;
+            action.volume;
     }
 
     try {
@@ -799,6 +1013,9 @@ async function processQueue(
         runtime.currentResolve =
             action.resolve;
 
+        runtime.currentType =
+            "queue";
+
         runtime.player.play(
             resource
         );
@@ -810,6 +1027,9 @@ async function processQueue(
         );
 
         runtime.currentResolve =
+            null;
+
+        runtime.currentType =
             null;
 
         runtime.processing =
@@ -833,9 +1053,7 @@ async function narrateAndWait(
     guildId,
     text
 ) {
-    if (
-        !text
-    ) {
+    if (!text) {
         return;
     }
 
@@ -863,9 +1081,7 @@ async function narrateKeyAndWait(
             key
         ];
 
-    if (
-        !text
-    ) {
+    if (!text) {
         return;
     }
 
@@ -881,7 +1097,10 @@ async function narrateKeyAndWait(
 
 async function playSound(
     guildId,
-    filename
+    filename,
+    {
+        volume = null
+    } = {}
 ) {
     const runtime =
         getRuntime(
@@ -899,9 +1118,11 @@ async function playSound(
             filename
         );
 
-    if (
-        !filePath
-    ) {
+    if (!filePath) {
+        console.warn(
+            `⚠️ Audio Loup-Garou absent : ${filename}`
+        );
+
         return;
     }
 
@@ -911,13 +1132,198 @@ async function playSound(
             type:
                 "sound",
 
-            filePath
+            filePath,
+
+            volume:
+                Number.isFinite(
+                    volume
+                )
+                    ? volume
+                    : runtime.volumes.sounds
         }
     );
 }
 
 // ======================================================
-// AMBIENCE
+// AMBIANCE — LECTURE
+// ======================================================
+
+function playAmbienceNow(
+    runtime
+) {
+    if (
+        !runtime ||
+        !runtime.ambienceEnabled ||
+        !runtime.ambienceFile ||
+        runtime.processing ||
+        runtime.queue.length ||
+        runtime.currentType
+    ) {
+        return;
+    }
+
+    if (
+        !fs.existsSync(
+            runtime.ambienceFile
+        )
+    ) {
+        runtime.ambienceEnabled =
+            false;
+
+        runtime.ambienceFile =
+            null;
+
+        runtime.ambienceName =
+            null;
+
+        return;
+    }
+
+    const connection =
+        runtime.connection ||
+        getVoiceConnection(
+            runtime.guildId
+        );
+
+    if (!connection) {
+        return;
+    }
+
+    runtime.connection =
+        connection;
+
+    connection.subscribe(
+        runtime.player
+    );
+
+    try {
+        const resource =
+            createAudioResource(
+                runtime.ambienceFile,
+                {
+                    inlineVolume:
+                        true
+                }
+            );
+
+        const volume =
+            clampVolume(
+                runtime.volumes.ambience *
+                    runtime.ambienceVolumeMultiplier,
+                0.06
+            );
+
+        resource.volume?.setVolume(
+            volume
+        );
+
+        runtime.currentType =
+            "ambience";
+
+        runtime.player.play(
+            resource
+        );
+
+    } catch (error) {
+        console.error(
+            "❌ Ambiance Loup-Garou :",
+            error
+        );
+
+        runtime.currentType =
+            null;
+    }
+}
+
+// ======================================================
+// START AMBIENCE
+// ======================================================
+
+function startAmbience(
+    guildId,
+    ambienceName
+) {
+    const runtime =
+        getRuntime(
+            guildId
+        );
+
+    if (
+        runtime.discreteMode
+    ) {
+        stopAmbience(
+            guildId
+        );
+
+        return false;
+    }
+
+    const config =
+        AUDIO[
+            ambienceName
+        ];
+
+    if (!config) {
+        return false;
+    }
+
+    const filePath =
+        getAssetPath(
+            config.file
+        );
+
+    if (!filePath) {
+        console.warn(
+            `⚠️ Ambiance Loup-Garou absente : ${config.file}`
+        );
+
+        return false;
+    }
+
+    runtime.ambienceGeneration++;
+
+    runtime.ambienceEnabled =
+        true;
+
+    runtime.ambienceName =
+        ambienceName;
+
+    runtime.ambienceFile =
+        filePath;
+
+    runtime.ambienceVolumeMultiplier =
+        config.volumeMultiplier;
+
+    // Changement d'ambiance immédiat.
+    if (
+        runtime.currentType ===
+        "ambience"
+    ) {
+        runtime.player.stop(
+            true
+        );
+
+        return true;
+    }
+
+    // Si aucun TTS/SFX n'est en cours,
+    // on lance immédiatement l'ambiance.
+    if (
+        !runtime.processing &&
+        !runtime.queue.length &&
+        runtime.currentType ===
+            null
+    ) {
+        playAmbienceNow(
+            runtime
+        );
+    }
+
+    return true;
+}
+
+// ======================================================
+// STOP AMBIENCE
 // ======================================================
 
 function stopAmbience(
@@ -928,27 +1334,31 @@ function stopAmbience(
             guildId
         );
 
-    if (
-        !runtime
-    ) {
+    if (!runtime) {
         return;
     }
+
+    runtime.ambienceGeneration++;
 
     runtime.ambienceEnabled =
         false;
 
+    runtime.ambienceName =
+        null;
+
     runtime.ambienceFile =
         null;
 
-    if (
-        runtime.ambienceTimer
-    ) {
-        clearTimeout(
-            runtime.ambienceTimer
-        );
+    runtime.ambienceVolumeMultiplier =
+        1;
 
-        runtime.ambienceTimer =
-            null;
+    if (
+        runtime.currentType ===
+        "ambience"
+    ) {
+        runtime.player.stop(
+            true
+        );
     }
 }
 
@@ -963,6 +1373,11 @@ async function beginNightAudio(
         ambience = true
     } = {}
 ) {
+    // Coupe Dawn / Vote immédiatement.
+    stopAmbience(
+        guildId
+    );
+
     if (
         firstNight
     ) {
@@ -977,12 +1392,10 @@ async function beginNightAudio(
         );
     }
 
-    if (
-        ambience
-    ) {
-        await playSound(
+    if (ambience) {
+        startAmbience(
             guildId,
-            "night.mp3"
+            "night"
         );
     }
 }
@@ -997,17 +1410,22 @@ async function beginDawnAudio(
         ambience = true
     } = {}
 ) {
+    // Arrête night.mp3
+    stopAmbience(
+        guildId
+    );
+
     await narrateKeyAndWait(
         guildId,
         "dawn"
     );
 
-    if (
-        ambience
-    ) {
-        await playSound(
+    // Dawn devient ensuite l'ambiance très discrète
+    // de la journée.
+    if (ambience) {
+        startAmbience(
             guildId,
-            "dawn.mp3"
+            "dawn"
         );
     }
 }
@@ -1022,17 +1440,20 @@ async function beginVoteAudio(
         ambience = true
     } = {}
 ) {
+    // Arrête dawn.mp3
+    stopAmbience(
+        guildId
+    );
+
     await narrateKeyAndWait(
         guildId,
         "vote"
     );
 
-    if (
-        ambience
-    ) {
-        await playSound(
+    if (ambience) {
+        startAmbience(
             guildId,
-            "vote.mp3"
+            "vote"
         );
     }
 }
@@ -1044,9 +1465,35 @@ async function beginVoteAudio(
 async function deathAudio(
     guildId
 ) {
+    const runtime =
+        getRuntime(
+            guildId
+        );
+
+    if (
+        runtime.discreteMode
+    ) {
+        return;
+    }
+
+    const config =
+        AUDIO.death;
+
+    const volume =
+        clampVolume(
+            runtime.volumes.sounds *
+                config.volumeMultiplier,
+            0.22
+        );
+
+    // L'ambiance est interrompue 2 secondes,
+    // puis reprend automatiquement depuis le début.
     return playSound(
         guildId,
-        "death.mp3"
+        config.file,
+        {
+            volume
+        }
     );
 }
 
@@ -1061,6 +1508,11 @@ async function victoryAudio(
         ambience = true
     } = {}
 ) {
+    // Plus aucune ambiance en boucle à la fin.
+    stopAmbience(
+        guildId
+    );
+
     let key =
         "victorySolo";
 
@@ -1104,9 +1556,27 @@ async function victoryAudio(
     if (
         ambience
     ) {
+        const runtime =
+            getRuntime(
+                guildId
+            );
+
+        const config =
+            AUDIO.victory;
+
+        const volume =
+            clampVolume(
+                runtime.volumes.sounds *
+                    config.volumeMultiplier,
+                0.25
+            );
+
         await playSound(
             guildId,
-            "victory.mp3"
+            config.file,
+            {
+                volume
+            }
         );
     }
 }
@@ -1257,6 +1727,17 @@ async function muteDeadPlayer(
     guild,
     userId
 ) {
+    // Le système appelle déjà muteDeadPlayer()
+    // lorsqu'une vraie mort est enregistrée.
+    // On en profite donc pour déclencher death.mp3
+    // sans avoir besoin de modifier loupgarou.js.
+
+    await deathAudio(
+        guild.id
+    ).catch(
+        () => {}
+    );
+
     const member =
         await getMember(
             guild,
@@ -1355,9 +1836,7 @@ async function enforcePlayerMute(
                 member.id
         );
 
-    if (
-        !player
-    ) {
+    if (!player) {
         return;
     }
 
@@ -1434,6 +1913,7 @@ module.exports = {
 
     playSound,
 
+    startAmbience,
     stopAmbience,
 
     muteLivingPlayersForNight,

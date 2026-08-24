@@ -62,10 +62,6 @@ const MAX_PLAYERS =
 
 // ======================================================
 // PRESETS AUTORISÉS
-//
-// IMPORTANT :
-// Hardcore n'est PAS un preset.
-// Il reste uniquement un réglage indépendant.
 // ======================================================
 
 const ALLOWED_PRESETS = [
@@ -206,6 +202,89 @@ function cleanCounts(
 }
 
 // ======================================================
+// MODE TEST
+// ======================================================
+
+function updateTestComposition(
+    game
+) {
+    if (
+        !game?.config?.testMode
+    ) {
+        return;
+    }
+
+    const count =
+        game.players.length;
+
+    game.config.presetId =
+        "custom";
+
+    if (
+        count <=
+        1
+    ) {
+        game.customRoleCounts = {
+            wolf: 1
+        };
+    }
+
+    else if (
+        count ===
+        2
+    ) {
+        game.customRoleCounts = {
+            wolf: 1,
+            villager: 1
+        };
+    }
+
+    else if (
+        count ===
+        3
+    ) {
+        game.customRoleCounts = {
+            wolf: 1,
+            seer: 1,
+            villager: 1
+        };
+    }
+
+    else if (
+        count ===
+        4
+    ) {
+        game.customRoleCounts = {
+            wolf: 1,
+            seer: 1,
+            witch: 1,
+            villager: 1
+        };
+    }
+
+    saveGame(
+        game
+    );
+}
+
+function getBlockingCompositionErrors(
+    game,
+    validation
+) {
+    return (
+        validation?.errors ||
+        []
+    ).filter(
+        error =>
+            !(
+                game.config?.testMode &&
+                error ===
+                "Il faut au minimum 5 joueurs."
+            )
+    );
+}
+
+// ======================================================
 // CURRENT COMPOSITION
 // ======================================================
 
@@ -237,7 +316,7 @@ function resolveCurrentComposition(
         resolvePreset(
             game.config
                 ?.presetId ||
-                "classic",
+            "classic",
             game.players.length
         );
 
@@ -343,8 +422,18 @@ function buildLobbyEmbed(
     const validation =
         composition.validation;
 
+    const blockingErrors =
+        getBlockingCompositionErrors(
+            game,
+            validation
+        );
+
+    const compositionValid =
+        blockingErrors.length ===
+        0;
+
     const status =
-        validation.valid
+        compositionValid
             ? "✅ Composition valide"
             : "❌ Composition incomplète";
 
@@ -365,9 +454,15 @@ function buildLobbyEmbed(
                 )
             : "Aucun avertissement.";
 
+    const testText =
+        game.config
+            ?.testMode
+            ? "🧪 **MODE TEST ACTIF**\nLa partie peut être démarrée avec moins de 5 joueurs.\n\n"
+            : "";
+
     return new EmbedBuilder()
         .setColor(
-            validation.valid
+            compositionValid
                 ? COLOR
                 : WARNING
         )
@@ -375,7 +470,7 @@ function buildLobbyEmbed(
             "🐺 Loup-Garou — The Legacy"
         )
         .setDescription(
-`Une nouvelle partie de Loup-Garou se prépare.
+`${testText}Une nouvelle partie de Loup-Garou se prépare.
 
 ### 🔊 Vocal lié
 
@@ -429,7 +524,9 @@ ${warningText}`
         )
         .setFooter({
             text:
-                "The Legacy • Loup-Garou"
+                game.config?.testMode
+                    ? "The Legacy • Loup-Garou • MODE TEST"
+                    : "The Legacy • Loup-Garou"
         })
         .setTimestamp();
 }
@@ -508,7 +605,9 @@ function buildLobbyComponents(
                         `lg_lobby_start_${game.id}`
                     )
                     .setLabel(
-                        "Démarrer"
+                        game.config?.testMode
+                            ? "Démarrer le test"
+                            : "Démarrer"
                     )
                     .setEmoji(
                         "▶️"
@@ -572,6 +671,10 @@ function buildConfigEmbed(
 ${getPresetDisplay(
     game.config.presetId
 )}
+
+${game.config?.testMode
+    ? "🧪 **Mode test actif**\n"
+    : ""}
 
 ### ⚙️ Paramètres
 
@@ -950,8 +1053,14 @@ function buildActiveRulesEmbed(
 
         game.config.discreteMode
             ? "🤫 Mode discret actif"
-            : "🔊 Mode audio normal"
-    ];
+            : "🔊 Mode audio normal",
+
+        game.config.testMode
+            ? "🧪 Mode test actif"
+            : null
+    ].filter(
+        Boolean
+    );
 
     return new EmbedBuilder()
         .setColor(
@@ -1087,9 +1196,16 @@ function buildCustomHomeEmbed(
             game.players.length
         );
 
+    const blockingErrors =
+        getBlockingCompositionErrors(
+            game,
+            validation
+        );
+
     return new EmbedBuilder()
         .setColor(
-            validation.valid
+            blockingErrors.length ===
+            0
                 ? SUCCESS
                 : WARNING
         )
@@ -1107,14 +1223,14 @@ ${lines.length
 
 **${total}/${game.players.length} carte(s)**
 
-${validation.valid
+${blockingErrors.length === 0
     ? "✅ La composition correspond au nombre actuel de joueurs."
     : "⚠️ La composition doit contenir exactement autant de cartes que de joueurs."}
 
 ### ⚠️ Validation
 
-${validation.errors.length
-    ? validation.errors
+${blockingErrors.length
+    ? blockingErrors
         .map(
             error =>
                 `❌ ${error}`
@@ -1587,33 +1703,43 @@ function buildAudioComponents(
 function applyAudioRuntime(
     game
 ) {
-    voice.setVolumes(
-        game.guildId,
-        {
-            narration:
-                game.config
-                    .narrationVolume ??
-                1,
+    if (
+        typeof voice.setVolumes ===
+        "function"
+    ) {
+        voice.setVolumes(
+            game.guildId,
+            {
+                narration:
+                    game.config
+                        .narrationVolume ??
+                    1,
 
-            sounds:
-                game.config
-                    .soundVolume ??
-                0.65,
+                sounds:
+                    game.config
+                        .soundVolume ??
+                    0.65,
 
-            ambience:
-                game.config
-                    .ambienceVolume ??
-                0.18
-        }
-    );
+                ambience:
+                    game.config
+                        .ambienceVolume ??
+                    0.18
+            }
+        );
+    }
 
-    voice.setDiscreteMode(
-        game.guildId,
-        Boolean(
-            game.config
-                .discreteMode
-        )
-    );
+    if (
+        typeof voice.setDiscreteMode ===
+        "function"
+    ) {
+        voice.setDiscreteMode(
+            game.guildId,
+            Boolean(
+                game.config
+                    .discreteMode
+            )
+        );
+    }
 }
 
 // ======================================================
@@ -1683,6 +1809,10 @@ function buildStatusEmbed(
     game.config.presetId
 )}
 
+**Mode test :** ${game.config?.testMode
+    ? "🧪 Oui"
+    : "Non"}
+
 **Vocal :** <#${game.voiceChannelId}>
 
 **Hôte :** <@${game.hostId}>`
@@ -1712,6 +1842,19 @@ module.exports = {
                         )
                         .setDescription(
                             "Créer une nouvelle partie"
+                        )
+                        .addBooleanOption(
+                            option =>
+                                option
+                                    .setName(
+                                        "test"
+                                    )
+                                    .setDescription(
+                                        "Autoriser une partie de test avec moins de 5 joueurs"
+                                    )
+                                    .setRequired(
+                                        false
+                                    )
                         )
             )
 
@@ -1770,6 +1913,13 @@ module.exports = {
             subcommand ===
             "lancer"
         ) {
+            const testMode =
+                interaction.options
+                    .getBoolean(
+                        "test"
+                    ) ===
+                true;
+
             const existing =
                 getGuildGame(
                     interaction.guild.id
@@ -1822,6 +1972,9 @@ module.exports = {
                         "classic"
                 });
 
+            game.config.testMode =
+                testMode;
+
             game.config.discreteMode =
                 false;
 
@@ -1833,6 +1986,17 @@ module.exports = {
 
             game.config.ambienceVolume =
                 0.18;
+
+            if (
+                testMode
+            ) {
+                game.config.presetId =
+                    "custom";
+
+                game.customRoleCounts = {
+                    wolf: 1
+                };
+            }
 
             const joined =
                 loupgarouSystem.joinGame(
@@ -1852,10 +2016,20 @@ module.exports = {
                 );
             }
 
+            updateTestComposition(
+                game
+            );
+
+            saveGame(
+                game
+            );
+
             const message =
                 await interaction.reply({
                     content:
-                        "🐺 **Une nouvelle partie de Loup-Garou se prépare !**",
+                        testMode
+                            ? "🧪 **Une partie de TEST Loup-Garou se prépare !**"
+                            : "🐺 **Une nouvelle partie de Loup-Garou se prépare !**",
 
                     embeds: [
                         buildLobbyEmbed(
@@ -2129,6 +2303,10 @@ module.exports = {
                 return true;
             }
 
+            updateTestComposition(
+                game
+            );
+
             await interaction.update({
                 embeds: [
                     buildLobbyEmbed(
@@ -2206,6 +2384,10 @@ module.exports = {
 
                 return true;
             }
+
+            updateTestComposition(
+                game
+            );
 
             await interaction.update({
                 embeds: [
@@ -2366,6 +2548,7 @@ module.exports = {
             }
 
             if (
+                !game.config?.testMode &&
                 game.players.length <
                 MIN_PLAYERS
             ) {
@@ -2380,15 +2563,27 @@ module.exports = {
                 return true;
             }
 
+            if (
+                game.config?.testMode
+            ) {
+                updateTestComposition(
+                    game
+                );
+            }
+
             const composition =
                 resolveCurrentComposition(
                     game
                 );
 
+            const blockingErrors =
+                getBlockingCompositionErrors(
+                    game,
+                    composition.validation
+                );
+
             if (
-                !composition
-                    .validation
-                    .valid
+                blockingErrors.length
             ) {
                 await replyPrivate(
                     interaction,
@@ -2396,7 +2591,7 @@ module.exports = {
                         content:
 `❌ La composition n'est pas valide.
 
-${composition.validation.errors
+${blockingErrors
     .map(
         error =>
             `• ${error}`
@@ -2443,7 +2638,9 @@ ${composition.validation.errors
 
             await interaction.message.edit({
                 content:
-                    "🐺 **La partie commence. Les rôles sont envoyés en message privé...**",
+                    game.config?.testMode
+                        ? "🧪 **Le test commence. Les rôles sont envoyés en message privé...**"
+                        : "🐺 **La partie commence. Les rôles sont envoyés en message privé...**",
 
                 embeds: [
                     loupgarouSystem.buildGameEmbed(
@@ -3588,6 +3785,20 @@ ${result.warnings
 
                     return true;
                 }
+            }
+
+            /*
+             * En mode test, si on est encore à moins de 5 joueurs,
+             * on conserve une composition réellement lançable.
+             */
+            if (
+                game.config?.testMode &&
+                game.players.length <
+                MIN_PLAYERS
+            ) {
+                updateTestComposition(
+                    game
+                );
             }
 
             const afterRoles =

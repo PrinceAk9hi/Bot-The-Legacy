@@ -85,9 +85,7 @@ const CONFIG = {
 function createDefaultData() {
     return {
         version: 4,
-
         games: {},
-
         history: []
     };
 }
@@ -97,11 +95,7 @@ function createDefaultData() {
 // ======================================================
 
 function ensureDataFile() {
-    if (
-        !fs.existsSync(
-            DATA_DIR
-        )
-    ) {
+    if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(
             DATA_DIR,
             {
@@ -110,11 +104,7 @@ function ensureDataFile() {
         );
     }
 
-    if (
-        !fs.existsSync(
-            DATA_FILE
-        )
-    ) {
+    if (!fs.existsSync(DATA_FILE)) {
         fs.writeFileSync(
             DATA_FILE,
             JSON.stringify(
@@ -131,18 +121,14 @@ function loadData() {
     ensureDataFile();
 
     try {
-        const raw =
-            fs.readFileSync(
-                DATA_FILE,
-                "utf8"
-            );
+        const raw = fs.readFileSync(
+            DATA_FILE,
+            "utf8"
+        );
 
-        const parsed =
-            raw.trim()
-                ? JSON.parse(
-                    raw
-                )
-                : createDefaultData();
+        const parsed = raw.trim()
+            ? JSON.parse(raw)
+            : createDefaultData();
 
         return {
             version: 4,
@@ -152,9 +138,7 @@ function loadData() {
                 {},
 
             history:
-                Array.isArray(
-                    parsed.history
-                )
+                Array.isArray(parsed.history)
                     ? parsed.history
                     : []
         };
@@ -169,8 +153,7 @@ function loadData() {
     }
 }
 
-let data =
-    loadData();
+let data = loadData();
 
 function saveData() {
     ensureDataFile();
@@ -198,21 +181,15 @@ function saveData() {
     }
 }
 
-function saveGame(
-    game
-) {
-    if (
-        !game?.id
-    ) {
+function saveGame(game) {
+    if (!game?.id) {
         return false;
     }
 
     game.updatedAt =
         Date.now();
 
-    data.games[
-        game.id
-    ] =
+    data.games[game.id] =
         game;
 
     saveData();
@@ -237,13 +214,9 @@ const resumeLocks =
 // UTILS
 // ======================================================
 
-function randomItem(
-    array
-) {
+function randomItem(array) {
     if (
-        !Array.isArray(
-            array
-        ) ||
+        !Array.isArray(array) ||
         !array.length
     ) {
         return null;
@@ -257,27 +230,20 @@ function randomItem(
     ];
 }
 
-function shuffle(
-    array
-) {
+function shuffle(array) {
     const copy = [
         ...array
     ];
 
     for (
-        let i =
-            copy.length - 1;
-        i >
-        0;
+        let i = copy.length - 1;
+        i > 0;
         i--
     ) {
         const j =
             Math.floor(
                 Math.random() *
-                (
-                    i +
-                    1
-                )
+                (i + 1)
             );
 
         [
@@ -292,9 +258,7 @@ function shuffle(
     return copy;
 }
 
-function sleep(
-    ms
-) {
+function sleep(ms) {
     return new Promise(
         resolve =>
             setTimeout(
@@ -306,21 +270,13 @@ function sleep(
 
 function createToken() {
     return crypto
-        .randomBytes(
-            5
-        )
-        .toString(
-            "hex"
-        );
+        .randomBytes(5)
+        .toString("hex");
 }
 
-function clone(
-    value
-) {
+function clone(value) {
     return JSON.parse(
-        JSON.stringify(
-            value
-        )
+        JSON.stringify(value)
     );
 }
 
@@ -351,9 +307,7 @@ function registerWaiter(
             const timer =
                 setTimeout(
                     () => {
-                        waiters.delete(
-                            key
-                        );
+                        waiters.delete(key);
 
                         resolve({
                             timeout: true,
@@ -389,13 +343,9 @@ function resolveWaiter(
         );
 
     const waiter =
-        waiters.get(
-            key
-        );
+        waiters.get(key);
 
-    if (
-        !waiter
-    ) {
+    if (!waiter) {
         return false;
     }
 
@@ -403,9 +353,7 @@ function resolveWaiter(
         waiter.timer
     );
 
-    waiters.delete(
-        key
-    );
+    waiters.delete(key);
 
     waiter.resolve({
         timeout: false,
@@ -437,9 +385,7 @@ function cancelGameWaiters(
             waiter.timer
         );
 
-        waiters.delete(
-            key
-        );
+        waiters.delete(key);
 
         waiter.resolve({
             timeout: false,
@@ -453,9 +399,7 @@ function cancelGameWaiters(
 // GAME HELPERS
 // ======================================================
 
-function isRunning(
-    game
-) {
+function isRunning(game) {
     return Boolean(
         game &&
         game.status ===
@@ -463,20 +407,14 @@ function isRunning(
     );
 }
 
-function getGame(
-    gameId
-) {
+function getGame(gameId) {
     return (
-        data.games[
-            gameId
-        ] ||
+        data.games[gameId] ||
         null
     );
 }
 
-function getGuildGame(
-    guildId
-) {
+function getGuildGame(guildId) {
     return (
         Object.values(
             data.games
@@ -509,9 +447,7 @@ function getPlayer(
     );
 }
 
-function getAlivePlayers(
-    game
-) {
+function getAlivePlayers(game) {
     return (
         game?.players ||
         []
@@ -522,9 +458,7 @@ function getAlivePlayers(
     );
 }
 
-function getDeadPlayers(
-    game
-) {
+function getDeadPlayers(game) {
     return (
         game?.players ||
         []
@@ -573,12 +507,8 @@ function getRolePlayer(
 // CAMPS
 // ======================================================
 
-function isWolfAligned(
-    player
-) {
-    if (
-        !player
-    ) {
+function isWolfAligned(player) {
+    if (!player) {
         return false;
     }
 
@@ -623,9 +553,7 @@ function isWolfAligned(
 function isStandardWolfWinner(
     player
 ) {
-    if (
-        !player
-    ) {
+    if (!player) {
         return false;
     }
 
@@ -641,9 +569,7 @@ function isStandardWolfWinner(
     );
 }
 
-function getAliveWolves(
-    game
-) {
+function getAliveWolves(game) {
     return getAlivePlayers(
         game
     ).filter(
@@ -661,12 +587,8 @@ function getWolfVictoryMembers(
     );
 }
 
-function getEffectiveCamp(
-    player
-) {
-    if (
-        !player
-    ) {
+function getEffectiveCamp(player) {
+    if (!player) {
         return null;
     }
 
@@ -714,9 +636,14 @@ function addJournal(
     }
 
     game.journal.push({
-        day: game.day,
-        night: game.night,
-        phase: game.phase,
+        day:
+            game.day,
+
+        night:
+            game.night,
+
+        phase:
+            game.phase,
 
         text,
         secret,
@@ -735,9 +662,7 @@ function addJournal(
             );
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -800,7 +725,7 @@ function markNightStep(
     if (
         !game.nightState ||
         game.nightState.number !==
-        game.night
+            game.night
     ) {
         game.nightState =
             createNightState(
@@ -822,9 +747,7 @@ function markNightStep(
             );
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 async function runNightStep(
@@ -876,7 +799,7 @@ function ensureDayState(
     if (
         !game.dayState ||
         game.dayState.day !==
-        game.day
+            game.day
     ) {
         game.dayState = {
             day:
@@ -919,9 +842,7 @@ function ensureDayState(
         game.nextVoteRestrictedVoters =
             null;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
     }
 
     return game.dayState;
@@ -1007,9 +928,7 @@ async function buildPlayerOptions(
 // PUBLIC EMBED
 // ======================================================
 
-function phaseDisplay(
-    game
-) {
+function phaseDisplay(game) {
     const phases = {
         lobby:
             "🛋️ Lobby",
@@ -1063,9 +982,7 @@ function phaseDisplay(
     );
 }
 
-function buildGameEmbed(
-    game
-) {
+function buildGameEmbed(game) {
     const alive =
         getAlivePlayers(
             game
@@ -1083,7 +1000,7 @@ function buildGameEmbed(
                     player => {
                         const mayor =
                             game.mayorId ===
-                            player.userId
+                                player.userId
                                 ? " 👑"
                                 : "";
 
@@ -1235,9 +1152,7 @@ async function updatePublicMessage(
             game.guildId
         );
 
-    if (
-        !guild
-    ) {
+    if (!guild) {
         return false;
     }
 
@@ -1268,9 +1183,7 @@ async function updatePublicMessage(
                 () => null
             );
 
-    if (
-        !message
-    ) {
+    if (!message) {
         return false;
     }
 
@@ -1300,16 +1213,10 @@ function createGame({
 }) {
     const id =
         Date.now()
-            .toString(
-                36
-            ) +
+            .toString(36) +
         crypto
-            .randomBytes(
-                2
-            )
-            .toString(
-                "hex"
-            );
+            .randomBytes(2)
+            .toString("hex");
 
     const preset =
         PRESETS[
@@ -1353,6 +1260,10 @@ function createGame({
         config: {
             presetId:
                 preset.id,
+
+            // MODE TEST
+            testMode:
+                false,
 
             mayorElection:
                 preset.mayorElection !==
@@ -1472,9 +1383,7 @@ function createGame({
             false
     };
 
-    data.games[
-        id
-    ] =
+    data.games[id] =
         game;
 
     saveData();
@@ -1496,7 +1405,6 @@ function joinGame(
     ) {
         return {
             ok: false,
-
             reason:
                 "La partie a déjà commencé."
         };
@@ -1508,7 +1416,6 @@ function joinGame(
     ) {
         return {
             ok: false,
-
             reason:
                 `La partie est limitée à ${CONFIG.maxPlayers} joueurs.`
         };
@@ -1522,7 +1429,6 @@ function joinGame(
     ) {
         return {
             ok: false,
-
             reason:
                 "Tu es déjà dans cette partie."
         };
@@ -1559,9 +1465,7 @@ function joinGame(
             null
     });
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return {
         ok: true
@@ -1578,7 +1482,6 @@ function leaveGame(
     ) {
         return {
             ok: false,
-
             reason:
                 "Impossible de quitter après le démarrage."
         };
@@ -1601,9 +1504,7 @@ function leaveGame(
         }
     );
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return {
         ok: true
@@ -1625,13 +1526,10 @@ function applyPreset(
         game.config.presetId =
             "custom";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         return {
             ok: true,
-
             description:
                 "🎛️ Mode personnalisé activé."
         };
@@ -1642,12 +1540,9 @@ function applyPreset(
             presetId
         ];
 
-    if (
-        !preset
-    ) {
+    if (!preset) {
         return {
             ok: false,
-
             reason:
                 "Preset inconnu."
         };
@@ -1665,7 +1560,7 @@ function applyPreset(
             preset.anonymousVotes
         );
 
-    // Hardcore reste un toggle indépendant.
+    // Hardcore reste indépendant.
     game.config.hardcore =
         Boolean(
             game.config.hardcore
@@ -1674,9 +1569,7 @@ function applyPreset(
     game.config.revealRolesOnDeath =
         !game.config.hardcore;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return {
         ok: true,
@@ -1694,6 +1587,48 @@ function applyPreset(
 // COMPOSITION
 // ======================================================
 
+function normalizeValidationForTest(
+    game,
+    validation
+) {
+    if (
+        !game.config?.testMode
+    ) {
+        return validation;
+    }
+
+    const errors =
+        (
+            validation?.errors ||
+            []
+        ).filter(
+            error => {
+                const normalized =
+                    String(error)
+                        .toLowerCase();
+
+                return !(
+                    normalized.includes(
+                        "minimum 5"
+                    ) ||
+                    normalized.includes(
+                        "au minimum 5"
+                    )
+                );
+            }
+        );
+
+    return {
+        ...validation,
+
+        errors,
+
+        valid:
+            errors.length ===
+            0
+    };
+}
+
 function resolveGameComposition(
     game
 ) {
@@ -1710,13 +1645,19 @@ function resolveGameComposition(
                 {}
             );
 
+        const validation =
+            validateComposition(
+                roleCounts,
+                playerCount
+            );
+
         return {
             roleCounts,
 
             validation:
-                validateComposition(
-                    roleCounts,
-                    playerCount
+                normalizeValidationForTest(
+                    game,
+                    validation
                 )
         };
     }
@@ -1727,9 +1668,7 @@ function resolveGameComposition(
             playerCount
         );
 
-    if (
-        !resolved
-    ) {
+    if (!resolved) {
         return {
             roleCounts:
                 {},
@@ -1748,14 +1687,20 @@ function resolveGameComposition(
         };
     }
 
+    const validation =
+        validateComposition(
+            resolved.roleCounts,
+            playerCount
+        );
+
     return {
         roleCounts:
             resolved.roleCounts,
 
         validation:
-            validateComposition(
-                resolved.roleCounts,
-                playerCount
+            normalizeValidationForTest(
+                game,
+                validation
             )
     };
 }
@@ -1773,12 +1718,9 @@ async function validatePlayersInVoice(
             game.guildId
         );
 
-    if (
-        !guild
-    ) {
+    if (!guild) {
         return {
             ok: false,
-
             reason:
                 "Serveur Discord introuvable."
         };
@@ -1843,9 +1785,7 @@ async function captureMuteBaseline(
             game.guildId
         );
 
-    if (
-        !guild
-    ) {
+    if (!guild) {
         return;
     }
 
@@ -1877,9 +1817,7 @@ async function captureMuteBaseline(
             );
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 async function normalizeMutesAfterCrash(
@@ -1891,9 +1829,7 @@ async function normalizeMutesAfterCrash(
             game.guildId
         );
 
-    if (
-        !guild
-    ) {
+    if (!guild) {
         return;
     }
 
@@ -1924,9 +1860,7 @@ async function normalizeMutesAfterCrash(
         const baseline =
             Boolean(
                 game.voiceMuteBaseline
-                    ?.[
-                        player.userId
-                    ]
+                    ?.[player.userId]
             );
 
         const shouldMute =
@@ -1981,16 +1915,19 @@ async function restoreGameMutes(
             game.guildId
         );
 
-    if (
-        !guild
-    ) {
+    if (!guild) {
         return;
     }
 
-    await voice.restoreAllMutes(
-        guild,
-        game
-    );
+    if (
+        typeof voice.restoreAllMutes ===
+        "function"
+    ) {
+        await voice.restoreAllMutes(
+            guild,
+            game
+        );
+    }
 
     for (
         const player
@@ -1998,9 +1935,7 @@ async function restoreGameMutes(
     ) {
         if (
             !game.voiceMuteBaseline
-                ?.[
-                    player.userId
-                ]
+                ?.[player.userId]
         ) {
             continue;
         }
@@ -2057,9 +1992,7 @@ async function preflightDMs(
                     () => null
                 );
 
-        if (
-            !user
-        ) {
+        if (!user) {
             failed.push(
                 player.userId
             );
@@ -2083,25 +2016,19 @@ async function preflightDMs(
                 ]
             })
                 .then(
-                    () =>
-                        true
+                    () => true
                 )
                 .catch(
-                    () =>
-                        false
+                    () => false
                 );
 
-        if (
-            !success
-        ) {
+        if (!success) {
             failed.push(
                 player.userId
             );
         }
 
-        await sleep(
-            100
-        );
+        await sleep(100);
     }
 
     if (
@@ -2190,9 +2117,7 @@ function setupActor(
             "actor"
         );
 
-    if (
-        !actor
-    ) {
+    if (!actor) {
         return;
     }
 
@@ -2214,9 +2139,7 @@ function setupActor(
         .usedRoleIds =
         [];
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -2244,26 +2167,16 @@ async function distributeRoles(
         );
     }
 
-    // IMPORTANT :
-    // l'ordre du lobby reste inchangé.
-    // Seules les cartes sont mélangées.
-
     for (
-        let i =
-            0;
-        i <
-        game.players.length;
+        let i = 0;
+        i < game.players.length;
         i++
     ) {
         const player =
-            game.players[
-                i
-            ];
+            game.players[i];
 
         const roleId =
-            deck[
-                i
-            ];
+            deck[i];
 
         player.roleId =
             roleId;
@@ -2305,9 +2218,7 @@ async function distributeRoles(
         roleCounts
     );
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     for (
         const player
@@ -2320,17 +2231,13 @@ async function distributeRoles(
                 player
             );
 
-        if (
-            !success
-        ) {
+        if (!success) {
             throw new Error(
                 `Impossible d'envoyer le rôle à <@${player.userId}>.`
             );
         }
 
-        await sleep(
-            120
-        );
+        await sleep(120);
     }
 
     await sendSiblingDMs(
@@ -2578,9 +2485,7 @@ async function notifyWolfTeam(
     game.wolfTeamNotified =
         true;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -2591,9 +2496,7 @@ function buildDynamicRoleInfo(
     game,
     player
 ) {
-    if (
-        !player
-    ) {
+    if (!player) {
         return "Joueur introuvable.";
     }
 
@@ -2602,9 +2505,7 @@ function buildDynamicRoleInfo(
             player.roleId
         );
 
-    if (
-        !role
-    ) {
+    if (!role) {
         return "Rôle inconnu.";
     }
 
@@ -2655,11 +2556,9 @@ function buildDynamicRoleInfo(
         "actor"
     ) {
         const borrowed =
-            (
-                player.roleState
-                    ?.borrowedRoleIds ||
-                []
-            );
+            player.roleState
+                ?.borrowedRoleIds ||
+            [];
 
         const used =
             new Set(
@@ -2768,9 +2667,7 @@ function addPendingAction(
             {};
     }
 
-    game.pendingActions[
-        token
-    ] = {
+    game.pendingActions[token] = {
         ...value,
 
         token,
@@ -2779,9 +2676,7 @@ function addPendingAction(
             Date.now()
     };
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 function removePendingAction(
@@ -2796,9 +2691,7 @@ function removePendingAction(
         ];
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -2988,9 +2881,7 @@ async function askPlayerButtons(
                 () => null
             );
 
-    if (
-        !user
-    ) {
+    if (!user) {
         return null;
     }
 
@@ -3184,9 +3075,7 @@ async function runCupid(
         cupid.roleState.used =
             true;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         for (
             const loverId
@@ -3310,9 +3199,7 @@ async function runWolfDog(
         player.convertedToWolf =
             true;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         await notifyWolfTeam(
             client,
@@ -3320,9 +3207,7 @@ async function runWolfDog(
         );
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -3393,10 +3278,7 @@ async function runWildChild(
             ? choice[0]
             : null;
 
-    // Timeout => modèle aléatoire.
-    if (
-        !modelId
-    ) {
+    if (!modelId) {
         modelId =
             randomItem(
                 available
@@ -3407,9 +3289,7 @@ async function runWildChild(
     player.roleState.modelId =
         modelId;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const user =
         await client.users
@@ -3420,9 +3300,7 @@ async function runWildChild(
                 () => null
             );
 
-    if (
-        modelId
-    ) {
+    if (modelId) {
         await user?.send(
             `🧒 Ton modèle est <@${modelId}>.`
         ).catch(
@@ -3447,9 +3325,7 @@ async function runGuard(
             "guard"
         );
 
-    if (
-        !guard
-    ) {
+    if (!guard) {
         return;
     }
 
@@ -3521,9 +3397,7 @@ async function runGuard(
             game.protectedId;
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     await voice.narrateKeyAndWait(
         game.guildId,
@@ -3547,9 +3421,7 @@ async function runSeer(
             "seer"
         );
 
-    if (
-        !seer
-    ) {
+    if (!seer) {
         return;
     }
 
@@ -3590,9 +3462,7 @@ async function runSeer(
             ? choice[0]
             : null;
 
-    if (
-        targetId
-    ) {
+    if (targetId) {
         const target =
             getPlayer(
                 game,
@@ -3649,15 +3519,14 @@ function livingNeighbours(
     const alive =
         getAlivePlayers(
             game
-        )
-            .sort(
-                (
-                    a,
-                    b
-                ) =>
-                    a.seatIndex -
-                    b.seatIndex
-            );
+        ).sort(
+            (
+                a,
+                b
+            ) =>
+                a.seatIndex -
+                b.seatIndex
+        );
 
     const index =
         alive.findIndex(
@@ -3692,9 +3561,7 @@ function livingNeighbours(
             alive.length
         ],
 
-        alive[
-            index
-        ],
+        alive[index],
 
         alive[
             (
@@ -3722,9 +3589,7 @@ async function runFox(
             "fox"
         );
 
-    if (
-        !fox
-    ) {
+    if (!fox) {
         return;
     }
 
@@ -3773,9 +3638,7 @@ async function runFox(
             ? choice[0]
             : null;
 
-    if (
-        targetId
-    ) {
+    if (targetId) {
         const inspected =
             livingNeighbours(
                 game,
@@ -3796,9 +3659,7 @@ async function runFox(
                     () => null
                 );
 
-        if (
-            wolfPresent
-        ) {
+        if (wolfPresent) {
             await user?.send(
                 "🦊 Au moins un membre de la Meute se trouve dans le groupe inspecté."
             ).catch(
@@ -3813,9 +3674,7 @@ async function runFox(
                     .abilityActive =
                     false;
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
 
             await user?.send(
@@ -3850,9 +3709,7 @@ async function runRaven(
             "raven"
         );
 
-    if (
-        !raven
-    ) {
+    if (!raven) {
         return;
     }
 
@@ -3889,15 +3746,11 @@ async function runRaven(
                 null
             : null;
 
-    if (
-        target
-    ) {
+    if (target) {
         game.ravenTargetId =
             target;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
     }
 }
 
@@ -3915,9 +3768,7 @@ async function runActor(
             "actor"
         );
 
-    if (
-        !actor
-    ) {
+    if (!actor) {
         return;
     }
 
@@ -4025,13 +3876,9 @@ async function runActor(
             choice
         );
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
-    switch (
-        choice
-    ) {
+    switch (choice) {
         case "seer":
             await runSeer(
                 client,
@@ -4150,9 +3997,7 @@ async function askAlphaPower(
         .alphaEmpowered =
         true;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return true;
 }
@@ -4187,9 +4032,7 @@ async function runWolfVote(
         game.wolfVictimId =
             null;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         return;
     }
@@ -4254,9 +4097,7 @@ async function runWolfVote(
                 ? result.choice[0]
                 : null;
 
-        if (
-            !targetId
-        ) {
+        if (!targetId) {
             continue;
         }
 
@@ -4274,13 +4115,9 @@ async function runWolfVote(
                 2;
         }
 
-        counts[
-            targetId
-        ] =
+        counts[targetId] =
             (
-                counts[
-                    targetId
-                ] ||
+                counts[targetId] ||
                 0
             ) +
             weight;
@@ -4298,16 +4135,14 @@ async function runWolfVote(
                 a[1]
         );
 
-    // Aucun Loup n'a voté = aucune victime.
+    // Aucun vote = aucune victime.
     if (
         !sorted.length
     ) {
         game.wolfVictimId =
             null;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         await voice.narrateKeyAndWait(
             game.guildId,
@@ -4318,11 +4153,7 @@ async function runWolfVote(
     }
 
     const max =
-        sorted[
-            0
-        ][
-            1
-        ];
+        sorted[0][1];
 
     const leaders =
         sorted
@@ -4360,9 +4191,6 @@ async function runWolfVote(
                 ? alphaResult.choice[0]
                 : null;
 
-        // IMPORTANT :
-        // l'Alpha ne départage que la nuit où son pouvoir
-        // a réellement été activé.
         if (
             game.nightState
                 ?.alphaEmpowered &&
@@ -4382,9 +4210,7 @@ async function runWolfVote(
         }
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     await voice.narrateKeyAndWait(
         game.guildId,
@@ -4406,9 +4232,7 @@ async function runLittleGirl(
             "little_girl"
         );
 
-    if (
-        !girl
-    ) {
+    if (!girl) {
         return;
     }
 
@@ -4559,13 +4383,11 @@ async function runLittleGirl(
         }
     }
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
-// INFECTION — UNIQUEMENT INFECT PÈRE
+// INFECTION
 // ======================================================
 
 async function runInfection(
@@ -4666,9 +4488,7 @@ async function runInfection(
         .infectionAvailable =
         false;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const targetUser =
         await client.users
@@ -4736,9 +4556,7 @@ async function runBigBadWolf(
             .extraKillActive =
             false;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         return null;
     }
@@ -4918,9 +4736,7 @@ async function runWitch(
             "witch"
         );
 
-    if (
-        !witch
-    ) {
+    if (!witch) {
         return;
     }
 
@@ -4929,10 +4745,6 @@ async function runWitch(
         "witchWake"
     );
 
-    // IMPORTANT :
-    // si l'Infect Père a déjà infecté la victime,
-    // elle n'est plus considérée comme une personne
-    // que la Sorcière doit sauver.
     if (
         witch.roleState
             .healPotion &&
@@ -4995,9 +4807,7 @@ async function runWitch(
             game.wolfVictimId =
                 null;
 
-            saveGame(
-                game
-            );
+            saveGame(game);
         }
     }
 
@@ -5079,9 +4889,7 @@ async function runWitch(
                     ? choice[0]
                     : null;
 
-            if (
-                targetId
-            ) {
+            if (targetId) {
                 game.poisonVictimId =
                     targetId;
 
@@ -5089,9 +4897,7 @@ async function runWitch(
                     .poisonPotion =
                     false;
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         }
     }
@@ -5116,9 +4922,7 @@ async function runFlutePlayer(
             "flute_player"
         );
 
-    if (
-        !flute
-    ) {
+    if (!flute) {
         return;
     }
 
@@ -5182,9 +4986,7 @@ async function runFlutePlayer(
                 id
             );
 
-        if (
-            !target
-        ) {
+        if (!target) {
             continue;
         }
 
@@ -5219,9 +5021,7 @@ async function runFlutePlayer(
                     player.userId
             );
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -5270,9 +5070,7 @@ async function checkWildChild(
     child.convertedToWolf =
         true;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const user =
         await client.users
@@ -5329,10 +5127,8 @@ function findNextWolfInOrder(
     }
 
     for (
-        let offset =
-            1;
-        offset <
-        ordered.length;
+        let offset = 1;
+        offset < ordered.length;
         offset++
     ) {
         const player =
@@ -5377,9 +5173,7 @@ async function chooseMayorSuccessor(
         game.mayorId =
             null;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         return;
     }
@@ -5411,9 +5205,7 @@ async function chooseMayorSuccessor(
             ? choice[0]
             : null;
 
-    if (
-        !successorId
-    ) {
+    if (!successorId) {
         successorId =
             randomItem(
                 candidates
@@ -5424,13 +5216,9 @@ async function chooseMayorSuccessor(
     game.mayorId =
         successorId;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
-    if (
-        successorId
-    ) {
+    if (successorId) {
         addJournal(
             game,
             `👑 <@${successorId}> devient le nouveau Maire.`
@@ -5457,9 +5245,7 @@ async function runHunterDeath(
     game.phase =
         "hunter";
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const choice =
         await askPlayerSelect(
@@ -5490,9 +5276,7 @@ async function runHunterDeath(
             ? choice[0]
             : null;
 
-    if (
-        targetId
-    ) {
+    if (targetId) {
         await killPlayer(
             client,
             game,
@@ -5509,9 +5293,7 @@ async function runHunterDeath(
         game.phase =
             previousPhase;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
     }
 }
 
@@ -5555,9 +5337,7 @@ async function killPlayer(
             .wolfProtection =
             false;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -5580,9 +5360,7 @@ async function killPlayer(
     player.deathAt =
         Date.now();
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const role =
         getRole(
@@ -5602,7 +5380,9 @@ async function killPlayer(
         );
 
     if (
-        guild
+        guild &&
+        typeof voice.muteDeadPlayer ===
+            "function"
     ) {
         await voice.muteDeadPlayer(
             guild,
@@ -5622,9 +5402,7 @@ async function killPlayer(
                 userId
             );
 
-        saveGame(
-            game
-        );
+        saveGame(game);
     }
 
     if (
@@ -5696,9 +5474,7 @@ async function killPlayer(
         game
     );
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return true;
 }
@@ -5815,9 +5591,7 @@ async function resolveNightDeaths(
                 death.cause
             );
 
-        if (
-            killed
-        ) {
+        if (killed) {
             actuallyDead.push(
                 death
             );
@@ -5828,9 +5602,7 @@ async function resolveNightDeaths(
         .resolvedDeaths =
         actuallyDead;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return actuallyDead;
 }
@@ -5846,18 +5618,14 @@ async function resolveRustyRevenge(
     const targetId =
         game.pendingRustyWolfId;
 
-    if (
-        !targetId
-    ) {
+    if (!targetId) {
         return null;
     }
 
     game.pendingRustyWolfId =
         null;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const target =
         getPlayer(
@@ -5897,9 +5665,7 @@ async function runBearTamerMorning(
             "bear_tamer"
         );
 
-    if (
-        !bear
-    ) {
+    if (!bear) {
         return;
     }
 
@@ -5918,9 +5684,7 @@ async function runBearTamerMorning(
             isWolfAligned
         );
 
-    if (
-        wolfNearby
-    ) {
+    if (wolfNearby) {
         await voice.narrateAndWait(
             game.guildId,
             "L'ours grogne fortement ce matin."
@@ -5992,13 +5756,9 @@ function countVotes(
                 ? 2
                 : 1;
 
-        counts[
-            targetId
-        ] =
+        counts[targetId] =
             (
-                counts[
-                    targetId
-                ] ||
+                counts[targetId] ||
                 0
             ) +
             weight;
@@ -6047,11 +5807,7 @@ function countVotes(
     }
 
     const max =
-        sorted[
-            0
-        ][
-            1
-        ];
+        sorted[0][1];
 
     const leaders =
         sorted
@@ -6090,9 +5846,7 @@ async function runMayorCandidates(
         .mayorPhase =
         "candidates";
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     await updatePublicMessage(
         client,
@@ -6214,9 +5968,7 @@ async function runMayorCandidates(
             .mayorPhase =
             "done";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -6231,9 +5983,7 @@ async function runMayorCandidates(
         1
     ) {
         game.mayorId =
-            game.mayorCandidates[
-                0
-            ];
+            game.mayorCandidates[0];
 
         game.mayorElectionDone =
             true;
@@ -6246,9 +5996,7 @@ async function runMayorCandidates(
             .mayorPhase =
             "done";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -6290,9 +6038,7 @@ async function runMayorVote(
     game.votes =
         {};
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const guild =
         client.guilds.cache.get(
@@ -6341,9 +6087,7 @@ async function runMayorVote(
             .mayorHandled =
             true;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         return;
     }
@@ -6354,9 +6098,7 @@ async function runMayorVote(
     game.publicVoteToken =
         token;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const message =
         await channel.send({
@@ -6423,9 +6165,7 @@ async function runMayorVote(
         1
     ) {
         game.mayorId =
-            result.leaders[
-                0
-            ];
+            result.leaders[0];
 
         game.mayorElectionDone =
             true;
@@ -6441,9 +6181,7 @@ async function runMayorVote(
         game.votes =
             {};
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -6453,7 +6191,6 @@ async function runMayorVote(
         return;
     }
 
-    // Aucun vote.
     if (
         !result.leaders.length
     ) {
@@ -6474,9 +6211,7 @@ async function runMayorVote(
         game.votes =
             {};
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -6486,7 +6221,6 @@ async function runMayorVote(
         return;
     }
 
-    // Première égalité => second tour.
     if (
         !secondRound
     ) {
@@ -6498,7 +6232,6 @@ async function runMayorVote(
         );
     }
 
-    // Deuxième égalité => pas de Maire.
     game.mayorId =
         null;
 
@@ -6516,9 +6249,7 @@ async function runMayorVote(
     game.votes =
         {};
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     addJournal(
         game,
@@ -6552,9 +6283,7 @@ async function runDiscussion(
     game.phase =
         "discussion";
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const guild =
         client.guilds.cache.get(
@@ -6562,7 +6291,9 @@ async function runDiscussion(
         );
 
     if (
-        guild
+        guild &&
+        typeof voice.unmuteLivingPlayersForDay ===
+            "function"
     ) {
         await voice.unmuteLivingPlayersForDay(
             guild,
@@ -6575,9 +6306,7 @@ async function runDiscussion(
         "discussion"
     );
 
-    if (
-        resumed
-    ) {
+    if (resumed) {
         addJournal(
             game,
             "💬 La discussion du Village reprend après un redémarrage."
@@ -6600,9 +6329,7 @@ async function runDiscussion(
     state.discussionCompleted =
         true;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 // ======================================================
@@ -6684,9 +6411,7 @@ async function chooseScapegoatVoters(
         ) +
         1;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 }
 
 function canPlayerVoteToday(
@@ -6750,21 +6475,24 @@ async function runDayVote(
     game.votes =
         {};
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
-    await voice.beginVoteAudio(
-        game.guildId,
-        {
-            ambience:
-                Boolean(
-                    game.config.ambience
-                )
-        }
-    ).catch(
-        () => {}
-    );
+    if (
+        typeof voice.beginVoteAudio ===
+        "function"
+    ) {
+        await voice.beginVoteAudio(
+            game.guildId,
+            {
+                ambience:
+                    Boolean(
+                        game.config.ambience
+                    )
+            }
+        ).catch(
+            () => {}
+        );
+    }
 
     const guild =
         client.guilds.cache.get(
@@ -6819,9 +6547,7 @@ async function runDayVote(
     game.publicVoteToken =
         token;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const message =
         await channel.send({
@@ -6894,7 +6620,6 @@ async function runDayVote(
             }
         );
 
-    // La restriction du Bouc ne dure que ce vote.
     const state =
         ensureDayState(
             game
@@ -6911,9 +6636,7 @@ async function runDayVote(
         state.inheritedRestrictedVoters =
             null;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
     }
 
     if (
@@ -6926,12 +6649,9 @@ async function runDayVote(
         result.leaders.length ===
         1
     ) {
-        return result.leaders[
-            0
-        ];
+        return result.leaders[0];
     }
 
-    // Le Maire départage en privé.
     const mayor =
         getPlayer(
             game,
@@ -6978,14 +6698,11 @@ async function runDayVote(
                 ? choice[0]
                 : null;
 
-        if (
-            selected
-        ) {
+        if (selected) {
             return selected;
         }
     }
 
-    // Bouc seulement sur le premier vote principal.
     if (
         !secondRound &&
         !judgeVote
@@ -6996,9 +6713,7 @@ async function runDayVote(
                 "scapegoat"
             );
 
-        if (
-            scapegoat
-        ) {
+        if (scapegoat) {
             await chooseScapegoatVoters(
                 client,
                 game,
@@ -7009,7 +6724,6 @@ async function runDayVote(
         }
     }
 
-    // Premier vote égal => second tour.
     if (
         !secondRound
     ) {
@@ -7028,7 +6742,6 @@ async function runDayVote(
         );
     }
 
-    // Deuxième égalité => personne.
     return null;
 }
 
@@ -7047,9 +6760,7 @@ function transformAngelToVillager(
                     "angel"
         );
 
-    if (
-        !angel
-    ) {
+    if (!angel) {
         return false;
     }
 
@@ -7061,9 +6772,7 @@ function transformAngelToVillager(
             true
     };
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     return true;
 }
@@ -7080,9 +6789,7 @@ async function executeVillageTarget(
         firstMainVote = false
     } = {}
 ) {
-    if (
-        !targetId
-    ) {
+    if (!targetId) {
         if (
             firstMainVote
         ) {
@@ -7159,9 +6866,7 @@ async function executeVillageTarget(
         target.canVote =
             false;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         addJournal(
             game,
@@ -7258,9 +6963,7 @@ async function maybeRunJudgeVote(
     judge.roleState.used =
         true;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
     const target =
         await runDayVote(
@@ -7381,10 +7084,6 @@ function checkVictory(
         };
     }
 
-    // ==================================================
-    // LOVERS
-    // ==================================================
-
     const loversVictory =
         checkLoversVictory(
             game
@@ -7395,10 +7094,6 @@ function checkVictory(
     ) {
         return loversVictory;
     }
-
-    // ==================================================
-    // WHITE WOLF
-    // ==================================================
 
     if (
         alive.length ===
@@ -7418,10 +7113,6 @@ function checkVictory(
         };
     }
 
-    // ==================================================
-    // FLUTE PLAYER
-    // ==================================================
-
     const flute =
         alive.find(
             player =>
@@ -7429,9 +7120,7 @@ function checkVictory(
                 "flute_player"
         );
 
-    if (
-        flute
-    ) {
+    if (flute) {
         const others =
             alive.filter(
                 player =>
@@ -7458,10 +7147,6 @@ function checkVictory(
             };
         }
     }
-
-    // ==================================================
-    // WOLVES
-    // ==================================================
 
     const wolves =
         getWolfVictoryMembers(
@@ -7493,10 +7178,6 @@ function checkVictory(
                 )
         };
     }
-
-    // ==================================================
-    // VILLAGE
-    // ==================================================
 
     const wolfThreats =
         alive.filter(
@@ -7585,26 +7266,34 @@ async function finishGame(
     game.winner =
         winner;
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
-    voice.stopAmbience(
-        game.guildId
-    );
+    if (
+        typeof voice.stopAmbience ===
+        "function"
+    ) {
+        voice.stopAmbience(
+            game.guildId
+        );
+    }
 
-    await voice.victoryAudio(
-        game.guildId,
-        winner.type,
-        {
-            ambience:
-                Boolean(
-                    game.config.ambience
-                )
-        }
-    ).catch(
-        () => {}
-    );
+    if (
+        typeof voice.victoryAudio ===
+        "function"
+    ) {
+        await voice.victoryAudio(
+            game.guildId,
+            winner.type,
+            {
+                ambience:
+                    Boolean(
+                        game.config.ambience
+                    )
+            }
+        ).catch(
+            () => {}
+        );
+    }
 
     await restoreGameMutes(
         client,
@@ -7747,9 +7436,14 @@ async function finishGame(
 
     setTimeout(
         () => {
-            voice.disconnect(
-                game.guildId
-            );
+            if (
+                typeof voice.disconnect ===
+                "function"
+            ) {
+                voice.disconnect(
+                    game.guildId
+                );
+            }
         },
         10_000
     );
@@ -7816,69 +7510,85 @@ async function runNight(
         game.phase =
             "night";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         const guild =
             client.guilds.cache.get(
                 game.guildId
             );
 
-        if (
-            !guild
-        ) {
+        if (!guild) {
             return;
         }
 
-        voice.setVolumes(
-            game.guildId,
-            {
-                narration:
+        if (
+            typeof voice.setVolumes ===
+            "function"
+        ) {
+            voice.setVolumes(
+                game.guildId,
+                {
+                    narration:
+                        game.config
+                            .narrationVolume,
+
+                    sounds:
+                        game.config
+                            .soundVolume,
+
+                    ambience:
+                        game.config
+                            .ambienceVolume
+                }
+            );
+        }
+
+        if (
+            typeof voice.setDiscreteMode ===
+            "function"
+        ) {
+            voice.setDiscreteMode(
+                game.guildId,
+                Boolean(
                     game.config
-                        .narrationVolume,
+                        .discreteMode
+                )
+            );
+        }
 
-                sounds:
-                    game.config
-                        .soundVolume,
-
-                ambience:
-                    game.config
-                        .ambienceVolume
-            }
-        );
-
-        voice.setDiscreteMode?.(
-            game.guildId,
-            Boolean(
-                game.config
-                    .discreteMode
-            )
-        );
-
-        await voice.muteLivingPlayersForNight(
-            guild,
-            game
-        );
+        if (
+            typeof voice.muteLivingPlayersForNight ===
+            "function"
+        ) {
+            await voice.muteLivingPlayersForNight(
+                guild,
+                game
+            );
+        }
 
         await runNightStep(
             game,
             "intro",
             async () => {
-                await voice.beginNightAudio(
-                    game.guildId,
-                    {
-                        firstNight:
-                            game.night ===
-                            1,
+                if (
+                    typeof voice.beginNightAudio ===
+                    "function"
+                ) {
+                    await voice.beginNightAudio(
+                        game.guildId,
+                        {
+                            firstNight:
+                                game.night ===
+                                1,
 
-                        ambience:
-                            Boolean(
-                                game.config
-                                    .ambience
-                            )
-                    }
-                );
+                            ambience:
+                                Boolean(
+                                    game.config
+                                        .ambience
+                                )
+                        }
+                    );
+                }
             }
         );
 
@@ -7993,9 +7703,7 @@ async function runNight(
                         game
                     );
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         );
 
@@ -8010,9 +7718,7 @@ async function runNight(
                         game
                     );
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         );
 
@@ -8027,9 +7733,7 @@ async function runNight(
                         game
                     );
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         );
 
@@ -8056,30 +7760,38 @@ async function runNight(
         game.phase =
             "dawn";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
-        voice.stopAmbience(
-            game.guildId
-        );
+        if (
+            typeof voice.stopAmbience ===
+            "function"
+        ) {
+            voice.stopAmbience(
+                game.guildId
+            );
+        }
 
         await runNightStep(
             game,
             "resolve_deaths",
             async () => {
-                await voice.beginDawnAudio(
-                    game.guildId,
-                    {
-                        ambience:
-                            Boolean(
-                                game.config
-                                    .ambience
-                            )
-                    }
-                ).catch(
-                    () => {}
-                );
+                if (
+                    typeof voice.beginDawnAudio ===
+                    "function"
+                ) {
+                    await voice.beginDawnAudio(
+                        game.guildId,
+                        {
+                            ambience:
+                                Boolean(
+                                    game.config
+                                        .ambience
+                                )
+                        }
+                    ).catch(
+                        () => {}
+                    );
+                }
 
                 game.nightState
                     .resolvedDeaths =
@@ -8088,9 +7800,7 @@ async function runNight(
                         game
                     );
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         );
 
@@ -8104,9 +7814,7 @@ async function runNight(
                         game
                     );
 
-                if (
-                    rusty
-                ) {
+                if (rusty) {
                     game.nightState
                         .resolvedDeaths
                         .push({
@@ -8118,9 +7826,7 @@ async function runNight(
                         });
                 }
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         );
 
@@ -8166,18 +7872,14 @@ async function runNight(
             .completedAt =
             Date.now();
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         const victory =
             checkVictory(
                 game
             );
 
-        if (
-            victory
-        ) {
+        if (victory) {
             await finishGame(
                 client,
                 game,
@@ -8236,10 +7938,6 @@ async function runDay(
                 game
             );
 
-        // ==================================================
-        // MAYOR AFTER FIRST NIGHT
-        // ==================================================
-
         if (
             game.day ===
                 1 &&
@@ -8257,14 +7955,8 @@ async function runDay(
             state.mayorHandled =
                 true;
 
-            saveGame(
-                game
-            );
+            saveGame(game);
         }
-
-        // ==================================================
-        // DISCUSSION
-        // ==================================================
 
         if (
             !state
@@ -8278,10 +7970,6 @@ async function runDay(
                 }
             );
         }
-
-        // ==================================================
-        // VOTE PRINCIPAL
-        // ==================================================
 
         if (
             !state
@@ -8305,9 +7993,7 @@ async function runDay(
             state.voteCompleted =
                 true;
 
-            saveGame(
-                game
-            );
+            saveGame(game);
 
             await executeVillageTarget(
                 client,
@@ -8327,9 +8013,7 @@ async function runDay(
                 state.angelResolved =
                     true;
 
-                saveGame(
-                    game
-                );
+                saveGame(game);
             }
         }
 
@@ -8338,9 +8022,7 @@ async function runDay(
                 game
             );
 
-        if (
-            victory
-        ) {
+        if (victory) {
             await finishGame(
                 client,
                 game,
@@ -8349,10 +8031,6 @@ async function runDay(
 
             return;
         }
-
-        // ==================================================
-        // JUDGE
-        // ==================================================
 
         if (
             !state
@@ -8366,9 +8044,7 @@ async function runDay(
             state.judgeHandled =
                 true;
 
-            saveGame(
-                game
-            );
+            saveGame(game);
         }
 
         victory =
@@ -8376,9 +8052,7 @@ async function runDay(
                 game
             );
 
-        if (
-            victory
-        ) {
+        if (victory) {
             await finishGame(
                 client,
                 game,
@@ -8391,9 +8065,7 @@ async function runDay(
         game.phase =
             "between_days";
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
     } finally {
         executionLocks.delete(
@@ -8421,175 +8093,71 @@ async function runDay(
 // START GAME
 // ======================================================
 
-// ==================================================
-// START
-// ==================================================
-
-if (
-    id.startsWith(
-        "lg_lobby_start_"
-    )
+async function startGame(
+    client,
+    game
 ) {
-    console.log(
-        "🐺 [LOUP-GAROU] Bouton Démarrer reçu :",
-        id
-    );
-
-    const gameId =
-        id.slice(
-            "lg_lobby_start_".length
-        );
-
-    console.log(
-        "🐺 [LOUP-GAROU] ID partie :",
-        gameId
-    );
-
-    let game =
-        getGame(
-            gameId
-        );
-
-    // ==================================================
-    // FALLBACK :
-    // si jamais l'ID du message n'est plus retrouvé,
-    // on cherche la partie active du serveur.
-    // ==================================================
-
-    if (
-        !game
-    ) {
-        console.warn(
-            `⚠️ [LOUP-GAROU] Partie ${gameId} introuvable par ID. Recherche par serveur...`
-        );
-
-        const guildGame =
-            getGuildGame(
-                interaction.guild.id
-            );
-
-        if (
-            guildGame &&
-            guildGame.id ===
-                gameId
-        ) {
-            game =
-                guildGame;
-        }
+    if (!game) {
+        return {
+            ok: false,
+            reason:
+                "Partie introuvable."
+        };
     }
-
-    // ==================================================
-    // PARTIE INTROUVABLE
-    // ==================================================
-
-    if (
-        !game
-    ) {
-        console.error(
-            `❌ [LOUP-GAROU] Partie ${gameId} totalement introuvable.`
-        );
-
-        await replyPrivate(
-            interaction,
-            {
-                content:
-                    "❌ Cette partie n'existe plus dans la mémoire du bot.\n\nAnnule ce lobby puis relance `/loupgarou lancer`."
-            }
-        );
-
-        return true;
-    }
-
-    console.log(
-        "🐺 [LOUP-GAROU] Partie trouvée :",
-        {
-            id:
-                game.id,
-
-            status:
-                game.status,
-
-            phase:
-                game.phase,
-
-            players:
-                game.players.length,
-
-            voiceChannelId:
-                game.voiceChannelId,
-
-            hostId:
-                game.hostId
-        }
-    );
-
-    // ==================================================
-    // STATUT
-    // ==================================================
 
     if (
         game.status !==
         "lobby"
     ) {
-        console.warn(
-            `⚠️ [LOUP-GAROU] Démarrage refusé : statut "${game.status}".`
-        );
-
-        await replyPrivate(
-            interaction,
-            {
-                content:
-                    `❌ Cette partie n'est plus dans le lobby.\n\n**Statut actuel :** \`${game.status}\`\n**Phase :** \`${game.phase}\``
-            }
-        );
-
-        return true;
+        return {
+            ok: false,
+            reason:
+                "Cette partie a déjà commencé."
+        };
     }
 
-    // ==================================================
-    // HÔTE
-    // ==================================================
-
-    if (
-        interaction.user.id !==
-        game.hostId
-    ) {
-        console.log(
-            `⚠️ [LOUP-GAROU] ${interaction.user.id} a tenté de démarrer sans être l'hôte.`
+    const testMode =
+        Boolean(
+            game.config
+                ?.testMode
         );
-
-        await replyPrivate(
-            interaction,
-            {
-                content:
-                    "❌ Seul l'hôte peut démarrer la partie."
-            }
-        );
-
-        return true;
-    }
 
     // ==================================================
     // JOUEURS
     // ==================================================
 
     if (
+        !testMode &&
         game.players.length <
-        MIN_PLAYERS
+        CONFIG.minPlayers
     ) {
-        console.log(
-            `⚠️ [LOUP-GAROU] Pas assez de joueurs : ${game.players.length}/${MIN_PLAYERS}`
-        );
+        return {
+            ok: false,
+            reason:
+                `Il faut au minimum ${CONFIG.minPlayers} joueurs.`
+        };
+    }
 
-        await replyPrivate(
-            interaction,
-            {
-                content:
-                    `❌ Il faut au moins **${MIN_PLAYERS} joueurs**.\n\n👥 Joueurs actuellement inscrits : **${game.players.length}/${MIN_PLAYERS}**`
-            }
-        );
+    if (
+        game.players.length <
+        1
+    ) {
+        return {
+            ok: false,
+            reason:
+                "Il faut au minimum 1 joueur."
+        };
+    }
 
-        return true;
+    if (
+        game.players.length >
+        CONFIG.maxPlayers
+    ) {
+        return {
+            ok: false,
+            reason:
+                `La partie est limitée à ${CONFIG.maxPlayers} joueurs.`
+        };
     }
 
     // ==================================================
@@ -8597,7 +8165,7 @@ if (
     // ==================================================
 
     const composition =
-        resolveCurrentComposition(
+        resolveGameComposition(
             game
         );
 
@@ -8606,281 +8174,107 @@ if (
             .validation
             .valid
     ) {
-        console.log(
-            "⚠️ [LOUP-GAROU] Composition invalide :",
-            composition
-                .validation
-                .errors
-        );
+        return {
+            ok: false,
 
-        await replyPrivate(
-            interaction,
-            {
-                content:
-`❌ La composition n'est pas valide.
-
-${composition.validation.errors
-    .map(
-        error =>
-            `• ${error}`
-    )
-    .join("\n")}`
-            }
-        );
-
-        return true;
+            reason:
+                (
+                    composition
+                        .validation
+                        .errors ||
+                    [
+                        "Composition invalide."
+                    ]
+                ).join(
+                    "\n"
+                )
+        };
     }
 
-    // ==================================================
-    // CONFIRMATION IMMÉDIATE DU CLIC
-    // ==================================================
-
-    await interaction.deferUpdate();
-
-    await interaction.followUp({
-        content:
-`🐺 **Démarrage du Loup-Garou en cours...**
-
-✅ Lobby validé
-✅ ${game.players.length} joueurs
-✅ Composition validée
-
-🔊 Connexion au vocal et vérification des messages privés...`,
-
-        flags:
-            MessageFlags.Ephemeral
-    }).catch(
-        error => {
-            console.error(
-                "⚠️ [LOUP-GAROU] Impossible d'envoyer le message de progression :",
-                error
-            );
-        }
-    );
-
-    console.log(
-        `🚀 [LOUP-GAROU] Démarrage de la partie ${game.id}...`
-    );
-
-    const startedAt =
-        Date.now();
-
-    let result;
-
-    try {
-        result =
-            await loupgarouSystem.startGame(
-                client,
-                game
-            );
-
-    } catch (error) {
-        console.error(
-            `❌ [LOUP-GAROU] startGame() a planté pour ${game.id} :`,
-            error
+    const deckLength =
+        Object.values(
+            composition.roleCounts
+        ).reduce(
+            (
+                total,
+                value
+            ) =>
+                total +
+                (
+                    Number(value) ||
+                    0
+                ),
+            0
         );
-
-        await interaction.followUp({
-            content:
-                `❌ **Erreur pendant le démarrage du Loup-Garou.**\n\n\`${error.message || "Erreur inconnue"}\``,
-
-            flags:
-                MessageFlags.Ephemeral
-        }).catch(
-            () => {}
-        );
-
-        await refreshLobbyMessage(
-            interaction,
-            game
-        );
-
-        return true;
-    }
-
-    console.log(
-        `🐺 [LOUP-GAROU] startGame() terminé en ${Date.now() - startedAt} ms :`,
-        result
-    );
-
-    // ==================================================
-    // START REFUSÉ
-    // ==================================================
 
     if (
-        !result ||
-        !result.ok
-    ) {
-        const reason =
-            result?.reason ||
-            "Le moteur n'a retourné aucune raison.";
-
-        console.error(
-            `❌ [LOUP-GAROU] Impossible de démarrer ${game.id} :`,
-            reason
-        );
-
-        await interaction.followUp({
-            content:
-`❌ **Impossible de démarrer la partie.**
-
-${reason}`,
-
-            flags:
-                MessageFlags.Ephemeral
-        }).catch(
-            () => {}
-        );
-
-        await refreshLobbyMessage(
-            interaction,
-            game
-        );
-
-        return true;
-    }
-
-    // ==================================================
-    // PARTIE LANCÉE
-    // ==================================================
-
-    console.log(
-        `✅ [LOUP-GAROU] Partie ${game.id} démarrée avec ${game.players.length} joueurs.`
-    );
-
-    await interaction.message.edit({
-        content:
-            "🐺 **La partie commence. Les rôles sont envoyés en message privé...**",
-
-        embeds: [
-            loupgarouSystem.buildGameEmbed(
-                game
-            )
-        ],
-
-        components:
-            []
-    }).catch(
-        error => {
-            console.error(
-                "⚠️ [LOUP-GAROU] Impossible de modifier le lobby après démarrage :",
-                error
-            );
-        }
-    );
-
-    await interaction.followUp({
-        content:
-            "✅ **La partie est lancée !** Les rôles ont été distribués et la première nuit va commencer.",
-
-        flags:
-            MessageFlags.Ephemeral
-    }).catch(
-        () => {}
-    );
-
-    // ==================================================
-    // WARNINGS
-    // ==================================================
-
-    if (
-        result.warnings
-            ?.length
-    ) {
-        await interaction.followUp({
-            content:
-`⚠️ Partie lancée avec quelques avertissements :
-
-${result.warnings
-    .map(
-        warning =>
-            `• ${warning}`
-    )
-    .join("\n")}`,
-
-            flags:
-                MessageFlags.Ephemeral
-        }).catch(
-            () => {}
-        );
-    }
-
-    return true;
-}
-
-// ======================================================
-// RESUME
-// ======================================================
-
-async function resumeGame(
-    client,
-    game
-) {
-    if (
-        !game ||
-        game.status !==
-        "running"
+        deckLength !==
+        game.players.length
     ) {
         return {
             ok: false,
 
             reason:
-                "Cette partie n'est pas en cours."
+                `La composition contient ${deckLength} cartes pour ${game.players.length} joueurs.`
         };
     }
+
+    // ==================================================
+    // VOCAL
+    // ==================================================
+
+    const voiceValidation =
+        await validatePlayersInVoice(
+            client,
+            game
+        );
 
     if (
-        resumeLocks.has(
-            game.id
-        ) ||
-        executionLocks.has(
-            game.id
-        )
+        !voiceValidation.ok
     ) {
-        return {
-            ok: true,
+        return voiceValidation;
+    }
 
+    const guild =
+        client.guilds.cache.get(
+            game.guildId
+        );
+
+    if (!guild) {
+        return {
+            ok: false,
             reason:
-                "La partie est déjà en cours de reprise."
+                "Serveur Discord introuvable."
         };
     }
 
-    resumeLocks.add(
-        game.id
-    );
+    // ==================================================
+    // CONNEXION VOCAL
+    // ==================================================
 
     try {
-        const guild =
-            client.guilds.cache.get(
-                game.guildId
-            );
+        await voice.connectToVoice(
+            guild,
+            game.voiceChannelId
+        );
 
-        if (
-            !guild
-        ) {
-            return {
-                ok: false,
+    } catch (error) {
+        return {
+            ok: false,
 
-                reason:
-                    "Serveur introuvable."
-            };
-        }
+            reason:
+                `Impossible de rejoindre le vocal : ${error.message}`
+        };
+    }
 
-        try {
-            await voice.connectToVoice(
-                guild,
-                game.voiceChannelId
-            );
+    // ==================================================
+    // AUDIO
+    // ==================================================
 
-        } catch (error) {
-            return {
-                ok: false,
-
-                reason:
-                    error.message
-            };
-        }
-
+    if (
+        typeof voice.setVolumes ===
+        "function"
+    ) {
         voice.setVolumes(
             game.guildId,
             {
@@ -8900,14 +8294,339 @@ async function resumeGame(
                     0.18
             }
         );
+    }
 
-        voice.setDiscreteMode?.(
+    if (
+        typeof voice.setDiscreteMode ===
+        "function"
+    ) {
+        voice.setDiscreteMode(
             game.guildId,
             Boolean(
                 game.config
                     ?.discreteMode
             )
         );
+    }
+
+    // ==================================================
+    // DM PREFLIGHT
+    // ==================================================
+
+    const dmCheck =
+        await preflightDMs(
+            client,
+            game
+        );
+
+    if (
+        !dmCheck.ok
+    ) {
+        if (
+            typeof voice.disconnect ===
+            "function"
+        ) {
+            voice.disconnect(
+                game.guildId
+            );
+        }
+
+        return dmCheck;
+    }
+
+    // ==================================================
+    // MUTES
+    // ==================================================
+
+    await captureMuteBaseline(
+        client,
+        game
+    );
+
+    // ==================================================
+    // RESET PARTIE
+    // ==================================================
+
+    cancelGameWaiters(
+        game.id
+    );
+
+    game.pendingActions =
+        {};
+
+    game.status =
+        "running";
+
+    game.phase =
+        "distributing";
+
+    game.day =
+        0;
+
+    game.night =
+        0;
+
+    game.roleCounts =
+        clone(
+            composition.roleCounts
+        );
+
+    game.mayorId =
+        null;
+
+    game.mayorElectionDone =
+        false;
+
+    game.mayorCandidates =
+        [];
+
+    game.lovers =
+        [];
+
+    game.wolfVictimId =
+        null;
+
+    game.protectedId =
+        null;
+
+    game.poisonVictimId =
+        null;
+
+    game.ravenTargetId =
+        null;
+
+    game.pendingRustyWolfId =
+        null;
+
+    game.nextVoteRestrictedVoters =
+        null;
+
+    game.votes =
+        {};
+
+    game.publicVoteToken =
+        null;
+
+    game.nightState =
+        null;
+
+    game.dayState =
+        null;
+
+    game.winner =
+        null;
+
+    game.firstNightCompleted =
+        false;
+
+    game.wolfTeamNotified =
+        false;
+
+    saveGame(game);
+
+    // ==================================================
+    // DISTRIBUTION
+    // ==================================================
+
+    try {
+        await distributeRoles(
+            client,
+            game,
+            composition.roleCounts
+        );
+
+    } catch (error) {
+        console.error(
+            "❌ Distribution des rôles :",
+            error
+        );
+
+        game.status =
+            "lobby";
+
+        game.phase =
+            "lobby";
+
+        game.roleCounts =
+            {};
+
+        saveGame(game);
+
+        if (
+            typeof voice.disconnect ===
+            "function"
+        ) {
+            voice.disconnect(
+                game.guildId
+            );
+        }
+
+        return {
+            ok: false,
+
+            reason:
+                error.message
+        };
+    }
+
+    addJournal(
+        game,
+        testMode
+            ? `🧪 Une partie de test commence avec ${game.players.length} joueur(s).`
+            : `🐺 La partie commence avec ${game.players.length} joueurs.`
+    );
+
+    await updatePublicMessage(
+        client,
+        game
+    ).catch(
+        () => {}
+    );
+
+    // ==================================================
+    // PREMIÈRE NUIT
+    // ==================================================
+
+    setTimeout(
+        () => {
+            if (
+                !isRunning(
+                    game
+                )
+            ) {
+                return;
+            }
+
+            runNight(
+                client,
+                game
+            ).catch(
+                error => {
+                    console.error(
+                        `❌ Première nuit Loup-Garou ${game.id} :`,
+                        error
+                    );
+                }
+            );
+        },
+        1_000
+    );
+
+    return {
+        ok: true,
+
+        warnings:
+            composition
+                .validation
+                .warnings ||
+            []
+    };
+}
+
+// ======================================================
+// RESUME
+// ======================================================
+
+async function resumeGame(
+    client,
+    game
+) {
+    if (
+        !game ||
+        game.status !==
+        "running"
+    ) {
+        return {
+            ok: false,
+            reason:
+                "Cette partie n'est pas en cours."
+        };
+    }
+
+    if (
+        resumeLocks.has(
+            game.id
+        ) ||
+        executionLocks.has(
+            game.id
+        )
+    ) {
+        return {
+            ok: true,
+            reason:
+                "La partie est déjà en cours de reprise."
+        };
+    }
+
+    resumeLocks.add(
+        game.id
+    );
+
+    try {
+        const guild =
+            client.guilds.cache.get(
+                game.guildId
+            );
+
+        if (!guild) {
+            return {
+                ok: false,
+                reason:
+                    "Serveur introuvable."
+            };
+        }
+
+        try {
+            await voice.connectToVoice(
+                guild,
+                game.voiceChannelId
+            );
+
+        } catch (error) {
+            return {
+                ok: false,
+                reason:
+                    error.message
+            };
+        }
+
+        if (
+            typeof voice.setVolumes ===
+            "function"
+        ) {
+            voice.setVolumes(
+                game.guildId,
+                {
+                    narration:
+                        game.config
+                            ?.narrationVolume ??
+                        1,
+
+                    sounds:
+                        game.config
+                            ?.soundVolume ??
+                        0.65,
+
+                    ambience:
+                        game.config
+                            ?.ambienceVolume ??
+                        0.18
+                }
+            );
+        }
+
+        if (
+            typeof voice.setDiscreteMode ===
+            "function"
+        ) {
+            voice.setDiscreteMode(
+                game.guildId,
+                Boolean(
+                    game.config
+                        ?.discreteMode
+                )
+            );
+        }
 
         cancelGameWaiters(
             game.id
@@ -8921,9 +8640,7 @@ async function resumeGame(
             game
         );
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         if (
             [
@@ -9008,9 +8725,7 @@ async function resumeGame(
                     false;
             }
 
-            saveGame(
-                game
-            );
+            saveGame(game);
 
             setTimeout(
                 () => {
@@ -9090,9 +8805,7 @@ async function cancelGame(
     client,
     game
 ) {
-    if (
-        !game
-    ) {
+    if (!game) {
         return;
     }
 
@@ -9114,22 +8827,30 @@ async function cancelGame(
     game.phase =
         "cancelled";
 
-    saveGame(
-        game
-    );
+    saveGame(game);
 
-    voice.stopAmbience(
-        game.guildId
-    );
+    if (
+        typeof voice.stopAmbience ===
+        "function"
+    ) {
+        voice.stopAmbience(
+            game.guildId
+        );
+    }
 
     await restoreGameMutes(
         client,
         game
     );
 
-    voice.disconnect(
-        game.guildId
-    );
+    if (
+        typeof voice.disconnect ===
+        "function"
+    ) {
+        voice.disconnect(
+            game.guildId
+        );
+    }
 
     await updatePublicMessage(
         client,
@@ -9276,9 +8997,7 @@ function buildRoleGroupEmbed(
                 groupId
         );
 
-    if (
-        !group
-    ) {
+    if (!group) {
         return null;
     }
 
@@ -9327,9 +9046,7 @@ function buildRoleMenu(
                 groupId
         );
 
-    if (
-        !group
-    ) {
+    if (!group) {
         return null;
     }
 
@@ -9398,14 +9115,10 @@ async function handleButton(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const userId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9475,14 +9188,10 @@ async function handleButton(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const userId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9496,9 +9205,7 @@ async function handleButton(
                 gameId
             );
 
-        if (
-            !game
-        ) {
+        if (!game) {
             return true;
         }
 
@@ -9546,14 +9253,10 @@ async function handleButton(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const userId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9567,9 +9270,7 @@ async function handleButton(
                 gameId
             );
 
-        if (
-            !game
-        ) {
+        if (!game) {
             return true;
         }
 
@@ -9604,19 +9305,13 @@ async function handleButton(
             );
 
         const gameId =
-            parts[
-                2
-            ];
+            parts[2];
 
         const token =
-            parts[
-                3
-            ];
+            parts[3];
 
         const actorId =
-            parts[
-                4
-            ];
+            parts[4];
 
         const value =
             parts
@@ -9641,9 +9336,7 @@ async function handleButton(
                 value
             );
 
-        if (
-            resolved
-        ) {
+        if (resolved) {
             await interaction.update({
                 content:
                     "✅ Ton choix a été enregistré.",
@@ -9708,9 +9401,7 @@ async function handleButton(
                 interaction.user.id
             );
 
-            saveGame(
-                game
-            );
+            saveGame(game);
         }
 
         await interaction.reply({
@@ -9761,9 +9452,7 @@ async function handleButton(
                     interaction.user.id
             );
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         await interaction.reply({
             content:
@@ -9807,19 +9496,13 @@ async function handleSelect(
             );
 
         const gameId =
-            parts[
-                2
-            ];
+            parts[2];
 
         const token =
-            parts[
-                3
-            ];
+            parts[3];
 
         const actorId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9835,9 +9518,7 @@ async function handleSelect(
                 interaction.values
             );
 
-        if (
-            resolved
-        ) {
+        if (resolved) {
             await interaction.update({
                 content:
                     "✅ Ton choix a été enregistré.",
@@ -9870,14 +9551,10 @@ async function handleSelect(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const userId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9891,16 +9568,12 @@ async function handleSelect(
                 gameId
             );
 
-        if (
-            !game
-        ) {
+        if (!game) {
             return true;
         }
 
         const groupId =
-            interaction.values[
-                0
-            ];
+            interaction.values[0];
 
         const embed =
             buildRoleGroupEmbed(
@@ -9951,14 +9624,10 @@ async function handleSelect(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const userId =
-            parts[
-                4
-            ];
+            parts[4];
 
         if (
             interaction.user.id !==
@@ -9972,16 +9641,12 @@ async function handleSelect(
                 gameId
             );
 
-        if (
-            !game
-        ) {
+        if (!game) {
             return true;
         }
 
         const roleId =
-            interaction.values[
-                0
-            ];
+            interaction.values[0];
 
         if (
             !getActiveRoleIds(
@@ -9998,9 +9663,7 @@ async function handleSelect(
                 roleId
             );
 
-        if (
-            !role
-        ) {
+        if (!role) {
             return true;
         }
 
@@ -10055,14 +9718,10 @@ async function handleSelect(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const token =
-            parts[
-                4
-            ];
+            parts[4];
 
         const game =
             getGame(
@@ -10096,9 +9755,7 @@ async function handleSelect(
         }
 
         const candidateId =
-            interaction.values[
-                0
-            ];
+            interaction.values[0];
 
         if (
             !game.mayorCandidates
@@ -10114,9 +9771,7 @@ async function handleSelect(
         ] =
             candidateId;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         await interaction.reply({
             content:
@@ -10146,14 +9801,10 @@ async function handleSelect(
             );
 
         const gameId =
-            parts[
-                3
-            ];
+            parts[3];
 
         const token =
-            parts[
-                4
-            ];
+            parts[4];
 
         const game =
             getGame(
@@ -10194,9 +9845,7 @@ async function handleSelect(
         }
 
         const targetId =
-            interaction.values[
-                0
-            ];
+            interaction.values[0];
 
         const target =
             getPlayer(
@@ -10215,9 +9864,7 @@ async function handleSelect(
         ] =
             targetId;
 
-        saveGame(
-            game
-        );
+        saveGame(game);
 
         if (
             game.config
@@ -10277,17 +9924,20 @@ async function handleVoiceState(
         newState.member ||
         oldState.member;
 
-    if (
-        !member
-    ) {
+    if (!member) {
         return;
     }
 
-    await voice.enforcePlayerMute(
-        guild,
-        game,
-        member
-    );
+    if (
+        typeof voice.enforcePlayerMute ===
+        "function"
+    ) {
+        await voice.enforcePlayerMute(
+            guild,
+            game,
+            member
+        );
+    }
 }
 
 // ======================================================

@@ -73,6 +73,14 @@ const registerActivityStats =
     require("./systems/activityStats");
 
 // ======================================================
+// SURVEILLANCE TAG SERVEUR
+// ======================================================
+
+const {
+    startServerTagWatch
+} = require("./systems/serverTagWatch");
+
+// ======================================================
 // PERSISTANCE
 // ======================================================
 
@@ -221,6 +229,7 @@ function loadCommands() {
     }
 
     console.log("");
+
     console.log(
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     );
@@ -1326,8 +1335,6 @@ async function handleUserButton(
                 previous.channelId
             );
 
-            // Permet un fonctionnement "toggle" proche
-            // de la commande /back dédiée.
             if (
                 currentChannelId &&
                 currentChannelId !==
@@ -1866,10 +1873,6 @@ async function runCommandModalHandler(
 
 // ======================================================
 // DÉTECTION DES COMPOSANTS LOUP-GAROU
-//
-// LegacyGames utilise également des IDs lg_.
-// On détecte donc d'abord les IDs clairement réservés
-// au Loup-Garou.
 // ======================================================
 
 function isLoupgarouComponentId(
@@ -1898,7 +1901,6 @@ function isLoupgarouComponentId(
 
         "lg_day_vote_",
 
-        // Lobby / configuration Loup-Garou
         "lg_lobby_",
         "lg_join_",
         "lg_leave_",
@@ -1930,7 +1932,6 @@ async function routeCommandButton(
         interaction.customId ||
         "";
 
-    // Loup-Garou en priorité seulement pour ses IDs connus.
     if (
         isLoupgarouComponentId(
             customId
@@ -1988,7 +1989,6 @@ async function routeCommandButton(
         const name
         of modules
     ) {
-        // On ne relance pas deux fois Loup-Garou.
         if (
             name ===
                 "loupgarou" &&
@@ -2330,9 +2330,6 @@ client.on(
 
             // ==================================================
             // MAINTENANCE DES COMPOSANTS
-            //
-            // IMPORTANT :
-            // elle passe AVANT /user et avant les jeux.
             // ==================================================
 
             if (
@@ -2771,12 +2768,6 @@ client.on(
                 menotte.guildId ===
                     guild.id
             ) {
-                const member =
-                    newState.member ||
-                    oldState.member;
-
-                // S'il change vers un autre vocal,
-                // on le remet immédiatement.
                 if (
                     newState.channelId &&
                     newState.channelId !==
@@ -2793,18 +2784,6 @@ client.on(
                             error
                         );
                     }
-                }
-
-                // S'il se déconnecte complètement,
-                // on conserve la menotte en mémoire.
-                // Dès qu'il revient dans un vocal,
-                // le bloc ci-dessus le remettra.
-                if (
-                    !newState.channelId &&
-                    member
-                ) {
-                    // Aucun déplacement possible tant
-                    // qu'il n'est pas reconnecté.
                 }
             }
 
@@ -2865,10 +2844,6 @@ client.on(
                     continue;
                 }
 
-                // ==================================================
-                // MAÎTRE CHANGE / REJOINT UN VOCAL
-                // ==================================================
-
                 if (
                     memberId ===
                         data.maitreId &&
@@ -2886,10 +2861,6 @@ client.on(
                         );
                 }
 
-                // ==================================================
-                // CH TENTE DE CHANGER DE VOCAL
-                // ==================================================
-
                 if (
                     memberId ===
                         targetId &&
@@ -2906,10 +2877,6 @@ client.on(
                             () => {}
                         );
                 }
-
-                // ==================================================
-                // CH REVIENT APRÈS S'ÊTRE DÉCONNECTÉ
-                // ==================================================
 
                 if (
                     memberId ===
@@ -3169,15 +3136,14 @@ async function restoreActiveVoiceControls() {
         }
     }
 
+    client.saveControlStates();
+
     if (
         changed
     ) {
-        client.saveControlStates();
-
-    } else {
-        // Sauvegarde quand même pour garder
-        // le fichier dans un état cohérent.
-        client.saveControlStates();
+        console.log(
+            "💾 Contrôles vocaux protégés nettoyés."
+        );
     }
 }
 
@@ -3189,6 +3155,7 @@ client.once(
     Events.ClientReady,
     async readyClient => {
         console.log("");
+
         console.log(
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         );
@@ -3218,6 +3185,7 @@ client.once(
             );
 
             console.log("");
+
             console.log(
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             );
@@ -3369,6 +3337,15 @@ client.once(
             );
 
             console.log(
+                "💔 DelUnion :",
+                client.commands.has(
+                    "delunion"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
                 "📊 Analyse :",
                 client.commands.has(
                     "analyse"
@@ -3378,6 +3355,7 @@ client.once(
             );
 
             console.log("");
+
             console.log(
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             );
@@ -3425,6 +3403,18 @@ client.once(
 
             console.log(
                 "👁️ Activités Discord : ✅ intent chargé"
+            );
+
+            // ==================================================
+            // SURVEILLANCE TAG SERVEUR
+            // ==================================================
+
+            startServerTagWatch(
+                client
+            );
+
+            console.log(
+                "🏷️ Surveillance tag serveur : ✅ active"
             );
 
             console.log(

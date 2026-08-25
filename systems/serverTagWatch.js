@@ -1,3 +1,7 @@
+// ======================================================
+// THE LEGACY — SURVEILLANCE DU TAG SERVEUR
+// ======================================================
+
 const fs = require("fs");
 const path = require("path");
 
@@ -9,35 +13,45 @@ const {
 // CONFIG
 // ======================================================
 
+// Membres concernés par l'obligation du tag
 const REQUIRED_ROLE_ID =
     "1458391977073574012";
 
+// Rôle donné automatiquement si le tag est présent
 const TAG_ROLE_ID =
     "1508174227566760076";
 
+// Rôle donné après 24h sans tag
 const SANCTION_ROLE_ID =
     "1533805396274315314";
 
+// Salon d'avertissement
 const WARNING_CHANNEL_ID =
     "1533168252513943777";
 
+// Salon des sanctions
 const SANCTION_CHANNEL_ID =
     "1531375423424823407";
 
+// Couleur principale
 const COLOR =
     0x3B6475;
 
-// 12 heures
+// ======================================================
+// TEMPS
+// ======================================================
+
+// Rappel au bout de 12h
 const HALF_TIME =
     12 * 60 * 60 * 1000;
 
-// 24 heures
+// Sanction au bout de 24h
 const FULL_TIME =
     24 * 60 * 60 * 1000;
 
-// On vérifie toutes les 2 minutes
+// Vérification toutes les 60 secondes
 const CHECK_INTERVAL =
-    2 * 60 * 1000;
+    60 * 1000;
 
 // ======================================================
 // DATA
@@ -67,15 +81,20 @@ let running =
     false;
 
 // ======================================================
-// DATA HELPERS
+// DATA PAR DÉFAUT
 // ======================================================
 
 function defaultData() {
     return {
-        version: 1,
+        version: 2,
+
         warnings: {}
     };
 }
+
+// ======================================================
+// CRÉATION FICHIER
+// ======================================================
 
 function ensureFile() {
     if (
@@ -108,6 +127,10 @@ function ensureFile() {
     }
 }
 
+// ======================================================
+// CHARGEMENT DATA
+// ======================================================
+
 function loadData() {
     ensureFile();
 
@@ -118,10 +141,16 @@ function loadData() {
                 "utf8"
             );
 
+        if (
+            !raw.trim()
+        ) {
+            return defaultData();
+        }
+
         const parsed =
-            raw.trim()
-                ? JSON.parse(raw)
-                : defaultData();
+            JSON.parse(
+                raw
+            );
 
         if (
             !parsed.warnings ||
@@ -136,7 +165,7 @@ function loadData() {
 
     } catch (error) {
         console.error(
-            "❌ serverTagWatch.json :",
+            "❌ Lecture serverTagWatch.json :",
             error
         );
 
@@ -144,79 +173,143 @@ function loadData() {
     }
 }
 
+// ======================================================
+// SAUVEGARDE DATA
+// ======================================================
+
 function saveData(
     data
 ) {
     ensureFile();
 
-    fs.writeFileSync(
-        DATA_FILE,
-        JSON.stringify(
-            data,
-            null,
-            2
-        ),
-        "utf8"
-    );
-}
-
-// ======================================================
-// USER FETCH
-// ======================================================
-
-async function refreshUser(
-    client,
-    userId
-) {
     try {
-        return await client.users.fetch(
-            userId,
-            {
-                force: true
-            }
+        fs.writeFileSync(
+            DATA_FILE,
+            JSON.stringify(
+                data,
+                null,
+                2
+            ),
+            "utf8"
         );
 
-    } catch {
-        return null;
+    } catch (error) {
+        console.error(
+            "❌ Sauvegarde serverTagWatch.json :",
+            error
+        );
     }
 }
 
 // ======================================================
-// TAG CHECK
+// RÉCUPÉRATION USER À JOUR
+// ======================================================
+
+async function fetchFreshUser(
+    member
+) {
+    try {
+        return await member.user.fetch({
+            force: true
+        });
+
+    } catch (error) {
+        console.error(
+            `❌ Refresh user ${member.id} :`,
+            error.message
+        );
+
+        return member.user ||
+            null;
+    }
+}
+
+// ======================================================
+// DÉTECTION DU TAG SERVEUR
 // ======================================================
 
 async function hasServerTag(
-    client,
-    guildId,
-    userId
+    member
 ) {
+    if (
+        !member ||
+        member.user?.bot
+    ) {
+        return false;
+    }
+
     const user =
-        await refreshUser(
-            client,
-            userId
+        await fetchFreshUser(
+            member
         );
 
-    if (!user) {
+    if (
+        !user
+    ) {
         return false;
     }
 
     const primaryGuild =
         user.primaryGuild;
 
-    if (!primaryGuild) {
+    console.log(
+        `🏷️ TAG CHECK ${user.tag} (${user.id}) :`,
+        primaryGuild
+            ? {
+                identityGuildId:
+                    primaryGuild.identityGuildId,
+
+                identityEnabled:
+                    primaryGuild.identityEnabled,
+
+                tag:
+                    primaryGuild.tag
+            }
+            : "aucun primaryGuild"
+    );
+
+    if (
+        !primaryGuild
+    ) {
         return false;
     }
 
     return (
         primaryGuild.identityEnabled ===
             true &&
-        primaryGuild.identityGuildId ===
-            guildId
+        String(
+            primaryGuild.identityGuildId
+        ) ===
+            String(
+                member.guild.id
+            )
     );
 }
 
 // ======================================================
-// ROLE HELPERS
+// FETCH CHANNEL
+// ======================================================
+
+async function getChannel(
+    guild,
+    channelId
+) {
+    return (
+        guild.channels.cache.get(
+            channelId
+        ) ||
+        await guild.channels
+            .fetch(
+                channelId
+            )
+            .catch(
+                () => null
+            )
+    );
+}
+
+// ======================================================
+// ADD ROLE
 // ======================================================
 
 async function addRole(
@@ -232,10 +325,46 @@ async function addRole(
         return true;
     }
 
+    const role =
+        member.guild.roles.cache.get(
+            roleId
+        ) ||
+        await member.guild.roles
+            .fetch(
+                roleId
+            )
+            .catch(
+                () => null
+            );
+
+    if (
+        !role
+    ) {
+        console.error(
+            `❌ Rôle introuvable : ${roleId}`
+        );
+
+        return false;
+    }
+
+    if (
+        !role.editable
+    ) {
+        console.error(
+            `❌ Rôle non modifiable par le bot : ${roleId}`
+        );
+
+        return false;
+    }
+
     try {
         await member.roles.add(
             roleId,
             reason
+        );
+
+        console.log(
+            `✅ Rôle ${roleId} ajouté à ${member.user.tag}`
         );
 
         return true;
@@ -243,12 +372,16 @@ async function addRole(
     } catch (error) {
         console.error(
             `❌ Ajout rôle ${roleId} à ${member.user.tag} :`,
-            error.message
+            error
         );
 
         return false;
     }
 }
+
+// ======================================================
+// REMOVE ROLE
+// ======================================================
 
 async function removeRole(
     member,
@@ -263,10 +396,42 @@ async function removeRole(
         return true;
     }
 
+    const role =
+        member.guild.roles.cache.get(
+            roleId
+        ) ||
+        await member.guild.roles
+            .fetch(
+                roleId
+            )
+            .catch(
+                () => null
+            );
+
+    if (
+        !role
+    ) {
+        return false;
+    }
+
+    if (
+        !role.editable
+    ) {
+        console.error(
+            `❌ Rôle non modifiable par le bot : ${roleId}`
+        );
+
+        return false;
+    }
+
     try {
         await member.roles.remove(
             roleId,
             reason
+        );
+
+        console.log(
+            `🗑️ Rôle ${roleId} retiré à ${member.user.tag}`
         );
 
         return true;
@@ -274,7 +439,7 @@ async function removeRole(
     } catch (error) {
         console.error(
             `❌ Retrait rôle ${roleId} à ${member.user.tag} :`,
-            error.message
+            error
         );
 
         return false;
@@ -282,7 +447,48 @@ async function removeRole(
 }
 
 // ======================================================
-// WARNING EMBED
+// CLÉ WARNING
+// ======================================================
+
+function getWarningKey(
+    guildId,
+    userId
+) {
+    return `${guildId}:${userId}`;
+}
+
+// ======================================================
+// SUPPRESSION WARNING
+// ======================================================
+
+function clearWarning(
+    data,
+    guildId,
+    userId
+) {
+    const key =
+        getWarningKey(
+            guildId,
+            userId
+        );
+
+    if (
+        !data.warnings[
+            key
+        ]
+    ) {
+        return false;
+    }
+
+    delete data.warnings[
+        key
+    ];
+
+    return true;
+}
+
+// ======================================================
+// PREMIER AVERTISSEMENT
 // ======================================================
 
 async function sendFirstWarning(
@@ -290,22 +496,25 @@ async function sendFirstWarning(
     member
 ) {
     const channel =
-        guild.channels.cache.get(
+        await getChannel(
+            guild,
             WARNING_CHANNEL_ID
-        ) ||
-        await guild.channels
-            .fetch(
-                WARNING_CHANNEL_ID
-            )
-            .catch(
-                () => null
-            );
+        );
 
     if (
-        !channel?.isTextBased()
+        !channel ||
+        !channel.isTextBased()
     ) {
-        return;
+        console.error(
+            `❌ Salon avertissement tag introuvable : ${WARNING_CHANNEL_ID}`
+        );
+
+        return false;
     }
+
+    const deadline =
+        Date.now() +
+        FULL_TIME;
 
     const embed =
         new EmbedBuilder()
@@ -316,15 +525,16 @@ async function sendFirstWarning(
                 "⚠️ Tag de famille manquant"
             )
             .setDescription(
-`<@${member.id}>, ton **tag de serveur / famille The Legacy** n'est plus présent sur ton profil.
+`<@${member.id}>, ton **tag de famille The Legacy** n'est actuellement plus affiché sur ton profil Discord.
 
 Tu disposes de **24 heures** pour le remettre.
 
-Si ton tag n'est toujours pas actif à la fin du délai, tu passeras automatiquement dans le rôle prévu pour cette situation.
-
 > ⏳ **Temps restant : 24 heures**
+> 📅 Fin du délai : <t:${Math.floor(deadline / 1000)}:R>
 
-Dès que ton tag est remis, l'avertissement sera automatiquement annulé.`
+Si ton tag n'est toujours pas présent à la fin du délai, tu passeras automatiquement dans le rôle prévu pour cette situation.
+
+Dès que ton tag est remis, le compteur est automatiquement annulé.`
             )
             .setThumbnail(
                 member.user.displayAvatarURL({
@@ -334,47 +544,67 @@ Dès que ton tag est remis, l'avertissement sera automatiquement annulé.`
             )
             .setFooter({
                 text:
-                    "The Legacy • Surveillance du tag"
+                    "The Legacy • Tag de famille"
             })
             .setTimestamp();
 
-    await channel.send({
-        content:
-            `<@${member.id}>`,
+    try {
+        await channel.send({
+            content:
+                `<@${member.id}>`,
 
-        embeds: [
-            embed
-        ]
-    }).catch(
-        () => {}
-    );
+            embeds: [
+                embed
+            ],
+
+            allowedMentions: {
+                users: [
+                    member.id
+                ]
+            }
+        });
+
+        console.log(
+            `⚠️ Avertissement tag envoyé à ${member.user.tag}`
+        );
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            `❌ Envoi avertissement tag ${member.user.tag} :`,
+            error
+        );
+
+        return false;
+    }
 }
 
 // ======================================================
-// 12H REMINDER
+// RAPPEL 12H
 // ======================================================
 
 async function sendHalfWarning(
     guild,
-    member
+    member,
+    warning
 ) {
     const channel =
-        guild.channels.cache.get(
+        await getChannel(
+            guild,
             WARNING_CHANNEL_ID
-        ) ||
-        await guild.channels
-            .fetch(
-                WARNING_CHANNEL_ID
-            )
-            .catch(
-                () => null
-            );
+        );
 
     if (
-        !channel?.isTextBased()
+        !channel ||
+        !channel.isTextBased()
     ) {
-        return;
+        return false;
     }
+
+    const deadline =
+        warning.startedAt +
+        FULL_TIME;
 
     const embed =
         new EmbedBuilder()
@@ -382,14 +612,15 @@ async function sendHalfWarning(
                 0xF1C40F
             )
             .setTitle(
-                "⏳ Plus que 12 heures"
+                "⏳ Il te reste 12 heures"
             )
             .setDescription(
-`<@${member.id}>, ton tag de famille **The Legacy** n'est toujours pas présent.
+`<@${member.id}>, ton **tag de famille The Legacy** n'est toujours pas présent.
 
-Il te reste maintenant **12 heures** pour le remettre.
+Il te reste désormais **12 heures** pour le remettre.
 
-> ⚠️ Après ce délai, la sanction sera appliquée automatiquement.`
+> ⚠️ Si ton tag n'est toujours pas présent à la fin du délai, la sanction sera appliquée automatiquement.
+> 📅 Fin du délai : <t:${Math.floor(deadline / 1000)}:R>`
             )
             .setThumbnail(
                 member.user.displayAvatarURL({
@@ -399,20 +630,120 @@ Il te reste maintenant **12 heures** pour le remettre.
             )
             .setFooter({
                 text:
-                    "The Legacy • Surveillance du tag"
+                    "The Legacy • Tag de famille"
             })
             .setTimestamp();
 
-    await channel.send({
-        content:
-            `<@${member.id}>`,
+    try {
+        await channel.send({
+            content:
+                `<@${member.id}>`,
 
-        embeds: [
-            embed
-        ]
-    }).catch(
-        () => {}
-    );
+            embeds: [
+                embed
+            ],
+
+            allowedMentions: {
+                users: [
+                    member.id
+                ]
+            }
+        });
+
+        console.log(
+            `⏳ Rappel 12h envoyé à ${member.user.tag}`
+        );
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            `❌ Rappel tag ${member.user.tag} :`,
+            error
+        );
+
+        return false;
+    }
+}
+
+// ======================================================
+// TAG REMIS AVANT SANCTION
+// ======================================================
+
+async function sendTagRestoredMessage(
+    guild,
+    member
+) {
+    const channel =
+        await getChannel(
+            guild,
+            WARNING_CHANNEL_ID
+        );
+
+    if (
+        !channel ||
+        !channel.isTextBased()
+    ) {
+        return false;
+    }
+
+    const embed =
+        new EmbedBuilder()
+            .setColor(
+                0x57F287
+            )
+            .setTitle(
+                "✅ Tag de famille rétabli"
+            )
+            .setDescription(
+`<@${member.id}> a remis son **tag de famille The Legacy** avant la fin du délai.
+
+> ✅ L'avertissement est annulé.
+> ⏳ Le compteur de 24 heures est supprimé.
+> 🪽 Aucune sanction ne sera appliquée.`
+            )
+            .setThumbnail(
+                member.user.displayAvatarURL({
+                    size:
+                        512
+                })
+            )
+            .setFooter({
+                text:
+                    "The Legacy • Tag de famille"
+            })
+            .setTimestamp();
+
+    try {
+        await channel.send({
+            content:
+                `<@${member.id}>`,
+
+            embeds: [
+                embed
+            ],
+
+            allowedMentions: {
+                users: [
+                    member.id
+                ]
+            }
+        });
+
+        console.log(
+            `✅ Message tag rétabli envoyé pour ${member.user.tag}`
+        );
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            `❌ Message tag rétabli ${member.user.tag} :`,
+            error
+        );
+
+        return false;
+    }
 }
 
 // ======================================================
@@ -423,73 +754,66 @@ async function sanctionMember(
     guild,
     member
 ) {
-    const channel =
-        guild.channels.cache.get(
-            SANCTION_CHANNEL_ID
-        ) ||
-        await guild.channels
-            .fetch(
-                SANCTION_CHANNEL_ID
-            )
-            .catch(
-                () => null
-            );
-
-    await addRole(
-        member,
-        SANCTION_ROLE_ID,
-        "Tag de famille absent après 24h"
-    );
+    const roleAdded =
+        await addRole(
+            member,
+            SANCTION_ROLE_ID,
+            "Tag de famille absent après 24 heures"
+        );
 
     if (
-        !channel?.isTextBased()
+        !roleAdded
     ) {
+        console.error(
+            `❌ Impossible d'appliquer le rôle sanction à ${member.user.tag}`
+        );
+    }
+
+    const channel =
+        await getChannel(
+            guild,
+            SANCTION_CHANNEL_ID
+        );
+
+    if (
+        !channel ||
+        !channel.isTextBased()
+    ) {
+        console.error(
+            `❌ Salon sanctions introuvable : ${SANCTION_CHANNEL_ID}`
+        );
+
         return;
     }
 
-    // PAS D'EMBED volontairement.
-    // Format sanction simple.
     await channel.send({
         content:
-`## ⚠️ SANCTION
+`## ⚠️ Sanction
 
 > **Membre :** <@${member.id}>
 > **ID :** \`${member.id}\`
-> **Sanction :** Passage de rôle automatique
-> **Raison :** Tag de famille absent après le délai de 24 heures
+> **Sanction :** Passage automatique
+> **Raison :** Tag de famille absent après le délai de 24 heures.
 > **Rôle attribué :** <@&${SANCTION_ROLE_ID}>
 
-*Sanction appliquée automatiquement par The Legacy.*`
+-# Sanction appliquée automatiquement par The Legacy.`,
+
+        allowedMentions: {
+            users: [
+                member.id
+            ],
+
+            roles:
+                []
+        }
     }).catch(
-        () => {}
+        error => {
+            console.error(
+                `❌ Message sanction tag ${member.user.tag} :`,
+                error
+            );
+        }
     );
-}
-
-// ======================================================
-// CLEAR WARNING
-// ======================================================
-
-function clearWarning(
-    data,
-    guildId,
-    userId
-) {
-    const key =
-        `${guildId}:${userId}`;
-
-    if (
-        data.warnings[
-            key
-        ]
-    ) {
-        delete data.warnings[
-            key
-        ];
-
-        return true;
-    }
-
-    return false;
 }
 
 // ======================================================
@@ -497,7 +821,6 @@ function clearWarning(
 // ======================================================
 
 async function handleMember(
-    client,
     guild,
     member,
     data
@@ -510,36 +833,60 @@ async function handleMember(
     }
 
     const key =
-        `${guild.id}:${member.id}`;
+        getWarningKey(
+            guild.id,
+            member.id
+        );
 
     const tagged =
         await hasServerTag(
-            client,
-            guild.id,
-            member.id
+            member
         );
 
     // ==================================================
     // TAG PRÉSENT
     // ==================================================
 
-    if (tagged) {
+    if (
+        tagged
+    ) {
         await addRole(
             member,
             TAG_ROLE_ID,
             "Tag serveur The Legacy détecté"
         );
 
-        const cleared =
+        const hadWarning =
+            Boolean(
+                data.warnings[
+                    key
+                ]
+            );
+
+        if (
             clearWarning(
                 data,
                 guild.id,
                 member.id
+            )
+        ) {
+            saveData(
+                data
             );
 
-        if (cleared) {
             console.log(
-                `✅ Tag remis par ${member.user.tag}, compteur annulé.`
+                `✅ ${member.user.tag} a remis son tag : compteur annulé.`
+            );
+        }
+
+        // Le message vert ne part QUE si la personne
+        // avait réellement un compteur / avertissement actif.
+        if (
+            hadWarning
+        ) {
+            await sendTagRestoredMessage(
+                guild,
+                member
             );
         }
 
@@ -553,20 +900,29 @@ async function handleMember(
     await removeRole(
         member,
         TAG_ROLE_ID,
-        "Tag serveur The Legacy retiré"
+        "Tag serveur The Legacy absent"
     );
 
-    // Seulement ceux qui ont le rôle surveillé.
+    // ==================================================
+    // PAS DANS LE RÔLE SURVEILLÉ
+    // ==================================================
+
     if (
         !member.roles.cache.has(
             REQUIRED_ROLE_ID
         )
     ) {
-        clearWarning(
-            data,
-            guild.id,
-            member.id
-        );
+        if (
+            clearWarning(
+                data,
+                guild.id,
+                member.id
+            )
+        ) {
+            saveData(
+                data
+            );
+        }
 
         return;
     }
@@ -580,10 +936,18 @@ async function handleMember(
         ];
 
     // ==================================================
-    // PREMIER AVERTISSEMENT
+    // PREMIÈRE DÉTECTION
     // ==================================================
 
-    if (!warning) {
+    if (
+        !warning
+    ) {
+        const sent =
+            await sendFirstWarning(
+                guild,
+                member
+            );
+
         warning = {
             guildId:
                 guild.id,
@@ -591,14 +955,23 @@ async function handleMember(
             userId:
                 member.id,
 
+            username:
+                member.user.tag,
+
             startedAt:
                 now,
+
+            firstWarningSent:
+                sent,
 
             halfReminderSent:
                 false,
 
             sanctionApplied:
-                false
+                false,
+
+            createdAt:
+                now
         };
 
         data.warnings[
@@ -606,24 +979,51 @@ async function handleMember(
         ] =
             warning;
 
-        await sendFirstWarning(
-            guild,
-            member
+        saveData(
+            data
         );
 
         console.log(
-            `⚠️ Compteur tag lancé pour ${member.user.tag}`
+            `⏳ Compteur 24h lancé pour ${member.user.tag}`
         );
 
         return;
     }
 
+    // ==================================================
+    // PREMIER MESSAGE ÉCHOUÉ
+    // ==================================================
+
+    if (
+        warning.firstWarningSent ===
+            false
+    ) {
+        const sent =
+            await sendFirstWarning(
+                guild,
+                member
+            );
+
+        if (
+            sent
+        ) {
+            warning.firstWarningSent =
+                true;
+
+            saveData(
+                data
+            );
+        }
+    }
+
     const elapsed =
         now -
-        warning.startedAt;
+        Number(
+            warning.startedAt
+        );
 
     // ==================================================
-    // 12H
+    // RAPPEL 12H
     // ==================================================
 
     if (
@@ -633,19 +1033,32 @@ async function handleMember(
             FULL_TIME &&
         !warning.halfReminderSent
     ) {
-        await sendHalfWarning(
-            guild,
-            member
-        );
+        const sent =
+            await sendHalfWarning(
+                guild,
+                member,
+                warning
+            );
 
-        warning.halfReminderSent =
-            true;
+        if (
+            sent
+        ) {
+            warning.halfReminderSent =
+                true;
+
+            warning.halfReminderSentAt =
+                Date.now();
+
+            saveData(
+                data
+            );
+        }
 
         return;
     }
 
     // ==================================================
-    // 24H
+    // SANCTION 24H
     // ==================================================
 
     if (
@@ -653,25 +1066,34 @@ async function handleMember(
             FULL_TIME &&
         !warning.sanctionApplied
     ) {
-        // Dernière vérification juste avant sanction.
+        // Vérification finale juste avant sanction
         const stillMissing =
             !await hasServerTag(
-                client,
-                guild.id,
-                member.id
+                member
             );
 
-        if (!stillMissing) {
+        if (
+            !stillMissing
+        ) {
             await addRole(
                 member,
                 TAG_ROLE_ID,
-                "Tag serveur remis avant sanction"
+                "Tag remis avant la sanction"
             );
 
             clearWarning(
                 data,
                 guild.id,
                 member.id
+            );
+
+            saveData(
+                data
+            );
+
+            await sendTagRestoredMessage(
+                guild,
+                member
             );
 
             return;
@@ -688,6 +1110,10 @@ async function handleMember(
         warning.sanctionAppliedAt =
             Date.now();
 
+        saveData(
+            data
+        );
+
         console.log(
             `🚨 Sanction tag appliquée à ${member.user.tag}`
         );
@@ -695,11 +1121,10 @@ async function handleMember(
 }
 
 // ======================================================
-// SCAN
+// SCAN GUILD
 // ======================================================
 
 async function scanGuild(
-    client,
     guild,
     data
 ) {
@@ -711,12 +1136,16 @@ async function scanGuild(
 
     } catch (error) {
         console.error(
-            `❌ Impossible de récupérer les membres de ${guild.name} :`,
-            error.message
+            `❌ Récupération membres ${guild.name} :`,
+            error
         );
 
         return;
     }
+
+    console.log(
+        `🏷️ Scan tags ${guild.name} : ${members.size} membre(s)`
+    );
 
     for (
         const member
@@ -724,7 +1153,6 @@ async function scanGuild(
     ) {
         try {
             await handleMember(
-                client,
                 guild,
                 member,
                 data
@@ -732,7 +1160,7 @@ async function scanGuild(
 
         } catch (error) {
             console.error(
-                `❌ ServerTagWatch ${member.user.tag} :`,
+                `❌ TagWatch ${member.user.tag} :`,
                 error
             );
         }
@@ -740,13 +1168,19 @@ async function scanGuild(
 }
 
 // ======================================================
-// GLOBAL CHECK
+// CHECK ALL
 // ======================================================
 
 async function checkAll(
     client
 ) {
-    if (running) {
+    if (
+        running
+    ) {
+        console.log(
+            "🏷️ Scan tag ignoré : scan précédent encore actif."
+        );
+
         return;
     }
 
@@ -762,7 +1196,6 @@ async function checkAll(
             of client.guilds.cache.values()
         ) {
             await scanGuild(
-                client,
                 guild,
                 data
             );
@@ -770,6 +1203,12 @@ async function checkAll(
 
         saveData(
             data
+        );
+
+    } catch (error) {
+        console.error(
+            "❌ CheckAll ServerTagWatch :",
+            error
         );
 
     } finally {
@@ -785,17 +1224,22 @@ async function checkAll(
 function startServerTagWatch(
     client
 ) {
-    if (interval) {
+    if (
+        interval
+    ) {
         clearInterval(
             interval
         );
+
+        interval =
+            null;
     }
 
     console.log(
-        "🏷️ Système de surveillance du tag serveur activé."
+        "🏷️ Surveillance du tag serveur activée."
     );
 
-    // Scan quelques secondes après le démarrage.
+    // Premier scan 5 secondes après le démarrage
     setTimeout(
         () => {
             checkAll(
@@ -809,9 +1253,10 @@ function startServerTagWatch(
                 }
             );
         },
-        10_000
+        5_000
     );
 
+    // Puis scan toutes les 60 secondes
     interval =
         setInterval(
             () => {
@@ -828,14 +1273,39 @@ function startServerTagWatch(
             },
             CHECK_INTERVAL
         );
+
+    return true;
 }
 
 // ======================================================
-// EXPORT
+// STOP
+// ======================================================
+
+function stopServerTagWatch() {
+    if (
+        interval
+    ) {
+        clearInterval(
+            interval
+        );
+
+        interval =
+            null;
+    }
+
+    console.log(
+        "🏷️ Surveillance du tag serveur arrêtée."
+    );
+}
+
+// ======================================================
+// EXPORTS
 // ======================================================
 
 module.exports = {
     startServerTagWatch,
+    stopServerTagWatch,
+
     checkAll,
     hasServerTag
 };

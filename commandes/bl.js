@@ -1,21 +1,22 @@
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
+    EmbedBuilder,
     MessageFlags
 } = require("discord.js");
 
 const {
-    addBanRecord
+    addBlacklistRecord
 } = require("../utils/moderationStore");
 
 module.exports = {
     data:
         new SlashCommandBuilder()
             .setName(
-                "ban"
+                "bl"
             )
             .setDescription(
-                "Bannir un membre"
+                "Ajouter un utilisateur à la blacklist The Legacy"
             )
             .addUserOption(option =>
                 option
@@ -23,7 +24,7 @@ module.exports = {
                         "membre"
                     )
                     .setDescription(
-                        "Le membre à bannir"
+                        "Utilisateur à blacklist"
                     )
                     .setRequired(
                         true
@@ -35,10 +36,10 @@ module.exports = {
                         "raison"
                     )
                     .setDescription(
-                        "Raison du bannissement"
+                        "Raison de la blacklist"
                     )
                     .setRequired(
-                        false
+                        true
                     )
             )
             .setDefaultMemberPermissions(
@@ -53,46 +54,13 @@ module.exports = {
                 "membre"
             );
 
-        const membre =
-            interaction.options.getMember(
-                "membre"
-            );
-
-        const raison =
+        const reason =
             interaction.options.getString(
                 "raison"
-            ) ||
-            "Aucune raison précisée";
+            );
 
-        if (!membre) {
-            return interaction.reply({
-                content:
-                    "❌ Membre introuvable sur le serveur.",
-
-                flags:
-                    MessageFlags.Ephemeral
-            });
-        }
-
-        if (
-            !membre.bannable
-        ) {
-            return interaction.reply({
-                content:
-                    "❌ Je ne peux pas bannir ce membre.",
-
-                flags:
-                    MessageFlags.Ephemeral
-            });
-        }
-
-        try {
-            await membre.ban({
-                reason:
-                    `${raison} | Par ${interaction.user.tag} (${interaction.user.id})`
-            });
-
-            addBanRecord({
+        const result =
+            addBlacklistRecord({
                 guildId:
                     interaction.guild.id,
 
@@ -123,31 +91,67 @@ module.exports = {
                             512
                     }),
 
-                reason:
-                    raison,
+                reason,
 
-                bannedAt:
+                blacklistedAt:
                     Date.now()
             });
 
-            await interaction.reply({
-                content:
-                    `✅ **${user.tag}** a été banni.\nRaison : **${raison}**`
-            });
-
-        } catch (error) {
-            console.error(
-                "❌ /ban :",
-                error
-            );
-
+        if (!result.ok) {
             return interaction.reply({
                 content:
-                    `❌ Impossible de bannir ce membre.\n\`${error.message}\``,
+                    `❌ **${user.tag}** est déjà blacklisté.`,
 
                 flags:
                     MessageFlags.Ephemeral
             });
         }
+
+        const embed =
+            new EmbedBuilder()
+                .setColor(
+                    0x2B2D31
+                )
+                .setTitle(
+                    "⛔ Utilisateur blacklisté"
+                )
+                .setThumbnail(
+                    user.displayAvatarURL({
+                        size:
+                            512
+                    })
+                )
+                .addFields(
+                    {
+                        name:
+                            "👤 Utilisateur",
+
+                        value:
+                            `<@${user.id}>\n\`${user.id}\``
+                    },
+
+                    {
+                        name:
+                            "👮 Blacklisté par",
+
+                        value:
+                            `<@${interaction.user.id}>`
+                    },
+
+                    {
+                        name:
+                            "📝 Raison",
+
+                        value:
+                            reason
+                    }
+                )
+                .setTimestamp();
+
+        return interaction.reply({
+            embeds: [
+                embed
+            ]
+        });
     }
 };

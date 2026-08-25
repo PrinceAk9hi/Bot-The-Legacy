@@ -8,10 +8,10 @@ module.exports = {
     data:
         new SlashCommandBuilder()
             .setName(
-                "mute"
+                "unmute"
             )
             .setDescription(
-                "Mettre un membre en timeout"
+                "Retirer le timeout d'un membre"
             )
             .addUserOption(option =>
                 option
@@ -19,28 +19,10 @@ module.exports = {
                         "membre"
                     )
                     .setDescription(
-                        "Membre à mute"
+                        "Membre à unmute"
                     )
                     .setRequired(
                         true
-                    )
-            )
-            .addIntegerOption(option =>
-                option
-                    .setName(
-                        "minutes"
-                    )
-                    .setDescription(
-                        "Durée du mute en minutes"
-                    )
-                    .setRequired(
-                        true
-                    )
-                    .setMinValue(
-                        1
-                    )
-                    .setMaxValue(
-                        40320
                     )
             )
             .addStringOption(option =>
@@ -49,7 +31,7 @@ module.exports = {
                         "raison"
                     )
                     .setDescription(
-                        "Raison du mute"
+                        "Raison du unmute"
                     )
                     .setRequired(
                         false
@@ -65,11 +47,6 @@ module.exports = {
         const membre =
             interaction.options.getMember(
                 "membre"
-            );
-
-        const minutes =
-            interaction.options.getInteger(
-                "minutes"
             );
 
         const raison =
@@ -93,27 +70,35 @@ module.exports = {
         ) {
             return interaction.reply({
                 content:
-                    "❌ Je ne peux pas mute ce membre.",
+                    "❌ Je ne peux pas modifier le timeout de ce membre.",
 
                 flags:
                     MessageFlags.Ephemeral
             });
         }
 
-        const duree =
-            minutes *
-            60 *
-            1000;
+        if (
+            !membre.communicationDisabledUntilTimestamp ||
+            membre.communicationDisabledUntilTimestamp <=
+                Date.now()
+        ) {
+            return interaction.reply({
+                content:
+                    "❌ Ce membre n'est actuellement pas mute.",
+
+                flags:
+                    MessageFlags.Ephemeral
+            });
+        }
 
         await membre.timeout(
-            duree,
+            null,
             `${raison} | Par ${interaction.user.tag}`
         );
 
-        await interaction.reply({
+        return interaction.reply({
             content:
-                `🔇 ${membre.user.username} a été mute pendant **${minutes} minute(s)**.\n` +
-                `Raison : **${raison}**`
+                `🔊 **${membre.user.tag}** a été unmute.\nRaison : **${raison}**`
         });
     }
 };

@@ -14,6 +14,9 @@ const {
 const UNION_CHANNEL_ID =
     "1541081792302293153";
 
+const UNION_ROLE_ID =
+    "1541599328756432947";
+
 const COLOR =
     0x3B6475;
 
@@ -36,7 +39,9 @@ function progressBar(
         );
 
     return (
-        "█".repeat(filled) +
+        "█".repeat(
+            filled
+        ) +
         "░".repeat(
             10 - filled
         )
@@ -46,23 +51,33 @@ function progressBar(
 function getResultText(
     percent
 ) {
-    if (percent <= 20) {
+    if (
+        percent <= 20
+    ) {
         return "💀 Catastrophe sentimentale annoncée.";
     }
 
-    if (percent <= 40) {
+    if (
+        percent <= 40
+    ) {
         return "😬 Ça risque d'être compliqué...";
     }
 
-    if (percent <= 60) {
+    if (
+        percent <= 60
+    ) {
         return "🤔 Il y a peut-être quelque chose à tenter.";
     }
 
-    if (percent <= 80) {
+    if (
+        percent <= 80
+    ) {
         return "💗 Un duo plutôt prometteur...";
     }
 
-    if (percent <= 99) {
+    if (
+        percent <= 99
+    ) {
         return "💞 Très grosse compatibilité détectée !";
     }
 
@@ -70,11 +85,118 @@ function getResultText(
 }
 
 // ======================================================
+// RÔLE UNION
+// ======================================================
+
+async function giveUnionRole(
+    guild,
+    inviterId,
+    targetId
+) {
+    const role =
+        guild.roles.cache.get(
+            UNION_ROLE_ID
+        ) ||
+        await guild.roles
+            .fetch(
+                UNION_ROLE_ID
+            )
+            .catch(
+                () => null
+            );
+
+    if (!role) {
+        return {
+            ok: false,
+            reason:
+                "Le rôle d'Union est introuvable."
+        };
+    }
+
+    if (!role.editable) {
+        return {
+            ok: false,
+            reason:
+                "Place le rôle du bot au-dessus du rôle d'Union."
+        };
+    }
+
+    const inviter =
+        guild.members.cache.get(
+            inviterId
+        ) ||
+        await guild.members
+            .fetch(
+                inviterId
+            )
+            .catch(
+                () => null
+            );
+
+    const target =
+        guild.members.cache.get(
+            targetId
+        ) ||
+        await guild.members
+            .fetch(
+                targetId
+            )
+            .catch(
+                () => null
+            );
+
+    if (
+        !inviter ||
+        !target
+    ) {
+        return {
+            ok: false,
+            reason:
+                "Un des membres est introuvable."
+        };
+    }
+
+    try {
+        if (
+            !inviter.roles.cache.has(
+                UNION_ROLE_ID
+            )
+        ) {
+            await inviter.roles.add(
+                role,
+                "Union The Legacy"
+            );
+        }
+
+        if (
+            !target.roles.cache.has(
+                UNION_ROLE_ID
+            )
+        ) {
+            await target.roles.add(
+                role,
+                "Union The Legacy"
+            );
+        }
+
+        return {
+            ok: true
+        };
+
+    } catch (error) {
+        return {
+            ok: false,
+            reason:
+                error.message
+        };
+    }
+}
+
+// ======================================================
 // ENVOYER INVITATION UNION
 // ======================================================
 
 async function sendUnionInvitation({
-    client,
     guild,
     inviter,
     target,
@@ -159,7 +281,6 @@ Souhaites-tu accepter cette Union ?`
 // ======================================================
 
 module.exports = {
-
     data:
         new SlashCommandBuilder()
             .setName(
@@ -168,7 +289,6 @@ module.exports = {
             .setDescription(
                 "Calculer ta compatibilité avec un membre"
             )
-
             .addUserOption(option =>
                 option
                     .setName(
@@ -181,10 +301,6 @@ module.exports = {
                         true
                     )
             ),
-
-    // ==================================================
-    // EXECUTION
-    // ==================================================
 
     async execute(
         interaction
@@ -217,10 +333,6 @@ module.exports = {
                 });
             }
 
-            // ==================================================
-            // POURCENTAGE
-            // ==================================================
-
             const percent =
                 randomPercent();
 
@@ -233,10 +345,6 @@ module.exports = {
                 getResultText(
                     percent
                 );
-
-            // ==================================================
-            // EMBED
-            // ==================================================
 
             const embed =
                 new EmbedBuilder()
@@ -267,10 +375,6 @@ module.exports = {
                     })
                     .setTimestamp();
 
-            // ==================================================
-            // SCORE >= 81
-            // ==================================================
-
             if (
                 percent >= 81
             ) {
@@ -279,9 +383,6 @@ module.exports = {
 
                 try {
                     await sendUnionInvitation({
-                        client:
-                            interaction.client,
-
                         guild:
                             interaction.guild,
 
@@ -296,7 +397,7 @@ module.exports = {
                     dmSent =
                         true;
 
-                } catch (error) {
+                } catch {
                     console.log(
                         `⚠️ Impossible d'envoyer l'invitation Union à ${target.tag}`
                     );
@@ -389,10 +490,6 @@ module.exports = {
             return true;
         }
 
-        // ==================================================
-        // REFUS
-        // ==================================================
-
         if (
             action ===
             "refuse"
@@ -437,10 +534,6 @@ module.exports = {
             return true;
         }
 
-        // ==================================================
-        // ACCEPTATION
-        // ==================================================
-
         if (
             action ===
             "accept"
@@ -454,6 +547,23 @@ module.exports = {
                 return interaction.reply({
                     content:
                         "❌ Serveur introuvable.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                });
+            }
+
+            const roleResult =
+                await giveUnionRole(
+                    guild,
+                    inviterId,
+                    targetId
+                );
+
+            if (!roleResult.ok) {
+                return interaction.reply({
+                    content:
+                        `❌ Impossible de finaliser l'Union.\n${roleResult.reason}`,
 
                     flags:
                         MessageFlags.Ephemeral

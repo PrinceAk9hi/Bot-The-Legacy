@@ -14,15 +14,130 @@ const {
 const UNION_CHANNEL_ID =
     "1541081792302293153";
 
+const UNION_ROLE_ID =
+    "1541599328756432947";
+
 const COLOR =
     0x3B6475;
+
+// ======================================================
+// DONNER LE RÔLE D'UNION
+// ======================================================
+
+async function giveUnionRole(
+    guild,
+    inviterId,
+    targetId
+) {
+    const role =
+        guild.roles.cache.get(
+            UNION_ROLE_ID
+        ) ||
+        await guild.roles
+            .fetch(
+                UNION_ROLE_ID
+            )
+            .catch(
+                () => null
+            );
+
+    if (!role) {
+        return {
+            ok: false,
+            reason:
+                "Le rôle d'Union est introuvable."
+        };
+    }
+
+    const inviter =
+        guild.members.cache.get(
+            inviterId
+        ) ||
+        await guild.members
+            .fetch(
+                inviterId
+            )
+            .catch(
+                () => null
+            );
+
+    const target =
+        guild.members.cache.get(
+            targetId
+        ) ||
+        await guild.members
+            .fetch(
+                targetId
+            )
+            .catch(
+                () => null
+            );
+
+    if (
+        !inviter ||
+        !target
+    ) {
+        return {
+            ok: false,
+            reason:
+                "Un des deux membres est introuvable sur le serveur."
+        };
+    }
+
+    if (!role.editable) {
+        return {
+            ok: false,
+            reason:
+                "Je ne peux pas attribuer le rôle d'Union. Place mon rôle au-dessus du rôle d'Union."
+        };
+    }
+
+    try {
+        if (
+            !inviter.roles.cache.has(
+                UNION_ROLE_ID
+            )
+        ) {
+            await inviter.roles.add(
+                role,
+                "Union The Legacy"
+            );
+        }
+
+        if (
+            !target.roles.cache.has(
+                UNION_ROLE_ID
+            )
+        ) {
+            await target.roles.add(
+                role,
+                "Union The Legacy"
+            );
+        }
+
+        return {
+            ok: true
+        };
+
+    } catch (error) {
+        console.error(
+            "❌ Attribution rôle Union :",
+            error
+        );
+
+        return {
+            ok: false,
+            reason:
+                error.message
+        };
+    }
+}
 
 // ======================================================
 // COMMANDE
 // ======================================================
 
 module.exports = {
-
     data:
         new SlashCommandBuilder()
             .setName(
@@ -31,7 +146,6 @@ module.exports = {
             .setDescription(
                 "Proposer directement une Union à un membre"
             )
-
             .addUserOption(option =>
                 option
                     .setName(
@@ -79,10 +193,6 @@ module.exports = {
                 });
             }
 
-            // ==================================================
-            // BOUTONS
-            // ==================================================
-
             const row =
                 new ActionRowBuilder()
                     .addComponents(
@@ -114,10 +224,6 @@ module.exports = {
                                 ButtonStyle.Danger
                             )
                     );
-
-            // ==================================================
-            // MP
-            // ==================================================
 
             const embed =
                 new EmbedBuilder()
@@ -303,6 +409,27 @@ Souhaites-tu accepter ?`
                 });
             }
 
+            // ==================================================
+            // RÔLE D'UNION
+            // ==================================================
+
+            const roleResult =
+                await giveUnionRole(
+                    guild,
+                    inviterId,
+                    targetId
+                );
+
+            if (!roleResult.ok) {
+                return interaction.reply({
+                    content:
+                        `❌ L'Union n'a pas pu être finalisée.\n${roleResult.reason}`,
+
+                    flags:
+                        MessageFlags.Ephemeral
+                });
+            }
+
             const channel =
                 guild.channels.cache.get(
                     UNION_CHANNEL_ID
@@ -326,10 +453,6 @@ Souhaites-tu accepter ?`
                         MessageFlags.Ephemeral
                 });
             }
-
-            // ==================================================
-            // ANNONCE
-            // ==================================================
 
             const embed =
                 new EmbedBuilder()

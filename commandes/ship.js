@@ -7,6 +7,12 @@ const {
     MessageFlags
 } = require("discord.js");
 
+const {
+    getActiveUnionForMember,
+    createUnion,
+    rollbackUnion
+} = require("../utils/unionStore");
+
 // ======================================================
 // CONFIG
 // ======================================================
@@ -26,7 +32,8 @@ const COLOR =
 
 function randomPercent() {
     return Math.floor(
-        Math.random() * 101
+        Math.random() *
+        101
     );
 }
 
@@ -35,7 +42,8 @@ function progressBar(
 ) {
     const filled =
         Math.round(
-            percent / 10
+            percent /
+            10
         );
 
     return (
@@ -51,33 +59,23 @@ function progressBar(
 function getResultText(
     percent
 ) {
-    if (
-        percent <= 20
-    ) {
+    if (percent <= 20) {
         return "💀 Catastrophe sentimentale annoncée.";
     }
 
-    if (
-        percent <= 40
-    ) {
+    if (percent <= 40) {
         return "😬 Ça risque d'être compliqué...";
     }
 
-    if (
-        percent <= 60
-    ) {
+    if (percent <= 60) {
         return "🤔 Il y a peut-être quelque chose à tenter.";
     }
 
-    if (
-        percent <= 80
-    ) {
+    if (percent <= 80) {
         return "💗 Un duo plutôt prometteur...";
     }
 
-    if (
-        percent <= 99
-    ) {
+    if (percent <= 99) {
         return "💞 Très grosse compatibilité détectée !";
     }
 
@@ -117,7 +115,7 @@ async function giveUnionRole(
         return {
             ok: false,
             reason:
-                "Place le rôle du bot au-dessus du rôle d'Union."
+                "Le rôle du bot doit être au-dessus du rôle d'Union."
         };
     }
 
@@ -193,7 +191,7 @@ async function giveUnionRole(
 }
 
 // ======================================================
-// ENVOYER INVITATION UNION
+// INVITATION
 // ======================================================
 
 async function sendUnionInvitation({
@@ -245,7 +243,7 @@ async function sendUnionInvitation({
             .setDescription(
 `<@${inviter.id}> vient d'obtenir une compatibilité de **${percent}%** avec toi sur **The Legacy** !
 
-Cette compatibilité étant particulièrement élevée, tu peux choisir de créer officiellement une **Union** avec cette personne.
+Cette compatibilité permet de créer officiellement une **Union**.
 
 > 💞 **Compatibilité : ${percent}%**
 
@@ -272,8 +270,6 @@ Souhaites-tu accepter cette Union ?`
             row
         ]
     });
-
-    return true;
 }
 
 // ======================================================
@@ -314,9 +310,7 @@ module.exports = {
                         "membre"
                     );
 
-            if (
-                target.bot
-            ) {
+            if (target.bot) {
                 return interaction.editReply({
                     content:
                         "😭 Même The Legacy ne peut pas calculer une relation avec un bot."
@@ -332,6 +326,9 @@ module.exports = {
                         "😭 Tu ne peux pas te ship avec toi-même."
                 });
             }
+
+            // Le calcul reste possible même si on est déjà uni.
+            // Par contre aucune NOUVELLE union ne sera proposée.
 
             const percent =
                 randomPercent();
@@ -378,43 +375,82 @@ module.exports = {
             if (
                 percent >= 81
             ) {
-                let dmSent =
-                    false;
+                const inviterUnion =
+                    getActiveUnionForMember(
+                        interaction.guild.id,
+                        interaction.user.id
+                    );
 
-                try {
-                    await sendUnionInvitation({
-                        guild:
-                            interaction.guild,
+                const targetUnion =
+                    getActiveUnionForMember(
+                        interaction.guild.id,
+                        target.id
+                    );
 
-                        inviter:
-                            interaction.user,
+                if (inviterUnion) {
+                    const partnerId =
+                        inviterUnion.member1Id ===
+                        interaction.user.id
+                            ? inviterUnion.member2Id
+                            : inviterUnion.member1Id;
 
-                        target,
+                    embed.addFields({
+                        name:
+                            "💍 Union indisponible",
 
-                        percent
+                        value:
+                            `Tu possèdes déjà une Union avec <@${partnerId}>.`
                     });
 
-                    dmSent =
-                        true;
+                } else if (
+                    targetUnion
+                ) {
+                    const partnerId =
+                        targetUnion.member1Id ===
+                        target.id
+                            ? targetUnion.member2Id
+                            : targetUnion.member1Id;
 
-                } catch {
-                    console.log(
-                        `⚠️ Impossible d'envoyer l'invitation Union à ${target.tag}`
-                    );
+                    embed.addFields({
+                        name:
+                            "💍 Union indisponible",
+
+                        value:
+                            `<@${target.id}> possède déjà une Union avec <@${partnerId}>.`
+                    });
+
+                } else {
+                    let dmSent =
+                        false;
+
+                    try {
+                        await sendUnionInvitation({
+                            guild:
+                                interaction.guild,
+
+                            inviter:
+                                interaction.user,
+
+                            target,
+
+                            percent
+                        });
+
+                        dmSent =
+                            true;
+
+                    } catch {}
+
+                    embed.addFields({
+                        name:
+                            "💍 Union disponible",
+
+                        value:
+                            dmSent
+                                ? `<@${target.id}> a reçu une proposition d'Union en MP.`
+                                : `Impossible d'envoyer la proposition d'Union à <@${target.id}>.`
+                    });
                 }
-
-                embed.addFields({
-                    name:
-                        "💍 Union disponible",
-
-                    value:
-                        dmSent
-                            ? `<@${target.id}> a reçu une **proposition d'Union en MP**.`
-                            : `La compatibilité permettait une Union, mais <@${target.id}> n'accepte pas les MP.`,
-
-                    inline:
-                        false
-                });
             }
 
             return interaction.editReply({
@@ -432,9 +468,7 @@ module.exports = {
             return interaction.editReply({
                 content:
                     `❌ Une erreur est survenue.\n\`${error.message}\``
-            }).catch(
-                () => {}
-            );
+            });
         }
     },
 
@@ -506,30 +540,11 @@ module.exports = {
                         .setDescription(
                             "Tu as refusé cette proposition d'Union."
                         )
-                        .setTimestamp()
                 ],
 
                 components:
                     []
             });
-
-            const inviter =
-                await interaction.client.users
-                    .fetch(
-                        inviterId
-                    )
-                    .catch(
-                        () => null
-                    );
-
-            if (inviter) {
-                await inviter.send({
-                    content:
-                        `💔 <@${targetId}> a refusé ta proposition d'Union.`
-                }).catch(
-                    () => {}
-                );
-            }
 
             return true;
         }
@@ -544,12 +559,99 @@ module.exports = {
                 );
 
             if (!guild) {
-                return interaction.reply({
-                    content:
-                        "❌ Serveur introuvable.",
+                return true;
+            }
 
-                    flags:
-                        MessageFlags.Ephemeral
+            const inviterUnion =
+                getActiveUnionForMember(
+                    guildId,
+                    inviterId
+                );
+
+            const targetUnion =
+                getActiveUnionForMember(
+                    guildId,
+                    targetId
+                );
+
+            if (
+                inviterUnion ||
+                targetUnion
+            ) {
+                await interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xED4245
+                            )
+                            .setTitle(
+                                "❌ Union impossible"
+                            )
+                            .setDescription(
+                                "L'un des deux membres possède désormais déjà une Union."
+                            )
+                    ],
+
+                    components:
+                        []
+                });
+
+                return true;
+            }
+
+            const inviter =
+                await interaction.client.users
+                    .fetch(
+                        inviterId
+                    )
+                    .catch(
+                        () => null
+                    );
+
+            const creation =
+                createUnion({
+                    guildId,
+
+                    member1Id:
+                        inviterId,
+
+                    member1Tag:
+                        inviter?.tag ||
+                        null,
+
+                    member2Id:
+                        targetId,
+
+                    member2Tag:
+                        interaction.user.tag,
+
+                    createdBy:
+                        inviterId,
+
+                    source:
+                        "ship",
+
+                    compatibility:
+                        percent
+                });
+
+            if (!creation.ok) {
+                return interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xED4245
+                            )
+                            .setTitle(
+                                "❌ Union impossible"
+                            )
+                            .setDescription(
+                                "L'un des deux membres possède déjà une Union."
+                            )
+                    ],
+
+                    components:
+                        []
                 });
             }
 
@@ -561,9 +663,13 @@ module.exports = {
                 );
 
             if (!roleResult.ok) {
+                rollbackUnion(
+                    creation.union.id
+                );
+
                 return interaction.reply({
                     content:
-                        `❌ Impossible de finaliser l'Union.\n${roleResult.reason}`,
+                        `❌ ${roleResult.reason}`,
 
                     flags:
                         MessageFlags.Ephemeral
@@ -583,49 +689,32 @@ module.exports = {
                     );
 
             if (
-                !channel?.isTextBased()
+                channel?.isTextBased()
             ) {
-                return interaction.reply({
+                await channel.send({
                     content:
-                        "❌ Le salon des Unions est introuvable.",
+                        `<@${inviterId}> <@${targetId}>`,
 
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-            }
-
-            const unionEmbed =
-                new EmbedBuilder()
-                    .setColor(
-                        0xF1C40F
-                    )
-                    .setTitle(
-                        "💍 Nouvelle Union"
-                    )
-                    .setDescription(
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xF1C40F
+                            )
+                            .setTitle(
+                                "💍 Nouvelle Union"
+                            )
+                            .setDescription(
 `Une nouvelle Union vient officiellement d'être créée au sein de **The Legacy** !
 
 > 💞 <@${inviterId}> est désormais lié à <@${targetId}>.
 
 ### Compatibilité
-❤️ **${percent}%**
-
-Que cette Union soit longue, glorieuse et surtout pas trop chaotique. 🪽`
-                    )
-                    .setFooter({
-                        text:
-                            "The Legacy • Union"
-                    })
-                    .setTimestamp();
-
-            await channel.send({
-                content:
-                    `<@${inviterId}> <@${targetId}>`,
-
-                embeds: [
-                    unionEmbed
-                ]
-            });
+❤️ **${percent}%**`
+                            )
+                            .setTimestamp()
+                    ]
+                });
+            }
 
             await interaction.update({
                 embeds: [
@@ -639,7 +728,6 @@ Que cette Union soit longue, glorieuse et surtout pas trop chaotique. 🪽`
                         .setDescription(
                             `Ton Union avec <@${inviterId}> a été officiellement créée.`
                         )
-                        .setTimestamp()
                 ],
 
                 components:

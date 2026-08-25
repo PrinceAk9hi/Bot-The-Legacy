@@ -7,6 +7,12 @@ const {
     MessageFlags
 } = require("discord.js");
 
+const {
+    getActiveUnionForMember,
+    createUnion,
+    rollbackUnion
+} = require("../utils/unionStore");
+
 // ======================================================
 // CONFIG
 // ======================================================
@@ -21,7 +27,27 @@ const COLOR =
     0x3B6475;
 
 // ======================================================
-// DONNER LE RÔLE D'UNION
+// UNION DISPLAY
+// ======================================================
+
+function getAlreadyUnitedMessage(
+    union,
+    userId
+) {
+    if (!union) {
+        return "Cette personne possède déjà une Union.";
+    }
+
+    const partnerId =
+        union.member1Id === userId
+            ? union.member2Id
+            : union.member1Id;
+
+    return `Cette personne est déjà liée à <@${partnerId}>.`;
+}
+
+// ======================================================
+// RÔLE UNION
 // ======================================================
 
 async function giveUnionRole(
@@ -46,6 +72,14 @@ async function giveUnionRole(
             ok: false,
             reason:
                 "Le rôle d'Union est introuvable."
+        };
+    }
+
+    if (!role.editable) {
+        return {
+            ok: false,
+            reason:
+                "Le rôle du bot doit être placé au-dessus du rôle d'Union."
         };
     }
 
@@ -80,15 +114,7 @@ async function giveUnionRole(
         return {
             ok: false,
             reason:
-                "Un des deux membres est introuvable sur le serveur."
-        };
-    }
-
-    if (!role.editable) {
-        return {
-            ok: false,
-            reason:
-                "Je ne peux pas attribuer le rôle d'Union. Place mon rôle au-dessus du rôle d'Union."
+                "Un des deux membres est introuvable."
         };
     }
 
@@ -193,6 +219,49 @@ module.exports = {
                 });
             }
 
+            // ==================================================
+            // INVITEUR DÉJÀ UNI
+            // ==================================================
+
+            const inviterUnion =
+                getActiveUnionForMember(
+                    interaction.guild.id,
+                    interaction.user.id
+                );
+
+            if (inviterUnion) {
+                const partnerId =
+                    inviterUnion.member1Id ===
+                    interaction.user.id
+                        ? inviterUnion.member2Id
+                        : inviterUnion.member1Id;
+
+                return interaction.editReply({
+                    content:
+                        `❌ Tu possèdes déjà une Union avec <@${partnerId}>.`
+                });
+            }
+
+            // ==================================================
+            // CIBLE DÉJÀ UNIE
+            // ==================================================
+
+            const targetUnion =
+                getActiveUnionForMember(
+                    interaction.guild.id,
+                    target.id
+                );
+
+            if (targetUnion) {
+                return interaction.editReply({
+                    content:
+                        `❌ ${getAlreadyUnitedMessage(
+                            targetUnion,
+                            target.id
+                        )}`
+                });
+            }
+
             const row =
                 new ActionRowBuilder()
                     .addComponents(
@@ -267,7 +336,7 @@ Souhaites-tu accepter ?`
             } catch {
                 return interaction.editReply({
                     content:
-                        `❌ Impossible d'envoyer un MP à <@${target.id}>. Cette personne a probablement désactivé ses messages privés.`
+                        `❌ Impossible d'envoyer un MP à <@${target.id}>.`
                 });
             }
 
@@ -285,9 +354,7 @@ Souhaites-tu accepter ?`
             return interaction.editReply({
                 content:
                     `❌ Une erreur est survenue.\n\`${error.message}\``
-            }).catch(
-                () => {}
-            );
+            });
         }
     },
 
@@ -339,7 +406,7 @@ Souhaites-tu accepter ?`
         }
 
         // ==================================================
-        // REFUSER
+        // REFUS
         // ==================================================
 
         if (
@@ -374,20 +441,17 @@ Souhaites-tu accepter ?`
                         () => null
                     );
 
-            if (inviter) {
-                await inviter.send({
-                    content:
-                        `💔 <@${targetId}> a refusé ta proposition d'Union.`
-                }).catch(
-                    () => {}
-                );
-            }
+            await inviter?.send(
+                `💔 <@${targetId}> a refusé ta proposition d'Union.`
+            ).catch(
+                () => {}
+            );
 
             return true;
         }
 
         // ==================================================
-        // ACCEPTER
+        // ACCEPTATION
         // ==================================================
 
         if (
@@ -409,8 +473,120 @@ Souhaites-tu accepter ?`
                 });
             }
 
+            // IMPORTANT :
+            // on revérifie au moment exact de l'acceptation.
+
+            const inviterUnion =
+                getActiveUnionForMember(
+                    guildId,
+                    inviterId
+                );
+
+            if (inviterUnion) {
+                return interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xED4245
+                            )
+                            .setTitle(
+                                "❌ Union impossible"
+                            )
+                            .setDescription(
+                                `<@${inviterId}> possède désormais déjà une Union.`
+                            )
+                    ],
+
+                    components:
+                        []
+                });
+            }
+
+            const targetUnion =
+                getActiveUnionForMember(
+                    guildId,
+                    targetId
+                );
+
+            if (targetUnion) {
+                return interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xED4245
+                            )
+                            .setTitle(
+                                "❌ Union impossible"
+                            )
+                            .setDescription(
+                                "Tu possèdes désormais déjà une Union."
+                            )
+                    ],
+
+                    components:
+                        []
+                });
+            }
+
+            const inviterUser =
+                await interaction.client.users
+                    .fetch(
+                        inviterId
+                    )
+                    .catch(
+                        () => null
+                    );
+
             // ==================================================
-            // RÔLE D'UNION
+            // ENREGISTREMENT
+            // ==================================================
+
+            const creation =
+                createUnion({
+                    guildId,
+
+                    member1Id:
+                        inviterId,
+
+                    member1Tag:
+                        inviterUser?.tag ||
+                        null,
+
+                    member2Id:
+                        targetId,
+
+                    member2Tag:
+                        interaction.user.tag,
+
+                    createdBy:
+                        inviterId,
+
+                    source:
+                        "union"
+                });
+
+            if (!creation.ok) {
+                return interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                0xED4245
+                            )
+                            .setTitle(
+                                "❌ Union impossible"
+                            )
+                            .setDescription(
+                                "L'un des deux membres possède déjà une Union."
+                            )
+                    ],
+
+                    components:
+                        []
+                });
+            }
+
+            // ==================================================
+            // RÔLES
             // ==================================================
 
             const roleResult =
@@ -421,14 +597,22 @@ Souhaites-tu accepter ?`
                 );
 
             if (!roleResult.ok) {
+                rollbackUnion(
+                    creation.union.id
+                );
+
                 return interaction.reply({
                     content:
-                        `❌ L'Union n'a pas pu être finalisée.\n${roleResult.reason}`,
+                        `❌ Impossible de finaliser l'Union.\n${roleResult.reason}`,
 
                     flags:
                         MessageFlags.Ephemeral
                 });
             }
+
+            // ==================================================
+            // SALON
+            // ==================================================
 
             const channel =
                 guild.channels.cache.get(
@@ -443,26 +627,17 @@ Souhaites-tu accepter ?`
                     );
 
             if (
-                !channel?.isTextBased()
+                channel?.isTextBased()
             ) {
-                return interaction.reply({
-                    content:
-                        "❌ Salon des Unions introuvable.",
-
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-            }
-
-            const embed =
-                new EmbedBuilder()
-                    .setColor(
-                        0xF1C40F
-                    )
-                    .setTitle(
-                        "💍 Nouvelle Union"
-                    )
-                    .setDescription(
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0xF1C40F
+                        )
+                        .setTitle(
+                            "💍 Nouvelle Union"
+                        )
+                        .setDescription(
 `Une nouvelle Union vient officiellement d'être créée au sein de **The Legacy** !
 
 > 🪽 <@${inviterId}> est désormais lié à <@${targetId}>.
@@ -470,21 +645,22 @@ Souhaites-tu accepter ?`
 Cette Union a été créée à la suite d'une **invitation directe** acceptée par les deux membres.
 
 Que cette nouvelle alliance écrive sa propre partie de l'héritage.`
-                    )
-                    .setFooter({
-                        text:
-                            "The Legacy • Union"
-                    })
-                    .setTimestamp();
+                        )
+                        .setFooter({
+                            text:
+                                "The Legacy • Union"
+                        })
+                        .setTimestamp();
 
-            await channel.send({
-                content:
-                    `<@${inviterId}> <@${targetId}>`,
+                await channel.send({
+                    content:
+                        `<@${inviterId}> <@${targetId}>`,
 
-                embeds: [
-                    embed
-                ]
-            });
+                    embeds: [
+                        embed
+                    ]
+                });
+            }
 
             await interaction.update({
                 embeds: [

@@ -22,13 +22,13 @@ const DATA_FILE = path.join(
 
 function defaultData() {
     return {
-        version: 1,
+        version: 2,
         unions: []
     };
 }
 
 // ======================================================
-// FILE
+// FILE SYSTEM
 // ======================================================
 
 function ensureFile() {
@@ -64,21 +64,24 @@ function loadData() {
                 "utf8"
             );
 
+        if (!raw.trim()) {
+            return defaultData();
+        }
+
         const parsed =
-            raw.trim()
-                ? JSON.parse(raw)
-                : defaultData();
+            JSON.parse(
+                raw
+            );
 
-        return {
-            version: 1,
+        if (
+            !Array.isArray(
+                parsed.unions
+            )
+        ) {
+            parsed.unions = [];
+        }
 
-            unions:
-                Array.isArray(
-                    parsed.unions
-                )
-                    ? parsed.unions
-                    : []
-        };
+        return parsed;
 
     } catch (error) {
         console.error(
@@ -107,7 +110,7 @@ function saveData(
 }
 
 // ======================================================
-// GETTERS
+// UNION ACTIVE D'UN MEMBRE
 // ======================================================
 
 function getActiveUnionForMember(
@@ -131,17 +134,9 @@ function getActiveUnionForMember(
     );
 }
 
-function isMemberUnited(
-    guildId,
-    userId
-) {
-    return Boolean(
-        getActiveUnionForMember(
-            guildId,
-            userId
-        )
-    );
-}
+// ======================================================
+// UNION ENTRE DEUX MEMBRES
+// ======================================================
 
 function getActiveUnionBetween(
     guildId,
@@ -172,6 +167,72 @@ function getActiveUnionBetween(
 }
 
 // ======================================================
+// TOUTES LES UNIONS ACTIVES
+// ======================================================
+
+function getAllActiveUnions(
+    guildId
+) {
+    const data =
+        loadData();
+
+    return data.unions
+        .filter(
+            union =>
+                union.guildId === guildId &&
+                union.active === true
+        )
+        .sort(
+            (a, b) =>
+                Number(b.createdAt || 0) -
+                Number(a.createdAt || 0)
+        );
+}
+
+// ======================================================
+// HISTORIQUE COMPLET D'UN MEMBRE
+// ======================================================
+
+function getUnionHistoryForMember(
+    guildId,
+    userId
+) {
+    const data =
+        loadData();
+
+    return data.unions
+        .filter(
+            union =>
+                union.guildId === guildId &&
+                (
+                    union.member1Id === userId ||
+                    union.member2Id === userId
+                )
+        )
+        .sort(
+            (a, b) =>
+                Number(b.createdAt || 0) -
+                Number(a.createdAt || 0)
+        );
+}
+
+// ======================================================
+// BOOL
+// ======================================================
+
+function isMemberUnited(
+    guildId,
+    userId
+) {
+    return Boolean(
+        getActiveUnionForMember(
+            guildId,
+            userId
+        )
+    );
+}
+
+// ======================================================
 // CREATE
 // ======================================================
 
@@ -185,7 +246,9 @@ function createUnion({
     member2Tag,
 
     createdBy,
+
     source = "union",
+
     compatibility = null
 }) {
     const data =
@@ -205,10 +268,8 @@ function createUnion({
     if (member1Union) {
         return {
             ok: false,
-
             reason:
                 "member1_already_united",
-
             union:
                 member1Union
         };
@@ -228,10 +289,8 @@ function createUnion({
     if (member2Union) {
         return {
             ok: false,
-
             reason:
                 "member2_already_united",
-
             union:
                 member2Union
         };
@@ -246,11 +305,13 @@ function createUnion({
         guildId,
 
         member1Id,
+
         member1Tag:
             member1Tag ||
             null,
 
         member2Id,
+
         member2Tag:
             member2Tag ||
             null,
@@ -342,6 +403,7 @@ function deleteUnion({
     member1Id,
     member2Id,
     deletedBy,
+    deletedByTag,
     reason
 }) {
     const data =
@@ -379,7 +441,12 @@ function deleteUnion({
         Date.now();
 
     union.deletedBy =
-        deletedBy;
+        deletedBy ||
+        null;
+
+    union.deletedByTag =
+        deletedByTag ||
+        null;
 
     union.deleteReason =
         reason ||
@@ -400,8 +467,12 @@ function deleteUnion({
 // ======================================================
 
 module.exports = {
+    loadData,
+
     getActiveUnionForMember,
     getActiveUnionBetween,
+    getAllActiveUnions,
+    getUnionHistoryForMember,
 
     isMemberUnited,
 

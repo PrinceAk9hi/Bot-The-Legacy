@@ -73,6 +73,13 @@ const registerActivityStats =
     require("./systems/activityStats");
 
 // ======================================================
+// PANEL CANDIDATURE DYNAMIQUE
+// ======================================================
+
+const registerCandidaturePanelWatch =
+    require("./systems/candidaturePanelWatch");
+
+// ======================================================
 // SURVEILLANCE TAG SERVEUR
 // ======================================================
 
@@ -103,13 +110,9 @@ function isProtectedUser(
     userId
 ) {
     return (
-        Boolean(
-            userId
-        ) &&
+        Boolean(userId) &&
         PROTECTED_USER_IDS.has(
-            String(
-                userId
-            )
+            String(userId)
         )
     );
 }
@@ -532,9 +535,6 @@ client.reloadCommands =
         const commands =
             loadCommands();
 
-        // Les différents register() doivent avoir leur
-        // propre protection __xxxRegistered afin de ne
-        // pas créer plusieurs listeners.
         registerCommandSystems();
 
         const rest =
@@ -612,6 +612,14 @@ registerLogsSystem(
 
 // Candidatures
 registerRecruitmentSystem(
+    client
+);
+
+// ======================================================
+// PANEL CANDIDATURE DYNAMIQUE
+// ======================================================
+
+registerCandidaturePanelWatch(
     client
 );
 
@@ -2451,7 +2459,7 @@ client.on(
             }
 
             // ==================================================
-            // SLASH UNIQUEMENT À PARTIR D'ICI
+            // SLASH UNIQUEMENT
             // ==================================================
 
             if (
@@ -3243,6 +3251,28 @@ client.once(
             );
 
             // ==================================================
+            // CANDIDATURE
+            // ==================================================
+
+            console.log(
+                "📨 /candidature :",
+                client.commands.has(
+                    "candidature"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            console.log(
+                "📝 /setupcandidature :",
+                client.commands.has(
+                    "setupcandidature"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            // ==================================================
             // NOUVEAUX SYSTÈMES
             // ==================================================
 
@@ -3403,6 +3433,10 @@ client.once(
 
             console.log(
                 "👁️ Activités Discord : ✅ intent chargé"
+            );
+
+            console.log(
+                "📨 Panel candidature dynamique : ✅ actif"
             );
 
             // ==================================================

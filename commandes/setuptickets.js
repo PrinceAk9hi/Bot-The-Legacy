@@ -41,110 +41,40 @@ module.exports = {
                 .setColor(
                     0x2B2D31
                 )
-                .setTitle(
-                    "Panel Support 🌎"
-                )
                 .setDescription(
-`**Aucun abus de ticket ne sera toléré**, merci de nous expliquer clairement la raison de votre ticket, *avec preuve(s)* si besoin.
+`**Panel Support** <a:earth:1477070794201759845>
 
-**Voici notre panel de support, pouvant répondre à vos demandes :**`
-                )
+**Aucun abus de ticket ne sera toléré**, merci de nous expliquer clairement la raison de votre ticket, *avec preuve(s)* si besoin.
 
-                // ==================================================
-                // QUESTIONS / AIDE
-                // ==================================================
+**Voici notre panel de support, pouvant répondre à vos demandes :**
 
-                .addFields(
-                    {
-                        name:
-                            "<a:ticket:1477461507397648575> Questions/Aide",
+- <a:ticket:1477461507397648575> Questions/Aide
 
-                        value:
-                            "-# Pour toute question ou besoin d’assistance générale.",
+  -# Pour toute question ou besoin d’assistance générale.
 
-                        inline:
-                            false
-                    },
+- <:494996announcement:1532080361012723752> Création d'un évènement
 
-                    // ==================================================
-                    // ÉVÈNEMENT
-                    // ==================================================
+  -# Pour toute demande ou information liée aux événements.
 
-                    {
-                        name:
-                            "<:494996announcement:1532080361012723752> Création d'un évènement",
+- <:11781warning:1532080330985574541> Signaler un membre
 
-                        value:
-                            "-# Pour toute demande ou information liée aux événements.",
+  -# Pour signaler un joueur ou un comportement (preuves requises).
 
-                        inline:
-                            false
-                    },
+- <:126013friends:1532080555317788782> Demander un partenariat
 
-                    // ==================================================
-                    // SIGNALER UN MEMBRE
-                    // ==================================================
+  -# Pour demander un partenariat de serveur (ping everyone obligatoire).
 
-                    {
-                        name:
-                            "<:11781warning:1532080330985574541> Signaler un membre",
+- <a:912553whiteheartexclaim:1532081105887297728> Demander un rôle particulier
 
-                        value:
-                            "-# Pour signaler un joueur ou un comportement (preuves requises).",
+  -# Pour demander un rôle staff, Content Creator, fondateur de famille, etc.
 
-                        inline:
-                            false
-                    },
+- <a:8148whitecrown:1532081260028100770> Contacter la fondation
 
-                    // ==================================================
-                    // PARTENARIAT
-                    // ==================================================
-
-                    {
-                        name:
-                            "<:126013friends:1532080555317788782> Demander un partenariat",
-
-                        value:
-                            "-# Pour demander un partenariat de serveur (ping everyone obligatoire).",
-
-                        inline:
-                            false
-                    },
-
-                    // ==================================================
-                    // RÔLE PARTICULIER
-                    // ==================================================
-
-                    {
-                        name:
-                            "<a:912553whiteheartexclaim:1532081105887297728> Demander un rôle particulier",
-
-                        value:
-                            "-# Pour demander un rôle staff, Content Creator, fondateur de famille, etc.",
-
-                        inline:
-                            false
-                    },
-
-                    // ==================================================
-                    // FONDATION
-                    // ==================================================
-
-                    {
-                        name:
-                            "<a:8148whitecrown:1532081260028100770> Contacter la fondation",
-
-                        value:
-                            "-# Pour les demandes importantes nécessitant un responsable.",
-
-                        inline:
-                            false
-                    }
+  -# Pour les demandes importantes nécessitant un responsable.`
                 );
 
         // ==================================================
         // MENU DÉROULANT
-        // ORDRE EXACT DU PANEL
         // ==================================================
 
         const select =
@@ -155,12 +85,7 @@ module.exports = {
                 .setPlaceholder(
                     "Fais un choix"
                 )
-
                 .addOptions(
-                    // ==================================================
-                    // QUESTIONS / AIDE
-                    // ==================================================
-
                     {
                         label:
                             "Questions/Aide",
@@ -180,10 +105,6 @@ module.exports = {
                         }
                     },
 
-                    // ==================================================
-                    // ÉVÈNEMENT
-                    // ==================================================
-
                     {
                         label:
                             "Création d'un évènement",
@@ -200,16 +121,12 @@ module.exports = {
                         }
                     },
 
-                    // ==================================================
-                    // SIGNALER UN MEMBRE
-                    // ==================================================
-
                     {
                         label:
                             "Signaler un membre",
 
                         description:
-                            "Signaler un membre avec preuves si possible.",
+                            "Concernant un problème avec l'un de nos membres.",
 
                         value:
                             "report",
@@ -220,16 +137,12 @@ module.exports = {
                         }
                     },
 
-                    // ==================================================
-                    // PARTENARIAT
-                    // ==================================================
-
                     {
                         label:
                             "Demander un partenariat",
 
                         description:
-                            "Concernant une demande de partenariat.",
+                            "Concernant la demande d'un partenariat entre serveurs.",
 
                         value:
                             "partnership",
@@ -240,16 +153,12 @@ module.exports = {
                         }
                     },
 
-                    // ==================================================
-                    // RÔLE PARTICULIER
-                    // ==================================================
-
                     {
                         label:
                             "Demander un rôle particulier",
 
                         description:
-                            "Concernant la demande d'un rôle particulier.",
+                            "Concernant la demande d'un rôle unique.",
 
                         value:
                             "role",
@@ -263,16 +172,12 @@ module.exports = {
                         }
                     },
 
-                    // ==================================================
-                    // FONDATION
-                    // ==================================================
-
                     {
                         label:
                             "Contacter la fondation",
 
                         description:
-                            "Pour les demandes importantes et précises.",
+                            "Concernant des demandes importantes et précises.",
 
                         value:
                             "foundation",
@@ -287,10 +192,6 @@ module.exports = {
                     }
                 );
 
-        // ==================================================
-        // ROW
-        // ==================================================
-
         const row =
             new ActionRowBuilder()
                 .addComponents(
@@ -298,7 +199,7 @@ module.exports = {
                 );
 
         // ==================================================
-        // ENVOI DU PANEL
+        // ENVOI
         // ==================================================
 
         const panel =
@@ -316,10 +217,6 @@ module.exports = {
                         []
                 }
             });
-
-        // ==================================================
-        // CONFIRMATION
-        // ==================================================
 
         return interaction.editReply({
             content:

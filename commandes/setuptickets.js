@@ -33,7 +33,7 @@ module.exports = {
         });
 
         // ==================================================
-        // EMBED
+        // EMBED PRINCIPAL
         // ==================================================
 
         const embed =
@@ -41,34 +41,109 @@ module.exports = {
                 .setColor(
                     0x2B2D31
                 )
+                .setTitle(
+                    "Panel Support 🌎"
+                )
                 .setDescription(
-`**Panel Support** <a:earth:1477070794201759845>
+`**Aucun abus de ticket ne sera toléré**, merci de nous expliquer clairement la raison de votre ticket, *avec preuve(s)* si besoin.
 
-**Aucun abus de ticket ne sera toléré**, merci de nous expliquer clairement la raison de votre ticket, *avec preuve(s)* si besoin.
+**Voici notre panel de support, pouvant répondre à vos demandes :**`
+                )
 
-**Voici notre panel de support, pouvant répondre à vos demandes :**
+                // ==================================================
+                // QUESTIONS / AIDE
+                // ==================================================
 
-- <a:ticket:1477461507397648575> Questions/Aide
-  -# Pour toute question ou besoin d’assistance générale.
+                .addFields(
+                    {
+                        name:
+                            "<a:ticket:1477461507397648575> Questions/Aide",
 
-- <:494996announcement:1532080361012723752> Création d'un évènement
-  -# Pour toutes demandes ou informations liées aux événements.
+                        value:
+                            "-# Pour toute question ou besoin d’assistance générale.",
 
-- <:11781warning:1532080330985574541> Signaler un membre
-  -# Pour signaler un joueur ou un comportement (preuves requises).
+                        inline:
+                            false
+                    },
 
-- <:126013friends:1532080555317788782> Demander un partenariat
-  -# Pour demander un partenariat de serveur (ping @everyone obligatoire).
+                    // ==================================================
+                    // ÉVÈNEMENT
+                    // ==================================================
 
-- <a:912553whiteheartexclaim:1532081105887297728> Demander un rôle particulier
-  -# Pour demander un rôle staff, Content Creator, fondateur de famille, etc.
+                    {
+                        name:
+                            "<:494996announcement:1532080361012723752> Création d'un évènement",
 
-- <a:8148whitecrown:1532081260028100770> Contacter la fondation
-  -# Pour les demandes importantes nécessitant un responsable.`
+                        value:
+                            "-# Pour toute demande ou information liée aux événements.",
+
+                        inline:
+                            false
+                    },
+
+                    // ==================================================
+                    // SIGNALER UN MEMBRE
+                    // ==================================================
+
+                    {
+                        name:
+                            "<:11781warning:1532080330985574541> Signaler un membre",
+
+                        value:
+                            "-# Pour signaler un joueur ou un comportement (preuves requises).",
+
+                        inline:
+                            false
+                    },
+
+                    // ==================================================
+                    // PARTENARIAT
+                    // ==================================================
+
+                    {
+                        name:
+                            "<:126013friends:1532080555317788782> Demander un partenariat",
+
+                        value:
+                            "-# Pour demander un partenariat de serveur (ping everyone obligatoire).",
+
+                        inline:
+                            false
+                    },
+
+                    // ==================================================
+                    // RÔLE PARTICULIER
+                    // ==================================================
+
+                    {
+                        name:
+                            "<a:912553whiteheartexclaim:1532081105887297728> Demander un rôle particulier",
+
+                        value:
+                            "-# Pour demander un rôle staff, Content Creator, fondateur de famille, etc.",
+
+                        inline:
+                            false
+                    },
+
+                    // ==================================================
+                    // FONDATION
+                    // ==================================================
+
+                    {
+                        name:
+                            "<a:8148whitecrown:1532081260028100770> Contacter la fondation",
+
+                        value:
+                            "-# Pour les demandes importantes nécessitant un responsable.",
+
+                        inline:
+                            false
+                    }
                 );
 
         // ==================================================
-        // SELECT MENU
+        // MENU DÉROULANT
         // ORDRE EXACT DU PANEL
         // ==================================================
 
@@ -80,7 +155,12 @@ module.exports = {
                 .setPlaceholder(
                     "Fais un choix"
                 )
+
                 .addOptions(
+                    // ==================================================
+                    // QUESTIONS / AIDE
+                    // ==================================================
+
                     {
                         label:
                             "Questions/Aide",
@@ -100,6 +180,10 @@ module.exports = {
                         }
                     },
 
+                    // ==================================================
+                    // ÉVÈNEMENT
+                    // ==================================================
+
                     {
                         label:
                             "Création d'un évènement",
@@ -115,6 +199,10 @@ module.exports = {
                                 "1532080361012723752"
                         }
                     },
+
+                    // ==================================================
+                    // SIGNALER UN MEMBRE
+                    // ==================================================
 
                     {
                         label:
@@ -132,6 +220,10 @@ module.exports = {
                         }
                     },
 
+                    // ==================================================
+                    // PARTENARIAT
+                    // ==================================================
+
                     {
                         label:
                             "Demander un partenariat",
@@ -148,12 +240,16 @@ module.exports = {
                         }
                     },
 
+                    // ==================================================
+                    // RÔLE PARTICULIER
+                    // ==================================================
+
                     {
                         label:
                             "Demander un rôle particulier",
 
                         description:
-                            "Demande d'un rôle unique ou particulier.",
+                            "Concernant la demande d'un rôle particulier.",
 
                         value:
                             "role",
@@ -166,6 +262,10 @@ module.exports = {
                                 true
                         }
                     },
+
+                    // ==================================================
+                    // FONDATION
+                    // ==================================================
 
                     {
                         label:
@@ -187,6 +287,10 @@ module.exports = {
                     }
                 );
 
+        // ==================================================
+        // ROW
+        // ==================================================
+
         const row =
             new ActionRowBuilder()
                 .addComponents(
@@ -194,7 +298,7 @@ module.exports = {
                 );
 
         // ==================================================
-        // ENVOI
+        // ENVOI DU PANEL
         // ==================================================
 
         const panel =
@@ -205,8 +309,17 @@ module.exports = {
 
                 components: [
                     row
-                ]
+                ],
+
+                allowedMentions: {
+                    parse:
+                        []
+                }
             });
+
+        // ==================================================
+        // CONFIRMATION
+        // ==================================================
 
         return interaction.editReply({
             content:

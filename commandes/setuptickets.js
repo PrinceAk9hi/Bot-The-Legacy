@@ -50,27 +50,27 @@ module.exports = {
 
 - <a:ticket:1477461507397648575> Questions/Aide
 
-  -# Pour toute question ou besoin d’assistance générale.
+  *Pour toute question ou besoin d’assistance générale.*
 
 - <:494996announcement:1532080361012723752> Création d'un évènement
 
-  -# Pour toute demande ou information liée aux événements.
+  *Pour toute demande ou information liée aux événements.*
 
 - <:11781warning:1532080330985574541> Signaler un membre
 
-  -# Pour signaler un joueur ou un comportement (preuves requises).
+  *Pour signaler un joueur ou un comportement (preuves requises).*
 
 - <:126013friends:1532080555317788782> Demander un partenariat
 
-  -# Pour demander un partenariat de serveur (ping everyone obligatoire).
+  *Pour demander un partenariat de serveur (ping everyone obligatoire).*
 
 - <a:912553whiteheartexclaim:1532081105887297728> Demander un rôle particulier
 
-  -# Pour demander un rôle staff, Content Creator, fondateur de famille, etc.
+  *Pour demander un rôle staff, Content Creator, fondateur de famille, etc.*
 
 - <a:8148whitecrown:1532081260028100770> Contacter la fondation
 
-  -# Pour les demandes importantes nécessitant un responsable.`
+  *Pour les demandes importantes nécessitant un responsable.*`
                 );
 
         // ==================================================

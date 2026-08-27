@@ -80,6 +80,13 @@ const registerCandidaturePanelWatch =
     require("./systems/candidaturePanelWatch");
 
 // ======================================================
+// SYSTÈME TICKETS
+// ======================================================
+
+const registerTicketSystem =
+    require("./systems/tickets");
+
+// ======================================================
 // SURVEILLANCE TAG SERVEUR
 // ======================================================
 
@@ -110,9 +117,13 @@ function isProtectedUser(
     userId
 ) {
     return (
-        Boolean(userId) &&
+        Boolean(
+            userId
+        ) &&
         PROTECTED_USER_IDS.has(
-            String(userId)
+            String(
+                userId
+            )
         )
     );
 }
@@ -623,6 +634,14 @@ registerCandidaturePanelWatch(
     client
 );
 
+// ======================================================
+// TICKETS
+// ======================================================
+
+registerTicketSystem(
+    client
+);
+
 // Vocal recrutement
 registerRecruitmentVoiceSystem(
     client
@@ -1092,10 +1111,9 @@ async function handleUserButton(
     interaction
 ) {
     if (
-        !interaction.customId
-            .startsWith(
-                "user_"
-            )
+        !interaction.customId.startsWith(
+            "user_"
+        )
     ) {
         return false;
     }
@@ -1679,10 +1697,9 @@ async function handleUserChannelSelect(
     interaction
 ) {
     if (
-        !interaction.customId
-            .startsWith(
-                "user_move_"
-            )
+        !interaction.customId.startsWith(
+            "user_move_"
+        )
     ) {
         return false;
     }
@@ -2370,10 +2387,9 @@ client.on(
 
             if (
                 interaction.isChannelSelectMenu() &&
-                interaction.customId
-                    .startsWith(
-                        "user_move_"
-                    )
+                interaction.customId.startsWith(
+                    "user_move_"
+                )
             ) {
                 await handleUserChannelSelect(
                     interaction
@@ -2388,10 +2404,9 @@ client.on(
 
             if (
                 interaction.isButton() &&
-                interaction.customId
-                    .startsWith(
-                        "user_"
-                    )
+                interaction.customId.startsWith(
+                    "user_"
+                )
             ) {
                 await handleUserButton(
                     interaction
@@ -3251,7 +3266,7 @@ client.once(
             );
 
             // ==================================================
-            // CANDIDATURE
+            // CANDIDATURES
             // ==================================================
 
             console.log(
@@ -3267,6 +3282,19 @@ client.once(
                 "📝 /setupcandidature :",
                 client.commands.has(
                     "setupcandidature"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            // ==================================================
+            // TICKETS
+            // ==================================================
+
+            console.log(
+                "🎫 /setuptickets :",
+                client.commands.has(
+                    "setuptickets"
                 )
                     ? "✅ chargé"
                     : "❌ absent"
@@ -3437,6 +3465,10 @@ client.once(
 
             console.log(
                 "📨 Panel candidature dynamique : ✅ actif"
+            );
+
+            console.log(
+                "🎫 Système tickets : ✅ actif"
             );
 
             // ==================================================

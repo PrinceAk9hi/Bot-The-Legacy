@@ -38,22 +38,43 @@ const GROUP_ID =
     );
 
 // ======================================================
+// SALON ANNONCE DERANK
+// ======================================================
+
+const DERANK_ANNOUNCEMENT_CHANNEL_ID =
+    "1531375423424823407";
+
+// ======================================================
 // RÔLES SUPPLÉMENTAIRES À RETIRER AU DERANK
 // ======================================================
 
 const EXTRA_DERANK_ROLES = [
     {
-        key: "acces_legacy",
-        category: "extra",
-        name: "Accès Legacy",
-        roleId: "1458391977073574012"
+        key:
+            "acces_legacy",
+
+        category:
+            "extra",
+
+        name:
+            "Accès Legacy",
+
+        roleId:
+            "1458391977073574012"
     },
 
     {
-        key: "extra_1467277541696868412",
-        category: "extra",
-        name: "Rôle Legacy",
-        roleId: "1467277541696868412"
+        key:
+            "extra_1467277541696868412",
+
+        category:
+            "extra",
+
+        name:
+            "Rôle Legacy",
+
+        roleId:
+            "1467277541696868412"
     }
 ];
 
@@ -61,10 +82,14 @@ const EXTRA_DERANK_ROLES = [
 // PERMISSIONS
 // ======================================================
 
-function hasDerankPermission(member) {
+function hasDerankPermission(
+    member
+) {
     return RANK_ALLOWED_ROLES.some(
         roleId =>
-            member.roles.cache.has(roleId)
+            member.roles.cache.has(
+                roleId
+            )
     );
 }
 
@@ -73,18 +98,25 @@ function hasDerankPermission(member) {
 // ======================================================
 
 function getAllDerankRoles() {
-    const roles = [];
+    const roles =
+        [];
 
     // ==================================================
     // GRADES
     // ==================================================
 
     for (
-        const [key, rank]
-        of Object.entries(MAIN_RANKS)
+        const [
+            key,
+            rank
+        ]
+        of Object.entries(
+            MAIN_RANKS
+        )
     ) {
         roles.push({
             key,
+
             category:
                 "grade",
 
@@ -101,7 +133,10 @@ function getAllDerankRoles() {
     // ==================================================
 
     for (
-        const [key, data]
+        const [
+            key,
+            data
+        ]
         of Object.entries(
             MANAGEMENT_ROLES
         )
@@ -111,6 +146,7 @@ function getAllDerankRoles() {
         ) {
             roles.push({
                 key,
+
                 category:
                     "gestion",
 
@@ -127,6 +163,7 @@ function getAllDerankRoles() {
         ) {
             roles.push({
                 key,
+
                 category:
                     "responsable",
 
@@ -178,7 +215,9 @@ function getAllDerankRoles() {
 // GRADE ACTUEL
 // ======================================================
 
-function getCurrentMainRank(member) {
+function getCurrentMainRank(
+    member
+) {
     const current =
         Object.entries(
             MAIN_RANKS
@@ -189,7 +228,9 @@ function getCurrentMainRank(member) {
                 )
         );
 
-    if (!current) {
+    if (
+        !current
+    ) {
         return null;
     }
 
@@ -206,6 +247,64 @@ function getCurrentMainRank(member) {
 }
 
 // ======================================================
+// ANNONCE PUBLIQUE DERANK
+// ======================================================
+
+async function sendDerankAnnouncement(
+    guild,
+    member
+) {
+    const channel =
+        guild.channels.cache.get(
+            DERANK_ANNOUNCEMENT_CHANNEL_ID
+        ) ||
+        await guild.channels.fetch(
+            DERANK_ANNOUNCEMENT_CHANNEL_ID
+        ).catch(
+            () => null
+        );
+
+    if (
+        !channel?.isTextBased()
+    ) {
+        console.error(
+            "❌ Salon d'annonce derank introuvable."
+        );
+
+        return false;
+    }
+
+    const content =
+`**Mise à jour des effectifs <a:1181maruloader:1533145507201814689>**
+
+Nous vous informons que <@${member.id}> **ne fait désormais plus partie de The Legacy**.
+
+**Conformément à nos principes de discrétion et de respect de la confidentialité**, **les raisons de ce départ ne seront pas rendues publiques**. **Nous demandons à chacun de respecter cette décision et de ne pas alimenter de spéculations ou de débats à ce sujet**.
+
+*Nous remercions <@${member.id}> pour le temps passé à nos côtés et lui souhaitons une excellente continuation pour la suite de son parcours*.
+
+-# By <@&1458414705717805189> & <@&1467277541696868412> & <@&1531760308761133229>.`;
+
+    await channel.send({
+        content,
+
+        allowedMentions: {
+            users: [
+                member.id
+            ],
+
+            roles: [
+                "1458414705717805189",
+                "1467277541696868412",
+                "1531760308761133229"
+            ]
+        }
+    });
+
+    return true;
+}
+
+// ======================================================
 // EXPULSER DE ROBLOX
 // ======================================================
 
@@ -217,10 +316,16 @@ async function exileFromRoblox(
             discordUserId
         );
 
-    if (!link) {
+    if (
+        !link
+    ) {
         return {
-            attempted: false,
-            success: false,
+            attempted:
+                false,
+
+            success:
+                false,
+
             error:
                 "USER_NOT_LINKED"
         };
@@ -237,9 +342,15 @@ async function exileFromRoblox(
                 )
             );
 
-        // Déjà hors de la communauté
+        // ==================================================
+        // DÉJÀ HORS DE LA COMMUNAUTÉ
+        // ==================================================
+
         if (
-            Number(currentRank) === 0
+            Number(
+                currentRank
+            ) ===
+            0
         ) {
             updateLastRobloxSync(
                 discordUserId,
@@ -256,8 +367,12 @@ async function exileFromRoblox(
             );
 
             return {
-                attempted: true,
-                success: true,
+                attempted:
+                    true,
+
+                success:
+                    true,
+
                 alreadyOutside:
                     true
             };
@@ -293,8 +408,12 @@ async function exileFromRoblox(
         );
 
         return {
-            attempted: true,
-            success: true,
+            attempted:
+                true,
+
+            success:
+                true,
+
             alreadyOutside:
                 false,
 
@@ -329,8 +448,12 @@ async function exileFromRoblox(
         );
 
         return {
-            attempted: true,
-            success: false,
+            attempted:
+                true,
+
+            success:
+                false,
+
             error:
                 safeError
         };
@@ -342,7 +465,6 @@ async function exileFromRoblox(
 // ======================================================
 
 module.exports = {
-
     data:
         new SlashCommandBuilder()
             .setName(
@@ -352,56 +474,61 @@ module.exports = {
                 "Derank complètement un membre"
             )
 
-            .addUserOption(option =>
-                option
-                    .setName(
-                        "membre"
-                    )
-                    .setDescription(
-                        "Membre à derank"
-                    )
-                    .setRequired(
-                        true
-                    )
+            .addUserOption(
+                option =>
+                    option
+                        .setName(
+                            "membre"
+                        )
+                        .setDescription(
+                            "Membre à derank"
+                        )
+                        .setRequired(
+                            true
+                        )
             )
 
-            .addStringOption(option =>
-                option
-                    .setName(
-                        "raison"
-                    )
-                    .setDescription(
-                        "Raison du derank"
-                    )
-                    .setRequired(
-                        true
-                    )
-                    .setMaxLength(
-                        1000
-                    )
+            .addStringOption(
+                option =>
+                    option
+                        .setName(
+                            "raison"
+                        )
+                        .setDescription(
+                            "Raison du derank"
+                        )
+                        .setRequired(
+                            true
+                        )
+                        .setMaxLength(
+                            1000
+                        )
             )
 
-            .addStringOption(option =>
-                option
-                    .setName(
-                        "note"
-                    )
-                    .setDescription(
-                        "Note interne facultative"
-                    )
-                    .setRequired(
-                        false
-                    )
-                    .setMaxLength(
-                        1000
-                    )
+            .addStringOption(
+                option =>
+                    option
+                        .setName(
+                            "note"
+                        )
+                        .setDescription(
+                            "Note interne facultative"
+                        )
+                        .setRequired(
+                            false
+                        )
+                        .setMaxLength(
+                            1000
+                        )
             ),
 
     // ==================================================
     // EXECUTION
     // ==================================================
 
-    async execute(interaction) {
+    async execute(
+        interaction
+    ) {
         await interaction.deferReply({
             flags:
                 MessageFlags.Ephemeral
@@ -455,7 +582,9 @@ module.exports = {
                         () => null
                     );
 
-            if (!member) {
+            if (
+                !member
+            ) {
                 return interaction.editReply({
                     content:
                         "❌ Ce membre est introuvable sur le serveur."
@@ -516,8 +645,11 @@ module.exports = {
             // RETRAIT DES RÔLES
             // ==================================================
 
-            const removedRoles = [];
-            const failedRoles = [];
+            const removedRoles =
+                [];
+
+            const failedRoles =
+                [];
 
             for (
                 const roleData
@@ -528,7 +660,9 @@ module.exports = {
                         roleData.roleId
                     );
 
-                if (!discordRole) {
+                if (
+                    !discordRole
+                ) {
                     continue;
                 }
 
@@ -626,7 +760,7 @@ module.exports = {
             });
 
             // ==================================================
-            // LOG
+            // LOG INTERNE
             // ==================================================
 
             const logChannel =
@@ -648,7 +782,9 @@ module.exports = {
                                 role =>
                                     `• ${role.name}`
                             )
-                            .join("\n")
+                            .join(
+                                "\n"
+                            )
                         : "Aucun rôle";
 
                 const failedText =
@@ -658,7 +794,9 @@ module.exports = {
                                 role =>
                                     `• ${role}`
                             )
-                            .join("\n")
+                            .join(
+                                "\n"
+                            )
                         : null;
 
                 let robloxText =
@@ -782,7 +920,9 @@ module.exports = {
                         )
                         .setTimestamp();
 
-                if (failedText) {
+                if (
+                    failedText
+                ) {
                     embed.addFields({
                         name:
                             "⚠️ Rôles non retirés",
@@ -798,7 +938,9 @@ module.exports = {
                     });
                 }
 
-                if (note) {
+                if (
+                    note
+                ) {
                     embed.addFields({
                         name:
                             "📝 Note interne",
@@ -824,6 +966,27 @@ module.exports = {
                             "❌ Log /derank :",
                             error
                         )
+                );
+            }
+
+            // ==================================================
+            // ANNONCE PUBLIQUE
+            // ==================================================
+
+            let announcementSent =
+                false;
+
+            try {
+                announcementSent =
+                    await sendDerankAnnouncement(
+                        interaction.guild,
+                        member
+                    );
+
+            } catch (error) {
+                console.error(
+                    "❌ Annonce publique /derank :",
+                    error
                 );
             }
 
@@ -872,6 +1035,17 @@ module.exports = {
             ) {
                 confirmation +=
                     "\n⚠️ Roblox : aucun compte relié.";
+            }
+
+            if (
+                announcementSent
+            ) {
+                confirmation +=
+                    `\n📢 Annonce envoyée dans <#${DERANK_ANNOUNCEMENT_CHANNEL_ID}>.`;
+
+            } else {
+                confirmation +=
+                    "\n⚠️ L'annonce publique n'a pas pu être envoyée.";
             }
 
             return interaction.editReply({

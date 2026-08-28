@@ -42,18 +42,13 @@ const WARNING_ROLES = {
 };
 
 // ======================================================
-// RÔLES AUTORISÉS À UTILISER /AVERT
+// RÔLES AUTORISÉS
 // ======================================================
 
 const ALLOWED_ROLES = [
-    // Fondation / bypass
     "1458414705717805189",
     "1467277541696868412",
-
-    // Responsable sanctions / rankups
     "1531760308761133229",
-
-    // Gestion sanctions / rankups
     "1516451475415367822"
 ];
 
@@ -73,7 +68,7 @@ function hasPermission(
 }
 
 // ======================================================
-// RÉCUPÉRATION DU SALON
+// SALON AVERT
 // ======================================================
 
 async function getAvertChannel(
@@ -83,16 +78,18 @@ async function getAvertChannel(
         guild.channels.cache.get(
             AVERT_CHANNEL_ID
         ) ||
-        await guild.channels.fetch(
-            AVERT_CHANNEL_ID
-        ).catch(
-            () => null
-        )
+        await guild.channels
+            .fetch(
+                AVERT_CHANNEL_ID
+            )
+            .catch(
+                () => null
+            )
     );
 }
 
 // ======================================================
-// RETIRER LES ANCIENS RÔLES D'AVERTISSEMENT
+// RETIRER LES AUTRES NIVEAUX
 // ======================================================
 
 async function removeOldWarningRoles(
@@ -100,11 +97,8 @@ async function removeOldWarningRoles(
     selectedRoleId,
     botMember
 ) {
-    const removed =
-        [];
-
-    const failed =
-        [];
+    const removed = [];
+    const failed = [];
 
     for (
         const warning
@@ -139,8 +133,9 @@ async function removeOldWarningRoles(
         }
 
         if (
+            role.managed ||
             role.position >=
-            botMember.roles.highest.position
+                botMember.roles.highest.position
         ) {
             failed.push(
                 role.name
@@ -152,7 +147,7 @@ async function removeOldWarningRoles(
         try {
             await member.roles.remove(
                 role,
-                "Mise à jour du niveau d'avertissement"
+                "Mise à jour du niveau disciplinaire"
             );
 
             removed.push(
@@ -178,7 +173,7 @@ async function removeOldWarningRoles(
 }
 
 // ======================================================
-// AJOUT DU NOUVEAU RÔLE
+// AJOUT DU RÔLE
 // ======================================================
 
 async function addWarningRole(
@@ -202,6 +197,18 @@ async function addWarningRole(
 
             error:
                 "ROLE_NOT_FOUND"
+        };
+    }
+
+    if (
+        role.managed
+    ) {
+        return {
+            success:
+                false,
+
+            error:
+                "ROLE_MANAGED"
         };
     }
 
@@ -296,7 +303,7 @@ Nous vous informons que <@${member.id}> reçoit un **${warning.label}**.
 
 **Raison :** ${reason}
 
-Nous demandons à chacun de respecter cette décision. Cette mesure a pour objectif de rappeler les règles et les attentes au sein de **The Legacy**.
+Nous demandons à chacun de respecter cette décision et de prendre en compte cet avertissement.
 
 -# By <@&1458414705717805189> & <@&1467277541696868412> & <@&1531760308761133229>.`;
 
@@ -366,7 +373,7 @@ module.exports = {
                             "membre"
                         )
                         .setDescription(
-                            "Membre concerné par l'avertissement"
+                            "Membre concerné"
                         )
                         .setRequired(
                             true
@@ -381,10 +388,10 @@ module.exports = {
                 option =>
                     option
                         .setName(
-                            "Avertissement"
+                            "choixavert"
                         )
                         .setDescription(
-                            "Niveau d'avertissement"
+                            "Choisir le niveau d'avertissement"
                         )
                         .setRequired(
                             true
@@ -466,7 +473,7 @@ module.exports = {
             }
 
             // ==================================================
-            // BOT PERMISSIONS
+            // BOT
             // ==================================================
 
             const botMember =
@@ -513,10 +520,6 @@ module.exports = {
                     "raison"
                 );
 
-            // ==================================================
-            // TYPE AVERT
-            // ==================================================
-
             const warning =
                 WARNING_ROLES[
                     warningKey
@@ -536,11 +539,13 @@ module.exports = {
             // ==================================================
 
             const member =
-                await interaction.guild.members.fetch(
-                    user.id
-                ).catch(
-                    () => null
-                );
+                await interaction.guild.members
+                    .fetch(
+                        user.id
+                    )
+                    .catch(
+                        () => null
+                    );
 
             if (
                 !member
@@ -552,7 +557,7 @@ module.exports = {
             }
 
             // ==================================================
-            // PROPRIÉTAIRE
+            // PROTECTION OWNER
             // ==================================================
 
             if (
@@ -566,7 +571,7 @@ module.exports = {
             }
 
             // ==================================================
-            // RETRAIT DES AUTRES NIVEAUX
+            // RETRAIT DES ANCIENS NIVEAUX
             // ==================================================
 
             const oldRolesResult =
@@ -577,7 +582,7 @@ module.exports = {
                 );
 
             // ==================================================
-            // AJOUT DU NOUVEAU NIVEAU
+            // AJOUT DU NOUVEAU
             // ==================================================
 
             const addResult =
@@ -592,33 +597,44 @@ module.exports = {
             if (
                 !addResult.success
             ) {
-                let errorMessage =
-                    "❌ Impossible d'ajouter le rôle d'avertissement.";
-
                 if (
                     addResult.error ===
                     "ROLE_NOT_FOUND"
                 ) {
-                    errorMessage =
-                        `❌ Le rôle **${warning.label}** est introuvable.`;
+                    return interaction.editReply({
+                        content:
+                            `❌ Le rôle **${warning.label}** est introuvable.`
+                    });
+                }
+
+                if (
+                    addResult.error ===
+                    "ROLE_MANAGED"
+                ) {
+                    return interaction.editReply({
+                        content:
+                            `❌ Le rôle **${warning.label}** est géré par Discord ou une intégration.`
+                    });
                 }
 
                 if (
                     addResult.error ===
                     "ROLE_HIERARCHY"
                 ) {
-                    errorMessage =
-                        `❌ Le rôle **${warning.label}** est placé au-dessus ou au même niveau que le rôle du bot.`;
+                    return interaction.editReply({
+                        content:
+                            `❌ Le rôle **${warning.label}** est au-dessus ou au même niveau que le rôle du bot.`
+                    });
                 }
 
                 return interaction.editReply({
                     content:
-                        errorMessage
+                        `❌ Impossible d'ajouter le rôle.\n\`${addResult.error}\``
                 });
             }
 
             // ==================================================
-            // ACTUALISER LE MEMBRE
+            // REFRESH
             // ==================================================
 
             await member.fetch()
@@ -648,13 +664,13 @@ module.exports = {
 
             let confirmation =
                 `✅ <@${member.id}> a reçu **${warning.label}**.` +
-                `\n🎭 Rôle : <@&${warning.roleId}>`;
+                `\n🎭 Rôle appliqué : <@&${warning.roleId}>`;
 
             if (
                 addResult.alreadyHadRole
             ) {
                 confirmation +=
-                    "\n⚠️ Le membre possédait déjà ce rôle.";
+                    "\n⚠️ Le membre possédait déjà ce niveau d'avertissement.";
             }
 
             if (
@@ -668,7 +684,7 @@ module.exports = {
                 oldRolesResult.failed.length
             ) {
                 confirmation +=
-                    `\n⚠️ ${oldRolesResult.failed.length} ancien(s) rôle(s) n'ont pas pu être retirés.`;
+                    `\n⚠️ **${oldRolesResult.failed.length} rôle(s)** n'ont pas pu être retirés.`;
             }
 
             if (
@@ -679,7 +695,7 @@ module.exports = {
 
             } else {
                 confirmation +=
-                    "\n⚠️ L'avertissement a été appliqué, mais le message public n'a pas pu être envoyé.";
+                    "\n⚠️ Le rôle a été appliqué, mais l'annonce publique n'a pas pu être envoyée.";
             }
 
             return interaction.editReply({

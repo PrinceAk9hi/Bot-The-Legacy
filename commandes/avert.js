@@ -381,7 +381,7 @@ module.exports = {
                 option =>
                     option
                         .setName(
-                            "Choix de l'avertissement"
+                            "Avertissement"
                         )
                         .setDescription(
                             "Niveau d'avertissement"

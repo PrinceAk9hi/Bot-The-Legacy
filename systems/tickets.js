@@ -52,7 +52,7 @@ const CONFIG = {
         "1458394404568957052",
 
     // ==================================================
-    // SANCTIONS
+    // SANCTIONS / RANKUPS
     // ==================================================
 
     sanctionResponsible:
@@ -221,21 +221,20 @@ const TICKET_TYPES = {
         gestionRoles:
             [],
 
-        // Fondation → bypass directement
         pingRoles:
             CONFIG.bypassRoles
     }
 };
 
 // ======================================================
-// PROTECTION DOUBLE REGISTER
+// ANTI DOUBLE REGISTER
 // ======================================================
 
 let registered =
     false;
 
 // ======================================================
-// CLEAN NAME
+// CLEAN CHANNEL NAME
 // ======================================================
 
 function cleanChannelName(
@@ -255,17 +254,25 @@ function cleanChannelName(
         )
         .replace(
             /[^a-z0-9-]/g,
+            "-"
+        )
+        .replace(
+            /-+/g,
+            "-"
+        )
+        .replace(
+            /^-|-$/g,
             ""
         )
         .substring(
             0,
-            30
+            80
         ) ||
         "membre";
 }
 
 // ======================================================
-// METADATA TOPIC
+// TOPIC / MÉTADONNÉES
 // ======================================================
 
 function buildTopic({
@@ -297,7 +304,8 @@ function parseTopic(
         return null;
     }
 
-    const result = {};
+    const result =
+        {};
 
     const parts =
         topic.split(
@@ -310,13 +318,13 @@ function parseTopic(
             1
         )
     ) {
-        const index =
+        const separator =
             part.indexOf(
                 ":"
             );
 
         if (
-            index ===
+            separator ===
             -1
         ) {
             continue;
@@ -325,12 +333,12 @@ function parseTopic(
         const key =
             part.substring(
                 0,
-                index
+                separator
             );
 
         const value =
             part.substring(
-                index +
+                separator +
                 1
             );
 
@@ -408,13 +416,13 @@ function isTicketStaff(
     member,
     type
 ) {
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
 
     if (
-        !info
+        !ticketType
     ) {
         return false;
     }
@@ -430,14 +438,14 @@ function isTicketStaff(
     return memberHasAnyRole(
         member,
         [
-            ...info.responsibleRoles,
-            ...info.gestionRoles
+            ...ticketType.responsibleRoles,
+            ...ticketType.gestionRoles
         ]
     );
 }
 
 // ======================================================
-// TICKET EXISTANT
+// VÉRIFICATION TICKET EXISTANT
 // ======================================================
 
 function findExistingTicket(
@@ -472,13 +480,13 @@ function buildPermissions(
     ownerId,
     type
 ) {
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
 
     const overwrites = [
-        // Tout le serveur
+        // @everyone
         {
             id:
                 guild.id,
@@ -507,8 +515,8 @@ function buildPermissions(
     const staffRoles =
         new Set([
             ...CONFIG.bypassRoles,
-            ...info.responsibleRoles,
-            ...info.gestionRoles
+            ...ticketType.responsibleRoles,
+            ...ticketType.gestionRoles
         ]);
 
     for (
@@ -534,23 +542,23 @@ function buildPermissions(
 }
 
 // ======================================================
-// PING
+// PING À L'OUVERTURE
 // ======================================================
 
 function buildPingContent(
     ownerId,
     type
 ) {
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
 
     const roles =
-        info.pingRoles
+        ticketType.pingRoles
             .map(
-                id =>
-                    `<@&${id}>`
+                roleId =>
+                    `<@&${roleId}>`
             )
             .join(
                 " "
@@ -560,15 +568,16 @@ function buildPingContent(
 }
 
 // ======================================================
-// EMBED TICKET
+// EMBED DU TICKET
 // ======================================================
 
 function createTicketEmbed({
-    owner,
+    ownerId,
+    ownerAvatar = null,
     type,
     claimedBy = null
 }) {
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
@@ -579,23 +588,23 @@ function createTicketEmbed({
                 0x2B2D31
             )
             .setTitle(
-                "🎫 Ticket Support"
+                "Ticket Support 🎫"
             )
             .setDescription(
-`Bienvenue <@${owner.id}>,
+`Bienvenue <@${ownerId}>,
 
-Merci d'expliquer **clairement et précisément la raison de votre demande**.
+Merci de nous expliquer **clairement et précisément la raison de votre ticket** afin que notre équipe puisse traiter votre demande dans les meilleures conditions.
 
-Afin que notre équipe puisse traiter votre ticket dans les meilleures conditions, n'hésitez pas à fournir toutes les informations utiles :
+Vous pouvez joindre toutes les informations utiles :
 
 > • le contexte de votre demande ;
 > • les personnes concernées si nécessaire ;
-> • des captures ou preuves si la situation le nécessite ;
+> • des captures ou preuves si besoin ;
 > • toute information complémentaire pouvant faciliter le traitement.
 
 Un membre de notre équipe prendra en charge votre demande **dès que possible**.
 
--# Merci de ne pas mentionner inutilement les membres de la gestion et de patienter jusqu'à la prise en charge de votre ticket.`
+*Merci de ne pas mentionner inutilement les membres de la gestion et de patienter jusqu'à la prise en charge de votre ticket.*`
             )
             .addFields(
                 {
@@ -603,10 +612,11 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
                         "📂 Type",
 
                     value:
-                        info.label,
+                        ticketType?.label ||
+                        type,
 
                     inline:
-                        true
+                        false
                 },
 
                 {
@@ -614,10 +624,10 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
                         "👤 Créateur",
 
                     value:
-                        `<@${owner.id}>`,
+                        `<@${ownerId}>`,
 
                     inline:
-                        true
+                        false
                 },
 
                 {
@@ -633,17 +643,19 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
                         false
                 }
             )
-            .setThumbnail(
-                owner.displayAvatarURL({
-                    size:
-                        512
-                })
-            )
             .setFooter({
                 text:
                     "The Legacy • Support"
             })
             .setTimestamp();
+
+    if (
+        ownerAvatar
+    ) {
+        embed.setThumbnail(
+            ownerAvatar
+        );
+    }
 
     return embed;
 }
@@ -652,55 +664,73 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
 // BOUTONS PRINCIPAUX
 // ======================================================
 
-function createTicketButtons() {
+function createTicketButtons(
+    claimedBy = null
+) {
+    const claimButton =
+        new ButtonBuilder()
+            .setCustomId(
+                "legacy_ticket_claim"
+            )
+            .setLabel(
+                claimedBy
+                    ? "Pris en charge"
+                    : "Prendre en charge"
+            )
+            .setEmoji(
+                "🛠️"
+            )
+            .setStyle(
+                claimedBy
+                    ? ButtonStyle.Secondary
+                    : ButtonStyle.Success
+            )
+            .setDisabled(
+                Boolean(
+                    claimedBy
+                )
+            );
+
+    const renameButton =
+        new ButtonBuilder()
+            .setCustomId(
+                "legacy_ticket_rename"
+            )
+            .setLabel(
+                "Renommer"
+            )
+            .setEmoji(
+                "✏️"
+            )
+            .setStyle(
+                ButtonStyle.Secondary
+            );
+
+    const closeButton =
+        new ButtonBuilder()
+            .setCustomId(
+                "legacy_ticket_close"
+            )
+            .setLabel(
+                "Fermer"
+            )
+            .setEmoji(
+                "🔒"
+            )
+            .setStyle(
+                ButtonStyle.Danger
+            );
+
     return new ActionRowBuilder()
         .addComponents(
-            new ButtonBuilder()
-                .setCustomId(
-                    "legacy_ticket_claim"
-                )
-                .setLabel(
-                    "Prendre en charge"
-                )
-                .setEmoji(
-                    "🛠️"
-                )
-                .setStyle(
-                    ButtonStyle.Success
-                ),
-
-            new ButtonBuilder()
-                .setCustomId(
-                    "legacy_ticket_rename"
-                )
-                .setLabel(
-                    "Renommer"
-                )
-                .setEmoji(
-                    "✏️"
-                )
-                .setStyle(
-                    ButtonStyle.Secondary
-                ),
-
-            new ButtonBuilder()
-                .setCustomId(
-                    "legacy_ticket_close"
-                )
-                .setLabel(
-                    "Fermer"
-                )
-                .setEmoji(
-                    "🔒"
-                )
-                .setStyle(
-                    ButtonStyle.Danger
-                )
+            claimButton,
+            renameButton,
+            closeButton
         );
 }
 
 // ======================================================
-// BOUTONS CONFIRMATION CLOSE
+// CONFIRMATION CLOSE
 // ======================================================
 
 function createCloseConfirmButtons() {
@@ -734,6 +764,27 @@ function createCloseConfirmButtons() {
                     ButtonStyle.Secondary
                 )
         );
+}
+
+// ======================================================
+// GET LOG CHANNEL
+// ======================================================
+
+async function getLogsChannel(
+    guild
+) {
+    return (
+        guild.channels.cache.get(
+            CONFIG.logsChannel
+        ) ||
+        await guild.channels
+            .fetch(
+                CONFIG.logsChannel
+            )
+            .catch(
+                () => null
+            )
+    );
 }
 
 // ======================================================
@@ -859,16 +910,9 @@ async function logTicketOpen(
     type
 ) {
     const logs =
-        guild.channels.cache.get(
-            CONFIG.logsChannel
-        ) ||
-        await guild.channels
-            .fetch(
-                CONFIG.logsChannel
-            )
-            .catch(
-                () => null
-            );
+        await getLogsChannel(
+            guild
+        );
 
     if (
         !logs?.isTextBased()
@@ -876,58 +920,56 @@ async function logTicketOpen(
         return;
     }
 
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
 
-    const embed =
-        new EmbedBuilder()
-            .setColor(
-                0x57F287
-            )
-            .setTitle(
-                "🎫 Ticket ouvert"
-            )
-            .addFields(
-                {
-                    name:
-                        "Membre",
-
-                    value:
-                        `<@${owner.id}>\n\`${owner.id}\``,
-
-                    inline:
-                        true
-                },
-
-                {
-                    name:
-                        "Type",
-
-                    value:
-                        info.label,
-
-                    inline:
-                        true
-                },
-
-                {
-                    name:
-                        "Salon",
-
-                    value:
-                        `${channel}\n\`${channel.name}\``,
-
-                    inline:
-                        false
-                }
-            )
-            .setTimestamp();
-
     await logs.send({
         embeds: [
-            embed
+            new EmbedBuilder()
+                .setColor(
+                    0x57F287
+                )
+                .setTitle(
+                    "🎫 Ticket ouvert"
+                )
+                .addFields(
+                    {
+                        name:
+                            "Membre",
+
+                        value:
+                            `<@${owner.id}>\n\`${owner.id}\``,
+
+                        inline:
+                            true
+                    },
+
+                    {
+                        name:
+                            "Type",
+
+                        value:
+                            ticketType?.label ||
+                            type,
+
+                        inline:
+                            true
+                    },
+
+                    {
+                        name:
+                            "Salon",
+
+                        value:
+                            `${channel}\n\`${channel.name}\``,
+
+                        inline:
+                            false
+                    }
+                )
+                .setTimestamp()
         ]
     }).catch(
         () => {}
@@ -935,7 +977,7 @@ async function logTicketOpen(
 }
 
 // ======================================================
-// LOG CLAIM
+// LOG PRISE EN CHARGE
 // ======================================================
 
 async function logTicketClaim(
@@ -944,8 +986,8 @@ async function logTicketClaim(
     member
 ) {
     const logs =
-        guild.channels.cache.get(
-            CONFIG.logsChannel
+        await getLogsChannel(
+            guild
         );
 
     if (
@@ -965,7 +1007,9 @@ async function logTicketClaim(
                 )
                 .setDescription(
 `**Ticket :** ${channel}
-**Pris en charge par :** <@${member.id}>`
+
+**Pris en charge par :** <@${member.id}>
+**ID :** \`${member.id}\``
                 )
                 .setTimestamp()
         ]
@@ -986,8 +1030,8 @@ async function logTicketRename(
     newName
 ) {
     const logs =
-        guild.channels.cache.get(
-            CONFIG.logsChannel
+        await getLogsChannel(
+            guild
         );
 
     if (
@@ -1006,7 +1050,8 @@ async function logTicketRename(
                     "✏️ Ticket renommé"
                 )
                 .setDescription(
-`**Par :** <@${member.id}>
+`**Ticket :** ${channel}
+**Par :** <@${member.id}>
 
 **Ancien nom :** \`${oldName}\`
 **Nouveau nom :** \`${newName}\``
@@ -1028,20 +1073,10 @@ async function logTicketClose(
     metadata,
     transcript
 ) {
-    const guild =
-        channel.guild;
-
     const logs =
-        guild.channels.cache.get(
-            CONFIG.logsChannel
-        ) ||
-        await guild.channels
-            .fetch(
-                CONFIG.logsChannel
-            )
-            .catch(
-                () => null
-            );
+        await getLogsChannel(
+            channel.guild
+        );
 
     if (
         !logs?.isTextBased()
@@ -1049,7 +1084,7 @@ async function logTicketClose(
         return;
     }
 
-    const info =
+    const ticketType =
         TICKET_TYPES[
             metadata.type
         ];
@@ -1090,7 +1125,7 @@ async function logTicketClose(
                         "Type",
 
                     value:
-                        info?.label ||
+                        ticketType?.label ||
                         metadata.type,
 
                     inline:
@@ -1160,20 +1195,20 @@ async function logTicketClose(
 }
 
 // ======================================================
-// CREATE TICKET
+// CRÉATION TICKET
 // ======================================================
 
 async function createTicket(
     interaction,
     type
 ) {
-    const info =
+    const ticketType =
         TICKET_TYPES[
             type
         ];
 
     if (
-        !info
+        !ticketType
     ) {
         return interaction.editReply({
             content:
@@ -1188,7 +1223,7 @@ async function createTicket(
         interaction.user;
 
     // ==================================================
-    // UN TICKET PAR TYPE
+    // 1 TICKET PAR TYPE
     // ==================================================
 
     const existing =
@@ -1203,7 +1238,7 @@ async function createTicket(
     ) {
         return interaction.editReply({
             content:
-                `❌ Tu possèdes déjà un ticket **${info.label}** : ${existing}`
+                `❌ Tu possèdes déjà un ticket **${ticketType.label}** : ${existing}`
         });
     }
 
@@ -1213,11 +1248,11 @@ async function createTicket(
 
     const category =
         guild.channels.cache.get(
-            info.categoryId
+            ticketType.categoryId
         ) ||
         await guild.channels
             .fetch(
-                info.categoryId
+                ticketType.categoryId
             )
             .catch(
                 () => null
@@ -1233,19 +1268,19 @@ async function createTicket(
     }
 
     // ==================================================
-    // CRÉATION
+    // CRÉATION SALON
     // ==================================================
 
     const channel =
         await guild.channels.create({
             name:
-                `${info.channelPrefix}-${cleanChannelName(owner.username)}`,
+                `${ticketType.channelPrefix}-${cleanChannelName(owner.username)}`,
 
             type:
                 ChannelType.GuildText,
 
             parent:
-                info.categoryId,
+                ticketType.categoryId,
 
             topic:
                 buildTopic({
@@ -1264,7 +1299,7 @@ async function createTicket(
         });
 
     // ==================================================
-    // MESSAGE
+    // MESSAGE PRINCIPAL
     // ==================================================
 
     const ticketMessage =
@@ -1281,24 +1316,36 @@ async function createTicket(
                 ],
 
                 roles:
-                    info.pingRoles
+                    ticketType.pingRoles
             },
 
             embeds: [
                 createTicketEmbed({
-                    owner,
+                    ownerId:
+                        owner.id,
 
-                    type
+                    ownerAvatar:
+                        owner.displayAvatarURL({
+                            size:
+                                512
+                        }),
+
+                    type,
+
+                    claimedBy:
+                        null
                 })
             ],
 
             components: [
-                createTicketButtons()
+                createTicketButtons(
+                    null
+                )
             ]
         });
 
     // ==================================================
-    // ENREGISTRE ID MESSAGE
+    // MÉMORISE LE MESSAGE PRINCIPAL
     // ==================================================
 
     await channel.setTopic(
@@ -1307,6 +1354,9 @@ async function createTicket(
 
             ownerId:
                 owner.id,
+
+            claimedBy:
+                null,
 
             messageId:
                 ticketMessage.id
@@ -1331,73 +1381,83 @@ async function createTicket(
 }
 
 // ======================================================
-// UPDATE EMBED CLAIM
+// UPDATE MESSAGE PRINCIPAL
 // ======================================================
 
-async function updateTicketClaimEmbed(
+async function updateTicketMainMessage(
     channel,
-    metadata,
-    claimedBy
+    metadata
 ) {
     if (
         !metadata.messageId
     ) {
-        return;
+        console.error(
+            `❌ Ticket ${channel.id} : message principal absent du topic.`
+        );
+
+        return false;
     }
 
     const message =
-        await channel.messages.fetch(
-            metadata.messageId
-        ).catch(
-            () => null
-        );
+        await channel.messages
+            .fetch(
+                metadata.messageId
+            )
+            .catch(
+                () => null
+            );
 
     if (
-        !message ||
-        !message.embeds.length
+        !message
     ) {
-        return;
-    }
-
-    const embed =
-        EmbedBuilder.from(
-            message.embeds[0]
+        console.error(
+            `❌ Ticket ${channel.id} : message principal introuvable.`
         );
 
-    const fields =
-        embed.data.fields ||
-        [];
-
-    const claimIndex =
-        fields.findIndex(
-            field =>
-                field.name ===
-                "🛠️ Prise en charge"
-        );
-
-    if (
-        claimIndex >=
-        0
-    ) {
-        fields[
-            claimIndex
-        ].value =
-            `<@${claimedBy}>`;
+        return false;
     }
 
-    embed.setFields(
-        fields
-    );
+    const owner =
+        await channel.guild.members
+            .fetch(
+                metadata.ownerId
+            )
+            .catch(
+                () => null
+            );
+
+    const ownerAvatar =
+        owner?.user
+            ?.displayAvatarURL({
+                size:
+                    512
+            }) ||
+        null;
 
     await message.edit({
         embeds: [
-            embed
+            createTicketEmbed({
+                ownerId:
+                    metadata.ownerId,
+
+                ownerAvatar,
+
+                type:
+                    metadata.type,
+
+                claimedBy:
+                    metadata.claimedBy
+            })
         ],
 
         components: [
-            createTicketButtons()
+            createTicketButtons(
+                metadata.claimedBy
+            )
         ]
     });
+
+    return true;
 }
 
 // ======================================================
@@ -1426,7 +1486,7 @@ function registerTicketSystem(
         async interaction => {
             try {
                 // ==================================================
-                // SELECT PANEL
+                // OUVERTURE VIA SELECT
                 // ==================================================
 
                 if (
@@ -1440,7 +1500,7 @@ function registerTicketSystem(
                     });
 
                     const type =
-                        interaction.values[
+                        interaction.values?.[
                             0
                         ];
 
@@ -1453,16 +1513,55 @@ function registerTicketSystem(
                 }
 
                 // ==================================================
-                // LE RESTE NÉCESSITE UN TICKET
+                // UNIQUEMENT COMPOSANTS TICKETS
                 // ==================================================
 
-                const metadata =
-                    parseTopic(
-                        interaction.channel?.topic
+                const ticketComponent =
+                    interaction.customId?.startsWith(
+                        "legacy_ticket_"
                     );
 
+                if (
+                    !ticketComponent
+                ) {
+                    return;
+                }
+
+                const channel =
+                    interaction.channel;
+
+                if (
+                    !channel
+                ) {
+                    return;
+                }
+
+                let metadata =
+                    parseTopic(
+                        channel.topic
+                    );
+
+                if (
+                    !metadata
+                ) {
+                    if (
+                        !interaction.replied &&
+                        !interaction.deferred
+                    ) {
+                        await interaction.reply({
+                            content:
+                                "❌ Les informations de ce ticket sont introuvables.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        });
+                    }
+
+                    return;
+                }
+
                 // ==================================================
-                // CLAIM
+                // PRENDRE EN CHARGE
                 // ==================================================
 
                 if (
@@ -1470,12 +1569,6 @@ function registerTicketSystem(
                     interaction.customId ===
                         "legacy_ticket_claim"
                 ) {
-                    if (
-                        !metadata
-                    ) {
-                        return;
-                    }
-
                     if (
                         !isTicketStaff(
                             interaction.member,
@@ -1491,7 +1584,41 @@ function registerTicketSystem(
                         });
                     }
 
-                    // Déjà pris
+                    // ==================================================
+                    // ACK IMMÉDIAT
+                    // IMPORTANT : PLUS DE CHARGEMENT INFINI
+                    // ==================================================
+
+                    await interaction.deferUpdate();
+
+                    // ==================================================
+                    // RELIRE LE TOPIC APRÈS LE CLIC
+                    // POUR ÉVITER 2 CLAIMS EN MÊME TEMPS
+                    // ==================================================
+
+                    metadata =
+                        parseTopic(
+                            interaction.channel.topic
+                        );
+
+                    if (
+                        !metadata
+                    ) {
+                        await interaction.followUp({
+                            content:
+                                "❌ Impossible de récupérer les informations du ticket.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        });
+
+                        return;
+                    }
+
+                    // ==================================================
+                    // DÉJÀ PRIS
+                    // ==================================================
+
                     if (
                         metadata.claimedBy
                     ) {
@@ -1499,58 +1626,108 @@ function registerTicketSystem(
                             metadata.claimedBy ===
                             interaction.user.id
                         ) {
-                            return interaction.reply({
+                            await interaction.followUp({
                                 content:
                                     "✅ Tu as déjà pris en charge ce ticket.",
 
                                 flags:
                                     MessageFlags.Ephemeral
                             });
+
+                            return;
                         }
 
-                        return interaction.reply({
+                        await interaction.followUp({
                             content:
                                 `❌ Ce ticket est déjà pris en charge par <@${metadata.claimedBy}>.`,
 
                             flags:
                                 MessageFlags.Ephemeral
                         });
+
+                        return;
                     }
 
-                    await interaction.deferReply({
-                        flags:
-                            MessageFlags.Ephemeral
-                    });
+                    // ==================================================
+                    // ENREGISTREMENT CLAIM
+                    // ==================================================
 
-                    metadata.claimedBy =
+                    const claimedBy =
                         interaction.user.id;
+
+                    const newMetadata = {
+                        ...metadata,
+
+                        claimedBy
+                    };
 
                     await interaction.channel.setTopic(
                         buildTopic({
                             type:
-                                metadata.type,
+                                newMetadata.type,
 
                             ownerId:
-                                metadata.ownerId,
+                                newMetadata.ownerId,
 
                             claimedBy:
-                                interaction.user.id,
+                                newMetadata.claimedBy,
 
                             messageId:
-                                metadata.messageId
-                        })
+                                newMetadata.messageId
+                        }),
+                        `Ticket pris en charge par ${interaction.user.tag}`
                     );
 
-                    await updateTicketClaimEmbed(
-                        interaction.channel,
-                        metadata,
-                        interaction.user.id
-                    );
+                    // ==================================================
+                    // UPDATE EMBED + BOUTON
+                    // ==================================================
+
+                    const updated =
+                        await updateTicketMainMessage(
+                            interaction.channel,
+                            newMetadata
+                        );
+
+                    if (
+                        !updated
+                    ) {
+                        await interaction.followUp({
+                            content:
+                                "⚠️ Le ticket a été pris en charge, mais le message principal n'a pas pu être actualisé.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        });
+
+                        return;
+                    }
+
+                    // ==================================================
+                    // MESSAGE PUBLIC
+                    // ==================================================
 
                     await interaction.channel.send({
-                        content:
-                            `🛠️ Ce ticket est désormais pris en charge par <@${interaction.user.id}>.`
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x57F287
+                                )
+                                .setDescription(
+`🛠️ Ce ticket est désormais pris en charge par <@${interaction.user.id}>.`
+                                )
+                                .setTimestamp()
+                        ],
+
+                        allowedMentions: {
+                            users: [
+                                interaction.user.id
+                            ]
+                        }
                     });
+
+                    // ==================================================
+                    // LOG
+                    // ==================================================
 
                     await logTicketClaim(
                         interaction.guild,
@@ -1558,14 +1735,23 @@ function registerTicketSystem(
                         interaction.user
                     );
 
-                    return interaction.editReply({
+                    // ==================================================
+                    // CONFIRMATION PRIVÉE
+                    // ==================================================
+
+                    await interaction.followUp({
                         content:
-                            "✅ Tu as pris en charge ce ticket."
+                            "✅ Tu as pris en charge ce ticket.",
+
+                        flags:
+                            MessageFlags.Ephemeral
                     });
+
+                    return;
                 }
 
                 // ==================================================
-                // RENAME
+                // RENOMMER
                 // ==================================================
 
                 if (
@@ -1573,12 +1759,6 @@ function registerTicketSystem(
                     interaction.customId ===
                         "legacy_ticket_rename"
                 ) {
-                    if (
-                        !metadata
-                    ) {
-                        return;
-                    }
-
                     if (
                         !isTicketStaff(
                             interaction.member,
@@ -1620,8 +1800,11 @@ function registerTicketSystem(
                             .setRequired(
                                 true
                             )
+                            .setMinLength(
+                                1
+                            )
                             .setMaxLength(
-                                90
+                                80
                             )
                             .setStyle(
                                 TextInputStyle.Short
@@ -1640,7 +1823,7 @@ function registerTicketSystem(
                 }
 
                 // ==================================================
-                // RENAME MODAL
+                // MODAL RENAME
                 // ==================================================
 
                 if (
@@ -1649,12 +1832,6 @@ function registerTicketSystem(
                         "legacy_ticket_rename_modal"
                 ) {
                     if (
-                        !metadata
-                    ) {
-                        return;
-                    }
-
-                    if (
                         !isTicketStaff(
                             interaction.member,
                             metadata.type
@@ -1662,7 +1839,7 @@ function registerTicketSystem(
                     ) {
                         return interaction.reply({
                             content:
-                                "❌ Tu n'as pas la permission.",
+                                "❌ Tu n'as pas la permission de renommer ce ticket.",
 
                             flags:
                                 MessageFlags.Ephemeral
@@ -1690,12 +1867,22 @@ function registerTicketSystem(
                     ) {
                         return interaction.editReply({
                             content:
-                                "❌ Nom invalide."
+                                "❌ Le nom indiqué est invalide."
                         });
                     }
 
                     const oldName =
                         interaction.channel.name;
+
+                    if (
+                        oldName ===
+                        newName
+                    ) {
+                        return interaction.editReply({
+                            content:
+                                "⚠️ Le ticket porte déjà ce nom."
+                        });
+                    }
 
                     await interaction.channel.setName(
                         newName,
@@ -1717,8 +1904,7 @@ function registerTicketSystem(
                 }
 
                 // ==================================================
-                // CLOSE
-                // UTILISABLE PAR TOUS CEUX QUI VOIENT LE TICKET
+                // FERMER
                 // ==================================================
 
                 if (
@@ -1726,15 +1912,29 @@ function registerTicketSystem(
                     interaction.customId ===
                         "legacy_ticket_close"
                 ) {
+                    const canClose =
+                        interaction.user.id ===
+                            metadata.ownerId ||
+                        isTicketStaff(
+                            interaction.member,
+                            metadata.type
+                        );
+
                     if (
-                        !metadata
+                        !canClose
                     ) {
-                        return;
+                        return interaction.reply({
+                            content:
+                                "❌ Tu ne peux pas fermer ce ticket.",
+
+                            flags:
+                                MessageFlags.Ephemeral
+                        });
                     }
 
                     return interaction.reply({
                         content:
-                            "⚠️ Es-tu sûr de vouloir fermer ce ticket ?",
+                            "⚠️ **Es-tu sûr de vouloir fermer ce ticket ?**\n\nLe transcript sera sauvegardé dans les logs.",
 
                         components: [
                             createCloseConfirmButtons()
@@ -1746,7 +1946,7 @@ function registerTicketSystem(
                 }
 
                 // ==================================================
-                // ANNULER CLOSE
+                // ANNULER FERMETURE
                 // ==================================================
 
                 if (
@@ -1756,7 +1956,7 @@ function registerTicketSystem(
                 ) {
                     return interaction.update({
                         content:
-                            "✅ Fermeture annulée.",
+                            "✅ Fermeture du ticket annulée.",
 
                         components:
                             []
@@ -1764,7 +1964,7 @@ function registerTicketSystem(
                 }
 
                 // ==================================================
-                // CONFIRMER CLOSE
+                // CONFIRMER FERMETURE
                 // ==================================================
 
                 if (
@@ -1772,12 +1972,27 @@ function registerTicketSystem(
                     interaction.customId ===
                         "legacy_ticket_close_confirm"
                 ) {
+                    const canClose =
+                        interaction.user.id ===
+                            metadata.ownerId ||
+                        isTicketStaff(
+                            interaction.member,
+                            metadata.type
+                        );
+
                     if (
-                        !metadata
+                        !canClose
                     ) {
-                        return;
+                        return interaction.update({
+                            content:
+                                "❌ Tu n'as plus la permission de fermer ce ticket.",
+
+                            components:
+                                []
+                        });
                     }
 
+                    // ACK IMMÉDIAT
                     await interaction.update({
                         content:
                             "🔒 Fermeture du ticket en cours...",
@@ -1823,7 +2038,7 @@ function registerTicketSystem(
                     );
 
                     // ==================================================
-                    // MESSAGE
+                    // MESSAGE FERMETURE
                     // ==================================================
 
                     await interaction.channel.send({
@@ -1840,16 +2055,22 @@ function registerTicketSystem(
 
 > Le transcript de la conversation a été sauvegardé dans les logs.
 
--# Fermeture du salon dans quelques secondes...`
+*Suppression du salon dans quelques secondes...*`
                                 )
                                 .setTimestamp()
-                        ]
+                        ],
+
+                        allowedMentions: {
+                            users: [
+                                interaction.user.id
+                            ]
+                        }
                     }).catch(
                         () => {}
                     );
 
                     // ==================================================
-                    // DELETE
+                    // DELETE 4 SEC
                     // ==================================================
 
                     setTimeout(
@@ -1881,9 +2102,12 @@ function registerTicketSystem(
                     if (
                         interaction.deferred
                     ) {
-                        await interaction.editReply({
+                        await interaction.followUp({
                             content:
-                                "❌ Une erreur est survenue avec le système de tickets."
+                                "❌ Une erreur est survenue avec le système de tickets.",
+
+                            flags:
+                                MessageFlags.Ephemeral
                         });
 
                     } else if (

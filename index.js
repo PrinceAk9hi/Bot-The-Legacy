@@ -36,8 +36,11 @@ console.log(
 // IMPORTS
 // ======================================================
 
-const fs = require("fs");
-const path = require("path");
+const fs =
+    require("fs");
+
+const path =
+    require("path");
 
 const {
     Client,
@@ -87,12 +90,22 @@ const registerTicketSystem =
     require("./systems/tickets");
 
 // ======================================================
+// MANAGE ROLE
+// ======================================================
+
+const {
+    registerManageRoleSystem
+} =
+    require("./systems/manageRoles");
+
+// ======================================================
 // SURVEILLANCE TAG SERVEUR
 // ======================================================
 
 const {
     startServerTagWatch
-} = require("./systems/serverTagWatch");
+} =
+    require("./systems/serverTagWatch");
 
 // ======================================================
 // PERSISTANCE
@@ -101,7 +114,8 @@ const {
 const {
     loadControlStates,
     saveControlStates
-} = require("./utils/controlStates");
+} =
+    require("./utils/controlStates");
 
 // ======================================================
 // COMPTES PROTÉGÉS
@@ -626,19 +640,18 @@ registerRecruitmentSystem(
     client
 );
 
-// ======================================================
-// PANEL CANDIDATURE DYNAMIQUE
-// ======================================================
-
+// Panel candidature dynamique
 registerCandidaturePanelWatch(
     client
 );
 
-// ======================================================
-// TICKETS
-// ======================================================
-
+// Tickets
 registerTicketSystem(
+    client
+);
+
+// ManageRole
+registerManageRoleSystem(
     client
 );
 
@@ -647,7 +660,7 @@ registerRecruitmentVoiceSystem(
     client
 );
 
-// TPV
+// Salons temporaires
 registerTempVoiceSystem(
     client
 );
@@ -1768,7 +1781,9 @@ async function handleUserChannelSelect(
         result.target;
 
     const channelId =
-        interaction.values?.[0];
+        interaction.values?.[
+            0
+        ];
 
     if (
         !channelId
@@ -1957,6 +1972,10 @@ async function routeCommandButton(
         interaction.customId ||
         "";
 
+    // ==================================================
+    // LOUP-GAROU PRIORITAIRE
+    // ==================================================
+
     if (
         isLoupgarouComponentId(
             customId
@@ -2000,10 +2019,15 @@ async function routeCommandButton(
         }
     }
 
+    // ==================================================
+    // AUTRES COMMANDES
+    // ==================================================
+
     const modules = [
         "wanted",
         "ship",
         "union",
+        "managerole",
         "tribunal",
         "legacygames",
         "imposteur",
@@ -2076,6 +2100,10 @@ async function routeCommandSelect(
         interaction.customId ||
         "";
 
+    // ==================================================
+    // LOUP-GAROU PRIORITAIRE
+    // ==================================================
+
     if (
         isLoupgarouComponentId(
             customId
@@ -2119,7 +2147,12 @@ async function routeCommandSelect(
         }
     }
 
+    // ==================================================
+    // AUTRES COMMANDES
+    // ==================================================
+
     const modules = [
+        "managerole",
         "legacygames",
         "imposteur",
         "tribunal",
@@ -2191,6 +2224,10 @@ async function routeCommandModal(
     const customId =
         interaction.customId ||
         "";
+
+    // ==================================================
+    // LOUP-GAROU PRIORITAIRE
+    // ==================================================
 
     if (
         isLoupgarouComponentId(
@@ -2354,7 +2391,7 @@ client.on(
             }
 
             // ==================================================
-            // MAINTENANCE DES COMPOSANTS
+            // MAINTENANCE COMPOSANTS
             // ==================================================
 
             if (
@@ -2436,11 +2473,13 @@ client.on(
 
             // ==================================================
             // SELECT MENUS COMMANDES
+            // IMPORTANT : ROLE SELECT POUR /MANAGEROLE
             // ==================================================
 
             if (
                 interaction.isStringSelectMenu() ||
-                interaction.isUserSelectMenu()
+                interaction.isUserSelectMenu() ||
+                interaction.isRoleSelectMenu()
             ) {
                 const handled =
                     await routeCommandSelect(
@@ -3301,7 +3340,20 @@ client.once(
             );
 
             // ==================================================
-            // NOUVEAUX SYSTÈMES
+            // MANAGE ROLE
+            // ==================================================
+
+            console.log(
+                "🧩 /managerole :",
+                client.commands.has(
+                    "managerole"
+                )
+                    ? "✅ chargé"
+                    : "❌ absent"
+            );
+
+            // ==================================================
+            // AUTRES SYSTÈMES
             // ==================================================
 
             console.log(
@@ -3469,6 +3521,13 @@ client.once(
 
             console.log(
                 "🎫 Système tickets : ✅ actif"
+            );
+
+            console.log(
+                "🧩 Automatisation des rôles :",
+                client.manageRoleSystem
+                    ? "✅ active"
+                    : "❌ absente"
             );
 
             // ==================================================

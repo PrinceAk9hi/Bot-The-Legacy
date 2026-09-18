@@ -54,12 +54,17 @@ function stepPayload(p) {
         case "weekend": embed.setTitle("3/5 • Disponibilités le week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
         case "community": embed.setTitle("4/5 • Communauté Roblox").setDescription(`Rejoins la communauté **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
         case "guide": embed.setTitle("5/5 • Les salons à connaître").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? "✅ Ton adhésion à la communauté Roblox a été confirmée.\n" : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
-        default: embed.setTitle("✅ Accueil terminé").setDescription("Ton profil est enregistré. Tu peux mettre tes informations et tes disponibilités à jour à tout moment."); components = [row(button("welcome_restart", "Mettre à jour mon profil"))];
+        default: embed.setTitle("✅ Accueil terminé").setDescription("Ton accueil est terminé. Utilise désormais /mon-profil pour modifier tes informations et tes disponibilités."); components = [];
     }
     return { content: null, embeds: [embed], components, allowedMentions: { parse: [] } };
 }
+function welcomeCompleted(p) { return Boolean(p?.completedAt) || p?.step === "done"; }
+function completedPayload() {
+    return { content: "✅ Tu as déjà terminé ton accueil. Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.", embeds: [], components: [], allowedMentions: { parse: [] } };
+}
 async function start(interaction) {
     if (interaction.guildId !== IDENTITY.guildId) return interaction.reply({ content: "Ce parcours est réservé au serveur Soul Society.", flags: MessageFlags.Ephemeral });
+    if (welcomeCompleted(profile(interaction.user.id))) return interaction.reply({ ...completedPayload(), flags: MessageFlags.Ephemeral });
     if (!profile(interaction.user.id)) patch(interaction.user.id, { step: "profile", discordId: interaction.user.id, discordName: interaction.user.username });
     return interaction.reply({ ...introPayload(), flags: MessageFlags.Ephemeral });
 }
@@ -97,6 +102,7 @@ async function handle(interaction) {
     if (busy.has(actor)) return interaction.reply({ content: "⏳ Enregistrement en cours, réessaie dans un instant.", flags: MessageFlags.Ephemeral });
     const p = profile(actor);
     if (!p) return start(interaction);
+    if (welcomeCompleted(p)) return interaction.update(completedPayload());
     if (interaction.isButton()) {
         if (id.startsWith("welcome_avail_")) {
             const [, , period, value] = id.split("_");

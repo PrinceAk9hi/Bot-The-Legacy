@@ -1,10 +1,10 @@
 const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
 const { IDENTITY, COLORS, ROBLOX } = require("../config/soulSociety");
 const { hasBypass } = require("../utils/security");
-const { read, update, ensurePanel } = require("../utils/recruitmentData");
+const { read, update } = require("../utils/recruitmentData");
 const { findRobloxUserByUsername } = require("../utils/robloxAccount");
 const { getDiscordLinkByRobloxId, setRobloxLink } = require("../utils/robloxLinks");
-const CHANNEL = "1540836643433615360";
+const CHANNEL = "1540833767759814747";
 const KEY = "welcome_start";
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const AVAILABILITY = {
@@ -52,8 +52,8 @@ function stepPayload(p) {
         case "roblox": embed.setTitle("2/5 • Profil Roblox").setDescription("Indique ton nom et ton @ Roblox. Le bot recherchera le compte et enregistrera sa liaison avec ton profil Discord. Utilise le @ exact, pas uniquement le nom d’affichage."); components = [row(button("welcome_roblox", "Renseigner mon Roblox"))]; break;
         case "week": embed.setTitle("3/5 • Disponibilités en semaine").setDescription("Choisis la proposition qui correspond à tes disponibilités habituelles en semaine."); components = [availabilityRow("week")]; break;
         case "weekend": embed.setTitle("3/5 • Disponibilités le week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
-        case "community": embed.setTitle("4/5 • Communauté Roblox").setDescription(`Rejoins la communauté **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nTa demande sera acceptée en temps voulu par l’équipe. Le bot ne valide pas automatiquement ton admission.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "J’ai lu, continuer"))]; break;
-        case "guide": embed.setTitle("5/5 • Les salons à connaître").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
+        case "community": embed.setTitle("4/5 • Communauté Roblox").setDescription(`Rejoins la communauté **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
+        case "guide": embed.setTitle("5/5 • Les salons à connaître").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? "✅ Ton adhésion à la communauté Roblox a été confirmée.\n" : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription("Ton profil est enregistré. Tu peux mettre tes informations et tes disponibilités à jour à tout moment."); components = [row(button("welcome_restart", "Mettre à jour mon profil"))];
     }
     return { content: null, embeds: [embed], components, allowedMentions: { parse: [] } };
@@ -82,12 +82,12 @@ async function publishAvailability(client, actorId) {
         .setDescription(`<@${p.discordId}> • @${p.robloxUsername}`)
         .addFields(availabilityFields(p))], allowedMentions: { parse: [] } };
     let message;
-    if (p.availabilityMessageId) {
+    if (p.availabilityMessageId && p.availabilityChannelId === CHANNEL) {
         try { message = await channel.messages.fetch(p.availabilityMessageId); }
         catch (error) { if (error.code !== 10008) throw error; }
     }
     if (message) await message.edit(payload); else message = await channel.send(payload);
-    patch(actorId, { availabilityMessageId: message.id });
+    patch(actorId, { availabilityMessageId: message.id, availabilityChannelId: CHANNEL });
 }
 async function handle(interaction) {
     const id = interaction.customId || "";
@@ -112,12 +112,26 @@ async function handle(interaction) {
             return interaction.update(stepPayload(profile(actor)));
         }
         if (id === "welcome_community" && p.step === "community") {
-            patch(actor, { step: "guide" });
-            return interaction.update(stepPayload(profile(actor)));
+            busy.add(actor);
+            try {
+                await interaction.deferUpdate();
+                const result = await require("../utils/onboardingMembership").verify(interaction, p.robloxId);
+                if (!result.success) return interaction.editReply({ ...stepPayload(p), content: result.message });
+                patch(actor, { step: "guide", membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
+                return interaction.editReply(stepPayload(profile(actor)));
+            } finally { busy.delete(actor); }
         }
         if (id === "welcome_finish" && p.step === "guide") {
             await interaction.deferUpdate(); busy.add(actor);
             try {
+                if (!p.membershipVerifiedAt || p.membershipRobloxId !== p.robloxId) {
+                    const result = await require("../utils/onboardingMembership").verify(interaction, p.robloxId);
+                    if (!result.success) {
+                        patch(actor, { step: "community" });
+                        return interaction.editReply({ ...stepPayload(profile(actor)), content: result.message });
+                    }
+                    patch(actor, { membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
+                }
                 await publishAvailability(interaction.client, actor);
                 patch(actor, { step: "done", completedAt: Date.now() });
                 return await interaction.editReply(stepPayload(profile(actor)));
@@ -172,15 +186,12 @@ async function notifyRecruit(member) {
     if (member.guild.id !== IDENTITY.guildId) return;
     if (!read("welcomeNotifications")[member.id]?.recruitDmSent) {
         try {
-            await member.send(`🌸 Bienvenue dans Soul Society ! Rejoins notre communauté Roblox : ${ROBLOX.groupUrl}\nTa demande sera acceptée en temps voulu. Complète ton accueil et tes disponibilités vocales dans <#${CHANNEL}> avec /bienvenue ou le bouton du panel.`);
+            await member.send(`🌸 Bienvenue dans Soul Society ! Rejoins notre communauté Roblox : ${ROBLOX.groupUrl}\nUtilise /bienvenue sur le serveur : le bot vérifiera et acceptera ta demande d’adhésion. Ajoute T Soul Society ou T Soul à la fin de ton nom en jeu.`);
             update("welcomeNotifications", state => { state[member.id] = { ...state[member.id], recruitDmSent: true }; });
         } catch { console.warn("⚠️ MP de bienvenue indisponible ; lien accessible dans le parcours d’accueil."); }
     }
-    await notifyArrival(member).catch(error => console.error("❌ Message accueil :", error.message));
 }
 function register(client) {
-    client.once(Events.ClientReady, () => ensurePanel(client, CHANNEL, KEY, panelPayload()).catch(error => console.error("❌ Panel accueil :", error.message)));
-    client.on(Events.GuildMemberAdd, member => notifyArrival(member).catch(error => console.error("❌ Accueil membre :", error.message)));
     client.on(Events.InteractionCreate, async interaction => {
         try { await handle(interaction); }
         catch (error) {
@@ -193,3 +204,5 @@ function register(client) {
 }
 module.exports = register;
 Object.assign(module.exports, { start, handle, notifyRecruit, notifyArrival, panelPayload, stepPayload, birthday, CHANNEL, KEY });
+
+Object.assign(module.exports, { profile, patch, input, availabilityFields, AVAILABILITY, publishAvailability });

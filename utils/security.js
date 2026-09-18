@@ -52,7 +52,7 @@ module.exports = { hasBypass, hasAccessPermission, isProtectedUser, findProtecte
 async function blockUnauthorizedSlash(interaction) {
     const autocomplete = interaction.isAutocomplete?.();
     if (!autocomplete && !interaction.isChatInputCommand?.()) return false;
-    if (interaction.guildId && (hasBypass(interaction) || interaction.commandName === "bienvenue")) return false;
+    if (interaction.guildId && (hasBypass(interaction) || ["bienvenue", "mon-profil"].includes(interaction.commandName))) return false;
     if (autocomplete) await interaction.respond([]);
     else await interaction.reply({ content: "❌ Les commandes sont réservées à Aven, aux rôles bypass et à la fondation.", flags: MessageFlags.Ephemeral });
     return true;

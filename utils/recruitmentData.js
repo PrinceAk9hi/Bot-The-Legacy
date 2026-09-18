@@ -30,7 +30,7 @@ async function ensurePanel(client, channelId, key, payload) {
     } else {
         const recent = await channel.messages.fetch({ limit: 100 });
         message = recent.find(m => m.author.id === client.user.id && m.components.some(row =>
-            row.components.some(c => c.customId === key)));
+            row.components.some(c => c.customId === key || (key === "office_candidates" && c.customId?.startsWith("office_action_")))));
     }
     if (message && message.author.id !== client.user.id) throw new Error("Le panel enregistré appartient à un autre compte.");
     if (message) await message.edit(payload);

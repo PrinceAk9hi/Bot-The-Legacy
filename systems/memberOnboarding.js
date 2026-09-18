@@ -20,16 +20,20 @@ function button(id, label, style = ButtonStyle.Primary) { return new ButtonBuild
 function row(...buttons) { return new ActionRowBuilder().addComponents(...buttons); }
 function profile(actorId) { return read("welcomeProfiles")[actorId]; }
 function patch(actorId, changes) { update("welcomeProfiles", state => { state[actorId] = { ...state[actorId], ...changes, updatedAt: Date.now() }; }); }
+const INTRO = "Bienvenue ! Ce parcours te guide en cinq étapes :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n**2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : tes horaires pour chaque jour de la semaine.\n**4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n**5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
+function introPayload() {
+    return { content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🌸 Ton accueil Soul Society").setDescription(INTRO)], components: [row(button("welcome_begin", "Commencer / continuer"))], allowedMentions: { parse: [] } };
+}
 function panelPayload() {
     return { embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🌸 Bienvenue dans Soul Society")
-        .setDescription("Complète ton profil Discord, ton profil Roblox et tes disponibilités vocales, puis découvre la communauté et les salons. Tu peux aussi utiliser /bienvenue. Les informations personnelles du formulaire restent privées.")],
+        .setDescription(INTRO)],
         components: [row(button(KEY, "Commencer / reprendre mon accueil"))], allowedMentions: { parse: [] } };
 }
 function stepPayload(p) {
     const embed = new EmbedBuilder().setColor(COLORS.primary);
     let components;
     switch (p.step) {
-        case "profile": embed.setTitle("1/5 • Profil Discord").setDescription("Indique ton nom Discord, ton ID et ta date de naissance (JJ/MM/AAAA). L’ID est prérempli. Seule la direction peut renseigner le profil d’un autre membre."); components = [row(button("welcome_profile", "Renseigner mon profil"))]; break;
+        case "profile": embed.setTitle("1/5 • Profil Discord").setDescription("Indique ton nom Discord, ton ID et ta date de naissance (JJ/MM/AAAA), utilisée pour le rôle Joyeux anniversaire le jour de ton anniversaire. L’ID est prérempli. Seule la direction peut renseigner le profil d’un autre membre."); components = [row(button("welcome_profile", "Renseigner mon profil"))]; break;
         case "roblox": embed.setTitle("2/5 • Profil Roblox").setDescription("Indique ton nom et ton @ Roblox. Le bot recherchera le compte et enregistrera sa liaison avec ton profil Discord. Utilise le @ exact, pas uniquement le nom d’affichage."); components = [row(button("welcome_roblox", "Renseigner mon Roblox"))]; break;
         case "week": embed.setTitle("3/5 • Disponibilités vocales").setDescription("Renseigne tes horaires habituels du lundi au vendredi, avec ton fuseau horaire si nécessaire. Écris « indisponible » les jours où tu ne peux pas venir."); components = [row(button("welcome_week", "Lundi à vendredi"))]; break;
         case "weekend": embed.setTitle("3/5 • Disponibilités du week-end").setDescription("Il reste les disponibilités du samedi et du dimanche."); components = [row(button("welcome_weekend", "Samedi et dimanche"))]; break;
@@ -37,12 +41,12 @@ function stepPayload(p) {
         case "guide": embed.setTitle("5/5 • Les salons à connaître").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription("Ton profil est enregistré. Tu peux mettre tes informations et tes disponibilités à jour à tout moment."); components = [row(button("welcome_restart", "Mettre à jour mon profil"))];
     }
-    return { embeds: [embed], components, allowedMentions: { parse: [] } };
+    return { content: null, embeds: [embed], components, allowedMentions: { parse: [] } };
 }
 async function start(interaction) {
     if (interaction.guildId !== IDENTITY.guildId) return interaction.reply({ content: "Ce parcours est réservé au serveur Soul Society.", flags: MessageFlags.Ephemeral });
     if (!profile(interaction.user.id)) patch(interaction.user.id, { step: "profile", discordId: interaction.user.id, discordName: interaction.user.username });
-    return interaction.reply({ ...stepPayload(profile(interaction.user.id)), flags: MessageFlags.Ephemeral });
+    return interaction.reply({ ...introPayload(), flags: MessageFlags.Ephemeral });
 }
 function input(id, label, value = "", long = false, max = 100) {
     const field = new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(long ? TextInputStyle.Paragraph : TextInputStyle.Short).setRequired(true).setMaxLength(max);
@@ -79,6 +83,7 @@ async function handle(interaction) {
     const p = profile(actor);
     if (!p) return start(interaction);
     if (interaction.isButton()) {
+        if (id === "welcome_begin") return interaction.update(stepPayload(p));
         if (id === "welcome_restart") {
             patch(actor, { step: "profile" });
             return interaction.update(stepPayload(profile(actor)));
@@ -95,7 +100,7 @@ async function handle(interaction) {
                 return await interaction.editReply(stepPayload(profile(actor)));
             } finally { busy.delete(actor); }
         }
-        if (id !== "welcome_" + p.step) return interaction.reply({ ...stepPayload(p), flags: MessageFlags.Ephemeral });
+        if (id !== "welcome_" + p.step) return interaction.update(stepPayload(p));
         const modal = new ModalBuilder().setCustomId("welcome_submit_" + p.step).setTitle("Soul Society • " + (p.step === "profile" ? "Profil" : p.step === "roblox" ? "Roblox" : "Disponibilités"));
         if (p.step === "profile") modal.addComponents(input("name", "Nom Discord", p.discordName), input("discord", "ID Discord", p.discordId, false, 20), input("birth", "Date de naissance (JJ/MM/AAAA)", p.birthDate, false, 10));
         else if (p.step === "roblox") modal.addComponents(input("name", "Nom Roblox", p.robloxDisplayName), input("username", "@ Roblox exact", p.robloxUsername, false, 50));
@@ -104,25 +109,27 @@ async function handle(interaction) {
         return interaction.showModal(modal);
     }
     if (!interaction.isModalSubmit() || !id.startsWith("welcome_submit_")) return;
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    if (id !== "welcome_submit_" + p.step) return interaction.editReply({ content: "Ce formulaire a déjà été traité. Reprends ci-dessous.", ...stepPayload(p) });
+    // Modal opened from this personal page: acknowledge and edit that same message.
+    if (interaction.isFromMessage()) await interaction.deferUpdate();
+    else await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    if (id !== "welcome_submit_" + p.step) return interaction.editReply({ ...stepPayload(p), content: "Ce formulaire a déjà été traité. Reprends ci-dessous." });
     busy.add(actor);
     try {
         const field = name => interaction.fields.getTextInputValue(name).trim();
         if (p.step === "profile") {
             const discordId = field("discord");
-            if (!/^\d{17,20}$/.test(discordId)) return interaction.editReply("❌ ID Discord invalide. Rouvre le formulaire.");
-            if (discordId !== actor && !hasBypass(interaction)) return interaction.editReply("❌ Tu peux uniquement modifier ton propre profil. Demande à la direction pour corriger un autre compte.");
-            if (!birthday(field("birth"))) return interaction.editReply("❌ Date de naissance invalide. Utilise JJ/MM/AAAA.");
-            if (!await interaction.guild.members.fetch(discordId).catch(() => null)) return interaction.editReply("❌ Ce membre n’est pas présent sur le serveur.");
+            if (!/^\d{17,20}$/.test(discordId)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ ID Discord invalide. Rouvre le formulaire." });
+            if (discordId !== actor && !hasBypass(interaction)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Tu peux uniquement modifier ton propre profil. Demande à la direction pour corriger un autre compte." });
+            if (!birthday(field("birth"))) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Date de naissance invalide. Utilise JJ/MM/AAAA." });
+            if (!await interaction.guild.members.fetch(discordId).catch(() => null)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Ce membre n’est pas présent sur le serveur." });
             patch(actor, { discordId, discordName: field("name"), birthDate: field("birth"), step: "roblox",
                 ...(discordId !== p.discordId ? { robloxUsername: null, robloxDisplayName: null, robloxId: null, availability: {}, availabilityMessageId: null } : {}) });
         } else if (p.step === "roblox") {
             // An API lookup validates the account's existence; this is a declared association, not proof of ownership.
             const result = await findRobloxUserByUsername(field("username"));
-            if (!result.success) return interaction.editReply("❌ Compte Roblox introuvable ou API indisponible. Vérifie le @ et réessaie depuis le bouton.");
+            if (!result.success) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Compte Roblox introuvable ou API indisponible. Vérifie le @ et réessaie depuis le bouton." });
             const other = getDiscordLinkByRobloxId(result.user.id);
-            if (other && other.discordUserId !== p.discordId && !hasBypass(interaction)) return interaction.editReply("❌ Ce compte Roblox est déjà lié à un autre Discord. Contacte l’équipe.");
+            if (other && other.discordUserId !== p.discordId && !hasBypass(interaction)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Ce compte Roblox est déjà lié à un autre Discord. Contacte l’équipe." });
             setRobloxLink({ discordUserId: p.discordId, robloxUserId: result.user.id, robloxUsername: result.user.username, source: "bienvenue-declaration" });
             patch(actor, { robloxDisplayName: field("name"), robloxUsername: result.user.username, robloxId: result.user.id, step: "week" });
         } else if (["week", "weekend"].includes(p.step)) {
@@ -158,7 +165,7 @@ function register(client) {
         try { await handle(interaction); }
         catch (error) {
             console.error("❌ Parcours accueil :", error.message);
-            const payload = { content: "❌ L’enregistrement n’a pas abouti. Réessaie avec /bienvenue ; les étapes enregistrées sont conservées." };
+            const payload = { ...(profile(interaction.user.id) ? stepPayload(profile(interaction.user.id)) : introPayload()), content: "❌ L’enregistrement n’a pas abouti. Réessaie depuis cette page ; les étapes enregistrées sont conservées." };
             if (interaction.deferred) await interaction.editReply(payload).catch(() => {});
             else if (!interaction.replied) await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral }).catch(() => {});
         }

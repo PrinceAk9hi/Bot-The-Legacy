@@ -1462,7 +1462,7 @@ function registerRecruitmentSystem(
 
     client.on(
         Events.InteractionCreate,
-        async interaction => {
+        client.handleRecruitmentInteraction = async interaction => {
             if (interaction.customId?.startsWith("entretien_") && !/^entretien_(candidature|sanctions)_/.test(interaction.customId) && !recruteurAutorise(interaction.member)) {
                 return interaction.reply({ content: "❌ Action réservée à l’équipe de recrutement.", flags: MessageFlags.Ephemeral });
             }

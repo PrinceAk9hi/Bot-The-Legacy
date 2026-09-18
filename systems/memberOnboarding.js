@@ -7,6 +7,21 @@ const { getDiscordLinkByRobloxId, setRobloxLink } = require("../utils/robloxLink
 const CHANNEL = "1540836643433615360";
 const KEY = "welcome_start";
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const AVAILABILITY = {
+    week: { none: "Pas disponible", short: "1h à 3h", always: "Tout le temps disponible", alternating: "Horaire de travail alternante" },
+    weekend: { all: "Disponible tout le weekend", medium: "Uniquement 3 à 4h", short: "1h maximum" }
+};
+function availabilityRow(period) {
+    return row(...Object.entries(AVAILABILITY[period]).map(([value, label]) => button('welcome_avail_' + period + '_' + value, label)));
+}
+function availabilityFields(p) {
+    // Keep old daily entries readable without overwriting existing profiles.
+    const old = days => days.map(day => day + ' : ' + (p.availability?.[day] || 'Non renseigné')).join('\n').slice(0, 1024);
+    return [
+        { name: "Semaine", value: AVAILABILITY.week[p.availabilityChoices?.week] || old(DAYS.slice(0, 5)) },
+        { name: "Week-end", value: AVAILABILITY.weekend[p.availabilityChoices?.weekend] || old(DAYS.slice(5)) }
+    ];
+}
 const GUIDE = [
     ["Report sanction", "Déclare toute nouvelle sanction reçue en jeu. Une sanction non déclarée peut entraîner une sanction plus lourde."],
     ["Convocation", "Ce salon sert à convoquer un membre de la famille en cas de problème ou de question."],
@@ -20,7 +35,7 @@ function button(id, label, style = ButtonStyle.Primary) { return new ButtonBuild
 function row(...buttons) { return new ActionRowBuilder().addComponents(...buttons); }
 function profile(actorId) { return read("welcomeProfiles")[actorId]; }
 function patch(actorId, changes) { update("welcomeProfiles", state => { state[actorId] = { ...state[actorId], ...changes, updatedAt: Date.now() }; }); }
-const INTRO = "Bienvenue ! Ce parcours te guide en cinq étapes :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n**2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : tes horaires pour chaque jour de la semaine.\n**4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n**5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
+const INTRO = "Bienvenue ! Ce parcours te guide en cinq étapes :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n**2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : un choix pour la semaine, puis un choix pour le week-end.\n**4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n**5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
 function introPayload() {
     return { content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🌸 Ton accueil Soul Society").setDescription(INTRO)], components: [row(button("welcome_begin", "Commencer / continuer"))], allowedMentions: { parse: [] } };
 }
@@ -35,8 +50,8 @@ function stepPayload(p) {
     switch (p.step) {
         case "profile": embed.setTitle("1/5 • Profil Discord").setDescription("Indique ton nom Discord, ton ID et ta date de naissance (JJ/MM/AAAA), utilisée pour le rôle Joyeux anniversaire le jour de ton anniversaire. L’ID est prérempli. Seule la direction peut renseigner le profil d’un autre membre."); components = [row(button("welcome_profile", "Renseigner mon profil"))]; break;
         case "roblox": embed.setTitle("2/5 • Profil Roblox").setDescription("Indique ton nom et ton @ Roblox. Le bot recherchera le compte et enregistrera sa liaison avec ton profil Discord. Utilise le @ exact, pas uniquement le nom d’affichage."); components = [row(button("welcome_roblox", "Renseigner mon Roblox"))]; break;
-        case "week": embed.setTitle("3/5 • Disponibilités vocales").setDescription("Renseigne tes horaires habituels du lundi au vendredi, avec ton fuseau horaire si nécessaire. Écris « indisponible » les jours où tu ne peux pas venir."); components = [row(button("welcome_week", "Lundi à vendredi"))]; break;
-        case "weekend": embed.setTitle("3/5 • Disponibilités du week-end").setDescription("Il reste les disponibilités du samedi et du dimanche."); components = [row(button("welcome_weekend", "Samedi et dimanche"))]; break;
+        case "week": embed.setTitle("3/5 • Disponibilités en semaine").setDescription("Choisis la proposition qui correspond à tes disponibilités habituelles en semaine."); components = [availabilityRow("week")]; break;
+        case "weekend": embed.setTitle("3/5 • Disponibilités le week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
         case "community": embed.setTitle("4/5 • Communauté Roblox").setDescription(`Rejoins la communauté **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nTa demande sera acceptée en temps voulu par l’équipe. Le bot ne valide pas automatiquement ton admission.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "J’ai lu, continuer"))]; break;
         case "guide": embed.setTitle("5/5 • Les salons à connaître").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription("Ton profil est enregistré. Tu peux mettre tes informations et tes disponibilités à jour à tout moment."); components = [row(button("welcome_restart", "Mettre à jour mon profil"))];
@@ -65,7 +80,7 @@ async function publishAvailability(client, actorId) {
     const channel = await client.channels.fetch(CHANNEL);
     const payload = { embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("📅 Disponibilités vocales")
         .setDescription(`<@${p.discordId}> • @${p.robloxUsername}`)
-        .addFields(DAYS.map(day => ({ name: day, value: p.availability[day] || "Non renseigné" })))], allowedMentions: { parse: [] } };
+        .addFields(availabilityFields(p))], allowedMentions: { parse: [] } };
     let message;
     if (p.availabilityMessageId) {
         try { message = await channel.messages.fetch(p.availabilityMessageId); }
@@ -83,6 +98,14 @@ async function handle(interaction) {
     const p = profile(actor);
     if (!p) return start(interaction);
     if (interaction.isButton()) {
+        if (id.startsWith("welcome_avail_")) {
+            const [, , period, value] = id.split("_");
+            if (period !== p.step || !Object.hasOwn(AVAILABILITY[period] || {}, value)) return interaction.update(stepPayload(p));
+            patch(actor, { availabilityChoices: { ...p.availabilityChoices, [period]: value }, step: period === "week" ? "weekend" : "community" });
+            return interaction.update(stepPayload(profile(actor)));
+        }
+        // A button from a page opened before deployment now displays the new choices.
+        if (["welcome_week", "welcome_weekend"].includes(id)) return interaction.update(stepPayload(p));
         if (id === "welcome_begin") return interaction.update(stepPayload(p));
         if (id === "welcome_restart") {
             patch(actor, { step: "profile" });
@@ -104,7 +127,6 @@ async function handle(interaction) {
         const modal = new ModalBuilder().setCustomId("welcome_submit_" + p.step).setTitle("Soul Society • " + (p.step === "profile" ? "Profil" : p.step === "roblox" ? "Roblox" : "Disponibilités"));
         if (p.step === "profile") modal.addComponents(input("name", "Nom Discord", p.discordName), input("discord", "ID Discord", p.discordId, false, 20), input("birth", "Date de naissance (JJ/MM/AAAA)", p.birthDate, false, 10));
         else if (p.step === "roblox") modal.addComponents(input("name", "Nom Roblox", p.robloxDisplayName), input("username", "@ Roblox exact", p.robloxUsername, false, 50));
-        else if (["week", "weekend"].includes(p.step)) for (const day of (p.step === "week" ? DAYS.slice(0,5) : DAYS.slice(5))) modal.addComponents(input(day.toLowerCase(), day, p.availability?.[day], true, 300));
         else return;
         return interaction.showModal(modal);
     }
@@ -123,7 +145,7 @@ async function handle(interaction) {
             if (!birthday(field("birth"))) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Date de naissance invalide. Utilise JJ/MM/AAAA." });
             if (!await interaction.guild.members.fetch(discordId).catch(() => null)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Ce membre n’est pas présent sur le serveur." });
             patch(actor, { discordId, discordName: field("name"), birthDate: field("birth"), step: "roblox",
-                ...(discordId !== p.discordId ? { robloxUsername: null, robloxDisplayName: null, robloxId: null, availability: {}, availabilityMessageId: null } : {}) });
+                ...(discordId !== p.discordId ? { robloxUsername: null, robloxDisplayName: null, robloxId: null, availability: {}, availabilityChoices: {}, availabilityMessageId: null } : {}) });
         } else if (p.step === "roblox") {
             // An API lookup validates the account's existence; this is a declared association, not proof of ownership.
             const result = await findRobloxUserByUsername(field("username"));
@@ -133,9 +155,7 @@ async function handle(interaction) {
             setRobloxLink({ discordUserId: p.discordId, robloxUserId: result.user.id, robloxUsername: result.user.username, source: "bienvenue-declaration" });
             patch(actor, { robloxDisplayName: field("name"), robloxUsername: result.user.username, robloxId: result.user.id, step: "week" });
         } else if (["week", "weekend"].includes(p.step)) {
-            const availability = { ...p.availability };
-            for (const day of (p.step === "week" ? DAYS.slice(0,5) : DAYS.slice(5))) availability[day] = field(day.toLowerCase());
-            patch(actor, { availability, step: p.step === "week" ? "weekend" : "community" });
+            return interaction.editReply({ ...stepPayload(p), content: "Les disponibilités se choisissent maintenant avec les boutons ci-dessous." });
         }
         return await interaction.editReply(stepPayload(profile(actor)));
     } finally { busy.delete(actor); }

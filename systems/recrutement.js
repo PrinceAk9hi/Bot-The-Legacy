@@ -1,3 +1,4 @@
+const { inOffice, OFFICE_MESSAGE } = require("../utils/soulActivityHelpers");
 const { syncSoulMember } = require("../utils/syncSoulMember");
 const { hasBypass } = require("../utils/security");
 
@@ -1413,33 +1414,21 @@ async function envoyerNouvelleRecrue(
     }
 
     await salon.send({
-        content:
-            "<@&1513698444588482650>",
-
+        content: "<@&1513698444588482650>",
+        allowedMentions: { parse: [], roles: ["1513698444588482650"] },
         embeds: [
             new EmbedBuilder()
-                .setColor(
-                    COLORS.accepte
-                )
-                .setTitle(
-                    "Nouvelle recrue ! <:Soul_Society:1548783936010977380>"
-                )
+                .setColor(COLORS.accepte)
+                .setTitle("🌸 Une nouvelle âme rejoint le Seireitei ! 🌸")
                 .setDescription(
-`Félicitations à <@${membre.id}>, qui rejoint désormais **Soul Society** en tant que **Membre Test** !
+`Merci d’accueillir chaleureusement <@${membre.id}>, qui vient d’obtenir son rôle de **Membre test**.
 
-<a:speaker:1548785378276810844> **Première étape : tape /bienvenue dans le serveur et termine ton parcours d’accueil pour accéder à l’ensemble des fonctions de la famille !**
+📜 **Chaque Shinigami est prié de répondre à ce message pour lui souhaiter la bienvenue.**
+⚠️ Toute personne concernée qui n’aurait pas souhaité la bienvenue **s’exposera à une sanction**.
 
-**Ton aventure commence aujourd'hui.** Durant cette période d'observation, tu auras l'occasion de démontrer ton sérieux, ton implication et ta capacité à représenter les valeurs qui font la réputation de notre héritage.
+<a:speaker:1548785378276810844> **Pour toi qui nous rejoins : tape /bienvenue dans le serveur et termine ton parcours d’accueil pour accéder à l’ensemble des fonctions de la famille !**
 
-**Fais preuve de loyauté, de respect, de discrétion et de discipline.** Chaque action compte, et chaque étape te rapproche de ta place parmi les membres.
-
-> Nous attendons de la part de l'ensemble des membres, un accueil chaleureux, et que vous l'intégriez correctement !
-
-Bienvenue dans Soul Society. Que ton histoire commence.
-
-> PS : Nous rappelons que nous demandons une très forte activité vocale !
-
--# By <@&1471546243653304392> & <@&1504782476319526932> & <@&1527996778727870496> & <@&1473356789453029376>`
+Que ton parcours parmi nous soit riche et honorable. ⚔️🌸`
                 )
         ]
     });
@@ -1494,6 +1483,7 @@ function registerRecruitmentSystem(
     client.on(
         Events.InteractionCreate,
         client.handleRecruitmentInteraction = async interaction => {
+            if (interaction.customId?.startsWith("entretien_") && !inOffice(interaction)) return interaction.reply({content: OFFICE_MESSAGE, flags: MessageFlags.Ephemeral});
             if (interaction.customId?.startsWith("entretien_") && !/^entretien_(candidature|sanctions)_/.test(interaction.customId) && !recruteurAutorise(interaction.member)) {
                 return interaction.reply({ content: "❌ Action réservée à l’équipe de recrutement.", flags: MessageFlags.Ephemeral });
             }
@@ -2878,7 +2868,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
 **Discord :** <@${candidateId}>
 **ID Discord :** \`${candidateId}\`
-**@ Roblox :** ${candidature.formVersion === 3 ? candidature.answers.question8 : candidature.answers.question1}`
+**@ Roblox :** ${candidature.answers.question8 || "Non renseigné à la question 8"}`
                             )
                             .setTimestamp()
                     ],

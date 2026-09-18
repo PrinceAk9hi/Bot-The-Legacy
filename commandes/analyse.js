@@ -1,3 +1,4 @@
+const { build: buildActivityAnalysis } = require("../utils/activityAnalysis");
 const { ROLES } = require("../config/soulSociety");
 const { MAIN_RANKS } = require("../config/ranks");
 
@@ -1399,11 +1400,8 @@ ${evaluation.explanation}
 
                     .setTimestamp();
 
-            return interaction.editReply({
-                embeds: [
-                    embed
-                ]
-            });
+            const activityDetails = await buildActivityAnalysis(interaction.client, member);
+            return interaction.editReply({ embeds: [embed, activityDetails] });
 
         } catch (error) {
             console.error(

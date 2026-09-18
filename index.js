@@ -604,6 +604,7 @@ registerLogsSystem(
 
 require("./systems/memberOnboarding")(client);
 require("./systems/interviewPanel")(client);
+require("./systems/soulActivity")(client);
 
 // Candidatures
 registerRecruitmentSystem(
@@ -3450,6 +3451,7 @@ client.once(
 // ======================================================
 
 function saveBeforeExit() {
+    try { client.soulActivity?.save(); } catch { console.error("❌ Sauvegarde activité datée impossible."); }
     try {
         client.saveControlStates();
 
@@ -3461,6 +3463,7 @@ function saveBeforeExit() {
     }
 
     try {
+        client.soulActivity?.save();
         if (
             typeof client.activityStats
                 ?.save ===

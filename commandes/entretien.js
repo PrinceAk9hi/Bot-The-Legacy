@@ -1,3 +1,4 @@
+const { inOffice, OFFICE_MESSAGE } = require("../utils/soulActivityHelpers");
 const { QUESTION_BUTTON_ID } = require("../utils/interviewQuestions");
 const { hasBypass } = require("../utils/security");
 
@@ -40,6 +41,7 @@ module.exports = {
     },
 
     async openPanel(interaction, targetUserId, publicPanel = false) {
+        if (!inOffice(interaction)) return interaction.reply({content: OFFICE_MESSAGE, flags: MessageFlags.Ephemeral});
 
         // ======================================================
         // DEBUG TEMPORAIRE

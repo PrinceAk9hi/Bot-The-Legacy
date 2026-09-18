@@ -1,3 +1,4 @@
+const { payload: questionsPayload, QUESTION_BUTTON_ID } = require("../utils/interviewQuestions");
 const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { IDENTITY, ROLES, COLORS } = require("../config/soulSociety");
 const { hasBypass } = require("../utils/security");
@@ -17,6 +18,7 @@ const active = new Set();
 function payload() {
     const buttons = Object.entries(ACTIONS).map(([action, [label, emoji, style]]) =>
         new ButtonBuilder().setCustomId("office_action_" + action).setLabel(label).setEmoji(emoji).setStyle(style));
+    buttons.push(new ButtonBuilder().setCustomId(QUESTION_BUTTON_ID).setLabel("Questions").setEmoji("📋").setStyle(ButtonStyle.Secondary));
     return {
         embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🎓 Panel d’entretien • Soul Society")
             .setDescription("Rejoins le vocal du candidat et utilise directement les boutons ci-dessous. Le bot repère automatiquement les membres en attente d’entretien. Si plusieurs candidats sont présents, il te demande lequel traiter.\n\nCe panel reste disponible en permanence. Les décisions, déplacements et comptes-rendus sont réservés à l’équipe de recrutement.")],
@@ -34,7 +36,9 @@ function privateReply(interaction, content) {
     return interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
 }
 async function handle(interaction) {
-    if (interaction.guildId !== IDENTITY.guildId || interaction.channelId !== CHANNEL) return;
+    if (interaction.guildId !== IDENTITY.guildId) return;
+    if (interaction.isButton() && interaction.customId === QUESTION_BUTTON_ID) return interaction.reply(questionsPayload());
+    if (interaction.channelId !== CHANNEL) return;
     const id = interaction.customId || "";
     let action, selection = false;
     if (interaction.isButton() && id.startsWith("office_action_")) action = id.slice("office_action_".length);

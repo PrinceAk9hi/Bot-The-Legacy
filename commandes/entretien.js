@@ -1,3 +1,4 @@
+const { QUESTION_BUTTON_ID } = require("../utils/interviewQuestions");
 const { hasBypass } = require("../utils/security");
 
 const {
@@ -310,6 +311,8 @@ module.exports = {
                 );
 
         // ======================================================
+        ligne2.addComponents(new ButtonBuilder().setCustomId(QUESTION_BUTTON_ID).setLabel("Questions").setEmoji("📋").setStyle(ButtonStyle.Secondary));
+
         // DEBUG DES BOUTONS
         // ======================================================
 
@@ -340,7 +343,7 @@ module.exports = {
                 embed
             ],
 
-            components: autorise ? [ligne1, ligne2] : [new ActionRowBuilder().addComponents(ligne2.components[2])]
+            components: autorise ? [ligne1, ligne2] : [new ActionRowBuilder().addComponents(ligne2.components[2], ligne2.components[3])]
         });
     }
 };

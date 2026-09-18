@@ -1,3 +1,7 @@
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -16,19 +20,24 @@ const {
 // ======================================================
 
 const MEMBER_ROLE_ID =
-    "1458391977073574012";
+    "1513698444588482650";
 
 const ALLOWED_ROLES = [
-    "1458414705717805189", // Fondateur
-    "1467277541696868412", // Souverain
-    "1531760308761133229"  // Responsable Sanctions
+    "1471546243653304392",
+
+    "1504782476319526932", // Fondateur
+    "1527996778727870496", // Souverain
+    "1471889647570260030"  // Responsable Sanctions
 ];
 
 // ======================================================
 // PERMISSIONS
 // ======================================================
 
-function hasPermission(member) {
+function hasPermission(subject) {
+    const member = subject.member || subject;
+    if (hasBypass(subject)) return true;
+
     return ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(
@@ -140,7 +149,7 @@ module.exports = {
                 "seelink"
             )
             .setDescription(
-                "Vérifier les comptes Roblox reliés des membres Legacy"
+                "Vérifier les comptes Roblox reliés des membres Society"
             ),
 
     async execute(interaction) {
@@ -156,7 +165,7 @@ module.exports = {
 
             if (
                 !hasPermission(
-                    interaction.member
+                    interaction
                 )
             ) {
                 return interaction.editReply({
@@ -181,7 +190,7 @@ module.exports = {
             const embed =
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         "🔗 Vérification des comptes Roblox"
@@ -222,7 +231,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Liaison Roblox"
+                            "Soul Society • Liaison Roblox"
                     })
                     .setTimestamp();
 
@@ -235,7 +244,7 @@ module.exports = {
                     .addComponents(
                         new ButtonBuilder()
                             .setCustomId(
-                                "legacy_link_all"
+                                "soul_link_all"
                             )
                             .setLabel(
                                 "Link All"

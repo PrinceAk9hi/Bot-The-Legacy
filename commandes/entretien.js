@@ -1,3 +1,5 @@
+const { hasBypass } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -8,9 +10,12 @@ const {
 } = require("discord.js");
 
 const ROLES_AUTORISES = [
-    "1532085431947100281", // Responsable recrutements
-    "1458394180651843635", // Gestion recrutements
-    "1467924663337222196"  // Fondation
+    "1473356789453029376",
+    "1469803353964810250",
+    "1522357970778718249",
+    "1471546243653304392",
+    "1504782476319526932",
+    "1527996778727870496"
 ];
 
 module.exports = {
@@ -30,6 +35,10 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        return module.exports.openPanel(interaction, interaction.options.getUser("membre").id);
+    },
+
+    async openPanel(interaction, targetUserId, publicPanel = false) {
 
         // ======================================================
         // DEBUG TEMPORAIRE
@@ -51,14 +60,14 @@ module.exports = {
         // PERMISSIONS
         // ======================================================
 
-        const autorise =
+        const autorise = hasBypass(interaction) ||
             ROLES_AUTORISES.some(roleId =>
                 interaction.member.roles.cache.has(
                     roleId
                 )
             );
 
-        if (!autorise) {
+        if (!autorise && !publicPanel) {
             return interaction.reply({
                 content:
                     "❌ Tu n'as pas la permission d'utiliser cette commande.",
@@ -71,7 +80,7 @@ module.exports = {
         // RÉPONSE DIFFÉRÉE
         // ======================================================
 
-        await interaction.deferReply({
+        if (!interaction.deferred && !interaction.replied) await interaction.deferReply({
             flags:
                 MessageFlags.Ephemeral
         });
@@ -80,10 +89,7 @@ module.exports = {
         // MEMBRE
         // ======================================================
 
-        const user =
-            interaction.options.getUser(
-                "membre"
-            );
+        const user = { id: targetUserId };
 
         const membre =
             await interaction.guild.members
@@ -290,10 +296,10 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `entretien_sanctions_${ownerId}_${targetId}`
+                            `entretien_candidature_${ownerId}_${targetId}`
                         )
                         .setLabel(
-                            "Voir sanctions"
+                            "Voir candidature"
                         )
                         .setEmoji(
                             "⚖️"
@@ -334,10 +340,7 @@ module.exports = {
                 embed
             ],
 
-            components: [
-                ligne1,
-                ligne2
-            ]
+            components: autorise ? [ligne1, ligne2] : [new ActionRowBuilder().addComponents(ligne2.components[2])]
         });
     }
 };

@@ -1,3 +1,11 @@
+const { blockUnauthorizedSlash } = require("./utils/security");
+const { normalizeComponentId, migrateDataDirectory } = require("./utils/soulMigration");
+migrateDataDirectory(require("path").join(__dirname, "data"));
+
+const { hasBypass: soulHasBypass } = require("./utils/security");
+const { RANK_ALLOWED_ROLES: SOUL_CONTROL_ROLES } = require("./config/ranks");
+const { isProtectedUser, findProtectedTarget } = require("./utils/security");
+
 require("dotenv").config();
 
 // ======================================================
@@ -93,10 +101,7 @@ const registerTicketSystem =
 // MANAGE ROLE
 // ======================================================
 
-const {
-    registerManageRoleSystem
-} =
-    require("./systems/manageRoles");
+
 
 // ======================================================
 // SURVEILLANCE TAG SERVEUR
@@ -121,26 +126,7 @@ const {
 // COMPTES PROTÉGÉS
 // ======================================================
 
-const PROTECTED_USER_IDS =
-    new Set([
-        "547192186547077130",
-        "883087428016046150"
-    ]);
-
-function isProtectedUser(
-    userId
-) {
-    return (
-        Boolean(
-            userId
-        ) &&
-        PROTECTED_USER_IDS.has(
-            String(
-                userId
-            )
-        )
-    );
-}
+const PROTECTED_USER_IDS = new Set(require("./config/soulSociety").SECURITY.protectedUserIds);
 
 // ======================================================
 // CLIENT
@@ -166,6 +152,10 @@ const client =
 // ======================================================
 // STOCKAGES
 // ======================================================
+
+client.prependListener(Events.InteractionCreate, interaction => {
+    if (interaction.customId) interaction.customId = normalizeComponentId(interaction.customId);
+});
 
 client.commands =
     new Collection();
@@ -316,7 +306,7 @@ function loadCommands() {
             );
 
             commandsJSON.push(
-                command.data.toJSON()
+                { ...command.data.toJSON(), default_member_permissions: null }
             );
 
             console.log(
@@ -438,56 +428,33 @@ function registerCommandSystems() {
     // TRIBUNAL
     // ==================================================
 
-    try {
-        const tribunal =
-            getCommandModule(
-                "tribunal"
-            )
-                ?.tribunalSystem;
 
-        tribunal
+
+    // ==================================================
+    // SOUL GAMES
+    // ==================================================
+
+    try {
+        const soulGames =
+            getCommandModule(
+                "soulgames"
+            )
+                ?.soulGamesSystem;
+
+        soulGames
             ?.register
             ?.(client);
 
         if (
-            tribunal
+            soulGames
         ) {
-            client.tribunalSystem =
-                tribunal;
+            client.soulGamesSystem =
+                soulGames;
         }
 
     } catch (error) {
         console.error(
-            "❌ Register Tribunal :",
-            error
-        );
-    }
-
-    // ==================================================
-    // LEGACY GAMES
-    // ==================================================
-
-    try {
-        const legacyGames =
-            getCommandModule(
-                "legacygames"
-            )
-                ?.legacyGamesSystem;
-
-        legacyGames
-            ?.register
-            ?.(client);
-
-        if (
-            legacyGames
-        ) {
-            client.legacyGamesSystem =
-                legacyGames;
-        }
-
-    } catch (error) {
-        console.error(
-            "❌ Register Legacy Games :",
+            "❌ Register Soul Games :",
             error
         );
     }
@@ -635,6 +602,9 @@ registerLogsSystem(
     client
 );
 
+require("./systems/memberOnboarding")(client);
+require("./systems/interviewPanel")(client);
+
 // Candidatures
 registerRecruitmentSystem(
     client
@@ -651,9 +621,7 @@ registerTicketSystem(
 );
 
 // ManageRole
-registerManageRoleSystem(
-    client
-);
+
 
 // Vocal recrutement
 registerRecruitmentVoiceSystem(
@@ -666,9 +634,7 @@ registerTempVoiceSystem(
 );
 
 // Roblox
-registerRobloxLinkPanel(
-    client
-);
+// Panel Roblox désactivé ; liaison par commandes conservée.
 
 // Stats
 registerActivityStats(
@@ -695,64 +661,8 @@ try {
 // PROTECTION OPTIONS SLASH
 // ======================================================
 
-function findProtectedUserInOptions(
-    options
-) {
-    if (
-        !Array.isArray(
-            options
-        )
-    ) {
-        return null;
-    }
-
-    for (
-        const option
-        of options
-    ) {
-        if (
-            Array.isArray(
-                option.options
-            )
-        ) {
-            const nested =
-                findProtectedUserInOptions(
-                    option.options
-                );
-
-            if (
-                nested
-            ) {
-                return nested;
-            }
-        }
-
-        if (
-            option.type ===
-                ApplicationCommandOptionType.User &&
-            isProtectedUser(
-                option.value
-            )
-        ) {
-            return String(
-                option.value
-            );
-        }
-
-        if (
-            option.type ===
-                ApplicationCommandOptionType.Mentionable &&
-            isProtectedUser(
-                option.value
-            )
-        ) {
-            return String(
-                option.value
-            );
-        }
-    }
-
-    return null;
+function findProtectedUserInOptions(options, action = "") {
+    return findProtectedTarget(options, action);
 }
 
 // ======================================================
@@ -763,7 +673,7 @@ async function replyProtected(
     interaction
 ) {
     const content =
-        "🛡️ **Ce membre est protégé.** Aucune commande ou action du bot ne peut être utilisée sur ce compte.";
+        "🛡️ **Ce membre est protégé.** Cette action ne peut pas être utilisée sur ce compte.";
 
     try {
         if (
@@ -1049,6 +959,9 @@ async function getUserPanelMembers(
     ownerId,
     targetId
 ) {
+    if (!soulHasBypass(interaction) && !SOUL_CONTROL_ROLES.some(id => interaction.member.roles.cache.has(id))) {
+        return { success: false, error: "NOT_AUTHORIZED" };
+    }
     if (
         interaction.user.id !==
         ownerId
@@ -2026,10 +1939,7 @@ async function routeCommandButton(
     const modules = [
         "wanted",
         "ship",
-        "union",
-        "managerole",
-        "tribunal",
-        "legacygames",
+        "union",        "soulgames",
         "imposteur",
         "loupgarou"
     ];
@@ -2151,12 +2061,8 @@ async function routeCommandSelect(
     // AUTRES COMMANDES
     // ==================================================
 
-    const modules = [
-        "managerole",
-        "legacygames",
-        "imposteur",
-        "tribunal",
-        "loupgarou"
+    const modules = [        "soulgames",
+        "imposteur",        "loupgarou"
     ];
 
     for (
@@ -2273,9 +2179,7 @@ async function routeCommandModal(
     }
 
     const modules = [
-        "legacygames",
-        "tribunal",
-        "imposteur",
+        "soulgames",        "imposteur",
         "loupgarou"
     ];
 
@@ -2342,6 +2246,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
+            if (await blockUnauthorizedSlash(interaction)) return;
             // ==================================================
             // AUTOCOMPLETE
             // ==================================================
@@ -2473,7 +2378,7 @@ client.on(
 
             // ==================================================
             // SELECT MENUS COMMANDES
-            // IMPORTANT : ROLE SELECT POUR /MANAGEROLE
+            // SELECT MENUS DES COMMANDES
             // ==================================================
 
             if (
@@ -2599,9 +2504,7 @@ client.on(
             // ==================================================
 
             const protectedTarget =
-                findProtectedUserInOptions(
-                    interaction.options.data
-                );
+                findProtectedUserInOptions(interaction.options.data, interaction.commandName);
 
             if (
                 protectedTarget
@@ -3343,14 +3246,7 @@ client.once(
             // MANAGE ROLE
             // ==================================================
 
-            console.log(
-                "🧩 /managerole :",
-                client.commands.has(
-                    "managerole"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
+            
 
             // ==================================================
             // AUTRES SYSTÈMES
@@ -3383,19 +3279,12 @@ client.once(
                     : "❌ absent"
             );
 
-            console.log(
-                "⚖️ Tribunal :",
-                client.commands.has(
-                    "tribunal"
-                )
-                    ? "✅ chargé"
-                    : "❌ absent"
-            );
+            
 
             console.log(
-                "🎮 Legacy Games :",
+                "🎮 Soul Games :",
                 client.commands.has(
-                    "legacygames"
+                    "soulgames"
                 )
                     ? "✅ chargé"
                     : "❌ absent"
@@ -3523,12 +3412,7 @@ client.once(
                 "🎫 Système tickets : ✅ actif"
             );
 
-            console.log(
-                "🧩 Automatisation des rôles :",
-                client.manageRoleSystem
-                    ? "✅ active"
-                    : "❌ absente"
-            );
+            
 
             // ==================================================
             // SURVEILLANCE TAG SERVEUR

@@ -1,3 +1,8 @@
+const { syncSoulMember } = require("../utils/syncSoulMember");
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -21,55 +26,45 @@ const {
 // ======================================================
 
 const CONFIG = {
-    responsableRecrutement:
-        "1532085431947100281",
 
     gestionRecrutement:
-        "1458394180651843635",
+        "1473356789453029376",
 
-    fondation:
+    direction:
         "1467924663337222196",
 
     rolesEntretienAccepte: [
-        "1458391977073574012",
-        "1531761113933414542"
+        "1513698444588482650",
+        "1468701337243090954"
     ],
 
     roleCandidatureAcceptee:
-        "1458430688058671247",
-
-    roleRefuse:
-        "1458430849778319360",
+        "1468703799995666636",
 
     attenteEntretien:
-        "1458501376702414848",
+        "1468699345443356885",
 
     categorieTickets:
-        "1521890784725700760",
+        "1477270568611876934",
 
     salonNouvelleRecrue:
-        "1533649548646551593",
+        "1471562633802023115",
 
     salonFormulaires:
-        "1540160337230303302",
+        "1550247801437290607",
 
     salonDDS:
-        "1540155393693450291",
+        "1550248050226892810",
 
-    salonReponseDDS:
-        "1540163216141983796",
+    gestionRequete: "1550252288365436998",
 
     salonLogs:
-        "1459682840915476628",
+        "1468699236475474032",
 
     salonCR:
-        "1498087019459510332",
+        "1550241655255203921",
 
-    ownerId:
-        "547192186547077130",
-
-    salonAnnonceEntretiens:
-        "1534199749673091284"
+    ownerId: "547192186547077130"
 };
 
 // ======================================================
@@ -88,13 +83,13 @@ const REFUSED_CHECK_INTERVAL =
 
 const COLORS = {
     attente:
-        0x2B2D31,
+        SOUL_COLORS.primary,
 
     accepte:
-        0x57F287,
+        SOUL_COLORS.success,
 
     refuse:
-        0xED4245
+        SOUL_COLORS.error
 };
 
 // ======================================================
@@ -173,128 +168,64 @@ function sauvegarderCandidatures(
 
 const QUESTIONS = [
     {
-        key:
-            "question1",
-
-        titre:
-            "Question 1",
-
-        texte:
-            "> @ Roblox :"
+        "key": "question1",
+        "titre": "Question 1",
+        "texte": "Votre âge IRL ?"
     },
-
     {
-        key:
-            "question2",
-
-        titre:
-            "Question 2",
-
-        texte:
-`> Présentation (Prénom IRL, âge, les passions qui t'animent, 2 défauts et 2 qualités) :
-
-> -# 3 à 5 lignes attendues !`
+        "key": "question2",
+        "titre": "Question 2",
+        "texte": "Depuis combien de temps jouez-vous à School RP (en minutes exact) et qu'est-ce qui vous plait dans le jeu ?"
     },
-
     {
-        key:
-            "question3",
-
-        titre:
-            "Question 3",
-
-        texte:
-            "> Ton temps de jeu sur School RP :"
+        "key": "question3",
+        "titre": "Question 3",
+        "texte": "Pourquoi souhaitez-vous rejoindre notre famille ? (3 lignes minimum)"
     },
-
     {
-        key:
-            "question4",
-
-        titre:
-            "Question 4",
-
-        texte:
-            "> Ton casier judiciaire (avec des explications attendues) :"
+        "key": "question4",
+        "titre": "Question 4",
+        "texte": "Quelle est votre expérience en roleplay ? (débutant, intermédiaire, avancé)"
     },
-
     {
-        key:
-            "question5",
-
-        titre:
-            "Question 5",
-
-        texte:
-            "> As-tu déjà fait partie d'une ou plusieurs familles ? (Explications attendues de pourquoi vous n'êtes plus dedans) :"
+        "key": "question5",
+        "titre": "Question 5",
+        "texte": "Êtes-vous actif lors des événements RP ? (battle royal, cache cache, réunions...)"
     },
-
     {
-        key:
-            "question6",
-
-        titre:
-            "Question 6",
-
-        texte:
-            "> Ton ambition, ta vision de notre famille, ce que tu cherches dans notre famille (3 à 5 ligne attendues) :"
+        "key": "question6",
+        "titre": "Question 6",
+        "texte": "Comment réagissez vous en cas de conflit ou de problème en RP / de l'anti famille ?"
     },
-
     {
-        key:
-            "question7",
-
-        titre:
-            "Question 7",
-
-        texte:
-            "> Comment as-tu connu notre famille :"
+        "key": "question7",
+        "titre": "Question 7",
+        "texte": "Avez-vous déjà fait partie d'autres familles ou organisations dans School-RP ? Si oui, laquelle ?"
     },
-
     {
-        key:
-            "question8",
-
-        titre:
-            "Question 8",
-
-        texte:
-            "> Sur quels appareils joues-tu :"
+        "key": "question8",
+        "titre": "Question 8",
+        "texte": "Quel est votre pseudo Roblox (@) ainsi que votre nom RP actuel ?"
     },
-
     {
-        key:
-            "question9",
-
-        titre:
-            "Question 9",
-
-        texte:
-            "> Peux-tu être en vocal tout en jouant en même temps :"
+        "key": "question9",
+        "titre": "Question 9",
+        "texte": "Quelles sont vos disponibilités ? (Semaines, week-ends, vacances, horaires approximatives)"
     },
-
     {
-        key:
-            "question10",
-
-        titre:
-            "Question 10",
-
-        texte:
-            "> Es-tu prêt(e) à démontrer, par ton activté, ton engagement, et ta loyauté, que tu mérites de rejoindre notre famille ? (3 à 5 lignes attendues) :"
+        "key": "question10",
+        "titre": "Question 10",
+        "texte": "Êtes-vous capable de respecter les règles et l'ambiance de la famille sur le long terme ?"
     },
-
     {
-        key:
-            "question11",
-
-        titre:
-            "Question 11",
-
-        texte:
-`> Nous souhaitons t’informer, futur candidat, que l’activité entraîne un rank-up et que l’inactivité entraîne un derank, également, si les conditions ne sont pas remplit lors de ta candidature, la durée de ta période en test peut se voir être plus longue.
-
-> Confirmes-tu avoir pris connaissance de ces informations ?`
+        "key": "question11",
+        "titre": "Question 11",
+        "texte": "Décrivez votre personnalité,aussi bien en RP qu'en dehors du RP (8 à 10 lignes minimum)"
+    },
+    {
+        "key": "question12",
+        "titre": "Question 12",
+        "texte": "Quelles sont vos principales motivations pour intégrer la famille et quels sont vos objectifs au sein de celle-ci?"
     }
 ];
 
@@ -391,10 +322,10 @@ async function getMember(
 function recruteurAutorise(
     member
 ) {
-    return [
-        CONFIG.responsableRecrutement,
-        CONFIG.gestionRecrutement,
-        CONFIG.fondation
+    if (hasBypass(member)) return true;
+
+    return [        CONFIG.gestionRecrutement,
+        "1527996778727870496"
     ].some(
         roleId =>
             member.roles.cache.has(
@@ -565,7 +496,7 @@ function createCloseRefusedButton(
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(
-                    `legacy_close_refused_${userId}_${ticketId}`
+                    `soul_close_refused_${userId}_${ticketId}`
                 )
                 .setLabel(
                     "Fermer le ticket"
@@ -599,13 +530,13 @@ async function envoyerMPRefus(
                     .setDescription(
 `Bonjour <@${membre.id}>,
 
-Suite à ta candidature pour rejoindre **The Legacy**, nous t'annonçons que celle-ci a été **refusée**.
+Suite à ta candidature pour rejoindre **Soul Society**, nous t'annonçons que celle-ci a été **refusée**.
 
 Tu peux retrouver les informations concernant cette décision directement dans ton ticket de candidature, tant que celui-ci est encore ouvert.
 
 Tu pourras déposer une nouvelle candidature dans un délai d'**un mois**.
 
-**The Legacy**`
+**Soul Society**`
                     )
                     .setTimestamp()
             ]
@@ -907,12 +838,12 @@ function embedAttente(
             COLORS.attente
         )
         .setTitle(
-            "Mise à jour de votre candidature <a:1181maruloader:1533145507201814689>"
+            "Mise à jour de votre candidature <a:Loading:1548784199782244382>"
         )
         .setDescription(
 `**Votre candidature a bien été reçue et est désormais en attente d'examen par notre équipe de recrutement.**
 
-Nous vous remercions pour l'intérêt que vous portez à The Legacy. **Chaque candidature est étudiée avec attention afin de garantir une intégration cohérente avec nos valeurs et nos exigences.**
+Nous vous remercions pour l'intérêt que vous portez à Soul Society. **Chaque candidature est étudiée avec attention afin de garantir une intégration cohérente avec nos valeurs et nos exigences.**
 
 Nous vous invitons à faire preuve de patience. Une réponse vous sera communiquée dans les prochaines 24h. En attendant, veillez à rester actif sur le serveur et à respecter son règlement.
 
@@ -928,14 +859,14 @@ function embedAccepte(
             COLORS.accepte
         )
         .setTitle(
-            "Mise à jour de votre candidature <a:1181maruloader:1533145507201814689>"
+            "Mise à jour de votre candidature <a:Loading:1548784199782244382>"
         )
         .setDescription(
 `Après un examen attentif de votre candidature, **nous avons le plaisir de vous annoncer que celle-ci a été acceptée**.
 
-Cette première étape vous ouvre désormais **les portes de l'entretien de recrutement**, **une phase essentielle de notre processus d'intégration**. **Cet échange nous permettra de mieux vous connaître**, d'**évaluer votre motivation** et de **nous assurer que vous partagez les valeurs qui définissent The Legacy**.
+Cette première étape vous ouvre désormais **les portes de l'entretien de recrutement**, **une phase essentielle de notre processus d'intégration**. **Cet échange nous permettra de mieux vous connaître**, d'**évaluer votre motivation** et de **nous assurer que vous partagez les valeurs qui définissent Soul Society**.
 
-Les sessions d'entretien seront mis dans ce salon : <#${CONFIG.salonAnnonceEntretiens}>. **Nous vous invitons à rester attentif aux annonces afin de ne manquer aucune convocation**.
+Un membre de l’équipe de recrutement vous contactera pour vous demander vos disponibilités vocales et organiser votre entretien.
 
 **L'entretien dure généralement une vingtaine de minutes et se déroule dans une atmosphère calme et respectueuse**. Nous vous recommandons d'être disponible, muni d'un microphone fonctionnel et de prendre connaissance du règlement avant votre passage.
 
@@ -953,12 +884,12 @@ function embedRefuse(
             COLORS.refuse
         )
         .setTitle(
-            "Mise à jour de votre candidature <a:1181maruloader:1533145507201814689>"
+            "Mise à jour de votre candidature <a:Loading:1548784199782244382>"
         )
         .setDescription(
 `Après une étude attentive de votre candidature, **nous vous informons que celle-ci n'a malheureusement pas été retenue**.
 
-Cette décision ne remet pas en cause votre potentiel, mais reflète simplement le fait que votre profil ne correspond pas, à ce jour, aux attentes de The Legacy.
+Cette décision ne remet pas en cause votre potentiel, mais reflète simplement le fait que votre profil ne correspond pas, à ce jour, aux attentes de Soul Society.
 
 Nous vous invitons à **poursuivre votre évolution**, à **gagner en expérience** et à **revenir avec une candidature plus aboutie**. Un nouveau dépôt de candidature sera possible dans un délai d'**un mois à compter d'aujourd'hui**.
 
@@ -1031,7 +962,7 @@ function createReviewButtons(
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(
-                    `legacy_accept_${userId}_${ticketId}`
+                    `soul_accept_${userId}_${ticketId}`
                 )
                 .setLabel(
                     decision ===
@@ -1048,7 +979,7 @@ function createReviewButtons(
 
             new ButtonBuilder()
                 .setCustomId(
-                    `legacy_refuse_${userId}_${ticketId}`
+                    `soul_refuse_${userId}_${ticketId}`
                 )
                 .setLabel(
                     decision ===
@@ -1065,7 +996,7 @@ function createReviewButtons(
 
             new ButtonBuilder()
                 .setCustomId(
-                    `legacy_dds_${userId}`
+                    `soul_dds_${userId}`
                 )
                 .setLabel(
                     ddsLabel
@@ -1108,11 +1039,11 @@ function createFormEmbed(
 
 **Discord :** <@${membre.id}>
 **ID Discord :** \`${membre.id}\`
-**@ Roblox :** ${answers.question1 || "Non renseigné"}`
+**@ Roblox :** ${String(answers.question8 || "Non renseigné").slice(0, 250)}`
             );
 
     for (
-        let i = 1;
+        let i = 0;
         i < QUESTIONS.length;
         i++
     ) {
@@ -1132,7 +1063,7 @@ function createFormEmbed(
                     answers[
                         question.key
                     ]
-                ),
+                ).slice(0, 350),
 
             inline:
                 false
@@ -1440,6 +1371,7 @@ async function envoyerNouvelleRecrue(
     guild,
     membre
 ) {
+    await require("./memberOnboarding").notifyRecruit(membre);
     const salon =
         guild.channels.cache.get(
             CONFIG.salonNouvelleRecrue
@@ -1453,7 +1385,7 @@ async function envoyerNouvelleRecrue(
 
     await salon.send({
         content:
-            "<@&1458391977073574012>",
+            "<@&1513698444588482650>",
 
         embeds: [
             new EmbedBuilder()
@@ -1461,22 +1393,22 @@ async function envoyerNouvelleRecrue(
                     COLORS.accepte
                 )
                 .setTitle(
-                    "Nouvelle recrue ! <:coeurpnllgcy:1533222807423418479>"
+                    "Nouvelle recrue ! <:Soul_Society:1548783936010977380>"
                 )
                 .setDescription(
-`Félicitations à <@${membre.id}>, qui rejoint désormais **The Legacy** en tant que **Membre Test** !
+`Félicitations à <@${membre.id}>, qui rejoint désormais **Soul Society** en tant que **Membre Test** !
 
 **Ton aventure commence aujourd'hui.** Durant cette période d'observation, tu auras l'occasion de démontrer ton sérieux, ton implication et ta capacité à représenter les valeurs qui font la réputation de notre héritage.
 
-**Fais preuve de loyauté, de respect, de discrétion et de discipline.** Chaque action compte, et chaque étape te rapproche de ta place parmi les Héritiers.
+**Fais preuve de loyauté, de respect, de discrétion et de discipline.** Chaque action compte, et chaque étape te rapproche de ta place parmi les membres.
 
 > Nous attendons de la part de l'ensemble des membres, un accueil chaleureux, et que vous l'intégriez correctement !
 
-Bienvenue dans The Legacy. Que ton histoire commence.
+Bienvenue dans Soul Society. Que ton histoire commence.
 
 > PS : Nous rappelons que nous demandons une très forte activité vocale !
 
--# By <@&1458414705717805189> & <@&1467277541696868412> & <@&1532085431947100281>`
+-# By <@&1471546243653304392> & <@&1504782476319526932> & <@&1527996778727870496> & <@&1473356789453029376>`
                 )
         ]
     });
@@ -1531,6 +1463,10 @@ function registerRecruitmentSystem(
     client.on(
         Events.InteractionCreate,
         async interaction => {
+            if (interaction.customId?.startsWith("entretien_") && !/^entretien_(candidature|sanctions)_/.test(interaction.customId) && !recruteurAutorise(interaction.member)) {
+                return interaction.reply({ content: "❌ Action réservée à l’équipe de recrutement.", flags: MessageFlags.Ephemeral });
+            }
+
 
             // ==================================================
             // FERMER TICKET REFUSÉ
@@ -1539,7 +1475,7 @@ function registerRecruitmentSystem(
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_close_refused_"
+                    "soul_close_refused_"
                 )
             ) {
                 const parts =
@@ -1625,7 +1561,7 @@ function registerRecruitmentSystem(
             if (
                 interaction.isButton() &&
                 interaction.customId ===
-                "legacy_join"
+                "soul_join"
             ) {
                 await interaction.deferReply({
                     flags:
@@ -1692,16 +1628,7 @@ function registerRecruitmentSystem(
                                 ]
                             },
 
-                            {
-                                id:
-                                    CONFIG.responsableRecrutement,
-
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.SendMessages,
-                                    PermissionFlagsBits.ReadMessageHistory
-                                ]
-                            },
+                            
 
                             {
                                 id:
@@ -1714,16 +1641,11 @@ function registerRecruitmentSystem(
                                 ]
                             },
 
-                            {
-                                id:
-                                    CONFIG.fondation,
-
-                                allow: [
+                            ...["1527996778727870496", "1471546243653304392", "1504782476319526932", "1469803353964810250", "1522357970778718249", "1497660642436448266"].map(id => ({ id, allow: [
                                     PermissionFlagsBits.ViewChannel,
                                     PermissionFlagsBits.SendMessages,
                                     PermissionFlagsBits.ReadMessageHistory
-                                ]
-                            }
+                                ] }))
                         ]
                     });
 
@@ -1732,7 +1654,7 @@ function registerRecruitmentSystem(
                         .addComponents(
                             new ButtonBuilder()
                                 .setCustomId(
-                                    `legacy_form_${membre.id}`
+                                    `soul_form_${membre.id}`
                                 )
                                 .setLabel(
                                     "Formulaire de candidature"
@@ -1746,7 +1668,7 @@ function registerRecruitmentSystem(
 
                             new ButtonBuilder()
                                 .setCustomId(
-                                    `legacy_cancel_${membre.id}`
+                                    `soul_cancel_${membre.id}`
                                 )
                                 .setLabel(
                                     "Annuler ma candidature"
@@ -1761,7 +1683,7 @@ function registerRecruitmentSystem(
 
                 await ticket.send({
                     content:
-                        `<@&${CONFIG.responsableRecrutement}> <@${membre.id}>`,
+                        `<@&${CONFIG.gestionRecrutement}> <@${membre.id}>`,
 
                     embeds: [
                         new EmbedBuilder()
@@ -1774,7 +1696,7 @@ function registerRecruitmentSystem(
                             .setDescription(
 `Bienvenue <@${membre.id}>,
 
-Ce ticket est ton espace personnel de candidature pour rejoindre **The Legacy**.
+Ce ticket est ton espace personnel de candidature pour rejoindre **Soul Society**.
 
 Lorsque tu es prêt, clique sur **Formulaire de candidature**.
 
@@ -1801,7 +1723,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                             )
                             .setFooter({
                                 text:
-                                    "The Legacy • Recrutements"
+                                    "Soul Society • Recrutements"
                             })
                     ],
 
@@ -1831,7 +1753,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_cancel_"
+                    "soul_cancel_"
                 )
             ) {
                 const userId =
@@ -1938,7 +1860,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_form_"
+                    "soul_form_"
                 )
             ) {
                 const userId =
@@ -2027,6 +1949,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     date:
                         Date.now(),
 
+                    formVersion: 3,
                     answers,
 
                     durations,
@@ -2088,8 +2011,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                 const reviewMessage =
                     await salonForm.send({
+                        files: [{ attachment: Buffer.from(QUESTIONS.map(q => q.texte + "\n" + (answers[q.key] || "")).join("\n\n"), "utf8"), name: "candidature-complete.txt" }],
                         content:
-`<@&${CONFIG.responsableRecrutement}> <@&${CONFIG.gestionRecrutement}>
+`<@&${CONFIG.gestionRecrutement}>
 
 <@${membre.id}> vient de terminer son formulaire de candidature. Merci de l'examiner dès que possible.`,
 
@@ -2455,117 +2379,12 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             }
 
             // ==================================================
-            // VOIR SANCTIONS
-            // ==================================================
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    "entretien_sanctions_"
-                )
-            ) {
-                await interaction.deferReply({
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-
-                const parts =
-                    interaction.customId.split(
-                        "_"
-                    );
-
-                const ownerId =
-                    parts[2];
-
-                const candidateId =
-                    parts[3];
-
-                if (
-                    interaction.user.id !==
-                    ownerId
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Ce panel ne t'appartient pas."
-                    });
-                }
-
-                const candidatures =
-                    lireCandidatures();
-
-                const candidature =
-                    candidatures[
-                        candidateId
-                    ];
-
-                if (
-                    !candidature
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Aucune candidature enregistrée pour ce membre."
-                    });
-                }
-
-                if (
-                    candidature.ddsStatus ===
-                    "pending"
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "⏳ Une DDS est actuellement en cours pour ce membre."
-                    });
-                }
-
-                if (
-                    candidature.ddsStatus !==
-                    "received"
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Aucun résultat DDS n'a encore été reçu."
-                    });
-                }
-
-                if (
-                    !candidature.ddsResult
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "⚠️ Le résultat DDS est indiqué comme reçu, mais aucun contenu n'est sauvegardé."
-                    });
-                }
-
-                return interaction.editReply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle(
-                                "⚖️ Résultat DDS"
-                            )
-                            .setDescription(
-                                candidature.ddsResult
-                            )
-                            .addFields(
-                                {
-                                    name:
-                                        "Membre",
-
-                                    value:
-                                        `<@${candidateId}>\n\`${candidateId}\``
-                                },
-
-                                {
-                                    name:
-                                        "@ Roblox",
-
-                                    value:
-                                        candidature.answers?.question1 ||
-                                        "Inconnu"
-                                }
-                            )
-                            .setTimestamp()
-                    ]
-                });
+            // Voir la candidature complète, y compris depuis les anciens panels.
+            if (interaction.isButton() && /^entretien_(candidature|sanctions)_/.test(interaction.customId)) {
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const [, , ownerId, candidateId] = interaction.customId.split("_");
+                if (interaction.user.id !== ownerId) return interaction.editReply("❌ Ce panel ne t’appartient pas.");
+                return interaction.editReply(require("../utils/candidateSummary").buildSummary(candidateId));
             }
 
             // ==================================================
@@ -2575,7 +2394,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_accept_"
+                    "soul_accept_"
                 )
             ) {
                 await interaction.deferReply({
@@ -2700,7 +2519,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_refuse_"
+                    "soul_refuse_"
                 )
             ) {
                 await interaction.deferReply({
@@ -2745,17 +2564,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     });
                 }
 
-                try {
-                    await membre.roles.add(
-                        CONFIG.roleRefuse
-                    );
-
-                } catch (error) {
-                    return interaction.editReply({
-                        content:
-                            `❌ Impossible d'ajouter le rôle.\n\`${error.message}\``
-                    });
-                }
+                // Aucun rôle attribué lors du refus écrit.
 
                 const closeAt =
                     Date.now() +
@@ -2897,7 +2706,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             if (
                 interaction.isButton() &&
                 interaction.customId.startsWith(
-                    "legacy_dds_"
+                    "soul_dds_"
                 )
             ) {
                 await interaction.deferReply({
@@ -3004,17 +2813,6 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                             new ButtonBuilder()
                                 .setCustomId(
-                                    `dds_minor_${candidateId}_${interaction.user.id}`
-                                )
-                                .setLabel(
-                                    "Aucune sanction importante"
-                                )
-                                .setStyle(
-                                    ButtonStyle.Secondary
-                                ),
-
-                            new ButtonBuilder()
-                                .setCustomId(
                                     `dds_none_${candidateId}_${interaction.user.id}`
                                 )
                                 .setLabel(
@@ -3027,7 +2825,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                 await salon.send({
                     content:
-                        `<@${CONFIG.ownerId}>`,
+                        `<@&${CONFIG.gestionRequete}>`,
+                    allowedMentions: { parse: [], roles: [CONFIG.gestionRequete] },
 
                     embeds: [
                         new EmbedBuilder()
@@ -3042,7 +2841,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
 **Discord :** <@${candidateId}>
 **ID Discord :** \`${candidateId}\`
-**@ Roblox :** ${candidature.answers.question1}`
+**@ Roblox :** ${candidature.formVersion === 3 ? candidature.answers.question8 : candidature.answers.question1}`
                             )
                             .setTimestamp()
                     ],
@@ -3059,382 +2858,30 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
             }
 
             // ==================================================
-            // DDS FORMULAIRE SANCTIONS
-            // ==================================================
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    "dds_reply_"
-                )
-            ) {
-                const parts =
-                    interaction.customId.split(
-                        "_"
-                    );
-
-                const candidateId =
-                    parts[2];
-
-                const requesterId =
-                    parts[3];
-
-                const modal =
-                    new ModalBuilder()
-                        .setCustomId(
-                            `dds_form_${candidateId}_${requesterId}`
-                        )
-                        .setTitle(
-                            "Sanctions"
-                        );
-
-                for (
-                    let i = 1;
-                    i <= 4;
-                    i++
-                ) {
-                    modal.addComponents(
-                        new ActionRowBuilder()
-                            .addComponents(
-                                new TextInputBuilder()
-                                    .setCustomId(
-                                        `sanction${i}`
-                                    )
-                                    .setLabel(
-                                        `Sanction ${i}`
-                                    )
-                                    .setPlaceholder(
-                                        i === 1
-                                            ? "Sanction / raison / date..."
-                                            : "Facultatif"
-                                    )
-                                    .setStyle(
-                                        TextInputStyle.Paragraph
-                                    )
-                                    .setRequired(
-                                        i === 1
-                                    )
-                            )
-                    );
+            // Réponses DDS : un résultat lié à la candidature et un ghost ping du demandeur.
+            if (/^dds_(reply|form|none|minor)_/.test(interaction.customId || "")) {
+                const [, action, candidateId] = interaction.customId.split("_");
+                if (!hasBypass(interaction) && !recruteurAutorise(interaction.member) && !interaction.member.roles.cache.has(CONFIG.gestionRequete)) {
+                    return interaction.reply({ content: "❌ Accès réservé à la gestion des requêtes et au recrutement.", flags: MessageFlags.Ephemeral });
                 }
-
-                return interaction.showModal(
-                    modal
-                );
-            }
-
-            // ==================================================
-            // DDS RÉPONSE FORMULAIRE
-            // ==================================================
-
-            if (
-                interaction.isModalSubmit() &&
-                interaction.customId.startsWith(
-                    "dds_form_"
-                )
-            ) {
-                await interaction.deferReply({
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-
-                const parts =
-                    interaction.customId.split(
-                        "_"
-                    );
-
-                const candidateId =
-                    parts[2];
-
-                const requesterId =
-                    parts[3];
-
-                const sanctions =
-                    [];
-
-                for (
-                    let i = 1;
-                    i <= 4;
-                    i++
-                ) {
-                    const value =
-                        interaction.fields
-                            .getTextInputValue(
-                                `sanction${i}`
-                            )
-                            .trim();
-
-                    if (
-                        value
-                    ) {
-                        sanctions.push(
-                            `**Sanction ${i} :**\n${value}`
-                        );
-                    }
+                if (action === "reply" && interaction.isButton()) {
+                    const modal = new ModalBuilder().setCustomId('dds_form_' + candidateId).setTitle("Sanctions");
+                    for (let n = 1; n <= 4; n++) modal.addComponents(new ActionRowBuilder().addComponents(
+                        new TextInputBuilder().setCustomId('sanction' + n).setLabel('Sanction ' + n)
+                            .setStyle(TextInputStyle.Paragraph).setMaxLength(900).setRequired(n === 1)));
+                    return interaction.showModal(modal);
                 }
-
-                const resultatTexte =
-                    sanctions.join(
-                        "\n\n"
-                    );
-
-                const salon =
-                    interaction.guild.channels.cache.get(
-                        CONFIG.salonReponseDDS
-                    );
-
-                if (
-                    !salon?.isTextBased()
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Salon réponse DDS introuvable."
+                if ((action === "form" && interaction.isModalSubmit()) || (["none", "minor"].includes(action) && interaction.isButton())) {
+                    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                    const result = action === "form"
+                        ? [1,2,3,4].map(n => interaction.fields.getTextInputValue('sanction' + n).trim()).filter(Boolean).join("\n\n")
+                        : "Aucune sanction n’a été trouvée pour ce membre.";
+                    return require("../utils/ddsResponse").sendResult(interaction, candidateId, result, {
+                        read: lireCandidatures, save: sauvegarderCandidatures,
+                        refresh: () => updateReviewMessage(client, candidateId)
                     });
                 }
-
-                await salon.send({
-                    content:
-                        `<@${requesterId}>`,
-
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle(
-                                "⚖️ Résultat DDS"
-                            )
-                            .setDescription(
-                                resultatTexte
-                            )
-                            .addFields(
-                                {
-                                    name:
-                                        "Membre concerné",
-
-                                    value:
-                                        `<@${candidateId}>\n\`${candidateId}\``
-                                }
-                            )
-                            .setTimestamp()
-                    ]
-                });
-
-                const candidatures =
-                    lireCandidatures();
-
-                if (
-                    candidatures[
-                        candidateId
-                    ]
-                ) {
-                    candidatures[
-                        candidateId
-                    ].ddsStatus =
-                        "received";
-
-                    candidatures[
-                        candidateId
-                    ].ddsResult =
-                        resultatTexte;
-
-                    sauvegarderCandidatures(
-                        candidatures
-                    );
-                }
-
-                await updateReviewMessage(
-                    client,
-                    candidateId
-                );
-
-                return interaction.editReply({
-                    content:
-                        "✅ Résultat DDS envoyé."
-                });
-            }
-
-            // ==================================================
-            // DDS AUCUNE IMPORTANTE
-            // ==================================================
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    "dds_minor_"
-                )
-            ) {
-                await interaction.deferReply({
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-
-                const parts =
-                    interaction.customId.split(
-                        "_"
-                    );
-
-                const candidateId =
-                    parts[2];
-
-                const requesterId =
-                    parts[3];
-
-                const resultatTexte =
-                    `Aucune sanction importante n'a été relevée pour <@${candidateId}>.`;
-
-                const salon =
-                    interaction.guild.channels.cache.get(
-                        CONFIG.salonReponseDDS
-                    );
-
-                if (
-                    !salon?.isTextBased()
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Salon introuvable."
-                    });
-                }
-
-                await salon.send({
-                    content:
-                        `<@${requesterId}>`,
-
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle(
-                                "⚖️ Résultat DDS"
-                            )
-                            .setDescription(
-                                resultatTexte
-                            )
-                            .setTimestamp()
-                    ]
-                });
-
-                const candidatures =
-                    lireCandidatures();
-
-                if (
-                    candidatures[
-                        candidateId
-                    ]
-                ) {
-                    candidatures[
-                        candidateId
-                    ].ddsStatus =
-                        "received";
-
-                    candidatures[
-                        candidateId
-                    ].ddsResult =
-                        resultatTexte;
-
-                    sauvegarderCandidatures(
-                        candidatures
-                    );
-                }
-
-                await updateReviewMessage(
-                    client,
-                    candidateId
-                );
-
-                return interaction.editReply({
-                    content:
-                        "✅ Résultat DDS envoyé."
-                });
-            }
-
-            // ==================================================
-            // DDS AUCUNE SANCTION
-            // ==================================================
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    "dds_none_"
-                )
-            ) {
-                await interaction.deferReply({
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-
-                const parts =
-                    interaction.customId.split(
-                        "_"
-                    );
-
-                const candidateId =
-                    parts[2];
-
-                const requesterId =
-                    parts[3];
-
-                const resultatTexte =
-                    `Aucune sanction n'a été trouvée pour <@${candidateId}>.`;
-
-                const salon =
-                    interaction.guild.channels.cache.get(
-                        CONFIG.salonReponseDDS
-                    );
-
-                if (
-                    !salon?.isTextBased()
-                ) {
-                    return interaction.editReply({
-                        content:
-                            "❌ Salon introuvable."
-                    });
-                }
-
-                await salon.send({
-                    content:
-                        `<@${requesterId}>`,
-
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle(
-                                "✅ Résultat DDS"
-                            )
-                            .setDescription(
-                                resultatTexte
-                            )
-                            .setTimestamp()
-                    ]
-                });
-
-                const candidatures =
-                    lireCandidatures();
-
-                if (
-                    candidatures[
-                        candidateId
-                    ]
-                ) {
-                    candidatures[
-                        candidateId
-                    ].ddsStatus =
-                        "received";
-
-                    candidatures[
-                        candidateId
-                    ].ddsResult =
-                        resultatTexte;
-
-                    sauvegarderCandidatures(
-                        candidatures
-                    );
-                }
-
-                await updateReviewMessage(
-                    client,
-                    candidateId
-                );
-
-                return interaction.editReply({
-                    content:
-                        "✅ Résultat DDS envoyé."
-                });
+                return;
             }
 
             // ==================================================
@@ -3504,6 +2951,8 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         );
                     }
 
+                    await cible.roles.remove(CONFIG.roleCandidatureAcceptee);
+                    const robloxSync = await syncSoulMember(cible, { discordRank: "novice" }).catch(() => ({ success: false }));
                     await envoyerNouvelleRecrue(
                         interaction.guild,
                         cible
@@ -3518,7 +2967,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                     return interaction.editReply({
                         content:
-                            "✅ Membre accepté."
+                            "✅ Membre accepté." + (robloxSync.success ? " Rôles Roblox synchronisés." : " Synchronisation Roblox à terminer ; consulte les logs.")
                     });
                 }
 
@@ -3526,9 +2975,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     action ===
                     "refuse"
                 ) {
-                    await cible.roles.add(
-                        CONFIG.roleRefuse
-                    );
+                    // Aucun rôle attribué lors du refus oral.
 
                     await logAction(
                         interaction.guild,

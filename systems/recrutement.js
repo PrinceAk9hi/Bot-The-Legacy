@@ -1367,6 +1367,35 @@ async function lancerQuestionnaire(
 // NOUVELLE RECRUE
 // ======================================================
 
+const oralInvitations = new Map();
+async function demanderDisponibilitesOrales(guild, membre) {
+    if (oralInvitations.has(membre.id)) return oralInvitations.get(membre.id);
+    const sending = (async () => {
+        const candidature = lireCandidatures()[membre.id];
+        if (!candidature) throw new Error("Candidature introuvable pour la convocation orale.");
+        if (candidature.oralAvailabilityMessageId) return;
+        const salon = await guild.channels.fetch("1540836643433615360");
+        if (!salon?.isTextBased() || salon.guildId !== guild.id) throw new Error("Salon des entretiens oraux inaccessible.");
+        const message = await salon.send({
+            content: '<@' + membre.id + '>',
+            allowedMentions: { parse: [], users: [membre.id] },
+            embeds: [new EmbedBuilder().setColor(COLORS.attente)
+                .setTitle("🎙️ Prochaine étape : ton entretien oral")
+                .setDescription("**Félicitations, ta candidature écrite a été acceptée !** 🌸\n\nBienvenue dans l’espace dédié aux candidats ayant validé cette première étape. Nous souhaitons maintenant échanger avec toi lors d’un **entretien oral**, afin de mieux te connaître et de poursuivre ton recrutement au sein de **Soul Society**.\n\nMerci d’indiquer **tes disponibilités dans ce salon**, en précisant les jours et les horaires auxquels tu peux être présent en vocal.\n\nPrévois **au moins 30 minutes** : l’échange pourra durer un peu plus longtemps si nécessaire. Un membre de l’équipe de recrutement prendra contact avec toi pour convenir d’un créneau.\n\nÀ bientôt pour ton entretien !")
+                .setFooter({ text: "Soul Society • Équipe de recrutement" })]
+        });
+        const latest = lireCandidatures();
+        if (latest[membre.id]) {
+            latest[membre.id].oralAvailabilityMessageId = message.id;
+            latest[membre.id].oralAvailabilityChannelId = salon.id;
+            sauvegarderCandidatures(latest);
+        }
+    })();
+    oralInvitations.set(membre.id, sending);
+    try { return await sending; }
+    finally { oralInvitations.delete(membre.id); }
+}
+
 async function envoyerNouvelleRecrue(
     guild,
     membre
@@ -2494,6 +2523,12 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     );
                 }
 
+                let oralInvitationSent = true;
+                await demanderDisponibilitesOrales(interaction.guild, membre).catch(error => {
+                    oralInvitationSent = false;
+                    console.error("❌ Demande de disponibilités orales :", error.message);
+                });
+
                 await updateReviewMessage(
                     client,
                     userId
@@ -2508,7 +2543,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                 return interaction.editReply({
                     content:
-                        `✅ Candidature de **${membre.user.username}** acceptée.`
+                        `✅ Candidature de **${membre.user.username}** acceptée.` + (oralInvitationSent ? " La demande de disponibilités orales a été envoyée." : " ⚠️ La demande de disponibilités n’a pas pu être envoyée : vérifie l’accès du bot au salon 1540836643433615360, puis réessaie l’acceptation.")
                 });
             }
 

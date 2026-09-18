@@ -205,7 +205,13 @@ async function notifyRecruit(member) {
 }
 function register(client) {
     client.on(Events.InteractionCreate, async interaction => {
-        try { await handle(interaction); }
+        try {
+            if (interaction.customId?.startsWith("profile_")) {
+                await require("./memberProfile").handle(interaction);
+                return;
+            }
+            await handle(interaction);
+        }
         catch (error) {
             console.error("❌ Parcours accueil :", error.message);
             const payload = { ...(profile(interaction.user.id) ? stepPayload(profile(interaction.user.id)) : introPayload()), content: "❌ L’enregistrement n’a pas abouti. Réessaie depuis cette page ; les étapes enregistrées sont conservées." };

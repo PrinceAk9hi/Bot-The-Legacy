@@ -1,3 +1,12 @@
+const { IDENTITY } = require("../config/soulSociety");
+const { isProtectedUser } = require("../utils/security");
+
+const { hasBypass } = require("../utils/security");
+
+const { MAIN_RANKS } = require("../config/ranks");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -69,42 +78,11 @@ const EMOJIS = {
 };
 
 // ======================================================
-// GRADES LEGACY
+// GRADES SOCIETY
 // ======================================================
 
-const GRADES = [
-    {
-        roleId:
-            "1531760661271543969",
-
-        name:
-            "Héritier Sénior"
-    },
-
-    {
-        roleId:
-            "1531760794822508800",
-
-        name:
-            "Héritier Expert"
-    },
-
-    {
-        roleId:
-            "1531761056744083648",
-
-        name:
-            "Héritier Confirmé"
-    },
-
-    {
-        roleId:
-            "1531761113933414542",
-
-        name:
-            "Novice (Test)"
-    }
-];
+// Le grade le plus élevé est affiché en premier si plusieurs rôles sont présents.
+const GRADES = Object.values(MAIN_RANKS).slice().reverse();
 
 // ======================================================
 // FICHIERS
@@ -256,6 +234,7 @@ function loadConfigs() {
             config
         );
     }
+    configMap.set(IDENTITY.guildId, { ...configMap.get(IDENTITY.guildId), hubId: "1493708219879784663", categoryId: "1493708216444391504", initialName: "Nom personnalisé", userLimit: 5 });
 }
 
 async function saveConfig(
@@ -443,7 +422,7 @@ function createRoomName(
 // GRADE
 // ======================================================
 
-function getLegacyGrade(
+function getSoulGrade(
     member
 ) {
     for (
@@ -459,7 +438,7 @@ function getLegacyGrade(
         }
     }
 
-    return "Aucun grade Legacy";
+    return "Aucun grade Society";
 }
 
 // ======================================================
@@ -738,7 +717,7 @@ function buildPanelEmbed(
 
                         return [
                             `${owner ? `${EMOJIS.owner} ` : ""}**<@${member.id}>**`,
-                            `${EMOJIS.arrow} ${getLegacyGrade(member)}`,
+                            `${EMOJIS.arrow} ${getSoulGrade(member)}`,
                             `${EMOJIS.arrow} ${EMOJIS.clock} ${formatDuration(Date.now() - joinedAt)}`,
                             `${EMOJIS.arrow} ${EMOJIS.activity} ${getActivity(member)}`
                         ].join(
@@ -804,14 +783,14 @@ function buildPanelEmbed(
 
     return new EmbedBuilder()
         .setColor(
-            0x5F6368
+            SOUL_COLORS.primary
         )
         .setDescription(
             description
         )
         .setFooter({
             text:
-                "The Legacy • Bureau vocal temporaire"
+                "Soul Society • Bureau vocal temporaire"
         });
 }
 
@@ -898,7 +877,7 @@ function createPanelComponents(
                     ),
 
                 // ======================================
-                // LEGACY GAMES
+                // SOUL GAMES
                 // ======================================
 
                 new ButtonBuilder()
@@ -1011,7 +990,7 @@ function createPanelComponents(
             );
 
     // ==================================================
-    // FONDATION
+    // DIRECTION
     // ==================================================
 
     const row5 =
@@ -1022,7 +1001,7 @@ function createPanelComponents(
                         `tpv_foundation_${room.channelId}`
                     )
                     .setPlaceholder(
-                        "👑 Actions Fondation"
+                        "👑 Actions Direction"
                     )
                     .addOptions(
                         {
@@ -1540,6 +1519,7 @@ async function createRoom(
 
                 parent:
                     config.categoryId,
+                userLimit: config.userLimit ?? 5,
 
                 reason:
                     `Bureau TPV de ${member.user.tag}`
@@ -1763,8 +1743,8 @@ function buildManagerRequestEmbed(
     return new EmbedBuilder()
         .setColor(
             request.urgent
-                ? 0xCC3333
-                : 0x666666
+                ? SOUL_COLORS.error
+                : SOUL_COLORS.primary
         )
         .setTitle(
             "📞 Demande de gérant"
@@ -1798,7 +1778,7 @@ function buildManagerRequestEmbed(
         )
         .setFooter({
             text:
-                `The Legacy • ${room.channelId}`
+                `Soul Society • ${room.channelId}`
         })
         .setTimestamp(
             new Date(
@@ -1895,12 +1875,14 @@ function findRoomByRequestMessage(
 }
 
 // ======================================================
-// FONDATION
+// DIRECTION
 // ======================================================
 
 function isFoundation(
     member
 ) {
+    if (hasBypass(member)) return true;
+
     return member.roles.cache.has(
         FOUNDATION_ROLE_ID
     );
@@ -1914,6 +1896,8 @@ function isOwner(
     interaction,
     room
 ) {
+    if (hasBypass(interaction)) return true;
+
     return (
         interaction.user.id ===
         room.ownerId
@@ -2325,7 +2309,7 @@ function registerTempVoiceSystem(
                     ) {
                         return interaction.reply({
                             content:
-                                "❌ Cette action est réservée à la Fondation.",
+                                "❌ Cette action est réservée à la Direction.",
 
                             flags:
                                 MessageFlags.Ephemeral
@@ -2838,7 +2822,7 @@ function registerTempVoiceSystem(
                     }
 
                     // ======================================
-                    // LEGACY GAMES
+                    // SOUL GAMES
                     //
                     // Accessible à tous les membres
                     // actuellement présents dans le TPV.
@@ -2856,28 +2840,28 @@ function registerTempVoiceSystem(
                         ) {
                             return interaction.reply({
                                 content:
-                                    "❌ Tu dois être présent dans ce vocal pour ouvrir les **Legacy Games**.",
+                                    "❌ Tu dois être présent dans ce vocal pour ouvrir les **Soul Games**.",
 
                                 flags:
                                     MessageFlags.Ephemeral
                             });
                         }
 
-                        const legacyGames =
+                        const soulGames =
                             interaction.client
                                 .commands
                                 ?.get(
-                                    "legacygames"
+                                    "soulgames"
                                 );
 
                         if (
-                            !legacyGames
-                                ?.legacyGamesSystem
+                            !soulGames
+                                ?.soulGamesSystem
                                 ?.openHub
                         ) {
                             return interaction.reply({
                                 content:
-                                    "❌ Le système **Legacy Games** n'est pas disponible pour le moment.",
+                                    "❌ Le système **Soul Games** n'est pas disponible pour le moment.",
 
                                 flags:
                                     MessageFlags.Ephemeral
@@ -2886,13 +2870,13 @@ function registerTempVoiceSystem(
 
                         addHistory(
                             room,
-                            `${interaction.user.id} a ouvert Legacy Games`
+                            `${interaction.user.id} a ouvert Soul Games`
                         );
 
                         saveRooms();
 
-                        return legacyGames
-                            .legacyGamesSystem
+                        return soulGames
+                            .soulGamesSystem
                             .openHub(
                                 interaction,
                                 channelId
@@ -3340,6 +3324,10 @@ function registerTempVoiceSystem(
                             0
                         ];
 
+                    if (isProtectedUser(memberId)) {
+                        return interaction.reply({ content: "🛡️ Ce compte est protégé contre cette action.", flags: MessageFlags.Ephemeral });
+                    }
+
                     const channel =
                         interaction.guild
                             .channels
@@ -3767,7 +3755,7 @@ function registerTempVoiceSystem(
                 }
 
                 // ==========================================
-                // ACTIONS FONDATION
+                // ACTIONS DIRECTION
                 // ==========================================
 
                 if (
@@ -3802,7 +3790,7 @@ function registerTempVoiceSystem(
                     ) {
                         return interaction.reply({
                             content:
-                                "❌ Ces actions sont réservées à la Fondation.",
+                                "❌ Ces actions sont réservées à la Direction.",
 
                             flags:
                                 MessageFlags.Ephemeral
@@ -4001,7 +3989,7 @@ function registerTempVoiceSystem(
                 }
 
                 // ==========================================
-                // FONDATION USER
+                // DIRECTION USER
                 // ==========================================
 
                 if (

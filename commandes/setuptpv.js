@@ -1,3 +1,5 @@
+const { hasAccessPermission } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     ChannelType,
@@ -98,7 +100,7 @@ module.exports = {
                 );
 
             const isAdmin =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 );
 

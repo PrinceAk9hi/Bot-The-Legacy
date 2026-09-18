@@ -1,3 +1,7 @@
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     Events,
     ModalBuilder,
@@ -19,16 +23,16 @@ const {
 // ======================================================
 
 const CHANGE_BUTTON_ID =
-    "legacy_change_roblox";
+    "soul_change_roblox";
 
 const CHANGE_MODAL_ID =
-    "legacy_change_roblox_modal";
+    "soul_change_roblox_modal";
 
 const LINK_ALL_BUTTON_ID =
-    "legacy_link_all";
+    "soul_link_all";
 
 const MEMBER_ROLE_ID =
-    "1458391977073574012";
+    "1513698444588482650";
 
 const ROBLOX_HELP_CHANNEL_ID =
     "1506762774397845534";
@@ -37,9 +41,11 @@ const LINK_LOG_CHANNEL_ID =
     "1540535302701981816";
 
 const ALLOWED_ROLES = [
-    "1458414705717805189", // Fondateur
-    "1467277541696868412", // Souverain
-    "1531760308761133229"  // Responsable Sanctions
+    "1471546243653304392",
+
+    "1504782476319526932", // Fondateur
+    "1527996778727870496", // Souverain
+    "1471889647570260030"  // Responsable Sanctions
 ];
 
 // Temps maximum accordé à l'envoi d'un MP
@@ -51,6 +57,8 @@ const DM_TIMEOUT =
 // ======================================================
 
 function hasLinkAllPermission(member) {
+    if (hasBypass(member)) return true;
+
     if (!member?.roles) {
         return false;
     }
@@ -237,7 +245,7 @@ async function handleLinkAll(
         });
 
         // ==================================================
-        // MEMBRES DU RÔLE LEGACY
+        // MEMBRES DU RÔLE SOCIETY
         // ==================================================
 
         const members =
@@ -366,7 +374,7 @@ Tous les membres concernés ont déjà relié leur compte Roblox.
                 const embed =
                     new EmbedBuilder()
                         .setColor(
-                            0x3B6475
+                            SOUL_COLORS.primary
                         )
                         .setTitle(
                             "🔗 Ton compte Roblox n'est pas relié"
@@ -374,7 +382,7 @@ Tous les membres concernés ont déjà relié leur compte Roblox.
                         .setDescription(
 `Bonjour <@${member.id}>,
 
-Ton compte Discord n'est actuellement relié à **aucun compte Roblox** sur **The Legacy**.
+Ton compte Discord n'est actuellement relié à **aucun compte Roblox** sur **Soul Society**.
 
 Merci de relier ton compte Roblox afin que tes informations et tes grades puissent être correctement synchronisés.
 
@@ -382,7 +390,7 @@ Clique sur le bouton ci-dessous pour accéder directement au salon prévu à cet
                         )
                         .setFooter({
                             text:
-                                "The Legacy • Roblox"
+                                "Soul Society • Roblox"
                         })
                         .setTimestamp();
 

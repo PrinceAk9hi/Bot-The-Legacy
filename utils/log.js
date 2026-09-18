@@ -1,3 +1,5 @@
+const { IDENTITY, CHANNELS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 const { EmbedBuilder } = require("discord.js");
@@ -34,15 +36,14 @@ async function sendLog(
 ) {
     const config = getConfig();
 
-    const channelId =
-        config[guild.id];
+    const channelId = guild.id === IDENTITY.guildId
+        ? CHANNELS.logs
+        : config[guild.id];
 
     if (!channelId) return;
 
-    const channel =
-        guild.channels.cache.get(
-            channelId
-        );
+    const channel = guild.channels.cache.get(channelId) ||
+        await guild.channels.fetch(channelId).catch(() => null);
 
     if (!channel) return;
 

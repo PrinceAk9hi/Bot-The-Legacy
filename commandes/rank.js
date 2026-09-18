@@ -1,3 +1,6 @@
+const { syncSoulMember } = require("../utils/syncSoulMember");
+const { hasBypass } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -22,6 +25,8 @@ const {
 // ======================================================
 
 function hasRankPermission(member) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(roleId =>
         member.roles.cache.has(roleId)
     );
@@ -64,20 +69,7 @@ function getChoicesForCategory(category) {
         }));
     }
 
-    if (category === "responsable") {
-        return Object.entries(
-            MANAGEMENT_ROLES
-        ).map(([key, data]) => ({
-            name:
-                data.responsable.name,
-
-            value:
-                key,
-
-            roleId:
-                data.responsable.roleId
-        }));
-    }
+    if (category === "responsable") return []; // Compatibilité des anciennes interactions.
 
     return [];
 }
@@ -361,9 +353,9 @@ async function sendPublicMessage({
                 : `> **Nouveau grade :** ${newRank}`;
 
         content =
-`## 👑 Évolution au sein de The Legacy
+`## <:arrow_up:1548785968499261621> Évolution au sein de Soul Society
 
-Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de **The Legacy** !
+Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de **Soul Society** !
 
 ${evolution}
 
@@ -387,7 +379,7 @@ Continue ainsi, l'héritage se construit étape par étape. 🪽${note ? `
         content =
 `## ⚙️ Nouvelle responsabilité
 
-Félicitations à <@${member.id}> qui rejoint désormais une nouvelle gestion au sein de **The Legacy** !
+Félicitations à <@${member.id}> qui rejoint désormais une nouvelle gestion au sein de **Soul Society** !
 
 > **${roleName}**
 
@@ -409,13 +401,13 @@ Nous comptons sur toi pour représenter cette gestion avec sérieux et implicati
         action === "add"
     ) {
         content =
-`## 👑 Nouvelle responsabilité
+`## <:crown:1548785045047607416> Nouvelle responsabilité
 
 Félicitations à <@${member.id}> qui devient désormais :
 
 > **${roleName}**
 
-Cette évolution marque une nouvelle étape au sein de **The Legacy** et représente la confiance qui t'est accordée pour encadrer et faire évoluer ta gestion.
+Cette évolution marque une nouvelle étape au sein de **Soul Society** et représente la confiance qui t'est accordée pour encadrer et faire évoluer ta gestion.
 
 Félicitations pour cette nouvelle responsabilité. 🪽${note ? `
 
@@ -433,7 +425,7 @@ Félicitations pour cette nouvelle responsabilité. 🪽${note ? `
         RANK_CONFIG.publishRemovals
     ) {
         content =
-`## 🔄 Modification des responsabilités
+`## ${category === "grade" ? "<:arrow_down:1548786185189466132>" : "🔄"} Modification des responsabilités
 
 Une modification vient d'être effectuée concernant <@${member.id}>.
 
@@ -523,14 +515,6 @@ module.exports = {
 
                             value:
                                 "gestion"
-                        },
-
-                        {
-                            name:
-                                "Responsable",
-
-                            value:
-                                "responsable"
                         }
                     )
             )
@@ -808,6 +792,10 @@ module.exports = {
                     "categorie"
                 );
 
+            if (!["grade", "gestion"].includes(category)) {
+                return interaction.editReply({ content: "❌ Cette catégorie n’est plus disponible. Choisis Grade ou Gestion." });
+            }
+
             const action =
                 interaction.options.getString(
                     "action"
@@ -1023,6 +1011,7 @@ Vérifie son ID dans \`config/ranks.js\`.`
                     await member.roles.add(
                         discordRole
                     );
+                if (category === "grade") await syncSoulMember(member, { discordRank: roleKey }).catch(() => null);
 
                     newRank =
                         roleConfig.name;

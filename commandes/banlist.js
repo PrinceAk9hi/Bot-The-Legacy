@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -76,7 +78,7 @@ module.exports = {
                     (chunk, index) =>
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.sanction
                             )
                             .setTitle(
                                 index === 0

@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -1069,10 +1071,10 @@ function buildGameEmbed(game) {
     const embed =
         new EmbedBuilder()
             .setColor(
-                0x3B6475
+                SOUL_COLORS.primary
             )
             .setTitle(
-                "🐺 Loup-Garou — The Legacy"
+                "🐺 Loup-Garou — Soul Society"
             )
             .setDescription(
                 `**Phase :** ${phaseDisplay(game)}\n` +
@@ -2005,7 +2007,7 @@ async function preflightDMs(
                 embeds: [
                     new EmbedBuilder()
                         .setColor(
-                            0x3B6475
+                            SOUL_COLORS.primary
                         )
                         .setTitle(
                             "🐺 Préparation du Loup-Garou"
@@ -2289,7 +2291,7 @@ async function sendRoleDM(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         `${role.emoji} ${role.name}`
@@ -2468,7 +2470,7 @@ async function notifyWolfTeam(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0xED4245
+                        SOUL_COLORS.error
                     )
                     .setTitle(
                         "🐺 La Meute"
@@ -2798,7 +2800,7 @@ async function askPlayerSelect(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         title
@@ -2933,7 +2935,7 @@ async function askPlayerButtons(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         title
@@ -5879,7 +5881,7 @@ async function runMayorCandidates(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         "👑 Élection du Maire"
@@ -6105,7 +6107,7 @@ async function runMayorVote(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         secondRound
@@ -6554,7 +6556,7 @@ async function runDayVote(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         secondRound
@@ -7391,7 +7393,7 @@ async function finishGame(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x57F287
+                        SOUL_COLORS.success
                     )
                     .setTitle(
                         "🏆 Fin de partie"
@@ -8893,7 +8895,7 @@ function buildRulesHomeEmbed(
 
     return new EmbedBuilder()
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
         .setTitle(
             "📖 Règlement de cette partie"
@@ -9003,7 +9005,7 @@ function buildRoleGroupEmbed(
 
     return new EmbedBuilder()
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
         .setTitle(
             `${group.emoji} ${group.name}`
@@ -9151,7 +9153,7 @@ async function handleButton(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         "🎭 Mon rôle"
@@ -9671,7 +9673,7 @@ async function handleSelect(
             embeds: [
                 new EmbedBuilder()
                     .setColor(
-                        0x3B6475
+                        SOUL_COLORS.primary
                     )
                     .setTitle(
                         `${role.emoji} ${role.name}`

@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -21,7 +23,7 @@ const UNION_CHANNEL_ID =
     "1541081792302293153";
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // REMOVE ROLE
@@ -58,7 +60,7 @@ async function removeUnionRole(
     try {
         await member.roles.remove(
             UNION_ROLE_ID,
-            "Suppression d'une Union The Legacy"
+            "Suppression d'une Union Soul Society"
         );
 
         return true;
@@ -268,7 +270,7 @@ module.exports = {
             const publicEmbed =
                 new EmbedBuilder()
                     .setColor(
-                        0xED4245
+                        SOUL_COLORS.error
                     )
                     .setTitle(
                         "💔 Fin d'une Union"
@@ -278,11 +280,11 @@ module.exports = {
 
 > **Raison :** ${reason}
 
-Les deux membres ne sont désormais plus liés par une Union au sein de **The Legacy**.`
+Les deux membres ne sont désormais plus liés par une Union au sein de **Soul Society**.`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Unions"
+                            "Soul Society • Unions"
                     })
                     .setTimestamp();
 

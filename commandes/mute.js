@@ -1,3 +1,5 @@
+const { blockProtectedInteraction } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -62,6 +64,8 @@ module.exports = {
     async execute(
         interaction
     ) {
+        if (await blockProtectedInteraction(interaction, "mute")) return;
+
         const membre =
             interaction.options.getMember(
                 "membre"

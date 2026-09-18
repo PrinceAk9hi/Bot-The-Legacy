@@ -1,3 +1,7 @@
+const { hasAccessPermission } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -13,9 +17,9 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
-const SUCCESS_COLOR = 0x57F287;
-const ERROR_COLOR = 0xED4245;
+const COLOR = SOUL_COLORS.primary;
+const SUCCESS_COLOR = SOUL_COLORS.success;
+const ERROR_COLOR = SOUL_COLORS.error;
 
 // ======================================================
 // FICHIERS
@@ -461,10 +465,10 @@ module.exports = {
             // ==================================================
 
             const allowed =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 ) ||
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.ManageChannels
                 );
 
@@ -601,7 +605,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            `The Legacy • Action ${historyEntry.id}`
+                            `Soul Society • Action ${historyEntry.id}`
                     })
                     .setTimestamp();
 
@@ -651,7 +655,7 @@ module.exports = {
 
             try {
                 await channel.delete(
-                    `The Legacy • /del par ${interaction.user.tag} • ${reason}`
+                    `Soul Society • /del par ${interaction.user.tag} • ${reason}`
                 );
 
             } catch (deleteError) {
@@ -705,7 +709,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "The Legacy • /del"
+                            "Soul Society • /del"
                     })
                     .setTimestamp();
 

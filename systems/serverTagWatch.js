@@ -1,5 +1,9 @@
+const { isProtectedUser } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 // ======================================================
-// THE LEGACY — SURVEILLANCE DU TAG SERVEUR
+// Soul Society — SURVEILLANCE DU TAG SERVEUR
 // ======================================================
 
 const fs = require("fs");
@@ -15,27 +19,27 @@ const {
 
 // Membres concernés par l'obligation du tag
 const REQUIRED_ROLE_ID =
-    "1458391977073574012";
+    "1513698444588482650";
 
 // Rôle donné automatiquement si le tag est présent
 const TAG_ROLE_ID =
-    "1508174227566760076";
+    "1549107713277956148";
 
-// Rôle donné après 24h sans tag
+// Rôle donné après 72h sans tag
 const SANCTION_ROLE_ID =
-    "1533805396274315314";
+    "1468698882002387044";
 
 // Salon d'avertissement
 const WARNING_CHANNEL_ID =
-    "1533168252513943777";
+    "1471562633802023115";
 
 // Salon des sanctions
 const SANCTION_CHANNEL_ID =
-    "1531375423424823407";
+    "1478798666470002929";
 
 // Couleur principale
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // TEMPS
@@ -43,11 +47,11 @@ const COLOR =
 
 // Rappel au bout de 12h
 const HALF_TIME =
-    12 * 60 * 60 * 1000;
+    48 * 60 * 60 * 1000;
 
 // Sanction au bout de 24h
 const FULL_TIME =
-    24 * 60 * 60 * 1000;
+    72 * 60 * 60 * 1000;
 
 // Vérification toutes les 60 secondes
 const CHECK_INTERVAL =
@@ -493,7 +497,8 @@ function clearWarning(
 
 async function sendFirstWarning(
     guild,
-    member
+    member,
+    warning
 ) {
     const channel =
         await getChannel(
@@ -513,8 +518,7 @@ async function sendFirstWarning(
     }
 
     const deadline =
-        Date.now() +
-        FULL_TIME;
+        Number(warning.startedAt) + FULL_TIME;
 
     const embed =
         new EmbedBuilder()
@@ -525,11 +529,11 @@ async function sendFirstWarning(
                 "⚠️ Tag de famille manquant"
             )
             .setDescription(
-`<@${member.id}>, ton **tag de famille The Legacy** n'est actuellement plus affiché sur ton profil Discord.
+`<@${member.id}>, ton **tag de famille Soul Society** n'est actuellement plus affiché sur ton profil Discord.
 
-Tu disposes de **24 heures** pour le remettre.
+Remets ton tag avant la fin du délai de trois jours suivant sa disparition.
 
-> ⏳ **Temps restant : 24 heures**
+> ⏳ **Premier rappel après un jour**
 > 📅 Fin du délai : <t:${Math.floor(deadline / 1000)}:R>
 
 Si ton tag n'est toujours pas présent à la fin du délai, tu passeras automatiquement dans le rôle prévu pour cette situation.
@@ -544,7 +548,7 @@ Dès que ton tag est remis, le compteur est automatiquement annulé.`
             )
             .setFooter({
                 text:
-                    "The Legacy • Tag de famille"
+                    "Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -603,21 +607,21 @@ async function sendHalfWarning(
     }
 
     const deadline =
-        warning.startedAt +
+        Number(warning.startedAt) +
         FULL_TIME;
 
     const embed =
         new EmbedBuilder()
             .setColor(
-                0xF1C40F
+                SOUL_COLORS.secondary
             )
             .setTitle(
-                "⏳ Il te reste 12 heures"
+                "⏳ Deuxième rappel : tag manquant"
             )
             .setDescription(
-`<@${member.id}>, ton **tag de famille The Legacy** n'est toujours pas présent.
+`<@${member.id}>, ton **tag de famille Soul Society** n'est toujours pas présent.
 
-Il te reste désormais **12 heures** pour le remettre.
+Remets ton tag avant la fin du délai ci-dessous.
 
 > ⚠️ Si ton tag n'est toujours pas présent à la fin du délai, la sanction sera appliquée automatiquement.
 > 📅 Fin du délai : <t:${Math.floor(deadline / 1000)}:R>`
@@ -630,7 +634,7 @@ Il te reste désormais **12 heures** pour le remettre.
             )
             .setFooter({
                 text:
-                    "The Legacy • Tag de famille"
+                    "Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -674,6 +678,7 @@ async function sendTagRestoredMessage(
     guild,
     member
 ) {
+    return; // Aucun message lors du rétablissement du tag.
     const channel =
         await getChannel(
             guild,
@@ -690,13 +695,13 @@ async function sendTagRestoredMessage(
     const embed =
         new EmbedBuilder()
             .setColor(
-                0x57F287
+                SOUL_COLORS.success
             )
             .setTitle(
                 "✅ Tag de famille rétabli"
             )
             .setDescription(
-`<@${member.id}> a remis son **tag de famille The Legacy** avant la fin du délai.
+`<@${member.id}> a remis son **tag de famille Soul Society** avant la fin du délai.
 
 > ✅ L'avertissement est annulé.
 > ⏳ Le compteur de 24 heures est supprimé.
@@ -710,7 +715,7 @@ async function sendTagRestoredMessage(
             )
             .setFooter({
                 text:
-                    "The Legacy • Tag de famille"
+                    "Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -754,16 +759,19 @@ async function sanctionMember(
     guild,
     member
 ) {
+    if (isProtectedUser(member?.id)) return false;
+
     const roleAdded =
         await addRole(
             member,
             SANCTION_ROLE_ID,
-            "Tag de famille absent après 24 heures"
+            "Tag de famille absent après 72 heures"
         );
 
     if (
         !roleAdded
     ) {
+        return false;
         console.error(
             `❌ Impossible d'appliquer le rôle sanction à ${member.user.tag}`
         );
@@ -783,7 +791,7 @@ async function sanctionMember(
             `❌ Salon sanctions introuvable : ${SANCTION_CHANNEL_ID}`
         );
 
-        return;
+        return roleAdded;
     }
 
     await channel.send({
@@ -793,10 +801,10 @@ async function sanctionMember(
 > **Membre :** <@${member.id}>
 > **ID :** \`${member.id}\`
 > **Sanction :** Passage automatique
-> **Raison :** Tag de famille absent après le délai de 24 heures.
+> **Raison :** Tag de famille absent après le délai de 72 heures.
 > **Rôle attribué :** <@&${SANCTION_ROLE_ID}>
 
--# Sanction appliquée automatiquement par The Legacy.`,
+-# Sanction appliquée automatiquement par Soul Society.`,
 
         allowedMentions: {
             users: [
@@ -825,6 +833,8 @@ async function handleMember(
     member,
     data
 ) {
+    if (isProtectedUser(member?.id)) return;
+
     if (
         !member ||
         member.user.bot
@@ -853,7 +863,7 @@ async function handleMember(
         await addRole(
             member,
             TAG_ROLE_ID,
-            "Tag serveur The Legacy détecté"
+            "Tag serveur Soul Society détecté"
         );
 
         const hadWarning =
@@ -900,7 +910,7 @@ async function handleMember(
     await removeRole(
         member,
         TAG_ROLE_ID,
-        "Tag serveur The Legacy absent"
+        "Tag serveur Soul Society absent"
     );
 
     // ==================================================
@@ -942,11 +952,7 @@ async function handleMember(
     if (
         !warning
     ) {
-        const sent =
-            await sendFirstWarning(
-                guild,
-                member
-            );
+        const sent = false; // Premier rappel après un jour d’absence.
 
         warning = {
             guildId:
@@ -984,7 +990,7 @@ async function handleMember(
         );
 
         console.log(
-            `⏳ Compteur 24h lancé pour ${member.user.tag}`
+            `⏳ Compteur 72h lancé pour ${member.user.tag}`
         );
 
         return;
@@ -995,14 +1001,13 @@ async function handleMember(
     // ==================================================
 
     if (
+        now - Number(warning.startedAt) >= 24 * 60 * 60 * 1000 &&
+        now - Number(warning.startedAt) < HALF_TIME &&
         warning.firstWarningSent ===
             false
     ) {
         const sent =
-            await sendFirstWarning(
-                guild,
-                member
-            );
+            await sendFirstWarning(guild, member, warning);
 
         if (
             sent
@@ -1099,10 +1104,8 @@ async function handleMember(
             return;
         }
 
-        await sanctionMember(
-            guild,
-            member
-        );
+        const applied = await sanctionMember(guild, member);
+        if (!applied) return;
 
         warning.sanctionApplied =
             true;

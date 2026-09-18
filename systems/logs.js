@@ -1,3 +1,7 @@
+const { IDENTITY, CHANNELS } = require("../config/soulSociety");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -47,6 +51,7 @@ const COMMAND_ROUTES = {
     rank: "rank",
     derank: "rank",
 
+    avert: "moderation",
     ban: "moderation",
     kick: "moderation",
     mute: "moderation",
@@ -61,9 +66,7 @@ const COMMAND_ROUTES = {
 
     setuptpv: "tpv",
 
-    entretien: "recruitment",
-    join: "recruitment",
-    setupcandidature: "recruitment",
+    entretien: "recruitment",    setupcandidature: "recruitment",
 
     link: "roblox",
 
@@ -355,66 +358,26 @@ function getGuildConfig(
 // RÉCUPÉRATION SALON
 // ======================================================
 
-async function getLogChannel(
-    guild,
-    key
-) {
-    const config =
-        getGuildConfig(
-            guild.id
-        );
-
-    if (
-        !config ||
-        !config.channels
-    ) {
-        return null;
+async function getLogChannel(guild, key) {
+    const config = getGuildConfig(guild.id);
+    const channelIds = [...new Set([
+        guild.id === IDENTITY.guildId ? ({ commands: CHANNELS.commandLogs, rank: CHANNELS.rankups, moderation: CHANNELS.logs, recruitment: CHANNELS.recruitmentLogs, tickets: CHANNELS.ticketLogs })[key] : null,
+        config?.channels?.[key],
+        guild.id === IDENTITY.guildId ? CHANNELS.logs : null
+    ].filter(Boolean))];
+    for (const channelId of channelIds) {
+        const channel = guild.channels.cache.get(channelId) ||
+            await guild.channels.fetch(channelId).catch(() => null);
+        if (channel?.isTextBased()) return channel;
     }
-
-    const channelId =
-        config.channels[
-            key
-        ];
-
-    if (!channelId) {
-        return null;
-    }
-
-    let channel =
-        guild.channels.cache.get(
-            channelId
-        );
-
-    if (!channel) {
-        channel =
-            await guild.channels
-                .fetch(
-                    channelId
-                )
-                .catch(
-                    () => null
-                );
-    }
-
-    if (
-        !channel ||
-        !channel.isTextBased()
-    ) {
-        return null;
-    }
-
-    return channel;
+    return null;
 }
 
 // ======================================================
 // ENVOI
 // ======================================================
 
-async function sendEmbed(
-    guild,
-    key,
-    embed
-) {
+async function sendEmbed(guild, key, embed, sentChannelIds = null) {
     const channel =
         await getLogChannel(
             guild,
@@ -424,6 +387,9 @@ async function sendEmbed(
     if (!channel) {
         return false;
     }
+
+    if (sentChannelIds?.has(channel.id)) return true;
+    sentChannelIds?.add(channel.id);
 
     await channel.send({
         embeds: [
@@ -472,8 +438,7 @@ async function setupGuild(
                 channel =>
                     channel.type ===
                         ChannelType.GuildCategory &&
-                    channel.name ===
-                        "📁 LOGS THE LEGACY"
+                    channel.name === "📁 LOGS Soul Society"
             );
     }
 
@@ -553,7 +518,7 @@ async function setupGuild(
         category =
             await guild.channels.create({
                 name:
-                    "📁 LOGS THE LEGACY",
+                    "📁 LOGS Soul Society",
 
                 type:
                     ChannelType.GuildCategory,
@@ -562,7 +527,7 @@ async function setupGuild(
                     overwrites,
 
                 reason:
-                    "Installation du système de logs The Legacy"
+                    "Installation du système de logs Soul Society"
             });
     }
 
@@ -662,7 +627,7 @@ async function setupGuild(
                         category.id,
 
                     reason:
-                        "Installation du système de logs The Legacy"
+                        "Installation du système de logs Soul Society"
                 });
         }
 
@@ -739,12 +704,12 @@ async function logCommand(
             interaction.guild.id
         );
 
-    if (!config) {
+    if (!config && interaction.guild.id !== IDENTITY.guildId) {
         return;
     }
 
     let color =
-        0x57F287;
+        SOUL_COLORS.success;
 
     let statusText =
         "✅ Succès";
@@ -754,7 +719,7 @@ async function logCommand(
         "error"
     ) {
         color =
-            0xED4245;
+            SOUL_COLORS.error;
 
         statusText =
             "❌ Erreur";
@@ -942,7 +907,7 @@ async function logCommand(
             )
             .setFooter({
                 text:
-                    `The Legacy • ${interaction.guild.name}`
+                    `Soul Society • ${interaction.guild.name}`
             })
             .setTimestamp();
 
@@ -950,11 +915,8 @@ async function logCommand(
     // LOG GÉNÉRAL
     // ==================================================
 
-    await sendEmbed(
-        interaction.guild,
-        "commands",
-        embed
-    );
+    const sentChannelIds = new Set();
+    await sendEmbed(interaction.guild, "commands", embed, sentChannelIds);
 
     // ==================================================
     // LOG SPÉCIALISÉ
@@ -973,9 +935,8 @@ async function logCommand(
         await sendEmbed(
             interaction.guild,
             route,
-            EmbedBuilder.from(
-                embed
-            )
+            EmbedBuilder.from(embed),
+            sentChannelIds
         );
     }
 }
@@ -991,8 +952,8 @@ async function logSpecial(
         title,
         description = null,
         fields = [],
-        color = 0x5865F2,
-        footer = "The Legacy • Logs"
+        color = SOUL_COLORS.secondary,
+        footer = "Soul Society • Logs"
     }
 ) {
     const embed =
@@ -1041,7 +1002,7 @@ async function logSystemAll(
     client,
     title,
     description,
-    color = 0x5865F2
+    color = SOUL_COLORS.secondary
 ) {
     for (
         const [
@@ -1079,6 +1040,28 @@ async function logSystemAll(
 function registerLogsSystem(
     client
 ) {
+    if (client.soulLogsRegistered) return;
+    client.soulLogsRegistered = true;
+    const eventLog = (guild, title, description) => {
+        if (guild?.id !== IDENTITY.guildId) return;
+        return logSpecial(guild, "moderation", { title, description: String(description).slice(0, 4000) }).catch(() => {});
+    };
+    client.on("messageDelete", message => {
+        if (!message.author?.bot) eventLog(message.guild, "Message supprimé", "Auteur : " + (message.author?.id || "inconnu") + " • Salon : " + message.channelId + "\n" + (message.content || "Contenu non disponible en cache"));
+    });
+    client.on("messageUpdate", (before, after) => {
+        if (!after.author?.bot && before.content !== after.content) eventLog(after.guild, "Message modifié", "Auteur : " + (after.author?.id || "inconnu") + " • Salon : " + after.channelId + "\nAvant : " + String(before.content || "Indisponible").slice(0, 1800) + "\nAprès : " + String(after.content || "Indisponible").slice(0, 1800));
+    });
+    client.on("guildMemberAdd", member => eventLog(member.guild, "Arrivée", member.user.tag + " • " + member.id));
+    client.on("guildMemberRemove", member => eventLog(member.guild, "Départ", member.user.tag + " • " + member.id));
+    client.on("guildMemberUpdate", (before, after) => {
+        const added = after.roles.cache.filter(role => !before.roles.cache.has(role.id)).map(role => role.name + " (" + role.id + ")");
+        const removed = before.roles.cache.filter(role => !after.roles.cache.has(role.id)).map(role => role.name + " (" + role.id + ")");
+        if (added.length || removed.length || before.nickname !== after.nickname) eventLog(after.guild, "Membre modifié", after.id + "\nRôles ajoutés : " + added.join(", ") + "\nRôles retirés : " + removed.join(", ") + "\nPseudo : " + (before.nickname || before.user.username) + " → " + (after.nickname || after.user.username));
+    });
+    client.on("voiceStateUpdate", (before, after) => {
+        if (before.channelId !== after.channelId || before.serverMute !== after.serverMute || before.serverDeaf !== after.serverDeaf) eventLog(after.guild, "État vocal modifié", after.id + " • " + (before.channelId || "hors vocal") + " → " + (after.channelId || "hors vocal") + " • Muet : " + after.serverMute + " • Sourdine : " + after.serverDeaf);
+    });
     ensureFiles();
     loadConfigs();
 
@@ -1114,7 +1097,7 @@ function registerLogsSystem(
                     "",
                     "Le bot vient de démarrer ou d'être redéployé."
                 ].join("\n"),
-                0x57F287
+                SOUL_COLORS.success
             ).catch(
                 () => {}
             );

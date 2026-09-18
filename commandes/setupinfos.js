@@ -1,3 +1,9 @@
+const { ROBLOX } = require("../config/soulSociety");
+
+const { hasAccessPermission } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -29,7 +35,7 @@ const SCHOOL_RP_URL =
     "https://discord.com/channels/1396247403149000724/1424115690545217598";
 
 const ROBLOX_URL =
-    "https://www.roblox.com/share/g/194530241";
+    ROBLOX.groupUrl;
 
 // ======================================================
 // SALONS
@@ -58,11 +64,11 @@ function createInfoEmbed() {
     return new EmbedBuilder()
 
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
 
         .setTitle(
-            "Découvre The Legacy via ce salon ! <:emoji_26:1532806562761150544>"
+            "Découvre Soul Society via ce salon ! <:Soul_Society:1548783936010977380>"
         )
 
         .setDescription(
@@ -71,17 +77,17 @@ function createInfoEmbed() {
                 "",
                 "- Avoir au minimum passé une période de test de 1 semaine (initialement, elle durera 2 semaines quand même),",
                 "",
-                "- Ou être passé <@&1531761056744083648>",
+                "- Ou être passé <@&1468701415475118282>",
                 "",
                 "> -# Si vous ne remplissiez pas les conditions de recrutement, la bannière ne vous sera pas mis en place avant le rankup. (Sauf en cas d'exception..)",
                 "",
                 "### **Explication des salons :**",
                 "",
                 `> **<#${GESTIONS_CHANNEL_ID}>**`,
-                "> Dès votre passage <@&1531761056744083648> (1 semaine au préalable pour rejoindre une gestion), **vous aurez la possibilité de rejoindre 2 gestions aux choix via un système de candidature**.",
+                "> Dès votre passage <@&1468701415475118282> (1 semaine au préalable pour rejoindre une gestion), **vous aurez la possibilité de rejoindre 2 gestions aux choix via un système de candidature**.",
                 "",
                 `> **<#${PSEUDO_CHANNEL_ID}>**`,
-                "> Dès votre passage <@&1531761056744083648> (à faire au moment de votre rankup), **vous devrez remplir le formulaire de votre pseudo dans ce salon**.",
+                "> Dès votre passage <@&1468701415475118282> (à faire au moment de votre rankup), **vous devrez remplir le formulaire de votre pseudo dans ce salon**.",
                 "",
                 `> **<#${ABSENCE_CHANNEL_ID}>**`,
                 "> Dès votre arrivée, **en cas d'absence durant plus de 1j**, **vous devrez remplir ce formulaire d'absence, pour éviter de vous prendre des sanctions/rappels**.",
@@ -96,15 +102,15 @@ function createInfoEmbed() {
                 "",
                 `Voici le lien du serveur : <:People:1540427883770552381> [School RP Famille](${SCHOOL_RP_URL})`,
                 "",
-                "Après validation du <@&1531760308761133229> *ou* <@&1516451475415367822> pour le rankup / accès à la bannière, **il faudra demander à rejoindre la communauté ci-dessous**.",
+                "Après validation du <@&1471889647570260030> pour le rankup / accès à la bannière, **il faudra demander à rejoindre la communauté ci-dessous**.",
                 "",
-                `**Voici le lien du groupe roblox :** <:126013friends:1532080555317788782> [The Legacy Community](${ROBLOX_URL})`
+                `**Voici le lien du groupe roblox :** <:126013friends:1532080555317788782> [Soul Society](${ROBLOX_URL})`
             ].join("\n")
         )
 
         .setFooter({
             text:
-                "The Legacy • Informations"
+                "Soul Society • Informations"
         });
 }
 
@@ -123,7 +129,7 @@ function createInfoButtons() {
 
                 new ButtonBuilder()
                     .setCustomId(
-                        "legacy_change_roblox"
+                        "soul_change_roblox"
                     )
                     .setLabel(
                         "Changer son Roblox"
@@ -167,14 +173,14 @@ function createInfoButtons() {
 
                 new ButtonBuilder()
                     .setLabel(
-                        "The Legacy Community"
+                        "Soul Society"
                     )
                     .setEmoji({
                         id:
-                            "1533222807423418479",
+                            "1548783936010977380",
 
                         name:
-                            "coeurpnllgcy"
+                            "Soul_Society"
                     })
                     .setStyle(
                         ButtonStyle.Link
@@ -198,7 +204,7 @@ module.exports = {
                 "setupinfos"
             )
             .setDescription(
-                "Installer ou mettre à jour le panneau d'informations The Legacy"
+                "Installer ou mettre à jour le panneau d'informations Soul Society"
             ),
 
     // ==================================================
@@ -228,7 +234,7 @@ module.exports = {
                 );
 
             const isAdmin =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 );
 
@@ -314,7 +320,7 @@ module.exports = {
                                 embed =>
                                     embed.title
                                         ?.includes(
-                                            "Découvre The Legacy via ce salon"
+                                            "Découvre Soul Society via ce salon"
                                         )
                             )
                     );
@@ -333,7 +339,7 @@ module.exports = {
                                     embed =>
                                         embed.description
                                             ?.includes(
-                                                "Découvre The Legacy via ce salon"
+                                                "Découvre Soul Society via ce salon"
                                             )
                                 )
                         );

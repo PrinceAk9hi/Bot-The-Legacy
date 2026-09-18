@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -14,7 +16,7 @@ const {
 // ======================================================
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // DATE
@@ -305,7 +307,7 @@ module.exports = {
         embed
             .setFooter({
                 text:
-                    `The Legacy • ${history.length} Union(s) enregistrée(s)`
+                    `Soul Society • ${history.length} Union(s) enregistrée(s)`
             })
             .setTimestamp();
 

@@ -1,3 +1,8 @@
+const { normalizeTicketTopic } = require("../utils/soulMigration");
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     Events,
     EmbedBuilder,
@@ -14,7 +19,7 @@ const {
 } = require("discord.js");
 
 // ======================================================
-// THE LEGACY — SYSTÈME DE TICKETS
+// Soul Society — SYSTÈME DE TICKETS
 // ======================================================
 
 // ======================================================
@@ -27,39 +32,35 @@ const CONFIG = {
     // ==================================================
 
     bypassRoles: [
-        "1467277541696868412",
-        "1458414705717805189"
+        "1469803353964810250",
+        "1522357970778718249",
+        "1497660642436448266",
+        "1527996778727870496",
+        "1471546243653304392",
+
+        "1504782476319526932"
     ],
 
     // ==================================================
     // TICKETS GÉNÉRAUX
     // ==================================================
 
-    ticketResponsible:
-        "1532085331656970400",
-
     ticketGestion:
-        "1495888679535644753",
+        "1471557970079912047",
 
     // ==================================================
     // ANIMATIONS
     // ==================================================
 
-    animationResponsible:
-        "1532084983748100237",
-
     animationGestion:
-        "1458394404568957052",
+        "1477056805103206450",
 
     // ==================================================
     // SANCTIONS / RANKUPS
     // ==================================================
 
-    sanctionResponsible:
-        "1531760308761133229",
-
     sanctionGestion:
-        "1516451475415367822",
+        "1471889647570260030",
 
     // ==================================================
     // CATÉGORIES
@@ -82,7 +83,7 @@ const CONFIG = {
     // ==================================================
 
     logsChannel:
-        "1542668828658634852"
+        "1471556441218224209"
 };
 
 // ======================================================
@@ -100,9 +101,7 @@ const TICKET_TYPES = {
         categoryId:
             CONFIG.categoryGeneral,
 
-        responsibleRoles: [
-            CONFIG.ticketResponsible
-        ],
+        responsibleRoles: [],
 
         gestionRoles: [
             CONFIG.ticketGestion
@@ -123,9 +122,7 @@ const TICKET_TYPES = {
         categoryId:
             CONFIG.categoryEvent,
 
-        responsibleRoles: [
-            CONFIG.animationResponsible
-        ],
+        responsibleRoles: [],
 
         gestionRoles: [
             CONFIG.animationGestion
@@ -146,9 +143,7 @@ const TICKET_TYPES = {
         categoryId:
             CONFIG.categoryReport,
 
-        responsibleRoles: [
-            CONFIG.sanctionResponsible
-        ],
+        responsibleRoles: [],
 
         gestionRoles: [
             CONFIG.sanctionGestion
@@ -169,9 +164,7 @@ const TICKET_TYPES = {
         categoryId:
             CONFIG.categoryGeneral,
 
-        responsibleRoles: [
-            CONFIG.ticketResponsible
-        ],
+        responsibleRoles: [],
 
         gestionRoles: [
             CONFIG.ticketGestion
@@ -192,9 +185,7 @@ const TICKET_TYPES = {
         categoryId:
             CONFIG.categoryGeneral,
 
-        responsibleRoles: [
-            CONFIG.ticketResponsible
-        ],
+        responsibleRoles: [],
 
         gestionRoles: [
             CONFIG.ticketGestion
@@ -207,10 +198,10 @@ const TICKET_TYPES = {
 
     foundation: {
         label:
-            "Contacter la fondation",
+            "Contacter la direction",
 
         channelPrefix:
-            "fondation",
+            "direction",
 
         categoryId:
             CONFIG.categoryFoundation,
@@ -282,7 +273,7 @@ function buildTopic({
     messageId = null
 }) {
     return [
-        "legacy-ticket",
+        "soul-ticket",
         `type:${type}`,
         `owner:${ownerId}`,
         `claimed:${claimedBy || "none"}`,
@@ -295,10 +286,11 @@ function buildTopic({
 function parseTopic(
     topic
 ) {
+    topic = normalizeTicketTopic(topic);
     if (
         !topic ||
         !topic.startsWith(
-            "legacy-ticket|"
+            "soul-ticket|"
         )
     ) {
         return null;
@@ -406,6 +398,8 @@ function memberHasAnyRole(
 function isBypass(
     member
 ) {
+    if (hasBypass(member)) return true;
+
     return memberHasAnyRole(
         member,
         CONFIG.bypassRoles
@@ -585,7 +579,7 @@ function createTicketEmbed({
     const embed =
         new EmbedBuilder()
             .setColor(
-                0x2B2D31
+                SOUL_COLORS.primary
             )
             .setTitle(
                 "Ticket Support 🎫"
@@ -645,7 +639,7 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
             )
             .setFooter({
                 text:
-                    "The Legacy • Support"
+                    "Soul Society • Support"
             })
             .setTimestamp();
 
@@ -670,7 +664,7 @@ function createTicketButtons(
     const claimButton =
         new ButtonBuilder()
             .setCustomId(
-                "legacy_ticket_claim"
+                "soul_ticket_claim"
             )
             .setLabel(
                 claimedBy
@@ -694,7 +688,7 @@ function createTicketButtons(
     const renameButton =
         new ButtonBuilder()
             .setCustomId(
-                "legacy_ticket_rename"
+                "soul_ticket_rename"
             )
             .setLabel(
                 "Renommer"
@@ -709,7 +703,7 @@ function createTicketButtons(
     const closeButton =
         new ButtonBuilder()
             .setCustomId(
-                "legacy_ticket_close"
+                "soul_ticket_close"
             )
             .setLabel(
                 "Fermer"
@@ -738,7 +732,7 @@ function createCloseConfirmButtons() {
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(
-                    "legacy_ticket_close_confirm"
+                    "soul_ticket_close_confirm"
                 )
                 .setLabel(
                     "Confirmer la fermeture"
@@ -752,7 +746,7 @@ function createCloseConfirmButtons() {
 
             new ButtonBuilder()
                 .setCustomId(
-                    "legacy_ticket_close_cancel"
+                    "soul_ticket_close_cancel"
                 )
                 .setLabel(
                     "Annuler"
@@ -929,7 +923,7 @@ async function logTicketOpen(
         embeds: [
             new EmbedBuilder()
                 .setColor(
-                    0x57F287
+                    SOUL_COLORS.success
                 )
                 .setTitle(
                     "🎫 Ticket ouvert"
@@ -1000,7 +994,7 @@ async function logTicketClaim(
         embeds: [
             new EmbedBuilder()
                 .setColor(
-                    0x5865F2
+                    SOUL_COLORS.secondary
                 )
                 .setTitle(
                     "🛠️ Ticket pris en charge"
@@ -1092,7 +1086,7 @@ async function logTicketClose(
     const embed =
         new EmbedBuilder()
             .setColor(
-                0xED4245
+                SOUL_COLORS.error
             )
             .setTitle(
                 "🔒 Ticket fermé"
@@ -1492,7 +1486,7 @@ function registerTicketSystem(
                 if (
                     interaction.isStringSelectMenu() &&
                     interaction.customId ===
-                        "legacy_ticket_select"
+                        "soul_ticket_select"
                 ) {
                     await interaction.deferReply({
                         flags:
@@ -1518,7 +1512,7 @@ function registerTicketSystem(
 
                 const ticketComponent =
                     interaction.customId?.startsWith(
-                        "legacy_ticket_"
+                        "soul_ticket_"
                     );
 
                 if (
@@ -1567,7 +1561,7 @@ function registerTicketSystem(
                 if (
                     interaction.isButton() &&
                     interaction.customId ===
-                        "legacy_ticket_claim"
+                        "soul_ticket_claim"
                 ) {
                     if (
                         !isTicketStaff(
@@ -1577,7 +1571,7 @@ function registerTicketSystem(
                     ) {
                         return interaction.reply({
                             content:
-                                "❌ Seule la gestion, le responsable ou un rôle bypass peut prendre en charge ce ticket.",
+                                "❌ Seule la gestion ou un compte bypass peut prendre en charge ce ticket.",
 
                             flags:
                                 MessageFlags.Ephemeral
@@ -1710,7 +1704,7 @@ function registerTicketSystem(
                         embeds: [
                             new EmbedBuilder()
                                 .setColor(
-                                    0x57F287
+                                    SOUL_COLORS.success
                                 )
                                 .setDescription(
 `🛠️ Ce ticket est désormais pris en charge par <@${interaction.user.id}>.`
@@ -1757,7 +1751,7 @@ function registerTicketSystem(
                 if (
                     interaction.isButton() &&
                     interaction.customId ===
-                        "legacy_ticket_rename"
+                        "soul_ticket_rename"
                 ) {
                     if (
                         !isTicketStaff(
@@ -1777,7 +1771,7 @@ function registerTicketSystem(
                     const modal =
                         new ModalBuilder()
                             .setCustomId(
-                                "legacy_ticket_rename_modal"
+                                "soul_ticket_rename_modal"
                             )
                             .setTitle(
                                 "Renommer le ticket"
@@ -1829,7 +1823,7 @@ function registerTicketSystem(
                 if (
                     interaction.isModalSubmit() &&
                     interaction.customId ===
-                        "legacy_ticket_rename_modal"
+                        "soul_ticket_rename_modal"
                 ) {
                     if (
                         !isTicketStaff(
@@ -1910,7 +1904,7 @@ function registerTicketSystem(
                 if (
                     interaction.isButton() &&
                     interaction.customId ===
-                        "legacy_ticket_close"
+                        "soul_ticket_close"
                 ) {
                     const canClose =
                         interaction.user.id ===
@@ -1952,7 +1946,7 @@ function registerTicketSystem(
                 if (
                     interaction.isButton() &&
                     interaction.customId ===
-                        "legacy_ticket_close_cancel"
+                        "soul_ticket_close_cancel"
                 ) {
                     return interaction.update({
                         content:
@@ -1970,7 +1964,7 @@ function registerTicketSystem(
                 if (
                     interaction.isButton() &&
                     interaction.customId ===
-                        "legacy_ticket_close_confirm"
+                        "soul_ticket_close_confirm"
                 ) {
                     const canClose =
                         interaction.user.id ===
@@ -2045,7 +2039,7 @@ function registerTicketSystem(
                         embeds: [
                             new EmbedBuilder()
                                 .setColor(
-                                    0xED4245
+                                    SOUL_COLORS.error
                                 )
                                 .setTitle(
                                     "🔒 Ticket fermé"

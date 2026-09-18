@@ -341,12 +341,12 @@ module.exports = {
 
             if (
                 typeof interaction.client
-                    .registerCommands ===
+                    .reloadCommands ===
                     "function"
             ) {
                 try {
                     await interaction.client
-                        .registerCommands();
+                        .reloadCommands();
 
                     discordRegistration =
                         "effectué";

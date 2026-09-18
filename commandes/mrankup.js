@@ -1,3 +1,7 @@
+const { ROBLOX } = require("../config/soulSociety");
+
+const { hasBypass } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     PermissionsBitField,
@@ -33,6 +37,8 @@ const MAX_MEMBERS = 20;
 // ======================================================
 
 function hasRankPermission(member) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(
@@ -66,6 +72,10 @@ let robloxAuthenticated =
     false;
 
 async function ensureRobloxAuthenticated() {
+    if (Number(process.env.ROBLOX_GROUP_ID || ROBLOX.groupId) !== ROBLOX.groupId) {
+        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour Soul Society.");
+    }
+
     if (
         robloxAuthenticated
     ) {
@@ -134,7 +144,7 @@ async function syncRobloxRank(
 
     const groupId =
         Number(
-            process.env.ROBLOX_GROUP_ID
+            process.env.ROBLOX_GROUP_ID || ROBLOX.groupId
         );
 
     if (
@@ -441,9 +451,9 @@ async function sendPublicMessage({
             );
 
     const content =
-`## 👑 Rankup multiple — The Legacy
+`## <:arrow_up:1548785968499261621> Rankup multiple — Soul Society
 
-Une nouvelle vague d'évolution vient d'avoir lieu au sein de **The Legacy** !
+Une nouvelle vague d'évolution vient d'avoir lieu au sein de **Soul Society** !
 
 ### Nouveau grade
 > **${rank.name}**

@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -9,7 +11,7 @@ const {
     loadState,
     saveState,
     updatePanel,
-    countLegacyMembers
+    countSoulMembers
 } = require("../utils/candidaturePanel");
 
 // ======================================================
@@ -23,7 +25,7 @@ module.exports = {
                 "candidature"
             )
             .setDescription(
-                "Gérer les candidatures The Legacy"
+                "Gérer les candidatures Soul Society"
             )
 
             // ==================================================
@@ -180,7 +182,7 @@ module.exports = {
             }
 
             const memberCount =
-                await countLegacyMembers(
+                await countSoulMembers(
                     interaction.guild
                 );
 
@@ -192,20 +194,20 @@ module.exports = {
             const embed =
                 new EmbedBuilder()
                     .setColor(
-                        0x57F287
+                        SOUL_COLORS.success
                     )
                     .setTitle(
                         "✅ Candidatures ouvertes"
                     )
                     .setDescription(
-`Les candidatures de **The Legacy** sont désormais ouvertes.
+`Les candidatures de **Soul Society** sont désormais ouvertes.
 
 > 👥 **Membres : ${counter}**
-> 🔘 Le bouton **Rejoindre The Legacy** est disponible.`
+> 🔘 Le bouton **Rejoindre Soul Society** est disponible.`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Recrutements"
+                            "Soul Society • Recrutements"
                     })
                     .setTimestamp();
 
@@ -270,7 +272,7 @@ module.exports = {
             const embed =
                 new EmbedBuilder()
                     .setColor(
-                        0xED4245
+                        SOUL_COLORS.error
                     )
                     .setTitle(
                         "🔒 Candidatures fermées"
@@ -280,11 +282,11 @@ module.exports = {
 
 > **Ouverture des recrutements :** ${reopening}
 
-Le bouton **Rejoindre The Legacy** a été retiré.`
+Le bouton **Rejoindre Soul Society** a été retiré.`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Recrutements"
+                            "Soul Society • Recrutements"
                     })
                     .setTimestamp();
 

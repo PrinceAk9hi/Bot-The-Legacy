@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder
@@ -12,7 +14,7 @@ const {
 // ======================================================
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // COMMAND
@@ -25,7 +27,7 @@ module.exports = {
                 "unionlist"
             )
             .setDescription(
-                "Afficher toutes les Unions actives de The Legacy"
+                "Afficher toutes les Unions actives de Soul Society"
             ),
 
     async execute(
@@ -46,7 +48,7 @@ module.exports = {
                             COLOR
                         )
                         .setTitle(
-                            "💍 Unions The Legacy"
+                            "💍 Unions Soul Society"
                         )
                         .setDescription(
                             "Aucune Union active n'est actuellement enregistrée."
@@ -120,7 +122,7 @@ module.exports = {
                                 )
                                 .setTitle(
                                     pageIndex === 0
-                                        ? `💍 Unions The Legacy — ${unions.length}`
+                                        ? `💍 Unions Soul Society — ${unions.length}`
                                         : `💍 Unions — Page ${pageIndex + 1}`
                                 )
                                 .setDescription(

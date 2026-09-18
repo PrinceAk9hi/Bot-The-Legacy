@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS, CHANNELS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -18,7 +20,7 @@ module.exports = {
                 "setuptickets"
             )
             .setDescription(
-                "Installer le panel Support The Legacy"
+                "Installer le panel Support Soul Society"
             )
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.Administrator
@@ -32,6 +34,13 @@ module.exports = {
                 MessageFlags.Ephemeral
         });
 
+        const panelChannel = interaction.guild.channels.cache.get(CHANNELS.ticketPanel) ||
+            await interaction.guild.channels.fetch(CHANNELS.ticketPanel).catch(() => null);
+        if (!panelChannel?.isTextBased()) {
+            return interaction.editReply({ content: "❌ Le salon du panel tickets est introuvable ou inaccessible." });
+        }
+
+
         // ==================================================
         // EMBED PRINCIPAL
         // ==================================================
@@ -39,7 +48,7 @@ module.exports = {
         const embed =
             new EmbedBuilder()
                 .setColor(
-                    0x2B2D31
+                    SOUL_COLORS.primary
                 )
                 .setDescription(
 `**Panel Support** <a:earth:1477070794201759845>
@@ -48,15 +57,15 @@ module.exports = {
 
 **Voici notre panel de support, pouvant répondre à vos demandes :**
 
-- <a:ticket:1477461507397648575> Questions/Aide
+- <:Ticket:1501602282171531435> Questions/Aide
 
   *Pour toute question ou besoin d’assistance générale.*
 
-- <:494996announcement:1532080361012723752> Création d'un évènement
+- <a:speaker:1548785378276810844> Création d'un évènement
 
   *Pour toute demande ou information liée aux événements.*
 
-- <:11781warning:1532080330985574541> Signaler un membre
+- ⚠️ Signaler un membre
 
   *Pour signaler un joueur ou un comportement (preuves requises).*
 
@@ -68,9 +77,9 @@ module.exports = {
 
   *Pour demander un rôle staff, Content Creator, fondateur de famille, etc.*
 
-- <a:8148whitecrown:1532081260028100770> Contacter la fondation
+- <:crown:1548785045047607416> Contacter la direction
 
-  *Pour les demandes importantes nécessitant un responsable.*`
+  *Pour les demandes importantes nécessitant la direction.*`
                 );
 
         // ==================================================
@@ -80,7 +89,7 @@ module.exports = {
         const select =
             new StringSelectMenuBuilder()
                 .setCustomId(
-                    "legacy_ticket_select"
+                    "soul_ticket_select"
                 )
                 .setPlaceholder(
                     "Fais un choix"
@@ -98,10 +107,10 @@ module.exports = {
 
                         emoji: {
                             id:
-                                "1477461507397648575",
+                                "1501602282171531435",
 
                             animated:
-                                true
+                                false
                         }
                     },
 
@@ -116,8 +125,8 @@ module.exports = {
                             "event",
 
                         emoji: {
-                            id:
-                                "1532080361012723752"
+                            id: "1548785378276810844",
+                            animated: true
                         }
                     },
 
@@ -131,10 +140,7 @@ module.exports = {
                         value:
                             "report",
 
-                        emoji: {
-                            id:
-                                "1532080330985574541"
-                        }
+                        emoji: { name: "⚠️" }
                     },
 
                     {
@@ -174,7 +180,7 @@ module.exports = {
 
                     {
                         label:
-                            "Contacter la fondation",
+                            "Contacter la direction",
 
                         description:
                             "Concernant des demandes importantes et précises.",
@@ -184,10 +190,10 @@ module.exports = {
 
                         emoji: {
                             id:
-                                "1532081260028100770",
+                                "1548785045047607416",
 
                             animated:
-                                true
+                                false
                         }
                     }
                 );
@@ -203,7 +209,7 @@ module.exports = {
         // ==================================================
 
         const panel =
-            await interaction.channel.send({
+            await panelChannel.send({
                 embeds: [
                     embed
                 ],

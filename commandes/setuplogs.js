@@ -11,7 +11,7 @@ module.exports = {
                 "setuplogs"
             )
             .setDescription(
-                "Créer et configurer tout le système de logs The Legacy"
+                "Créer et configurer tout le système de logs Soul Society"
             )
 
             .addRoleOption(

@@ -1,3 +1,7 @@
+const { blockProtectedInteraction } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -16,7 +20,7 @@ module.exports = {
                 "bl"
             )
             .setDescription(
-                "Ajouter un utilisateur à la blacklist The Legacy"
+                "Ajouter un utilisateur à la blacklist Soul Society"
             )
             .addUserOption(option =>
                 option
@@ -49,6 +53,8 @@ module.exports = {
     async execute(
         interaction
     ) {
+        if (await blockProtectedInteraction(interaction, "bl")) return;
+
         const user =
             interaction.options.getUser(
                 "membre"
@@ -110,7 +116,7 @@ module.exports = {
         const embed =
             new EmbedBuilder()
                 .setColor(
-                    0x2B2D31
+                    SOUL_COLORS.sanction
                 )
                 .setTitle(
                     "⛔ Utilisateur blacklisté"

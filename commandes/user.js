@@ -1,3 +1,5 @@
+const { hasBypass } = require("../utils/security");
+const { RANK_ALLOWED_ROLES } = require("../config/ranks");
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -21,6 +23,9 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        if (!hasBypass(interaction) && !RANK_ALLOWED_ROLES.some(id => interaction.member.roles.cache.has(id))) {
+            return interaction.reply({ content: "❌ Tu n’as pas accès à ce panel.", flags: MessageFlags.Ephemeral });
+        }
 
         // =====================================================
         // RÉPONSE IMMÉDIATE À DISCORD

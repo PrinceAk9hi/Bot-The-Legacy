@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -86,8 +88,8 @@ module.exports = {
             new EmbedBuilder()
                 .setColor(
                     record.active
-                        ? 0xED4245
-                        : 0x57F287
+                        ? SOUL_COLORS.sanction
+                        : SOUL_COLORS.success
                 )
                 .setTitle(
                     "⛔ Informations Blacklist"
@@ -173,7 +175,7 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        "The Legacy • Blacklist"
+                        "Soul Society • Blacklist"
                 })
                 .setTimestamp();
 

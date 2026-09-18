@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -408,7 +410,7 @@ function createDefaultStats() {
         members:
             {},
 
-        pendingLegacyMembers:
+        pendingSoulMembers:
             INITIAL_MEMBERS.map(
                 member => ({
                     ...member,
@@ -468,13 +470,13 @@ function saveStats() {
 // RESYNC DES PROFILS EN ATTENTE
 // ======================================================
 
-function syncPendingLegacyMembers() {
+function syncPendingSoulMembers() {
     if (
         !Array.isArray(
-            stats.pendingLegacyMembers
+            stats.pendingSoulMembers
         )
     ) {
-        stats.pendingLegacyMembers =
+        stats.pendingSoulMembers =
             [];
     }
 
@@ -487,7 +489,7 @@ function syncPendingLegacyMembers() {
                 )
                 .map(
                     member =>
-                        member.legacySourceKey
+                        member.soulSourceKey
                 )
                 .filter(
                     Boolean
@@ -510,7 +512,7 @@ function syncPendingLegacyMembers() {
         }
 
         const existing =
-            stats.pendingLegacyMembers.find(
+            stats.pendingSoulMembers.find(
                 item =>
                     item.key ===
                     source.key
@@ -529,7 +531,7 @@ function syncPendingLegacyMembers() {
         });
     }
 
-    stats.pendingLegacyMembers =
+    stats.pendingSoulMembers =
         newPending;
 
     saveStats();
@@ -603,7 +605,7 @@ function loadStats() {
         stats.version =
             3;
 
-        syncPendingLegacyMembers();
+        syncPendingSoulMembers();
 
     } catch (error) {
         console.error(
@@ -685,10 +687,10 @@ function ensureMember(
             lastVoiceAt:
                 null,
 
-            legacyImported:
+            soulImported:
                 false,
 
-            legacySourceKey:
+            soulSourceKey:
                 null
         };
     }
@@ -719,16 +721,16 @@ function ensureMember(
 // FIND MEMBER
 // ======================================================
 
-function findGuildMemberForLegacy(
+function findGuildMemberForSoul(
     guild,
-    legacy
+    soul
 ) {
     if (
-        legacy.discordId
+        soul.discordId
     ) {
         const member =
             guild.members.cache.get(
-                legacy.discordId
+                soul.discordId
             );
 
         if (
@@ -740,8 +742,8 @@ function findGuildMemberForLegacy(
 
     const aliases =
         [
-            legacy.displayName,
-            ...(legacy.aliases || [])
+            soul.displayName,
+            ...(soul.aliases || [])
         ]
             .map(
                 normalizeName
@@ -779,13 +781,13 @@ function findGuildMemberForLegacy(
 // MIGRATION
 // ======================================================
 
-async function migrateLegacyMembers(
+async function migrateSoulMembers(
     guild
 ) {
-    syncPendingLegacyMembers();
+    syncPendingSoulMembers();
 
     if (
-        stats.pendingLegacyMembers.length ===
+        stats.pendingSoulMembers.length ===
         0
     ) {
         console.log(
@@ -809,24 +811,24 @@ async function migrateLegacyMembers(
         [];
 
     for (
-        const legacy
-        of stats.pendingLegacyMembers
+        const soul
+        of stats.pendingSoulMembers
     ) {
         const discordMember =
-            findGuildMemberForLegacy(
+            findGuildMemberForSoul(
                 guild,
-                legacy
+                soul
             );
 
         if (
             !discordMember
         ) {
             console.log(
-                `⚠️ Stats : ${legacy.displayName} non associé pour le moment`
+                `⚠️ Stats : ${soul.displayName} non associé pour le moment`
             );
 
             remaining.push(
-                legacy
+                soul
             );
 
             continue;
@@ -845,8 +847,8 @@ async function migrateLegacyMembers(
             );
 
         if (
-            data.legacySourceKey ===
-            legacy.key
+            data.soulSourceKey ===
+            soul.key
         ) {
             continue;
         }
@@ -857,7 +859,7 @@ async function migrateLegacyMembers(
                 0
             ) +
             (
-                legacy.messages ||
+                soul.messages ||
                 0
             );
 
@@ -867,25 +869,25 @@ async function migrateLegacyMembers(
                 0
             ) +
             (
-                legacy.voiceSeconds ||
+                soul.voiceSeconds ||
                 0
             );
 
-        data.legacyImported =
+        data.soulImported =
             true;
 
-        data.legacySourceKey =
-            legacy.key;
+        data.soulSourceKey =
+            soul.key;
 
-        data.legacyImportedAt =
+        data.soulImportedAt =
             Date.now();
 
         console.log(
-            `✅ Stats importées : ${legacy.displayName} → ${discordMember.user.username}`
+            `✅ Stats importées : ${soul.displayName} → ${discordMember.user.username}`
         );
     }
 
-    stats.pendingLegacyMembers =
+    stats.pendingSoulMembers =
         remaining;
 
     saveStats();
@@ -1152,7 +1154,7 @@ function checkpointVoiceSessions() {
 
 function getPendingMessageTotal() {
     return (
-        stats.pendingLegacyMembers ||
+        stats.pendingSoulMembers ||
         []
     ).reduce(
         (
@@ -1170,7 +1172,7 @@ function getPendingMessageTotal() {
 
 function getPendingVoiceSeconds() {
     return (
-        stats.pendingLegacyMembers ||
+        stats.pendingSoulMembers ||
         []
     ).reduce(
         (
@@ -1759,7 +1761,7 @@ function buildRankingEmbed(
         embed:
             new EmbedBuilder()
                 .setColor(
-                    0x3B6475
+                    SOUL_COLORS.primary
                 )
                 .setTitle(
                     title
@@ -1803,7 +1805,7 @@ function buildRankingEmbed(
                 )
                 .setFooter({
                     text:
-                        "The Legacy • Classements"
+                        "Soul Society • Classements"
                 })
                 .setTimestamp(),
 
@@ -1939,10 +1941,10 @@ function buildMainEmbed(
 
     return new EmbedBuilder()
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
         .setTitle(
-            "📊・Statistiques The Legacy"
+            "📊・Statistiques Soul Society"
         )
         .setDescription(
             [
@@ -1967,7 +1969,7 @@ function buildMainEmbed(
         )
         .setFooter({
             text:
-                "The Legacy • Activité Discord"
+                "Soul Society • Activité Discord"
         })
         .setTimestamp();
 }
@@ -2114,7 +2116,7 @@ function buildPersonalEmbed(
 
     return new EmbedBuilder()
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
         .setAuthor({
             name:
@@ -2151,7 +2153,7 @@ function buildPersonalEmbed(
         )
         .setFooter({
             text:
-                "The Legacy • Profil d'activité"
+                "Soul Society • Profil d'activité"
         })
         .setTimestamp();
 }
@@ -2420,7 +2422,7 @@ function registerActivityStats(
                 const guild
                 of client.guilds.cache.values()
             ) {
-                await migrateLegacyMembers(
+                await migrateSoulMembers(
                     guild
                 );
             }

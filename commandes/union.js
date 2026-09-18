@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -24,7 +26,7 @@ const UNION_ROLE_ID =
     "1541599328756432947";
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // UNION DISPLAY
@@ -126,7 +128,7 @@ async function giveUnionRole(
         ) {
             await inviter.roles.add(
                 role,
-                "Union The Legacy"
+                "Union Soul Society"
             );
         }
 
@@ -137,7 +139,7 @@ async function giveUnionRole(
         ) {
             await target.roles.add(
                 role,
-                "Union The Legacy"
+                "Union Soul Society"
             );
         }
 
@@ -303,7 +305,7 @@ module.exports = {
                         "💌 Proposition d'Union"
                     )
                     .setDescription(
-`<@${interaction.user.id}> souhaite créer une **Union officielle** avec toi au sein de **The Legacy**.
+`<@${interaction.user.id}> souhaite créer une **Union officielle** avec toi au sein de **Soul Society**.
 
 Il ne s'agit pas d'un tirage au sort ou d'un calcul de compatibilité : cette invitation t'a été envoyée directement par cette personne.
 
@@ -318,7 +320,7 @@ Souhaites-tu accepter ?`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Union"
+                            "Soul Society • Union"
                     })
                     .setTimestamp();
 
@@ -417,7 +419,7 @@ Souhaites-tu accepter ?`
                 embeds: [
                     new EmbedBuilder()
                         .setColor(
-                            0xED4245
+                            SOUL_COLORS.error
                         )
                         .setTitle(
                             "💔 Union refusée"
@@ -487,7 +489,7 @@ Souhaites-tu accepter ?`
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.error
                             )
                             .setTitle(
                                 "❌ Union impossible"
@@ -513,7 +515,7 @@ Souhaites-tu accepter ?`
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.error
                             )
                             .setTitle(
                                 "❌ Union impossible"
@@ -570,7 +572,7 @@ Souhaites-tu accepter ?`
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.error
                             )
                             .setTitle(
                                 "❌ Union impossible"
@@ -632,13 +634,13 @@ Souhaites-tu accepter ?`
                 const embed =
                     new EmbedBuilder()
                         .setColor(
-                            0xF1C40F
+                            SOUL_COLORS.secondary
                         )
                         .setTitle(
                             "💍 Nouvelle Union"
                         )
                         .setDescription(
-`Une nouvelle Union vient officiellement d'être créée au sein de **The Legacy** !
+`Une nouvelle Union vient officiellement d'être créée au sein de **Soul Society** !
 
 > 🪽 <@${inviterId}> est désormais lié à <@${targetId}>.
 
@@ -648,7 +650,7 @@ Que cette nouvelle alliance écrive sa propre partie de l'héritage.`
                         )
                         .setFooter({
                             text:
-                                "The Legacy • Union"
+                                "Soul Society • Union"
                         })
                         .setTimestamp();
 
@@ -666,7 +668,7 @@ Que cette nouvelle alliance écrive sa propre partie de l'héritage.`
                 embeds: [
                     new EmbedBuilder()
                         .setColor(
-                            0x57F287
+                            SOUL_COLORS.success
                         )
                         .setTitle(
                             "💍 Union acceptée !"

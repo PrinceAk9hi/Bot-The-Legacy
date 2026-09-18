@@ -1,5 +1,8 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 const OpenAI = require("openai");
 
 const {
@@ -27,10 +30,10 @@ const {
 // ======================================================
 
 const WAITING_VOICE_ID =
-    "1458501376702414848";
+    "1468699345443356885";
 
 const VOICE_GROUP =
-    "legacy-recruitment-waiting";
+    "soul-recruitment-waiting";
 
 const BUTTON_ID =
     "recruitment_replay";
@@ -48,11 +51,21 @@ const PANEL_FILE =
         "recruitmentVoicePanel.json"
     );
 
+const RAW_AUDIO_FILE =
+    path.join(
+        DATA_DIR,
+        "recruitmentProcess_raw.mp3"
+    );
+
 const AUDIO_FILE =
     path.join(
         DATA_DIR,
         "recruitmentProcess.mp3"
     );
+
+// Vitesse réelle appliquée par FFmpeg
+const AUDIO_SPEED =
+    1.18;
 
 // ======================================================
 // OPENAI
@@ -65,9 +78,7 @@ function getOpenAI() {
         return openai;
     }
 
-    if (
-        !process.env.OPENAI_API_KEY
-    ) {
+    if (!process.env.OPENAI_API_KEY) {
         throw new Error(
             "OPENAI_API_KEY_MISSING"
         );
@@ -122,7 +133,7 @@ function getGuildState(
 // ======================================================
 
 const SPEECH_TEXT = `
-Bienvenue dans l'espace d'attente des recrutements de The Legacy.
+Bienvenue dans l'espace d'attente des recrutements de Soul Society.
 
 Avant de commencer, merci de rester tranquillement dans ce salon vocal et d'écouter attentivement les explications qui vont suivre.
 
@@ -166,23 +177,9 @@ Merci de rester dans ce salon vocal sans bouger.
 
 Lorsque les recruteurs auront terminé leur délibération et auront leur réponse, vous serez déplacé de nouveau afin de recevoir votre résultat ainsi que les informations concernant la suite.
 
-Pour résumer :
+Et pour rappel : vous pouvez également retrouver toutes ces explications par écrit directement dans les messages de ce salon vocal.
 
-vous serez pris un par un,
-
-vous commencerez par une présentation,
-
-vous répondrez ensuite aux questions,
-
-vous passerez les mises en situation,
-
-puis vous reviendrez dans ce salon d'attente pendant la délibération des recruteurs.
-
-Enfin, vous serez déplacé une dernière fois lorsque les recruteurs auront leur réponse.
-
-Vous pouvez également retrouver toutes ces explications par écrit directement dans les messages de ce salon vocal.
-
-Merci pour votre patience, votre sérieux et votre intérêt pour The Legacy.
+Merci pour votre patience, votre sérieux et votre intérêt pour Soul Society.
 
 Nous vous souhaitons bonne chance pour votre entretien.
 `;
@@ -200,8 +197,7 @@ function ensureDataFiles() {
         fs.mkdirSync(
             DATA_DIR,
             {
-                recursive:
-                    true
+                recursive: true
             }
         );
     }
@@ -229,9 +225,7 @@ function getPanelData() {
                 "utf8"
             );
 
-        if (
-            !raw.trim()
-        ) {
+        if (!raw.trim()) {
             return {};
         }
 
@@ -272,36 +266,37 @@ function savePanelData(
 function createRecruitmentEmbed() {
     return new EmbedBuilder()
         .setColor(
-            0x3B6475
+            SOUL_COLORS.primary
         )
         .setTitle(
             "🎙️ Déroulement des recrutements"
         )
         .setDescription(
             [
-                "Bienvenue dans l'espace d'attente des recrutements **The Legacy**.",
+                "Bienvenue dans l'espace d'attente des recrutements **Soul Society**.",
                 "",
-                "🔊 Une explication vocale est automatiquement lancée lorsqu'un candidat rejoint ce salon.",
+                "Les candidats sont pris **un par un**. Il peut donc y avoir un délai avant votre passage.",
                 "",
-                "📖 **Toutes les explications sont également disponibles ici par écrit.**",
+                "📖 **Toutes les explications données oralement sont également disponibles ci-dessous.**",
                 "",
-                "Les candidats sont pris **un par un**. Il peut donc y avoir du retard selon le nombre de personnes et la durée des entretiens.",
-                "",
-                "**Si vous attendez, cela ne signifie pas que vous avez été oublié.** Merci de patienter."
-            ].join(
-                "\n"
-            )
+                "Merci de rester disponible et de patienter calmement."
+            ].join("\n")
         )
         .addFields(
+            {
+                name:
+                    "🎤 Avant votre passage",
+
+                value:
+                    "Vérifiez votre micro et assurez-vous de pouvoir correctement parler et entendre les recruteurs."
+            },
+
             {
                 name:
                     "1️⃣ Présentation",
 
                 value:
-                    "Vous commencerez par vous présenter : expérience, motivations, disponibilités et ce que vous souhaitez apporter à The Legacy.",
-
-                inline:
-                    false
+                    "Lorsque vous serez déplacé avec les recruteurs, vous commencerez par vous présenter."
             },
 
             {
@@ -309,10 +304,7 @@ function createRecruitmentEmbed() {
                     "2️⃣ Questions",
 
                 value:
-                    "Les recruteurs vous poseront différentes questions afin de mieux connaître votre sérieux, votre motivation et votre manière de réfléchir.",
-
-                inline:
-                    false
+                    "Les recruteurs vous poseront plusieurs questions afin de mieux comprendre votre motivation, votre sérieux, votre comportement et votre façon de réfléchir."
             },
 
             {
@@ -320,10 +312,7 @@ function createRecruitmentEmbed() {
                     "3️⃣ Mises en situation",
 
                 value:
-                    "Plusieurs situations fictives pourront vous être proposées. Vous devrez expliquer comment vous réagiriez et pourquoi.",
-
-                inline:
-                    false
+                    "Vous recevrez ensuite différentes situations fictives et devrez expliquer comment vous réagiriez."
             },
 
             {
@@ -331,35 +320,26 @@ function createRecruitmentEmbed() {
                     "⏳ Après l'entretien",
 
                 value:
-                    "Vous serez replacé dans ce salon pendant que les recruteurs délibèrent. Lorsque leur décision sera prise, vous serez déplacé de nouveau afin de recevoir votre réponse.",
-
-                inline:
-                    false
+                    "Vous reviendrez dans ce salon pendant la délibération. Restez ici sans bouger. Lorsque les recruteurs auront leur réponse, vous serez déplacé de nouveau."
             },
 
             {
                 name:
-                    "📌 Pendant l'attente",
+                    "📌 Important",
 
                 value:
                     [
-                        "• Restez disponible.",
-                        "• Gardez votre micro prêt.",
+                        "• Les candidats passent un par un.",
+                        "• Un retard ne signifie pas que vous avez été oublié.",
                         "• Ne spammez pas les recruteurs.",
                         "• Évitez les allers-retours inutiles.",
-                        "• Un retard peut arriver.",
-                        "• Vous serez déplacé lorsque ce sera votre tour."
-                    ].join(
-                        "\n"
-                    ),
-
-                inline:
-                    false
+                        "• Restez disponible dans ce vocal."
+                    ].join("\n")
             }
         )
         .setFooter({
             text:
-                "The Legacy • Recrutements"
+                "Soul Society • Recrutements"
         });
 }
 
@@ -398,8 +378,25 @@ function createRecruitmentComponents(
 }
 
 // ======================================================
-// RÉCUPÉRER LE PANEL
+// PANEL
 // ======================================================
+
+async function getWaitingChannel(
+    guild
+) {
+    return (
+        guild.channels.cache.get(
+            WAITING_VOICE_ID
+        ) ||
+        await guild.channels
+            .fetch(
+                WAITING_VOICE_ID
+            )
+            .catch(
+                () => null
+            )
+    );
+}
 
 async function getPermanentPanel(
     guild
@@ -417,13 +414,9 @@ async function getPermanentPanel(
     }
 
     const channel =
-        await guild.channels
-            .fetch(
-                WAITING_VOICE_ID
-            )
-            .catch(
-                () => null
-            );
+        await getWaitingChannel(
+            guild
+        );
 
     if (!channel) {
         return null;
@@ -437,10 +430,6 @@ async function getPermanentPanel(
             () => null
         );
 }
-
-// ======================================================
-// ACTIVER / DÉSACTIVER BOUTON
-// ======================================================
 
 async function setReplayButtonState(
     guild,
@@ -474,21 +463,13 @@ async function setReplayButtonState(
     );
 }
 
-// ======================================================
-// PANEL UNIQUE
-// ======================================================
-
 async function ensurePermanentPanel(
     guild
 ) {
     const channel =
-        await guild.channels
-            .fetch(
-                WAITING_VOICE_ID
-            )
-            .catch(
-                () => null
-            );
+        await getWaitingChannel(
+            guild
+        );
 
     if (
         !channel ||
@@ -505,31 +486,23 @@ async function ensurePermanentPanel(
     const data =
         getPanelData();
 
-    const savedMessageId =
+    const messageId =
         data[
             guild.id
         ]?.messageId;
 
-    // ==================================================
-    // PANEL DÉJÀ ENREGISTRÉ
-    // ==================================================
-
-    if (
-        savedMessageId
-    ) {
-        const existingMessage =
+    if (messageId) {
+        const existing =
             await channel.messages
                 .fetch(
-                    savedMessageId
+                    messageId
                 )
                 .catch(
                     () => null
                 );
 
-        if (
-            existingMessage
-        ) {
-            await existingMessage.edit({
+        if (existing) {
+            await existing.edit({
                 embeds: [
                     createRecruitmentEmbed()
                 ],
@@ -538,9 +511,7 @@ async function ensurePermanentPanel(
                     createRecruitmentComponents(
                         false
                     )
-            }).catch(
-                () => {}
-            );
+            });
 
             console.log(
                 "✅ Panel recrutement déjà présent."
@@ -550,17 +521,17 @@ async function ensurePermanentPanel(
         }
     }
 
-    // ==================================================
-    // RECHERCHE PANEL EXISTANT
-    // ==================================================
-
-    try {
-        const messages =
-            await channel.messages.fetch({
+    const messages =
+        await channel.messages
+            .fetch({
                 limit:
                     50
-            });
+            })
+            .catch(
+                () => null
+            );
 
+    if (messages) {
         const oldPanel =
             messages.find(
                 message =>
@@ -576,9 +547,7 @@ async function ensurePermanentPanel(
                     )
             );
 
-        if (
-            oldPanel
-        ) {
+        if (oldPanel) {
             data[
                 guild.id
             ] = {
@@ -599,9 +568,7 @@ async function ensurePermanentPanel(
                     createRecruitmentComponents(
                         false
                     )
-            }).catch(
-                () => {}
-            );
+            });
 
             console.log(
                 "✅ Ancien panel recrutement retrouvé."
@@ -609,17 +576,7 @@ async function ensurePermanentPanel(
 
             return;
         }
-
-    } catch (error) {
-        console.error(
-            "⚠️ Recherche panel recrutement :",
-            error.message
-        );
     }
-
-    // ==================================================
-    // CRÉATION
-    // ==================================================
 
     const message =
         await channel.send({
@@ -650,6 +607,59 @@ async function ensurePermanentPanel(
 }
 
 // ======================================================
+// FFmpeg → ACCÉLÉRER AUDIO
+// ======================================================
+
+function speedUpAudio() {
+    return new Promise(
+        (resolve, reject) => {
+            const ffmpeg =
+                spawn(
+                    "ffmpeg",
+                    [
+                        "-y",
+                        "-i",
+                        RAW_AUDIO_FILE,
+
+                        "-filter:a",
+                        `atempo=${AUDIO_SPEED}`,
+
+                        "-vn",
+
+                        AUDIO_FILE
+                    ],
+                    {
+                        stdio:
+                            "ignore"
+                    }
+                );
+
+            ffmpeg.once(
+                "error",
+                reject
+            );
+
+            ffmpeg.once(
+                "close",
+                code => {
+                    if (
+                        code === 0
+                    ) {
+                        resolve();
+                    } else {
+                        reject(
+                            new Error(
+                                `FFMPEG_EXIT_${code}`
+                            )
+                        );
+                    }
+                }
+            );
+        }
+    );
+}
+
+// ======================================================
 // AUDIO
 // ======================================================
 
@@ -665,7 +675,7 @@ async function ensureRecruitmentAudio() {
     }
 
     console.log(
-        "🎙️ Génération du message vocal recrutement..."
+        "🎙️ Préparation de l'audio recrutement..."
     );
 
     const client =
@@ -683,7 +693,7 @@ async function ensureRecruitmentAudio() {
                 SPEECH_TEXT,
 
             instructions:
-                "Parle en français avec une voix naturelle, claire, accueillante et professionnelle. Garde un ton sérieux mais rassurant. Parle légèrement plus vite qu'un débit normal, sans précipiter les phrases. Fais seulement de courtes pauses entre les différentes étapes."
+                "Parle en français, avec une voix claire, naturelle, professionnelle et accueillante. Garde un ton sérieux mais agréable. Parle assez rapidement, avec très peu de pauses inutiles, tout en restant parfaitement compréhensible."
         });
 
     const buffer =
@@ -692,12 +702,24 @@ async function ensureRecruitmentAudio() {
         );
 
     fs.writeFileSync(
-        AUDIO_FILE,
+        RAW_AUDIO_FILE,
         buffer
     );
 
     console.log(
-        "✅ Audio recrutement généré."
+        "⚡ Accélération de l'audio..."
+    );
+
+    await speedUpAudio();
+
+    try {
+        fs.unlinkSync(
+            RAW_AUDIO_FILE
+        );
+    } catch {}
+
+    console.log(
+        `✅ Audio recrutement prêt • vitesse x${AUDIO_SPEED}`
     );
 
     return AUDIO_FILE;
@@ -710,9 +732,7 @@ async function ensureRecruitmentAudio() {
 function getHumanMembers(
     channel
 ) {
-    if (
-        !channel?.members
-    ) {
+    if (!channel?.members) {
         return [];
     }
 
@@ -735,7 +755,7 @@ function hasHumans(
 }
 
 // ======================================================
-// ARRÊT IMMÉDIAT
+// STOP
 // ======================================================
 
 async function stopRecruitmentSpeech(
@@ -770,9 +790,7 @@ async function stopRecruitmentSpeech(
             VOICE_GROUP
         );
 
-    if (
-        existing
-    ) {
+    if (existing) {
         try {
             existing.destroy();
         } catch {}
@@ -793,7 +811,7 @@ async function stopRecruitmentSpeech(
     );
 
     console.log(
-        "👋 Bot sorti du vocal recrutement : plus aucun candidat."
+        "👋 Vocal recrutement quitté."
     );
 }
 
@@ -809,51 +827,31 @@ async function playRecruitmentSpeech(
             guild.id
         );
 
-    // ==================================================
-    // DÉJÀ EN COURS
-    // ==================================================
-
     if (
         state.speaking
     ) {
         return {
-            success:
-                false,
-
+            success: false,
             error:
                 "ALREADY_SPEAKING"
         };
     }
 
-    let channel =
-        await guild.channels
-            .fetch(
-                WAITING_VOICE_ID,
-                {
-                    force:
-                        true
-                }
-            )
-            .catch(
-                () => null
-            );
+    const channel =
+        await getWaitingChannel(
+            guild
+        );
 
     if (
         !channel ||
         !channel.isVoiceBased()
     ) {
         return {
-            success:
-                false,
-
+            success: false,
             error:
                 "WAITING_VOICE_NOT_FOUND"
         };
     }
-
-    // ==================================================
-    // PERSONNE DANS LA VOC
-    // ==================================================
 
     if (
         !hasHumans(
@@ -861,9 +859,7 @@ async function playRecruitmentSpeech(
         )
     ) {
         return {
-            success:
-                false,
-
+            success: false,
             error:
                 "NO_HUMANS"
         };
@@ -879,54 +875,7 @@ async function playRecruitmentSpeech(
 
     try {
         // ==================================================
-        // AUDIO
-        // ==================================================
-
-        const audioPath =
-            await ensureRecruitmentAudio();
-
-        // ==================================================
-        // REFETCH AVANT JOIN
-        // ==================================================
-
-        channel =
-            await guild.channels
-                .fetch(
-                    WAITING_VOICE_ID,
-                    {
-                        force:
-                            true
-                    }
-                )
-                .catch(
-                    () => null
-                );
-
-        if (
-            !channel ||
-            !hasHumans(
-                channel
-            )
-        ) {
-            state.speaking =
-                false;
-
-            await setReplayButtonState(
-                guild,
-                false
-            );
-
-            return {
-                success:
-                    false,
-
-                error:
-                    "NO_HUMANS"
-            };
-        }
-
-        // ==================================================
-        // CONNECTION
+        // LE BOT JOIN IMMÉDIATEMENT
         // ==================================================
 
         let connection =
@@ -935,9 +884,7 @@ async function playRecruitmentSpeech(
                 VOICE_GROUP
             );
 
-        if (
-            !connection
-        ) {
+        if (!connection) {
             connection =
                 joinVoiceChannel({
                     channelId:
@@ -963,31 +910,21 @@ async function playRecruitmentSpeech(
         state.connection =
             connection;
 
+        console.log(
+            "⚡ Connexion immédiate au vocal recrutement..."
+        );
+
+        // L'audio est normalement déjà préchargé
+        const audioPath =
+            await ensureRecruitmentAudio();
+
         await entersState(
             connection,
             VoiceConnectionStatus.Ready,
-            20_000
+            15_000
         );
 
-        // ==================================================
-        // VÉRIF APRÈS ARRIVÉE DU BOT
-        // ==================================================
-
-        channel =
-            await guild.channels
-                .fetch(
-                    WAITING_VOICE_ID,
-                    {
-                        force:
-                            true
-                    }
-                )
-                .catch(
-                    () => null
-                );
-
         if (
-            !channel ||
             !hasHumans(
                 channel
             )
@@ -997,21 +934,15 @@ async function playRecruitmentSpeech(
             );
 
             return {
-                success:
-                    false,
-
+                success: false,
                 error:
                     "NO_HUMANS"
             };
         }
 
         console.log(
-            "🎙️ Bot arrivé dans l'attente recrutement."
+            "🎙️ Bot connecté au vocal recrutement."
         );
-
-        // ==================================================
-        // PLAYER
-        // ==================================================
 
         const player =
             createAudioPlayer({
@@ -1038,108 +969,43 @@ async function playRecruitmentSpeech(
         );
 
         console.log(
-            "🔊 Lecture du déroulement recrutement..."
+            "🔊 Lecture recrutement démarrée."
         );
-
-        // ==================================================
-        // ATTENDRE LA FIN
-        // ==================================================
 
         await new Promise(
             (resolve, reject) => {
-                const onIdle =
-                    () => {
-                        cleanup();
-
-                        resolve();
-                    };
-
-                const onError =
-                    error => {
-                        cleanup();
-
-                        reject(
-                            error
-                        );
-                    };
-
-                function cleanup() {
-                    player.off(
-                        AudioPlayerStatus.Idle,
-                        onIdle
-                    );
-
-                    player.off(
-                        "error",
-                        onError
-                    );
-                }
-
-                player.on(
+                player.once(
                     AudioPlayerStatus.Idle,
-                    onIdle
+                    resolve
                 );
 
-                player.on(
+                player.once(
                     "error",
-                    onError
+                    reject
                 );
             }
         );
-
-        // ==================================================
-        // PEUT AVOIR ÉTÉ COUPÉ SI VOC VIDE
-        // ==================================================
 
         if (
             !state.speaking
         ) {
             return {
-                success:
-                    true,
-
+                success: true,
                 stoppedBecauseEmpty:
                     true
             };
         }
 
         console.log(
-            "✅ Explication recrutement terminée."
+            "✅ Lecture recrutement terminée."
         );
 
-        // ==================================================
-        // DÉCONNEXION
-        // ==================================================
-
-        state.player =
-            null;
-
-        if (
-            state.connection
-        ) {
-            try {
-                state.connection.destroy();
-            } catch {}
-        }
-
-        state.connection =
-            null;
-
-        state.speaking =
-            false;
-
-        await setReplayButtonState(
-            guild,
-            false
-        );
-
-        console.log(
-            "👋 Bot sorti du vocal recrutement."
+        await stopRecruitmentSpeech(
+            guild
         );
 
         return {
-            success:
-                true
+            success: true
         };
 
     } catch (error) {
@@ -1148,31 +1014,12 @@ async function playRecruitmentSpeech(
             error
         );
 
-        if (
-            state.connection
-        ) {
-            try {
-                state.connection.destroy();
-            } catch {}
-        }
-
-        state.connection =
-            null;
-
-        state.player =
-            null;
-
-        state.speaking =
-            false;
-
-        await setReplayButtonState(
-            guild,
-            false
+        await stopRecruitmentSpeech(
+            guild
         );
 
         return {
-            success:
-                false,
+            success: false,
 
             error:
                 String(
@@ -1184,7 +1031,7 @@ async function playRecruitmentSpeech(
 }
 
 // ======================================================
-// SYSTÈME PRINCIPAL
+// SYSTÈME
 // ======================================================
 
 function registerRecruitmentVoiceSystem(
@@ -1201,62 +1048,59 @@ function registerRecruitmentVoiceSystem(
                 const guild
                 of client.guilds.cache.values()
             ) {
-                // ==========================================
-                // PANEL
-                // ==========================================
-
                 await ensurePermanentPanel(
                     guild
                 );
 
-                // ==========================================
-                // VOCAL
-                // ==========================================
+                // ==================================================
+                // PRÉCHARGER LE TTS AU DÉMARRAGE
+                // ==================================================
 
-                const waitingChannel =
-                    await guild.channels
-                        .fetch(
-                            WAITING_VOICE_ID,
-                            {
-                                force:
-                                    true
-                            }
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (
-                    !waitingChannel ||
-                    !waitingChannel.isVoiceBased()
-                ) {
-                    console.log(
-                        `❌ Vocal attente recrutement introuvable : ${WAITING_VOICE_ID}`
+                ensureRecruitmentAudio()
+                    .then(
+                        () => {
+                            console.log(
+                                "🚀 Audio recrutement préchargé."
+                            );
+                        }
+                    )
+                    .catch(
+                        error => {
+                            console.error(
+                                "❌ Préchargement audio recrutement :",
+                                error
+                            );
+                        }
                     );
 
+                // ==================================================
+                // PERSONNES DÉJÀ PRÉSENTES
+                // ==================================================
+
+                const channel =
+                    await getWaitingChannel(
+                        guild
+                    );
+
+                if (
+                    !channel ||
+                    !channel.isVoiceBased()
+                ) {
                     continue;
                 }
 
                 const humans =
                     getHumanMembers(
-                        waitingChannel
+                        channel
                     );
 
                 console.log(
-                    `🎙️ Attente recrutement : ${humans.length} humain(s) présent(s).`
+                    `🎙️ Attente recrutement : ${humans.length} humain(s).`
                 );
-
-                // ==================================================
-                // QUELQU'UN EST DÉJÀ DANS LE VOC AU DÉMARRAGE
-                // ==================================================
 
                 if (
                     humans.length > 0
                 ) {
-                    console.log(
-                        "👤 Candidat déjà présent → explication dans 2 secondes."
-                    );
-
                     setTimeout(
                         async () => {
                             const state =
@@ -1265,28 +1109,9 @@ function registerRecruitmentVoiceSystem(
                                 );
 
                             if (
-                                state.speaking
-                            ) {
-                                return;
-                            }
-
-                            const refreshed =
-                                await guild.channels
-                                    .fetch(
-                                        WAITING_VOICE_ID,
-                                        {
-                                            force:
-                                                true
-                                        }
-                                    )
-                                    .catch(
-                                        () => null
-                                    );
-
-                            if (
-                                refreshed &&
+                                !state.speaking &&
                                 hasHumans(
-                                    refreshed
+                                    channel
                                 )
                             ) {
                                 await playRecruitmentSpeech(
@@ -1294,7 +1119,7 @@ function registerRecruitmentVoiceSystem(
                                 );
                             }
                         },
-                        2000
+                        500
                     );
                 }
             }
@@ -1302,7 +1127,7 @@ function registerRecruitmentVoiceSystem(
     );
 
     // ==================================================
-    // VOICE STATE
+    // VOCAL
     // ==================================================
 
     client.on(
@@ -1312,10 +1137,6 @@ function registerRecruitmentVoiceSystem(
             newState
         ) => {
             try {
-                // ==================================================
-                // IGNORER TOUS LES BOTS
-                // ==================================================
-
                 if (
                     newState.member
                         ?.user
@@ -1333,7 +1154,7 @@ function registerRecruitmentVoiceSystem(
                     );
 
                 // ==================================================
-                // HUMAIN QUITTE LE SALON D'ATTENTE
+                // QUITTE LE VOCAL
                 // ==================================================
 
                 if (
@@ -1342,49 +1163,38 @@ function registerRecruitmentVoiceSystem(
                     newState.channelId !==
                         WAITING_VOICE_ID
                 ) {
-                    // Petite attente Discord
-                    await new Promise(
-                        resolve =>
-                            setTimeout(
-                                resolve,
-                                300
-                            )
-                    );
+                    const channel =
+                        await getWaitingChannel(
+                            guild
+                        );
 
-                    const waitingChannel =
-                        await guild.channels
-                            .fetch(
-                                WAITING_VOICE_ID,
-                                {
-                                    force:
-                                        true
+                    // Laisse juste Discord actualiser le cache
+                    setTimeout(
+                        async () => {
+                            if (
+                                channel &&
+                                !hasHumans(
+                                    channel
+                                )
+                            ) {
+                                if (
+                                    state.speaking ||
+                                    state.connection
+                                ) {
+                                    await stopRecruitmentSpeech(
+                                        guild
+                                    );
                                 }
-                            )
-                            .catch(
-                                () => null
-                            );
-
-                    if (
-                        waitingChannel &&
-                        !hasHumans(
-                            waitingChannel
-                        )
-                    ) {
-                        if (
-                            state.speaking ||
-                            state.connection
-                        ) {
-                            await stopRecruitmentSpeech(
-                                guild
-                            );
-                        }
-                    }
+                            }
+                        },
+                        100
+                    );
 
                     return;
                 }
 
                 // ==================================================
-                // HUMAIN REJOINT LE SALON D'ATTENTE
+                // REJOINT LE VOCAL
                 // ==================================================
 
                 if (
@@ -1400,76 +1210,32 @@ function registerRecruitmentVoiceSystem(
                     `👤 ${newState.member.user.tag} rejoint l'attente recrutement.`
                 );
 
-                // ==================================================
-                // DÉJÀ EN TRAIN DE PARLER
-                // ==================================================
-
                 if (
                     state.speaking
                 ) {
                     console.log(
-                        "🔊 Explication déjà en cours → aucune deuxième lecture."
+                        "🔊 Lecture déjà en cours."
                     );
 
                     return;
                 }
 
                 // ==================================================
-                // LAISSER DISCORD ACTUALISER LES MEMBRES
+                // PLUS DE 750MS / 2 SECONDES
+                // → DÉCLENCHEMENT QUASI IMMÉDIAT
                 // ==================================================
 
-                await new Promise(
-                    resolve =>
-                        setTimeout(
-                            resolve,
-                            750
-                        )
-                );
-
-                const refreshedChannel =
-                    await guild.channels
-                        .fetch(
-                            WAITING_VOICE_ID,
-                            {
-                                force:
-                                    true
-                            }
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (
-                    !refreshedChannel
-                ) {
-                    console.log(
-                        "❌ Vocal recrutement introuvable après arrivée."
-                    );
-
-                    return;
-                }
-
-                const humans =
-                    getHumanMembers(
-                        refreshedChannel
-                    );
-
-                console.log(
-                    `👥 Humains détectés dans l'attente : ${humans.length}`
-                );
-
-                if (
-                    humans.length === 0
-                ) {
-                    return;
-                }
-
-                console.log(
-                    "🎙️ Lancement automatique de l'explication..."
-                );
-
-                await playRecruitmentSpeech(
-                    guild
+                setTimeout(
+                    async () => {
+                        if (
+                            !state.speaking
+                        ) {
+                            await playRecruitmentSpeech(
+                                guild
+                            );
+                        }
+                    },
+                    100
                 );
 
             } catch (error) {
@@ -1482,7 +1248,7 @@ function registerRecruitmentVoiceSystem(
     );
 
     // ==================================================
-    // BOUTON RÉÉCOUTER
+    // BOUTON
     // ==================================================
 
     client.on(
@@ -1508,16 +1274,12 @@ function registerRecruitmentVoiceSystem(
                     guild.id
                 );
 
-            // ==================================================
-            // LECTURE DÉJÀ EN COURS
-            // ==================================================
-
             if (
                 state.speaking
             ) {
                 return interaction.reply({
                     content:
-                        "⏳ L'explication est déjà en cours. Attends simplement la fin.",
+                        "⏳ L'explication est déjà en cours.",
 
                     flags:
                         MessageFlags.Ephemeral
@@ -1526,32 +1288,20 @@ function registerRecruitmentVoiceSystem(
                 );
             }
 
-            // ==================================================
-            // VÉRIFIER SI QUELQU'UN EST DANS LA VOC
-            // ==================================================
-
-            const voiceChannel =
-                await guild.channels
-                    .fetch(
-                        WAITING_VOICE_ID,
-                        {
-                            force:
-                                true
-                        }
-                    )
-                    .catch(
-                        () => null
-                    );
+            const channel =
+                await getWaitingChannel(
+                    guild
+                );
 
             if (
-                !voiceChannel ||
+                !channel ||
                 !hasHumans(
-                    voiceChannel
+                    channel
                 )
             ) {
                 return interaction.reply({
                     content:
-                        "❌ Il n'y a actuellement personne dans le vocal d'attente.",
+                        "❌ Personne n'est actuellement dans le vocal d'attente.",
 
                     flags:
                         MessageFlags.Ephemeral
@@ -1560,32 +1310,15 @@ function registerRecruitmentVoiceSystem(
 
             await interaction.reply({
                 content:
-                    "🔊 L'explication complète va être relue dans le vocal.",
+                    "🔊 Relance de l'explication dans le vocal.",
 
                 flags:
                     MessageFlags.Ephemeral
             });
 
-            const result =
-                await playRecruitmentSpeech(
-                    guild
-                );
-
-            if (
-                !result.success &&
-                result.error !==
-                    "ALREADY_SPEAKING"
-            ) {
-                await interaction.followUp({
-                    content:
-                        `❌ Impossible de lancer la lecture.\n\`${result.error}\``,
-
-                    flags:
-                        MessageFlags.Ephemeral
-                }).catch(
-                    () => {}
-                );
-            }
+            await playRecruitmentSpeech(
+                guild
+            );
         }
     );
 }

@@ -1,3 +1,7 @@
+const { hasAccessPermission } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -19,16 +23,16 @@ const {
 // ======================================================
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 const SUCCESS_COLOR =
-    0x57F287;
+    SOUL_COLORS.success;
 
 const WARNING_COLOR =
     0xFEE75C;
 
 const ERROR_COLOR =
-    0xED4245;
+    SOUL_COLORS.error;
 
 // ======================================================
 // FICHIERS
@@ -455,7 +459,7 @@ function buildSuccessEmbed({
         )
         .setFooter({
             text:
-                `The Legacy • Rollback par ${interaction.user.username}`
+                `Soul Society • Rollback par ${interaction.user.username}`
         })
         .setTimestamp();
 }
@@ -1467,7 +1471,7 @@ async function rollbackRoleChange({
 }
 
 // ======================================================
-// LEGACY RANK HISTORY
+// SOCIETY RANK HISTORY
 // ======================================================
 
 function getRolledBackRankIds(
@@ -1560,7 +1564,7 @@ function getLastRankActionFallback() {
     );
 }
 
-async function rollbackLegacyRank({
+async function rollbackSoulRank({
     interaction,
     action
 }) {
@@ -1828,13 +1832,13 @@ module.exports = {
             // ==================================================
 
             const allowed =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 ) ||
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.ManageGuild
                 ) ||
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.ManageRoles
                 );
 
@@ -1892,14 +1896,14 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
             }
 
             // ==================================================
-            // LEGACY RANK
+            // SOCIETY RANK
             // ==================================================
 
             if (
                 !useGlobal
             ) {
                 const result =
-                    await rollbackLegacyRank({
+                    await rollbackSoulRank({
                         interaction,
 
                         action:
@@ -2063,7 +2067,7 @@ Aucune action n'a été marquée comme restaurée.`
                         )
                         .setFooter({
                             text:
-                                "The Legacy • Rollback"
+                                "Soul Society • Rollback"
                         })
                         .setTimestamp()
                 ]

@@ -1,3 +1,6 @@
+const memberRefresh = new WeakMap();
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -9,26 +12,26 @@ const {
 } = require("discord.js");
 
 // ======================================================
-// THE LEGACY — PANEL CANDIDATURE
+// Soul Society — PANEL CANDIDATURE
 // ======================================================
 
 const PANEL_CHANNEL_ID =
-    "1533186481412116631";
+    "1468699202027655179";
 
 const MEMBER_ROLE_ID =
-    "1458391977073574012";
+    "1513698444588482650";
 
 const JOIN_BUTTON_EMOJI =
-    "1534556651351310387";
+    "1548783936010977380";
 
 const CLOSED_EMOJI =
-    "<a:dmd_gerant:1540428204098195616>";
+    "🔒";
 
 const OPEN_COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 const CLOSED_COLOR =
-    0xED4245;
+    SOUL_COLORS.error;
 
 // ======================================================
 // DATA
@@ -174,7 +177,7 @@ function saveState(
 // COUNT MEMBERS
 // ======================================================
 
-async function countLegacyMembers(
+async function countSoulMembers(
     guild
 ) {
     try {
@@ -206,27 +209,27 @@ function createMainEmbed(
                 : CLOSED_COLOR
         )
         .setTitle(
-            "Le Chemin Des Héritiers <:emoji_26:1532806562761150544>"
+            "Rejoindre Soul Society <:Soul_Society:1548783936010977380>"
         )
         .setDescription(
-`The Legacy évolue dans une palette de **bleus profonds**, **inspirée des cieux** et **du silence**. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
+`Soul Society évolue dans une palette de **roses pâles et vifs**. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
 
 **Période de test**
 
-> - 2 semaines de mise à l'épreuve.
-> - Accès à la bannière officielle dès l'obtention du grade <@&1531761056744083648>.
+> - 1 à 2 semaines de mise à l'épreuve.
+> - Accès à la bannière officielle dès l'obtention du grade <@&1468701415475118282>.
 
 **Conditions de recrutement**
 
-- 5 000 minutes de jeu minimum.
-- Casier RP vierge ou irréprochable.
+- 3 500 minutes de jeu minimum.
+- Microphone obligatoire.
 - Faire preuve de maturité, de cohérence et d'une grande discrétion.
 - 16 ans minimum.
 - Maîtriser le règlement du serveur.
-- Être investi en WL / S-WL.
+- Whitelist non obligatoire ; casier RP vierge non obligatoire.
 - Faire preuve d'une activité soutenue sur Discord comme en jeu.
 
-> *En rejoignant The Legacy, vous reconnaissez avoir pris connaissance de l'ensemble des conditions énoncées ci-dessus. Vous vous engagez également à respecter nos valeurs, à faire preuve de patience durant le traitement de votre candidature et à accepter que chaque décision soit prise dans l'intérêt de l'héritage que nous préservons.*`
+> *En rejoignant Soul Society, vous reconnaissez avoir pris connaissance de l'ensemble des conditions énoncées ci-dessus. Vous vous engagez également à respecter nos valeurs, à faire preuve de patience durant le traitement de votre candidature et à accepter que chaque décision soit prise dans l'intérêt de l'héritage que nous préservons.*`
         );
 }
 
@@ -263,7 +266,7 @@ function createStatusEmbed(
                 OPEN_COLOR
             )
             .setDescription(
-`### <:coeurpnllgcy:1533222807423418479> Effectif The Legacy
+`### <:Soul_Society:1548783936010977380> Effectif Soul Society
 
 > **Membres : ${countText}**`
             );
@@ -286,7 +289,7 @@ function createStatusEmbed(
         .setDescription(
 `### ${CLOSED_EMOJI} Candidatures Close
 
-> **Ouverture des recrutements :** ${reopening}`
+> Les candidatures sont actuellement fermées.`
         );
 }
 
@@ -294,19 +297,21 @@ function createStatusEmbed(
 // JOIN BUTTON
 // ======================================================
 
-function createJoinRow() {
+function createJoinRow(guild) {
+    const logo = guild?.emojis?.cache?.get(JOIN_BUTTON_EMOJI);
+    const emoji = logo && logo.available !== false && !logo.roles?.cache?.size
+        ? { id: logo.id, name: logo.name, animated: Boolean(logo.animated) }
+        : "🌸";
     return new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(
-                    "legacy_join"
+                    "soul_join"
                 )
                 .setLabel(
-                    "Rejoindre The Legacy"
+                    "Rejoindre Soul Society"
                 )
-                .setEmoji(
-                    JOIN_BUTTON_EMOJI
-                )
+                .setEmoji(emoji)
                 .setStyle(
                     ButtonStyle.Secondary
                 )
@@ -322,7 +327,7 @@ async function buildPanelPayload(
     state = loadState()
 ) {
     const memberCount =
-        await countLegacyMembers(
+        await countSoulMembers(
             guild
         );
 
@@ -341,7 +346,7 @@ async function buildPanelPayload(
         components:
             state.enabled
                 ? [
-                    createJoinRow()
+                    createJoinRow(guild)
                 ]
                 : []
     };
@@ -355,9 +360,7 @@ async function getPanelChannel(
     guild,
     state = loadState()
 ) {
-    const channelId =
-        state.channelId ||
-        PANEL_CHANNEL_ID;
+    const channelId = guild.id === "1080943923691782154" ? PANEL_CHANNEL_ID : (state.channelId || PANEL_CHANNEL_ID);
 
     return (
         guild.channels.cache.get(
@@ -549,7 +552,7 @@ module.exports = {
     loadState,
     saveState,
 
-    countLegacyMembers,
+    countSoulMembers,
 
     createPanel,
     updatePanel,

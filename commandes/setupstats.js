@@ -1,3 +1,6 @@
+const { CHANNELS } = require("../config/soulSociety");
+const { hasAccessPermission } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     ChannelType,
@@ -32,9 +35,7 @@ module.exports = {
                         .addChannelTypes(
                             ChannelType.GuildText
                         )
-                        .setRequired(
-                            true
-                        )
+                        .setRequired(false)
             ),
 
     // ==================================================
@@ -55,7 +56,7 @@ module.exports = {
             // ==================================================
 
             if (
-                !interaction.member.permissions.has(
+                !hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 )
             ) {
@@ -81,10 +82,9 @@ module.exports = {
             }
 
             const channel =
-                interaction.options.getChannel(
-                    "salon",
-                    true
-                );
+                interaction.options.getChannel("salon") ||
+                interaction.guild.channels.cache.get(CHANNELS.ranking) ||
+                await interaction.guild.channels.fetch(CHANNELS.ranking);
 
             const message =
                 await interaction.client.activityStats

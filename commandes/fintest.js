@@ -1,3 +1,5 @@
+const { hasBypass } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     MessageFlags
@@ -12,11 +14,13 @@ const {
 } = require("../config/ranks");
 
 const TEST_GROUP =
-    "legacy-test-follow";
+    "soul-test-follow";
 
 function hasPermission(
     member
 ) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(

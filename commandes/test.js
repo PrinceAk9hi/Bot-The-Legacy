@@ -1,3 +1,5 @@
+const { hasBypass } = require("../utils/security");
+
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -28,7 +30,7 @@ const {
 // ======================================================
 
 const TEST_GROUP =
-    "legacy-test-follow";
+    "soul-test-follow";
 
 const DATA_DIR =
     path.join(
@@ -54,6 +56,8 @@ const TEST_AUDIO =
 // ======================================================
 
 function hasPermission(member) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(

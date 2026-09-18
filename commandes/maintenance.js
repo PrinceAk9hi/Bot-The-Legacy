@@ -1,3 +1,7 @@
+const { hasAccessPermission } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -16,7 +20,7 @@ const STATUS_CHANNEL_ID =
     "1541093908128338081";
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // FICHIERS
@@ -110,7 +114,7 @@ const STATUS_CONFIG = {
             "🟢",
 
         color:
-            0x57F287
+            SOUL_COLORS.success
     },
 
     degrade: {
@@ -132,7 +136,7 @@ const STATUS_CONFIG = {
             "🔴",
 
         color:
-            0xED4245
+            SOUL_COLORS.error
     }
 };
 
@@ -143,10 +147,7 @@ const STATUS_CONFIG = {
 const SERVICE_COMMANDS = {
     recrutement: [
         "entretien",
-        "fintest",
-        "join",
-        "leave",
-        "setupcandidature",
+        "fintest",        "setupcandidature",
         "setupinfos"
     ],
 
@@ -180,10 +181,8 @@ const SERVICE_COMMANDS = {
     fun: [
         "wanted",
         "ship",
-        "union",
-        "tribunal",
-        "imposteur",
-        "legacygames",
+        "union",        "imposteur",
+        "soulgames",
         "loupgarou"
     ]
 };
@@ -621,7 +620,7 @@ function getGlobalStatus(
                 "🔴",
 
             color:
-                0xED4245
+                SOUL_COLORS.error
         };
     }
 
@@ -701,7 +700,7 @@ function buildStatusEmbed(
             );
 
     let footerText =
-        "The Legacy • État des services";
+        "Soul Society • État des services";
 
     if (
         activeIssues.length
@@ -717,7 +716,7 @@ function buildStatusEmbed(
 
         .setAuthor({
             name:
-                "THE LEGACY • STATUT DES SERVICES",
+                "Soul Society • STATUT DES SERVICES",
 
             iconURL:
                 guild
@@ -734,7 +733,7 @@ function buildStatusEmbed(
 
         .setDescription(
             [
-                "> Suivi en temps réel de l'état des différents systèmes de **The Legacy**.",
+                "> Suivi en temps réel de l'état des différents systèmes de **Soul Society**.",
                 "",
                 serviceBlocks.join(
                     "\n\n"
@@ -1059,7 +1058,7 @@ function buildMaintenanceBlockedEmbed(
 ) {
     return new EmbedBuilder()
         .setColor(
-            0xED4245
+            SOUL_COLORS.error
         )
         .setTitle(
             "🛠️ Service actuellement en maintenance"
@@ -1083,7 +1082,7 @@ ${result.since
     )}:R>`
     : ""}
 
--# The Legacy • Merci de patienter.`
+-# Soul Society • Merci de patienter.`
         )
         .setTimestamp();
 }
@@ -1112,7 +1111,7 @@ function updateBotPresence(
             activities: [
                 {
                     name:
-                        "🛠️ Maintenance The Legacy",
+                        "🛠️ Maintenance Soul Society",
 
                     type:
                         4
@@ -1152,7 +1151,7 @@ function updateBotPresence(
         activities: [
             {
                 name:
-                    "The Legacy",
+                    "Soul Society",
 
                 type:
                     4
@@ -1173,7 +1172,7 @@ module.exports = {
                 "maintenance"
             )
             .setDescription(
-                "Gérer l'état des services de The Legacy"
+                "Gérer l'état des services de Soul Society"
             )
 
             .addStringOption(option =>
@@ -1326,10 +1325,10 @@ module.exports = {
             // ==================================================
 
             const allowed =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 ) ||
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.ManageGuild
                 );
 
@@ -1471,7 +1470,7 @@ ${panelResult.success
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Maintenance"
+                            "Soul Society • Maintenance"
                     })
                     .setTimestamp();
 

@@ -1,3 +1,8 @@
+const { ROLES } = require("../config/soulSociety");
+const { MAIN_RANKS } = require("../config/ranks");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder
@@ -11,64 +16,22 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
+const COLOR = SOUL_COLORS.primary;
 
 // ======================================================
-// GRADES THE LEGACY
+// GRADES Soul Society
 // ======================================================
 
-const GRADES = [
-    {
-        key: "novice",
-        roleId: "1531761113933414542",
-        name: "Novice Test",
-        nextRoleId: "1531761056744083648",
-        nextName: "Héritier Confirmé",
-
-        // 2 semaines
-        minimumDays: 14,
-
-        idealDays: 14
-    },
-
-    {
-        key: "confirme",
-        roleId: "1531761056744083648",
-        name: "Héritier Confirmé",
-        nextRoleId: "1531760794822508800",
-        nextName: "Héritier Expert",
-
-        // Environ 2 mois et demi
-        minimumDays: 75,
-
-        idealDays: 75
-    },
-
-    {
-        key: "expert",
-        roleId: "1531760794822508800",
-        name: "Héritier Expert",
-        nextRoleId: "1531760661271543969",
-        nextName: "Héritier Sénior",
-
-        // Minimum ≈ 3 mois et demi
-        minimumDays: 105,
-
-        // Idéal ≈ 5 mois
-        idealDays: 150
-    },
-
-    {
-        key: "senior",
-        roleId: "1531760661271543969",
-        name: "Héritier Sénior",
-        nextRoleId: null,
-        nextName: null,
-
-        minimumDays: null,
-        idealDays: null
-    }
-];
+const rankEntries = Object.entries(MAIN_RANKS);
+const GRADES = rankEntries.map(([key, rank], index) => ({
+    key,
+    roleId: rank.roleId,
+    name: rank.name,
+    nextRoleId: rankEntries[index + 1]?.[1].roleId || null,
+    nextName: rankEntries[index + 1]?.[1].name || null,
+    minimumDays: rank.promotionMinimumDays,
+    idealDays: rank.promotionIdealDays
+}));
 
 // ======================================================
 // GESTIONS
@@ -76,75 +39,20 @@ const GRADES = [
 
 const MANAGEMENT_ROLES = [
     {
-        id: "1458394180651843635",
-        name: "Gestion Recrutement"
+        "id": "1473356789453029376",
+        "name": "Gestion Recrutement"
     },
     {
-        id: "1532085431947100281",
-        name: "Responsable Recrutement"
-    },
-
-    {
-        id: "1495888679535644753",
-        name: "Gestion Tickets"
+        "id": "1477056805103206450",
+        "name": "Gestion Animation"
     },
     {
-        id: "1532085331656970400",
-        name: "Responsable Tickets"
-    },
-
-    {
-        id: "1490131448424956024",
-        name: "Gestion RP"
+        "id": "1505974229118750851",
+        "name": "Gestion Roleplay"
     },
     {
-        id: "1532085176656597265",
-        name: "Responsable RP"
-    },
-
-    {
-        id: "1516451475415367822",
-        name: "Gestion Sanctions / Rankups"
-    },
-    {
-        id: "1531760308761133229",
-        name: "Responsable Sanctions"
-    },
-
-    {
-        id: "1514336673540997341",
-        name: "Gestion Design"
-    },
-    {
-        id: "1532085056472879135",
-        name: "Responsable Design"
-    },
-
-    {
-        id: "1490086893482672290",
-        name: "Gestion Communication"
-    },
-    {
-        id: "1532085057806925876",
-        name: "Responsable Communication"
-    },
-
-    {
-        id: "1464381489407066286",
-        name: "Gestion Recrutements IG"
-    },
-    {
-        id: "1532085573601460254",
-        name: "Responsable Recrutements IG"
-    },
-
-    {
-        id: "1458394404568957052",
-        name: "Gestion Animations"
-    },
-    {
-        id: "1532084983748100237",
-        name: "Responsable Animations"
+        "id": "1471557970079912047",
+        "name": "Gestion Ticket"
     }
 ];
 
@@ -260,7 +168,7 @@ function formatDays(
 function getCurrentGrade(
     member
 ) {
-    return GRADES.find(
+    return [...GRADES].reverse().find(
         grade =>
             member.roles.cache.has(
                 grade.roleId
@@ -593,7 +501,7 @@ function getGradeAge(
         historyRank.includes(
             currentName
                 .replace(
-                    "héritier ",
+                    "membre ",
                     ""
                 )
         ) ||
@@ -720,7 +628,7 @@ function evaluatePromotion({
     ) {
         return {
             color:
-                0x57F287,
+                SOUL_COLORS.success,
 
             emoji:
                 "👑",
@@ -729,7 +637,7 @@ function evaluatePromotion({
                 "Grade maximal atteint",
 
             explanation:
-                "Ce membre possède déjà le grade **Héritier Sénior**. Aucun passage supérieur n'est actuellement prévu.",
+                `Ce membre possède déjà le grade **${grade.name}**. Aucun passage supérieur n'est actuellement prévu.`,
 
             timeStatus:
                 "➖",
@@ -740,6 +648,18 @@ function evaluatePromotion({
                     : stats.activity >= 45
                         ? "⚠️"
                         : "❌"
+        };
+    }
+
+    // Aucun délai de promotion n'a encore été fourni pour les nouveaux paliers.
+    if (!Number.isFinite(grade.minimumDays) || grade.minimumDays <= 0) {
+        return {
+            color: SOUL_COLORS.secondary,
+            emoji: "ℹ️",
+            status: "Critères de passage à configurer",
+            explanation: `Le prochain grade est **${grade.nextName}**. Aucun délai de promotion n'est configuré pour ce palier ; une décision manuelle est nécessaire.`,
+            timeStatus: "❔",
+            activityStatus: stats.activity >= 60 ? "✅" : "⚠️"
         };
     }
 
@@ -789,7 +709,7 @@ Une vérification manuelle de sa date de passage est recommandée avant tout ran
 
         return {
             color:
-                0xED4245,
+                SOUL_COLORS.error,
 
             emoji:
                 "🔴",
@@ -846,7 +766,7 @@ Une vérification manuelle de sa date de passage est recommandée avant tout ran
         ) {
             return {
                 color:
-                    0x57F287,
+                    SOUL_COLORS.success,
 
                 emoji:
                     "🟢",
@@ -871,7 +791,7 @@ Une vérification manuelle de sa date de passage est recommandée avant tout ran
         ) {
             return {
                 color:
-                    0x57F287,
+                    SOUL_COLORS.success,
 
                 emoji:
                     "🟢",
@@ -882,7 +802,7 @@ Une vérification manuelle de sa date de passage est recommandée avant tout ran
                 explanation:
 `Le membre a dépassé le **minimum de 3 mois et demi** et possède une forte activité.
 
-Le passage Sénior peut être envisagé, même si une ancienneté comprise autour de **5 à 6 mois reste idéale**.${hasManagement ? "\n\nLe membre est également impliqué dans la gestion de The Legacy." : ""}`,
+Le passage Sénior peut être envisagé, même si une ancienneté comprise autour de **5 à 6 mois reste idéale**.${hasManagement ? "\n\nLe membre est également impliqué dans la gestion de Soul Society." : ""}`,
 
                 timeStatus:
                     "✅",
@@ -909,7 +829,7 @@ Le passage Sénior peut être envisagé, même si une ancienneté comprise autou
                 explanation:
 `L'ancienneté minimale est atteinte, mais l'activité du membre reste seulement correcte.
 
-Il serait préférable d'attendre une activité plus forte avant un passage en **Héritier Sénior**.`,
+Il serait préférable d'attendre une activité plus forte avant un passage en **Membre Sénior**.`,
 
                 timeStatus:
                     "✅",
@@ -948,7 +868,7 @@ Son profil est bon, mais il manque encore un peu d'ancienneté.`,
 
         return {
             color:
-                0xED4245,
+                SOUL_COLORS.error,
 
             emoji:
                 "🔴",
@@ -957,7 +877,7 @@ Son profil est bon, mais il manque encore un peu d'ancienneté.`,
                 "Passage non recommandé",
 
             explanation:
-`Le membre ne remplit pas encore suffisamment les critères nécessaires au passage **Héritier Sénior**.`,
+`Le membre ne remplit pas encore suffisamment les critères nécessaires au passage **Membre Sénior**.`,
 
             timeStatus:
                 timeReached
@@ -983,7 +903,7 @@ Son profil est bon, mais il manque encore un peu d'ancienneté.`,
     ) {
         return {
             color:
-                0x57F287,
+                SOUL_COLORS.success,
 
             emoji:
                 "🟢",
@@ -1054,7 +974,7 @@ Son profil est bon, mais il manque encore un peu d'ancienneté.`,
 
     return {
         color:
-            0xED4245,
+            SOUL_COLORS.error,
 
         emoji:
             "🔴",
@@ -1170,28 +1090,14 @@ module.exports = {
                         "membre"
                     );
 
-            const member =
-                interaction.guild
-                    .members
-                    .cache
-                    .get(
-                        user.id
-                    ) ||
-                await interaction.guild
-                    .members
-                    .fetch(
-                        user.id
-                    )
-                    .catch(
-                        () => null
-                    );
+            const member = await interaction.guild.members.fetch({ user: user.id, force: true }).catch(() => null);
 
             if (
                 !member
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Membre introuvable."
+                        "❌ Impossible de récupérer les rôles actuels de ce membre. Réessaie dans un instant."
                 });
             }
 
@@ -1218,7 +1124,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        `❌ <@${member.id}> ne possède aucun grade Legacy analysable.`
+                        `⚠️ Aucun grade Test → Référent configuré n’a été reconnu pour <@${member.id}> sur ce serveur. ${member.roles.cache.has(ROLES.member) ? "Le rôle Membres de la Soul Society est bien présent, mais ce n’est pas un grade." : "Cela ne signifie pas que le membre ne possède aucun rôle Soul Society."}\nVérifie l’ID du grade porté et lance /analyse dans Soul Society.`
                 });
             }
 
@@ -1323,11 +1229,11 @@ module.exports = {
                 currentGrade.nextName
             ) {
                 requirementText =
-                    `${formatDays(currentGrade.minimumDays)} minimum`;
+                    Number.isFinite(currentGrade.minimumDays) && currentGrade.minimumDays > 0
+                        ? `${formatDays(currentGrade.minimumDays)} minimum`
+                        : "Délai non configuré — décision manuelle";
 
-                if (
-                    gradeAge.known
-                ) {
+                if (gradeAge.known && Number.isFinite(currentGrade.minimumDays) && currentGrade.minimumDays > 0) {
                     timeProgress =
                         `\`${progressBar(
                             gradeAge.days,
@@ -1405,7 +1311,7 @@ module.exports = {
             ) {
                 seniorNote =
 `### 👑 Passage Sénior
-> Le minimum retenu est d'environ **3 mois et demi** en Expert.
+> Le minimum retenu est d'environ **3 mois et demi** en Membre avancé.
 > Une ancienneté autour de **5 à 6 mois** reste cependant considérée comme idéale.`;
             }
 
@@ -1442,7 +1348,7 @@ module.exports = {
                     )
 
                     .setDescription(
-`> Analyse automatique basée sur les statistiques Discord et l'historique de grades de **The Legacy**.
+`> Analyse automatique basée sur les statistiques Discord et l'historique de grades de **Soul Society**.
 
 ### 👑 Situation
 
@@ -1483,12 +1389,12 @@ ${seniorNote}
 
 ${evaluation.explanation}
 
--# Cette analyse reste indicative : une décision de rankup reste à la discrétion de la gestion de The Legacy.`
+-# Cette analyse reste indicative : une décision de rankup reste à la discrétion de la gestion de Soul Society.`
                     )
 
                     .setFooter({
                         text:
-                            `The Legacy • Analyse automatique • Demandée par ${interaction.user.username}`
+                            `Soul Society • Analyse automatique • Demandée par ${interaction.user.username}`
                     })
 
                     .setTimestamp();

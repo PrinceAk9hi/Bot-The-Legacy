@@ -1,3 +1,11 @@
+const { ROBLOX } = require("../config/soulSociety");
+
+const { blockProtectedInteraction } = require("../utils/security");
+
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS, CHANNELS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -34,7 +42,7 @@ const {
 const GROUP_ID =
     Number(
         process.env.ROBLOX_GROUP_ID ||
-        "194530241"
+        ROBLOX.groupId
     );
 
 // ======================================================
@@ -42,7 +50,7 @@ const GROUP_ID =
 // ======================================================
 
 const DERANK_ANNOUNCEMENT_CHANNEL_ID =
-    "1531375423424823407";
+    CHANNELS.rankups;
 
 // ======================================================
 // RÔLES SUPPLÉMENTAIRES À RETIRER AU DERANK
@@ -51,16 +59,16 @@ const DERANK_ANNOUNCEMENT_CHANNEL_ID =
 const EXTRA_DERANK_ROLES = [
     {
         key:
-            "acces_legacy",
+            "acces_soul",
 
         category:
             "extra",
 
         name:
-            "Accès Legacy",
+            "Accès Society",
 
         roleId:
-            "1458391977073574012"
+            "1513698444588482650"
     },
 
     {
@@ -71,10 +79,10 @@ const EXTRA_DERANK_ROLES = [
             "extra",
 
         name:
-            "Rôle Legacy",
+            "Bras droit",
 
         roleId:
-            "1467277541696868412"
+            "1527996778727870496"
     }
 ];
 
@@ -85,6 +93,8 @@ const EXTRA_DERANK_ROLES = [
 function hasDerankPermission(
     member
 ) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(
@@ -105,28 +115,7 @@ function getAllDerankRoles() {
     // GRADES
     // ==================================================
 
-    for (
-        const [
-            key,
-            rank
-        ]
-        of Object.entries(
-            MAIN_RANKS
-        )
-    ) {
-        roles.push({
-            key,
-
-            category:
-                "grade",
-
-            name:
-                rank.name,
-
-            roleId:
-                rank.roleId
-        });
-    }
+    // Les grades sont conservés selon la configuration Soul Society.
 
     // ==================================================
     // GESTION + RESPONSABLE
@@ -275,15 +264,15 @@ async function sendDerankAnnouncement(
     }
 
     const content =
-`**Mise à jour des effectifs <a:1181maruloader:1533145507201814689>**
+`**Mise à jour des effectifs <a:PepeExit:1548786617685381234>**
 
-Nous vous informons que <@${member.id}> **ne fait désormais plus partie de The Legacy**.
+Nous vous informons que <@${member.id}> **ne fait désormais plus partie de Soul Society**.
 
 **Conformément à nos principes de discrétion et de respect de la confidentialité**, **les raisons de ce départ ne seront pas rendues publiques**. **Nous demandons à chacun de respecter cette décision et de ne pas alimenter de spéculations ou de débats à ce sujet**.
 
 *Nous remercions <@${member.id}> pour le temps passé à nos côtés et lui souhaitons une excellente continuation pour la suite de son parcours*.
 
--# By <@&1458414705717805189> & <@&1467277541696868412> & <@&1531760308761133229>.`;
+-# By <@&1471546243653304392> & <@&1504782476319526932> & <@&1527996778727870496> & <@&1471889647570260030>.`;
 
     await channel.send({
         content,
@@ -294,9 +283,11 @@ Nous vous informons que <@${member.id}> **ne fait désormais plus partie de The 
             ],
 
             roles: [
-                "1458414705717805189",
-                "1467277541696868412",
-                "1531760308761133229"
+                "1471546243653304392",
+
+                "1504782476319526932",
+                "1527996778727870496",
+                "1471889647570260030"
             ]
         }
     });
@@ -529,6 +520,8 @@ module.exports = {
     async execute(
         interaction
     ) {
+        if (await blockProtectedInteraction(interaction, "derank")) return;
+
         await interaction.deferReply({
             flags:
                 MessageFlags.Ephemeral
@@ -838,7 +831,7 @@ module.exports = {
                     new EmbedBuilder()
                         .setColor(
                             RANK_CONFIG.removalColor ||
-                            0xED4245
+                            SOUL_COLORS.sanction
                         )
                         .setTitle(
                             "🔻 DERANK COMPLET"

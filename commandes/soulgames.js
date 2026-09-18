@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -20,10 +22,10 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
-const SUCCESS = 0x57F287;
+const COLOR = SOUL_COLORS.primary;
+const SUCCESS = SOUL_COLORS.success;
 const WARNING = 0xFEE75C;
-const ERROR = 0xED4245;
+const ERROR = SOUL_COLORS.error;
 
 const DATA_DIR =
     path.join(
@@ -35,7 +37,7 @@ const DATA_DIR =
 const DATA_FILE =
     path.join(
         DATA_DIR,
-        "legacyGames.json"
+        "soulGames.json"
     );
 
 // ======================================================
@@ -233,13 +235,13 @@ const QUIZ = [
 // ======================================================
 
 const HANGMAN_WORDS = [
-    "LEGACY",
+    "SOCIETY",
     "DISCORD",
     "HERITAGE",
     "VOCAL",
     "TRIBUNAL",
     "RECRUTEMENT",
-    "FONDATION",
+    "DIRECTION",
     "ROBLOX",
     "SURVEILLANCE",
     "MYSTERE"
@@ -337,7 +339,7 @@ function loadData() {
 
     } catch (error) {
         console.error(
-            "❌ legacyGames.json :",
+            "❌ soulGames.json :",
             error
         );
 
@@ -665,10 +667,10 @@ ${game.description}`
             COLOR
         )
         .setTitle(
-            "🎮 Legacy Games"
+            "🎮 Soul Games"
         )
         .setDescription(
-`Bienvenue dans le centre de jeux de **The Legacy**.
+`Bienvenue dans le centre de jeux de **Soul Society**.
 
 ${voiceChannel
     ? `🔊 **Vocal lié :** <#${voiceChannel.id}>`
@@ -684,7 +686,7 @@ Choisis maintenant le jeu que tu souhaites lancer dans le menu ci-dessous.`
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         })
         .setTimestamp();
 }
@@ -1016,7 +1018,7 @@ ${status}`
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         });
 }
 
@@ -1170,7 +1172,7 @@ Clique sur le bouton pour proposer un nombre.`
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         });
 }
 
@@ -1304,7 +1306,7 @@ ${history ||
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         });
 }
 
@@ -1392,7 +1394,7 @@ ${session.finished
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         });
 }
 
@@ -1488,7 +1490,7 @@ ${scores ||
         )
         .setFooter({
             text:
-                "The Legacy • Legacy Games"
+                "Soul Society • Soul Games"
         });
 }
 
@@ -1655,7 +1657,7 @@ function bombEmbed(
                 : ERROR
         )
         .setTitle(
-            "💣 Bombe Legacy"
+            "💣 Bombe Society"
         )
         .setDescription(
 `### 💣 Porteur actuel
@@ -1679,8 +1681,8 @@ ${session.finished
         .setFooter({
             text:
                 session.finished
-                    ? "The Legacy • Partie terminée"
-                    : "The Legacy • Ne tarde pas..."
+                    ? "Soul Society • Partie terminée"
+                    : "Soul Society • Ne tarde pas..."
         });
 }
 
@@ -1794,7 +1796,7 @@ async function startSelectedGame(
                         "❌ Vocal requis"
                     )
                     .setDescription(
-                        "Ce jeu utilise les participants présents dans un salon vocal. Rejoins un vocal puis relance `/legacygames`."
+                        "Ce jeu utilise les participants présents dans un salon vocal. Rejoins un vocal puis relance `/soulgames`."
                     )
             ],
 
@@ -2284,10 +2286,10 @@ module.exports = {
     data:
         new SlashCommandBuilder()
             .setName(
-                "legacygames"
+                "soulgames"
             )
             .setDescription(
-                "Ouvrir le centre de mini-jeux The Legacy"
+                "Ouvrir le centre de mini-jeux Soul Society"
             ),
 
     async execute(
@@ -4624,7 +4626,7 @@ après **${session.history.length} tentative(s)**.`
     // TPV + INDEX
     // ==================================================
 
-    legacyGamesSystem: {
+    soulGamesSystem: {
         GAMES,
 
         openHub,
@@ -4635,15 +4637,15 @@ après **${session.history.length} tentative(s)**.`
             client
         ) {
             if (
-                client.__legacyGamesRegistered
+                client.__soulGamesRegistered
             ) {
                 return;
             }
 
-            client.__legacyGamesRegistered =
+            client.__soulGamesRegistered =
                 true;
 
-            client.legacyGames = {
+            client.soulGames = {
                 GAMES,
                 openHub,
                 getSession
@@ -4653,7 +4655,7 @@ après **${session.history.length} tentative(s)**.`
             // BOMBE : EXPLOSIONS
             // ==========================================
 
-            client.__legacyGamesBombInterval =
+            client.__soulGamesBombInterval =
                 setInterval(
                     async () => {
                         const data =
@@ -4880,7 +4882,7 @@ après **${session.history.length} tentative(s)**.`
             // NETTOYAGE SESSIONS TRÈS ANCIENNES
             // ==========================================
 
-            client.__legacyGamesCleanupInterval =
+            client.__soulGamesCleanupInterval =
                 setInterval(
                     () => {
                         const data =
@@ -4939,7 +4941,7 @@ après **${session.history.length} tentative(s)**.`
                 );
 
             console.log(
-                "🎮 Legacy Games : ✅ actif"
+                "🎮 Soul Games : ✅ actif"
             );
         }
     }

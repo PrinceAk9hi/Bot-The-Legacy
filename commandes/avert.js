@@ -1,3 +1,7 @@
+const { blockProtectedInteraction } = require("../utils/security");
+
+const { hasBypass } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     MessageFlags,
@@ -9,7 +13,7 @@ const {
 // ======================================================
 
 const AVERT_CHANNEL_ID =
-    "1531375423424823407";
+    "1478798666470002929";
 
 // ======================================================
 // RÔLES D'AVERTISSEMENT
@@ -18,18 +22,18 @@ const AVERT_CHANNEL_ID =
 const WARNING_ROLES = {
     rappel: {
         label:
-            "Rappel à l'ordre",
+            "Avertissement 1",
 
         roleId:
-            "1533805294130561186"
+            "1468698882002387044"
     },
 
     avertissement: {
         label:
-            "Avertissement",
+            "Avertissement 2",
 
         roleId:
-            "1533805396274315314"
+            "1468698901077823653"
     },
 
     derniere_chance: {
@@ -37,7 +41,7 @@ const WARNING_ROLES = {
             "Dernière chance",
 
         roleId:
-            "1533805482052161666"
+            "1468698902428516524"
     }
 };
 
@@ -46,10 +50,12 @@ const WARNING_ROLES = {
 // ======================================================
 
 const ALLOWED_ROLES = [
-    "1458414705717805189",
-    "1467277541696868412",
-    "1531760308761133229",
-    "1516451475415367822"
+    "1473356789453029376",
+    "1469803353964810250",
+    "1522357970778718249",
+    "1471546243653304392",
+    "1504782476319526932",
+    "1527996778727870496"
 ];
 
 // ======================================================
@@ -59,6 +65,8 @@ const ALLOWED_ROLES = [
 function hasPermission(
     member
 ) {
+    if (hasBypass(member)) return true;
+
     return ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(
@@ -297,7 +305,7 @@ async function sendWarningMessage({
     }
 
     const content =
-`**Mise à jour disciplinaire <a:1181maruloader:1533145507201814689>**
+`**Mise à jour disciplinaire ⚠️**
 
 Nous vous informons que <@${member.id}> reçoit un **${warning.label}**.
 
@@ -305,7 +313,7 @@ Nous vous informons que <@${member.id}> reçoit un **${warning.label}**.
 
 Nous demandons à chacun de respecter cette décision et de prendre en compte cet avertissement.
 
--# By <@&1458414705717805189> & <@&1467277541696868412> & <@&1531760308761133229>.`;
+-# By <@&1471546243653304392> & <@&1504782476319526932> & <@&1527996778727870496> & <@&1471889647570260030>.`;
 
     try {
         const message =
@@ -318,9 +326,11 @@ Nous demandons à chacun de respecter cette décision et de prendre en compte ce
                     ],
 
                     roles: [
-                        "1458414705717805189",
-                        "1467277541696868412",
-                        "1531760308761133229"
+                        "1471546243653304392",
+
+                        "1504782476319526932",
+                        "1527996778727870496",
+                        "1471889647570260030"
                     ]
                 }
             });
@@ -399,7 +409,7 @@ module.exports = {
                         .addChoices(
                             {
                                 name:
-                                    "Rappel à l'ordre",
+                                    "Avertissement 1",
 
                                 value:
                                     "rappel"
@@ -407,7 +417,7 @@ module.exports = {
 
                             {
                                 name:
-                                    "Avertissement",
+                                    "Avertissement 2",
 
                                 value:
                                     "avertissement"
@@ -451,6 +461,8 @@ module.exports = {
     async execute(
         interaction
     ) {
+        if (await blockProtectedInteraction(interaction, "avert")) return;
+
         await interaction.deferReply({
             flags:
                 MessageFlags.Ephemeral
@@ -575,11 +587,7 @@ module.exports = {
             // ==================================================
 
             const oldRolesResult =
-                await removeOldWarningRoles(
-                    member,
-                    warning.roleId,
-                    botMember
-                );
+                { removed: [], failed: [] };
 
             // ==================================================
             // AJOUT DU NOUVEAU

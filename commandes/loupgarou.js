@@ -1,3 +1,7 @@
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -43,16 +47,16 @@ const voice =
 // ======================================================
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 const SUCCESS =
-    0x57F287;
+    SOUL_COLORS.success;
 
 const WARNING =
     0xFEE75C;
 
 const ERROR =
-    0xED4245;
+    SOUL_COLORS.error;
 
 const MIN_PLAYERS =
     5;
@@ -114,6 +118,8 @@ function isHostOrAdmin(
     interaction,
     game
 ) {
+    if (hasBypass(interaction)) return true;
+
     if (
         interaction.user.id ===
         game.hostId
@@ -467,7 +473,7 @@ function buildLobbyEmbed(
                 : WARNING
         )
         .setTitle(
-            "🐺 Loup-Garou — The Legacy"
+            "🐺 Loup-Garou — Soul Society"
         )
         .setDescription(
 `${testText}Une nouvelle partie de Loup-Garou se prépare.
@@ -525,8 +531,8 @@ ${warningText}`
         .setFooter({
             text:
                 game.config?.testMode
-                    ? "The Legacy • Loup-Garou • MODE TEST"
-                    : "The Legacy • Loup-Garou"
+                    ? "Soul Society • Loup-Garou • MODE TEST"
+                    : "Soul Society • Loup-Garou"
         })
         .setTimestamp();
 }
@@ -1092,7 +1098,7 @@ ${roleText.slice(
         )
         .setFooter({
             text:
-                "The Legacy • Loup-Garou"
+                "Soul Society • Loup-Garou"
         });
 }
 
@@ -1831,7 +1837,7 @@ module.exports = {
                 "loupgarou"
             )
             .setDescription(
-                "Gérer une partie de Loup-Garou The Legacy"
+                "Gérer une partie de Loup-Garou Soul Society"
             )
 
             .addSubcommand(

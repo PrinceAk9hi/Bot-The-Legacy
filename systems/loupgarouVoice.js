@@ -1,5 +1,5 @@
 // ======================================================
-// LOUP-GAROU — THE LEGACY
+// LOUP-GAROU — Soul Society
 // SYSTÈME VOCAL / NARRATION / AMBIANCES
 // ======================================================
 

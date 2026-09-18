@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -9,7 +11,6 @@ const {
     ButtonStyle,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
-    UserSelectMenuBuilder,
     MessageFlags
 } = require("discord.js");
 
@@ -17,13 +18,21 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
-const SUCCESS = 0x57F287;
+const COLOR = SOUL_COLORS.primary;
+const SUCCESS = SOUL_COLORS.success;
 const WARNING = 0xFEE75C;
-const ERROR = 0xED4245;
+const ERROR = SOUL_COLORS.error;
 
 const MIN_PLAYERS = 3;
+const MAX_PLAYERS = 25;
+
 const RECENT_WORD_LIMIT = 20;
+
+const LOBBY_MAX_AGE =
+    6 * 60 * 60 * 1000;
+
+const CLEANUP_INTERVAL =
+    10 * 60 * 1000;
 
 // ======================================================
 // DATA
@@ -47,6 +56,7 @@ const DATA_FILE =
 // ======================================================
 
 const WORD_BANK = {
+
     lieux: {
         emoji: "🏙️",
         name: "Lieux",
@@ -419,7 +429,7 @@ const WORD_BANK = {
             "The Last of Us",
             "God of War",
             "Spider-Man",
-            "Hogwarts Legacy",
+            "Hogwarts Society",
             "Assassin's Creed",
             "Far Cry",
             "Rainbow Six Siege",
@@ -1108,9 +1118,14 @@ const WORD_BANK = {
 
 function defaultData() {
     return {
-        version: 1,
-        lobbies: {},
-        recentWords: []
+        version:
+            2,
+
+        lobbies:
+            {},
+
+        recentWords:
+            []
     };
 }
 
@@ -1123,7 +1138,8 @@ function ensureFile() {
         fs.mkdirSync(
             DATA_DIR,
             {
-                recursive: true
+                recursive:
+                    true
             }
         );
     }
@@ -1157,13 +1173,18 @@ function loadData() {
 
         const data =
             raw.trim()
-                ? JSON.parse(raw)
+                ? JSON.parse(
+                    raw
+                )
                 : defaultData();
 
         if (
-            !data.lobbies
+            !data.lobbies ||
+            typeof data.lobbies !==
+                "object"
         ) {
-            data.lobbies = {};
+            data.lobbies =
+                {};
         }
 
         if (
@@ -1171,8 +1192,12 @@ function loadData() {
                 data.recentWords
             )
         ) {
-            data.recentWords = [];
+            data.recentWords =
+                [];
         }
+
+        data.version =
+            2;
 
         return data;
 
@@ -1217,44 +1242,21 @@ function createId() {
 function randomItem(
     array
 ) {
+    if (
+        !Array.isArray(
+            array
+        ) ||
+        !array.length
+    ) {
+        return null;
+    }
+
     return array[
         Math.floor(
             Math.random() *
             array.length
         )
     ];
-}
-
-function shuffle(
-    array
-) {
-    const clone =
-        [...array];
-
-    for (
-        let i =
-            clone.length - 1;
-        i > 0;
-        i--
-    ) {
-        const j =
-            Math.floor(
-                Math.random() *
-                (
-                    i + 1
-                )
-            );
-
-        [
-            clone[i],
-            clone[j]
-        ] = [
-            clone[j],
-            clone[i]
-        ];
-    }
-
-    return clone;
 }
 
 function getLobby(
@@ -1282,6 +1284,9 @@ function updateLobby(
     ) {
         return false;
     }
+
+    lobby.updatedAt =
+        Date.now();
 
     data.lobbies[
         lobby.id
@@ -1318,6 +1323,10 @@ function getRandomCategory() {
     );
 }
 
+// ======================================================
+// CHOIX MOT
+// ======================================================
+
 function pickWord(
     requestedCategory = null
 ) {
@@ -1336,6 +1345,18 @@ function pickWord(
         WORD_BANK[
             categoryKey
         ];
+
+    if (
+        !category ||
+        !Array.isArray(
+            category.words
+        ) ||
+        !category.words.length
+    ) {
+        throw new Error(
+            "La catégorie sélectionnée ne contient aucun mot."
+        );
+    }
 
     const recent =
         new Set(
@@ -1412,6 +1433,50 @@ function categoryOptions() {
 }
 
 // ======================================================
+// DISPLAY NAME
+// ======================================================
+
+async function getPlayerDisplayName(
+    guild,
+    userId
+) {
+    const member =
+        guild.members.cache.get(
+            userId
+        ) ||
+        await guild.members
+            .fetch(
+                userId
+            )
+            .catch(
+                () => null
+            );
+
+    if (
+        member
+    ) {
+        return (
+            member.displayName ||
+            member.user.username
+        );
+    }
+
+    const user =
+        await guild.client.users
+            .fetch(
+                userId
+            )
+            .catch(
+                () => null
+            );
+
+    return (
+        user?.username ||
+        `Utilisateur ${userId}`
+    );
+}
+
+// ======================================================
 // LOBBY EMBED
 // ======================================================
 
@@ -1450,13 +1515,13 @@ function buildLobbyEmbed(
             COLOR
         )
         .setTitle(
-            "🕵️ Imposteur — The Legacy"
+            "🕵️ Imposteur — Soul Society"
         )
         .setDescription(
 `### 🎲 Catégorie
 ${categoryText}
 
-### 👥 Joueurs • ${lobby.players.length}
+### 👥 Joueurs • ${lobby.players.length}/${MAX_PLAYERS}
 
 ${players}
 
@@ -1464,7 +1529,7 @@ ${players}
 
 ━━━━━━━━━━━━━━━━━━━━
 
-Quand la partie démarre, tous les joueurs recevront le même mot en MP...
+Quand la partie démarre, tous les joueurs reçoivent le même mot en MP...
 
 **sauf l'Imposteur.**
 
@@ -1472,7 +1537,7 @@ L'Imposteur devra se fondre dans la discussion sans connaître le mot.`
         )
         .setFooter({
             text:
-                "The Legacy • Imposteur"
+                "Soul Society • Imposteur"
         })
         .setTimestamp();
 }
@@ -1502,7 +1567,9 @@ function lobbyButtons(
                         ButtonStyle.Success
                     )
                     .setDisabled(
-                        disabled
+                        disabled ||
+                        lobby.players.length >=
+                            MAX_PLAYERS
                     ),
 
                 new ButtonBuilder()
@@ -1560,7 +1627,7 @@ function lobbyButtons(
 }
 
 // ======================================================
-// DISCUSSION EMBED
+// DISCUSSION
 // ======================================================
 
 function buildDiscussionEmbed(
@@ -1605,14 +1672,10 @@ Quand vous êtes prêts, l'hôte peut lancer le vote.`
         )
         .setFooter({
             text:
-                "The Legacy • Imposteur"
+                "Soul Society • Imposteur"
         })
         .setTimestamp();
 }
-
-// ======================================================
-// DISCUSSION BUTTON
-// ======================================================
 
 function discussionButtons(
     lobby
@@ -1658,7 +1721,8 @@ function discussionButtons(
 function buildVoteEmbed(
     lobby
 ) {
-    const voteCounts = {};
+    const voteCounts =
+        {};
 
     for (
         const playerId
@@ -1685,7 +1749,8 @@ function buildVoteEmbed(
                     targetId
                 ] ||
                 0
-            ) + 1;
+            ) +
+            1;
     }
 
     const ranking =
@@ -1697,7 +1762,8 @@ function buildVoteEmbed(
                     [, a],
                     [, b]
                 ) =>
-                    b - a
+                    b -
+                    a
             )
             .map(
                 (
@@ -1734,7 +1800,7 @@ ${ranking}
         )
         .setFooter({
             text:
-                "The Legacy • Imposteur"
+                "Soul Society • Imposteur"
         })
         .setTimestamp();
 }
@@ -1743,7 +1809,8 @@ ${ranking}
 // VOTE MENU
 // ======================================================
 
-function voteMenu(
+async function voteMenu(
+    interaction,
     lobby
 ) {
     const menu =
@@ -1765,16 +1832,27 @@ function voteMenu(
         const playerId
         of lobby.players
     ) {
+        const label =
+            (
+                await getPlayerDisplayName(
+                    interaction.guild,
+                    playerId
+                )
+            ).slice(
+                0,
+                100
+            );
+
         menu.addOptions(
             new StringSelectMenuOptionBuilder()
                 .setLabel(
-                    `Joueur ${lobby.players.indexOf(playerId) + 1}`
+                    label
                 )
                 .setValue(
                     playerId
                 )
                 .setDescription(
-                    `Voter pour ce joueur`
+                    "Voter pour ce joueur"
                 )
         );
     }
@@ -1788,6 +1866,82 @@ function voteMenu(
 }
 
 // ======================================================
+// PRE-FLIGHT MP
+// ======================================================
+
+async function preflightDMs(
+    interaction,
+    playerIds
+) {
+    const failed =
+        [];
+
+    for (
+        const playerId
+        of playerIds
+    ) {
+        const user =
+            await interaction.client.users
+                .fetch(
+                    playerId
+                )
+                .catch(
+                    () => null
+                );
+
+        if (
+            !user
+        ) {
+            failed.push(
+                playerId
+            );
+
+            continue;
+        }
+
+        const sent =
+            await user.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(
+                            COLOR
+                        )
+                        .setTitle(
+                            "🕵️ Vérification Imposteur"
+                        )
+                        .setDescription(
+`Tes messages privés sont accessibles.
+
+La partie peut donc démarrer correctement.
+
+-# Aucun rôle ni mot secret n'a encore été envoyé.`
+                        )
+                        .setFooter({
+                            text:
+                                "Soul Society • Imposteur"
+                        })
+                ]
+            })
+                .then(
+                    () => true
+                )
+                .catch(
+                    () => false
+                );
+
+        if (
+            !sent
+        ) {
+            failed.push(
+                playerId
+            );
+        }
+    }
+
+    return failed;
+}
+
+// ======================================================
 // FIN DE PARTIE
 // ======================================================
 
@@ -1795,7 +1949,8 @@ async function finishGame(
     interaction,
     lobby
 ) {
-    const counts = {};
+    const counts =
+        {};
 
     for (
         const playerId
@@ -1810,7 +1965,8 @@ async function finishGame(
     for (
         const targetId
         of Object.values(
-            lobby.votes
+            lobby.votes ||
+            {}
         )
     ) {
         counts[
@@ -1821,19 +1977,22 @@ async function finishGame(
                     targetId
                 ] ||
                 0
-            ) + 1;
+            ) +
+            1;
     }
 
     const sorted =
         Object.entries(
             counts
-        ).sort(
-            (
-                [, a],
-                [, b]
-            ) =>
-                b - a
-        );
+        )
+            .sort(
+                (
+                    [, a],
+                    [, b]
+                ) =>
+                    b -
+                    a
+            );
 
     const highest =
         sorted[
@@ -1868,6 +2027,7 @@ async function finishGame(
             ][
                 0
             ];
+
     } else {
         tie =
             true;
@@ -1876,9 +2036,10 @@ async function finishGame(
     const impostorFound =
         !tie &&
         eliminatedId ===
-        lobby.impostorId;
+            lobby.impostorId;
 
-    let resultText;
+    let resultText =
+        "";
 
     if (
         tie
@@ -1935,6 +2096,10 @@ Mais l'Imposteur était en réalité <@${lobby.impostorId}>.`;
     lobby.finishedAt =
         Date.now();
 
+    updateLobby(
+        lobby
+    );
+
     await interaction.message.edit({
         embeds: [
             new EmbedBuilder()
@@ -1967,7 +2132,7 @@ ${voteResults}`
                 )
                 .setFooter({
                     text:
-                        "The Legacy • Imposteur"
+                        "Soul Society • Imposteur"
                 })
                 .setTimestamp()
         ],
@@ -2002,6 +2167,80 @@ async function startGame(
         });
     }
 
+    if (
+        lobby.players.length >
+        MAX_PLAYERS
+    ) {
+        return interaction.reply({
+            content:
+                `❌ Maximum **${MAX_PLAYERS} joueurs**.`,
+
+            flags:
+                MessageFlags.Ephemeral
+        });
+    }
+
+    // ==================================================
+    // VERROU TEMPORAIRE
+    // ==================================================
+
+    lobby.phase =
+        "starting";
+
+    updateLobby(
+        lobby
+    );
+
+    await interaction.deferUpdate();
+
+    // ==================================================
+    // PRE-FLIGHT MP
+    // ==================================================
+
+    const failedDMs =
+        await preflightDMs(
+            interaction,
+            lobby.players
+        );
+
+    if (
+        failedDMs.length >
+        0
+    ) {
+        lobby.phase =
+            "lobby";
+
+        updateLobby(
+            lobby
+        );
+
+        return interaction.followUp({
+            content:
+`❌ Impossible de démarrer la partie.
+
+Les MP de certains joueurs sont fermés :
+
+${failedDMs
+    .map(
+        id =>
+            `• <@${id}>`
+    )
+    .join("\n")}
+
+Ils doivent autoriser les messages privés du serveur avant de recommencer.
+
+-# Aucun mot secret ni rôle n'a été distribué.`,
+
+            flags:
+                MessageFlags.Ephemeral
+        });
+    }
+
+    // ==================================================
+    // MOT + IMPOSTEUR
+    // UNIQUEMENT APRÈS LE PRE-FLIGHT
+    // ==================================================
+
     const result =
         pickWord(
             lobby.category
@@ -2024,11 +2263,14 @@ async function startGame(
     lobby.startedAt =
         Date.now();
 
+    lobby.votes =
+        {};
+
     // ==================================================
-    // TEST DMs
+    // ENVOI DES RÔLES
     // ==================================================
 
-    const failedDMs =
+    const sendErrors =
         [];
 
     for (
@@ -2047,7 +2289,7 @@ async function startGame(
         if (
             !user
         ) {
-            failedDMs.push(
+            sendErrors.push(
                 playerId
             );
 
@@ -2057,6 +2299,7 @@ async function startGame(
         const embed =
             playerId ===
                 lobby.impostorId
+
                 ? new EmbedBuilder()
                     .setColor(
                         ERROR
@@ -2081,7 +2324,7 @@ Bonne chance.`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Imposteur"
+                            "Soul Society • Imposteur"
                     })
 
                 : new EmbedBuilder()
@@ -2104,7 +2347,7 @@ mais pas trop évidents, sinon l'Imposteur pourrait le comprendre.`
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Imposteur"
+                            "Soul Society • Imposteur"
                     });
 
         const sent =
@@ -2112,27 +2355,29 @@ mais pas trop évidents, sinon l'Imposteur pourrait le comprendre.`
                 embeds: [
                     embed
                 ]
-            }).then(
-                () => true
-            ).catch(
-                () => false
-            );
+            })
+                .then(
+                    () => true
+                )
+                .catch(
+                    () => false
+                );
 
         if (
             !sent
         ) {
-            failedDMs.push(
+            sendErrors.push(
                 playerId
             );
         }
     }
 
     // ==================================================
-    // DM FAILED
+    // ÉCHEC D'ENVOI APRÈS PRE-FLIGHT
     // ==================================================
 
     if (
-        failedDMs.length >
+        sendErrors.length >
         0
     ) {
         lobby.phase =
@@ -2147,24 +2392,29 @@ mais pas trop évidents, sinon l'Imposteur pourrait le comprendre.`
         lobby.selectedCategory =
             null;
 
+        lobby.startedAt =
+            null;
+
         updateLobby(
             lobby
         );
 
-        return interaction.reply({
+        return interaction.followUp({
             content:
-`❌ Impossible de démarrer la partie.
+`❌ Une erreur est survenue pendant l'envoi des rôles.
 
-Les MP de certains joueurs sont fermés :
+Joueur(s) concerné(s) :
 
-${failedDMs
+${sendErrors
     .map(
         id =>
             `• <@${id}>`
     )
     .join("\n")}
 
-Ils doivent autoriser les messages privés du serveur avant de recommencer.`,
+La partie a été annulée.
+
+⚠️ Il est possible que certains MP aient été envoyés juste avant l'erreur. Relance une nouvelle partie pour générer un nouveau mot.`,
 
             flags:
                 MessageFlags.Ephemeral
@@ -2175,7 +2425,11 @@ Ils doivent autoriser les messages privés du serveur avant de recommencer.`,
         lobby
     );
 
-    await interaction.update({
+    // ==================================================
+    // MESSAGE PUBLIC
+    // ==================================================
+
+    await interaction.editReply({
         content:
             "🕵️ **Les rôles viennent d'être envoyés en MP !**",
 
@@ -2197,6 +2451,7 @@ Ils doivent autoriser les messages privés du serveur avant de recommencer.`,
 // ======================================================
 
 module.exports = {
+
     data:
         new SlashCommandBuilder()
             .setName(
@@ -2309,6 +2564,9 @@ module.exports = {
             createdAt:
                 Date.now(),
 
+            updatedAt:
+                Date.now(),
+
             startedAt:
                 null,
 
@@ -2384,8 +2642,18 @@ module.exports = {
             if (
                 !lobby ||
                 lobby.phase !==
-                "lobby"
+                    "lobby"
             ) {
+                await interaction.reply({
+                    content:
+                        "❌ Ce lobby n'est plus disponible.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                }).catch(
+                    () => {}
+                );
+
                 return true;
             }
 
@@ -2397,6 +2665,21 @@ module.exports = {
                 await interaction.reply({
                     content:
                         "⚠️ Tu participes déjà à cette partie.",
+
+                    flags:
+                        MessageFlags.Ephemeral
+                });
+
+                return true;
+            }
+
+            if (
+                lobby.players.length >=
+                MAX_PLAYERS
+            ) {
+                await interaction.reply({
+                    content:
+                        `❌ La partie est complète (**${MAX_PLAYERS} joueurs maximum**).`,
 
                     flags:
                         MessageFlags.Ephemeral
@@ -2454,7 +2737,7 @@ module.exports = {
             if (
                 !lobby ||
                 lobby.phase !==
-                "lobby"
+                    "lobby"
             ) {
                 return true;
             }
@@ -2492,10 +2775,33 @@ module.exports = {
 
             lobby.players =
                 lobby.players.filter(
-                    id =>
-                        id !==
+                    userId =>
+                        userId !==
                         interaction.user.id
                 );
+
+            delete lobby.votes[
+                interaction.user.id
+            ];
+
+            for (
+                const [
+                    voterId,
+                    targetId
+                ]
+                of Object.entries(
+                    lobby.votes
+                )
+            ) {
+                if (
+                    targetId ===
+                    interaction.user.id
+                ) {
+                    delete lobby.votes[
+                        voterId
+                    ];
+                }
+            }
 
             updateLobby(
                 lobby
@@ -2542,7 +2848,7 @@ module.exports = {
             if (
                 !lobby ||
                 lobby.phase !==
-                "lobby"
+                    "lobby"
             ) {
                 return true;
             }
@@ -2656,7 +2962,7 @@ module.exports = {
             if (
                 !lobby ||
                 lobby.phase !==
-                "playing"
+                    "playing"
             ) {
                 return true;
             }
@@ -2694,7 +3000,8 @@ module.exports = {
                 ],
 
                 components:
-                    voteMenu(
+                    await voteMenu(
+                        interaction,
                         lobby
                     )
             });
@@ -2737,7 +3044,7 @@ module.exports = {
         if (
             !lobby ||
             lobby.phase !==
-            "voting"
+                "voting"
         ) {
             return true;
         }
@@ -2768,6 +3075,14 @@ module.exports = {
                 targetId
             )
         ) {
+            await interaction.reply({
+                content:
+                    "❌ Ce joueur ne participe plus à la partie.",
+
+                flags:
+                    MessageFlags.Ephemeral
+            });
+
             return true;
         }
 
@@ -2788,10 +3103,15 @@ module.exports = {
             ],
 
             components:
-                voteMenu(
+                await voteMenu(
+                    interaction,
                     lobby
                 )
         });
+
+        // ==================================================
+        // TOUS LES JOUEURS ONT VOTÉ
+        // ==================================================
 
         if (
             Object.keys(
@@ -2809,7 +3129,7 @@ module.exports = {
                     if (
                         !latest ||
                         latest.phase !==
-                        "voting"
+                            "voting"
                     ) {
                         return;
                     }
@@ -2840,6 +3160,101 @@ module.exports = {
 
     imposteurSystem: {
         WORD_BANK,
-        getLobby
+
+        getLobby,
+
+        register(
+            client
+        ) {
+            if (
+                client.__imposteurRegistered
+            ) {
+                return;
+            }
+
+            client.__imposteurRegistered =
+                true;
+
+            client.imposteur = {
+                WORD_BANK,
+                getLobby
+            };
+
+            // ==========================================
+            // NETTOYAGE DES VIEUX LOBBIES
+            // ==========================================
+
+            client.__imposteurCleanupInterval =
+                setInterval(
+                    () => {
+                        try {
+                            const data =
+                                loadData();
+
+                            const now =
+                                Date.now();
+
+                            let changed =
+                                false;
+
+                            for (
+                                const [
+                                    id,
+                                    lobby
+                                ]
+                                of Object.entries(
+                                    data.lobbies
+                                )
+                            ) {
+                                const reference =
+                                    lobby.updatedAt ||
+                                    lobby.finishedAt ||
+                                    lobby.startedAt ||
+                                    lobby.createdAt ||
+                                    0;
+
+                                if (
+                                    !reference
+                                ) {
+                                    continue;
+                                }
+
+                                if (
+                                    now -
+                                    reference >
+                                    LOBBY_MAX_AGE
+                                ) {
+                                    delete data.lobbies[
+                                        id
+                                    ];
+
+                                    changed =
+                                        true;
+                                }
+                            }
+
+                            if (
+                                changed
+                            ) {
+                                saveData(
+                                    data
+                                );
+                            }
+
+                        } catch (error) {
+                            console.error(
+                                "❌ Nettoyage Imposteur :",
+                                error
+                            );
+                        }
+
+                    },
+                    CLEANUP_INTERVAL
+                );
+
+            console.log(
+                "🕵️ Imposteur : ✅ actif"
+            );
+        }
     }
 };

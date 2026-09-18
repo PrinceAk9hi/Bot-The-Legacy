@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     EmbedBuilder,
@@ -24,7 +26,7 @@ const UNION_ROLE_ID =
     "1541599328756432947";
 
 const COLOR =
-    0x3B6475;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // HELPERS
@@ -79,7 +81,7 @@ function getResultText(
         return "💞 Très grosse compatibilité détectée !";
     }
 
-    return "💍 Âmes sœurs officiellement validées par The Legacy.";
+    return "💍 Âmes sœurs officiellement validées par Soul Society.";
 }
 
 // ======================================================
@@ -162,7 +164,7 @@ async function giveUnionRole(
         ) {
             await inviter.roles.add(
                 role,
-                "Union The Legacy"
+                "Union Soul Society"
             );
         }
 
@@ -173,7 +175,7 @@ async function giveUnionRole(
         ) {
             await target.roles.add(
                 role,
-                "Union The Legacy"
+                "Union Soul Society"
             );
         }
 
@@ -241,7 +243,7 @@ async function sendUnionInvitation({
                 "💌 Proposition d'Union"
             )
             .setDescription(
-`<@${inviter.id}> vient d'obtenir une compatibilité de **${percent}%** avec toi sur **The Legacy** !
+`<@${inviter.id}> vient d'obtenir une compatibilité de **${percent}%** avec toi sur **Soul Society** !
 
 Cette compatibilité permet de créer officiellement une **Union**.
 
@@ -257,7 +259,7 @@ Souhaites-tu accepter cette Union ?`
             )
             .setFooter({
                 text:
-                    "The Legacy • Union"
+                    "Soul Society • Union"
             })
             .setTimestamp();
 
@@ -313,7 +315,7 @@ module.exports = {
             if (target.bot) {
                 return interaction.editReply({
                     content:
-                        "😭 Même The Legacy ne peut pas calculer une relation avec un bot."
+                        "😭 Même Soul Society ne peut pas calculer une relation avec un bot."
                 });
             }
 
@@ -349,7 +351,7 @@ module.exports = {
                         COLOR
                     )
                     .setTitle(
-                        "💘 Compatibilité Legacy"
+                        "💘 Compatibilité Society"
                     )
                     .setDescription(
 `## <@${interaction.user.id}> × <@${target.id}>
@@ -368,7 +370,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "The Legacy • Compatibilité"
+                            "Soul Society • Compatibilité"
                     })
                     .setTimestamp();
 
@@ -532,7 +534,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setColor(
-                            0xED4245
+                            SOUL_COLORS.error
                         )
                         .setTitle(
                             "💔 Union refusée"
@@ -582,7 +584,7 @@ module.exports = {
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.error
                             )
                             .setTitle(
                                 "❌ Union impossible"
@@ -640,7 +642,7 @@ module.exports = {
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xED4245
+                                SOUL_COLORS.error
                             )
                             .setTitle(
                                 "❌ Union impossible"
@@ -698,13 +700,13 @@ module.exports = {
                     embeds: [
                         new EmbedBuilder()
                             .setColor(
-                                0xF1C40F
+                                SOUL_COLORS.secondary
                             )
                             .setTitle(
                                 "💍 Nouvelle Union"
                             )
                             .setDescription(
-`Une nouvelle Union vient officiellement d'être créée au sein de **The Legacy** !
+`Une nouvelle Union vient officiellement d'être créée au sein de **Soul Society** !
 
 > 💞 <@${inviterId}> est désormais lié à <@${targetId}>.
 
@@ -720,7 +722,7 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setColor(
-                            0x57F287
+                            SOUL_COLORS.success
                         )
                         .setTitle(
                             "💍 Union acceptée !"

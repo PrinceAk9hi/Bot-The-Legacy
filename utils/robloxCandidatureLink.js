@@ -72,9 +72,9 @@ function extractRobloxUsername(value) {
         return null;
     }
 
-    let username =
-        String(value)
-            .trim();
+    let username = String(value).trim();
+    const mention = username.match(/@([A-Za-z0-9_]{3,20})\b/);
+    if (mention) return mention[1];
 
     // Enlève un éventuel @
     username =
@@ -120,10 +120,9 @@ function getRobloxUsernameFromCandidature(
         };
     }
 
-    const rawUsername =
-        candidature
-            ?.answers
-            ?.question1;
+    const rawUsername = candidature.formVersion === 3
+        ? candidature.answers?.question8
+        : candidature.answers?.question1;
 
     if (!rawUsername) {
         return {

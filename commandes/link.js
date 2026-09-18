@@ -1,3 +1,8 @@
+const { syncSoulMember } = require("../utils/syncSoulMember");
+const { hasBypass } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     MessageFlags,
@@ -21,6 +26,8 @@ const {
 // ======================================================
 
 function hasLinkPermission(member) {
+    if (hasBypass(member)) return true;
+
     return RANK_ALLOWED_ROLES.some(
         roleId =>
             member.roles.cache.has(roleId)
@@ -40,7 +47,7 @@ function createLinkConfirmationEmbed({
     const embed =
         new EmbedBuilder()
             .setColor(
-                0x3B6475
+                SOUL_COLORS.primary
             )
             .setTitle(
                 existing
@@ -84,8 +91,8 @@ function createLinkConfirmationEmbed({
             .setFooter({
                 text:
                     selfChange
-                        ? "The Legacy • Modification du compte Roblox"
-                        : "The Legacy • Liaison Discord ↔ Roblox"
+                        ? "Soul Society • Modification du compte Roblox"
+                        : "Soul Society • Liaison Discord ↔ Roblox"
             })
             .setTimestamp();
 
@@ -146,6 +153,7 @@ async function performRobloxLink({
             source
         });
 
+    if (result.success) await syncSoulMember(member).catch(() => null);
     return {
         existing,
         result

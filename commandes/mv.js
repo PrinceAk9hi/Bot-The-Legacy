@@ -1,3 +1,5 @@
+const { hasAccessPermission } = require("../utils/security");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -35,10 +37,10 @@ module.exports = {
             // ==================================================
 
             if (
-                !interaction.member.permissions.has(
+                !hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.MoveMembers
                 ) &&
-                !interaction.member.permissions.has(
+                !hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 )
             ) {

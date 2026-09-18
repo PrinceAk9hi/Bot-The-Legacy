@@ -1,3 +1,6 @@
+const { assignMemberRoles } = require("./robloxMemberRoles");
+const { ROBLOX } = require("../config/soulSociety");
+
 const noblox = require("noblox.js");
 
 const {
@@ -12,7 +15,7 @@ const {
 const GROUP_ID =
     Number(
         process.env.ROBLOX_GROUP_ID ||
-        "194530241"
+        ROBLOX.groupId
     );
 
 let loggedIn = false;
@@ -36,6 +39,10 @@ function wait(ms) {
 // ======================================================
 
 async function ensureRobloxLogin() {
+    if (GROUP_ID !== ROBLOX.groupId) {
+        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour Soul Society.");
+    }
+
     if (loggedIn) {
         return true;
     }
@@ -78,47 +85,12 @@ async function ensureRobloxLogin() {
 // LOGIQUE RANK DISCORD → ROBLOX
 // ======================================================
 
-function getTargetRobloxRank({
-    discordRank,
-    hasManagement
-}) {
-    // Novice : pas dans la communauté
-    if (
-        discordRank ===
-        "novice"
-    ) {
-        return null;
-    }
-
-    // Confirmé
-    if (
-        discordRank ===
-        "confirme"
-    ) {
-        return hasManagement
-            ? 6
-            : 5;
-    }
-
-    // Expert
-    if (
-        discordRank ===
-        "expert"
-    ) {
-        return hasManagement
-            ? 7
-            : 8;
-    }
-
-    // Sénior : pas encore configuré
-    if (
-        discordRank ===
-        "senior"
-    ) {
-        return null;
-    }
-
-    return null;
+function getTargetRobloxRank({ discordRank, hasManagement }) {
+    const mapping = ROBLOX.rankMappings[discordRank];
+    const rank = typeof mapping === "number"
+        ? mapping
+        : (hasManagement ? mapping?.management : mapping?.member);
+    return Number.isInteger(rank) && rank >= 1 && rank <= 254 ? rank : null;
 }
 
 // ======================================================
@@ -422,6 +394,11 @@ async function setRobloxRank({
     rankNumber
 }) {
     try {
+        if (Number(rankNumber) === 6) {
+            const result = await assignMemberRoles(robloxUserId);
+            updateLastRobloxSync(discordUserId, { status: result.success ? "success" : "failed", rank: 6, error: result.error || null });
+            return result;
+        }
         await ensureRobloxLogin();
 
         if (!robloxUserId) {

@@ -1,3 +1,7 @@
+const { hasAccessPermission } = require("../utils/security");
+
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const fs = require("fs");
 const path = require("path");
 
@@ -13,10 +17,10 @@ const {
 // CONFIG
 // ======================================================
 
-const COLOR = 0x3B6475;
-const SUCCESS_COLOR = 0x57F287;
+const COLOR = SOUL_COLORS.primary;
+const SUCCESS_COLOR = SOUL_COLORS.success;
 const WARNING_COLOR = 0xFEE75C;
-const ERROR_COLOR = 0xED4245;
+const ERROR_COLOR = SOUL_COLORS.error;
 
 const MAX_DURATION_HOURS = 168; // 7 jours
 
@@ -527,7 +531,7 @@ ${hiddenCount
             )
             .setFooter({
                 text:
-                    `The Legacy • Surveillance • ${events.length} événement(s)`
+                    `Soul Society • Surveillance • ${events.length} événement(s)`
             })
             .setTimestamp();
 
@@ -1393,10 +1397,10 @@ module.exports = {
             // ==================================================
 
             const allowed =
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.Administrator
                 ) ||
-                interaction.member.permissions.has(
+                hasAccessPermission(interaction.member, 
                     PermissionFlagsBits.ManageGuild
                 );
 
@@ -1552,7 +1556,7 @@ module.exports = {
                             )
                             .setFooter({
                                 text:
-                                    "The Legacy • Surveillance"
+                                    "Soul Society • Surveillance"
                             })
                             .setTimestamp()
                     ]
@@ -1740,7 +1744,7 @@ module.exports = {
                             )
                             .setFooter({
                                 text:
-                                    `The Legacy • ${active.length} surveillance(s)`
+                                    `Soul Society • ${active.length} surveillance(s)`
                             })
                             .setTimestamp()
                     ]

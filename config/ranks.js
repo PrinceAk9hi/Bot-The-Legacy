@@ -1,30 +1,96 @@
+const { COLORS: SOUL_COLORS, CHANNELS } = require("./soulSociety");
+
 // ======================================================
 // GRADES PRINCIPAUX
 // ======================================================
 
 const MAIN_RANKS = {
     novice: {
-        name: "Novice (Test)",
-        roleId: "1531761113933414542",
-        robloxRank: null
+        name: "Membre Test",
+        roleId: "1468701337243090954",
+        robloxRank: null,
+        promotionMinimumDays: 14,
+        promotionIdealDays: 14
     },
 
     confirme: {
-        name: "Héritier Confirmé",
-        roleId: "1531761056744083648",
-        robloxRank: null
+        name: "Membre Aspirant",
+        roleId: "1468701415475118282",
+        robloxRank: null,
+        promotionMinimumDays: 75,
+        promotionIdealDays: 75
     },
 
     expert: {
-        name: "Héritier Expert",
-        roleId: "1531760794822508800",
-        robloxRank: null
+        name: "Membre avancé",
+        roleId: "1495439502637006949",
+        robloxRank: null,
+        promotionMinimumDays: 105,
+        promotionIdealDays: 150
     },
 
     senior: {
-        name: "Héritier Sénior",
-        roleId: "1531760661271543969",
-        robloxRank: null
+        name: "Membre Sénior",
+        roleId: "1495439710619963512",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    veteran: {
+        name: "Membre Vétéran",
+        roleId: "1495439941621121280",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    distingue: {
+        name: "Membre distingué",
+        roleId: "1540851347459412108",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    elite: {
+        name: "Membre d'Elite",
+        roleId: "1540851378447196231",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    prestigieux: {
+        name: "Membre Prestigieux",
+        roleId: "1540851419618218064",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    ambassadeur: {
+        name: "Membre ambassadeur",
+        roleId: "1540851401968721980",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    legendaire: {
+        name: "Membre Légendaire",
+        roleId: "1540851580243546263",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
+    },
+
+    referent: {
+        name: "Membre référent",
+        roleId: "1497669939882885182",
+        robloxRank: null,
+        promotionMinimumDays: null,
+        promotionIdealDays: null
     }
 };
 
@@ -33,99 +99,28 @@ const MAIN_RANKS = {
 // ======================================================
 
 const MANAGEMENT_ROLES = {
-    recrutement: {
-        gestion: {
-            name: "Gestion Recrutement",
-            roleId: "1458394180651843635"
-        },
-
-        responsable: {
-            name: "Responsable Recrutements",
-            roleId: "1532085431947100281"
+    "recrutement": {
+        "gestion": {
+            "name": "Gestion Recrutement",
+            "roleId": "1473356789453029376"
         }
     },
-
-    tickets: {
-        gestion: {
-            name: "Gestion Tickets",
-            roleId: "1495888679535644753"
-        },
-
-        responsable: {
-            name: "Responsable Tickets",
-            roleId: "1532085331656970400"
+    "animations": {
+        "gestion": {
+            "name": "Gestion Animation",
+            "roleId": "1477056805103206450"
         }
     },
-
-    rp: {
-        gestion: {
-            name: "Gestion RP",
-            roleId: "1490131448424956024"
-        },
-
-        responsable: {
-            name: "Responsable RP",
-            roleId: "1532085176656597265"
+    "rp": {
+        "gestion": {
+            "name": "Gestion Roleplay",
+            "roleId": "1505974229118750851"
         }
     },
-
-    sanctions: {
-        gestion: {
-            name: "Gestion Sanctions/Rankups",
-            roleId: "1516451475415367822"
-        },
-
-        responsable: {
-            name: "Responsable Sanctions",
-            roleId: "1531760308761133229"
-        }
-    },
-
-    design: {
-        gestion: {
-            name: "Gestion Design",
-            roleId: "1514336673540997341"
-        },
-
-        responsable: {
-            name: "Responsable Designs",
-            roleId: "1532085056472879135"
-        }
-    },
-
-    communication: {
-        gestion: {
-            name: "Gestion Communication",
-            roleId: "1490086893482672290"
-        },
-
-        responsable: {
-            name: "Responsable Communication",
-            roleId: "1532085057806925876"
-        }
-    },
-
-    recrutementsIG: {
-        gestion: {
-            name: "Gestion Recrutements IG",
-            roleId: "1464381489407066286"
-        },
-
-        responsable: {
-            name: "Responsable Recrutements IG",
-            roleId: "1532085573601460254"
-        }
-    },
-
-    animations: {
-        gestion: {
-            name: "Gestion Animations",
-            roleId: "1458394404568957052"
-        },
-
-        responsable: {
-            name: "Responsable Animations",
-            roleId: "1532084983748100237"
+    "tickets": {
+        "gestion": {
+            "name": "Gestion Ticket",
+            "roleId": "1471557970079912047"
         }
     }
 };
@@ -136,26 +131,26 @@ const MANAGEMENT_ROLES = {
 
 const RANK_CONFIG = {
     // Salon des logs /rank
-    logChannelId: "1459682952601407641",
+    logChannelId: CHANNELS.rankups,
 
     // Salon public pour rankups / nouvelles responsabilités
-    publicChannelId: "1531375423424823407",
+    publicChannelId: CHANNELS.rankups,
 
     // Les retraits ne sont pas annoncés publiquement
     publishRemovals: false,
 
     // Responsable => ajoute aussi la Gestion correspondante
-    responsibleIncludesManagement: true,
+    responsibleIncludesManagement: false,
 
     // Si on retire Responsable, on conserve la Gestion
     removeManagementWithResponsible: false,
 
     // Couleurs embeds
-    embedColor: 0x3B6475,
-    rankupColor: 0x57F287,
-    managementColor: 0x3B6475,
-    responsibleColor: 0xF1C40F,
-    removalColor: 0xED4245
+    embedColor: SOUL_COLORS.primary,
+    rankupColor: SOUL_COLORS.success,
+    managementColor: SOUL_COLORS.primary,
+    responsibleColor: SOUL_COLORS.secondary,
+    removalColor: SOUL_COLORS.sanction
 };
 
 // ======================================================
@@ -163,9 +158,12 @@ const RANK_CONFIG = {
 // ======================================================
 
 const RANK_ALLOWED_ROLES = [
-    "1458414705717805189", // Fondateur
-    "1467277541696868412", // Souverain
-    "1531760308761133229"  // Responsable Sanctions
+    "1473356789453029376",
+    "1469803353964810250",
+    "1522357970778718249",
+    "1471546243653304392",
+    "1504782476319526932",
+    "1527996778727870496"
 ];
 
 // ======================================================
@@ -213,18 +211,9 @@ function getAllManagementRoles() {
     );
 }
 
+// Compatibilité des anciens imports ; aucun niveau responsable actif.
 function getAllResponsibleRoles() {
-    return Object.entries(
-        MANAGEMENT_ROLES
-    ).map(
-        ([key, value]) => ({
-            key,
-            name:
-                value.responsable.name,
-            roleId:
-                value.responsable.roleId
-        })
-    );
+    return [];
 }
 
 function getManagementByKey(key) {
@@ -311,36 +300,8 @@ function getRoleConfigByCategory(
     // RESPONSABLE
     // ==============================================
 
-    if (
-        category ===
-        "responsable"
-    ) {
-        const management =
-            MANAGEMENT_ROLES[
-                roleKey
-            ];
-
-        if (!management) {
-            return null;
-        }
-
-        return {
-            key:
-                roleKey,
-
-            category:
-                "responsable",
-
-            name:
-                management
-                    .responsable
-                    .name,
-
-            roleId:
-                management
-                    .responsable
-                    .roleId
-        };
+    if (category === "responsable") {
+        return null; // Niveau retiré ; historiques conservés.
     }
 
     return null;
@@ -364,7 +325,7 @@ function getRoleConfigByCategory(
 // directement dans MAIN_RANKS :
 //
 // expert: {
-//     name: "Héritier Expert",
+//     name: "Membre avancé",
 //     roleId: "...",
 //     robloxRank: 150
 // }

@@ -1,3 +1,5 @@
+const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
+
 const {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -100,8 +102,8 @@ module.exports = {
             new EmbedBuilder()
                 .setColor(
                     currentBan
-                        ? 0xED4245
-                        : 0x3B6475
+                        ? SOUL_COLORS.sanction
+                        : SOUL_COLORS.primary
                 )
                 .setTitle(
                     "🔨 Informations du bannissement"
@@ -191,7 +193,7 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        "The Legacy • Historique des sanctions"
+                        "Soul Society • Historique des sanctions"
                 })
                 .setTimestamp();
 

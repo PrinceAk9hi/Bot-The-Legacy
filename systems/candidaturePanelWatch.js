@@ -9,7 +9,7 @@ const {
 } = require("../utils/candidaturePanel");
 
 // ======================================================
-// THE LEGACY — AUTO UPDATE CANDIDATURE PANEL
+// Soul Society — AUTO UPDATE CANDIDATURE PANEL
 // ======================================================
 
 module.exports =

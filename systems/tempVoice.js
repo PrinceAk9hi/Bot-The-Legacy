@@ -1,4 +1,4 @@
-const { IDENTITY } = require("../config/soulSociety");
+const { IDENTITY, EMOJIS: SOUL_EMOJIS } = require("../config/soulSociety");
 const { isProtectedUser } = require("../utils/security");
 
 const { hasBypass } = require("../utils/security");
@@ -49,32 +49,15 @@ const MANAGER_REQUEST_COOLDOWN =
 // ======================================================
 
 const EMOJIS = {
-    settings:
-        "<a:settings:1540428302848888862>",
-
-    owner:
-        "<:Propritaire:1540428007032758342>",
-
-    unlock:
-        "<:unlock:1540428055569371156>",
-
-    manager:
-        "<a:dmd_gerant:1540428204098195616>",
-
-    clock:
-        "<:clock:1540428249081847998>",
-
-    lock:
-        "<:Lock:1540427843786244187>",
-
-    activity:
-        "<a:Activity:1540427928200937482>",
-
-    people:
-        "<:People:1540427883770552381>",
-
-    arrow:
-        "<:fleche2:1538543191534338089>"
+    settings: "⚙️",
+    owner: SOUL_EMOJIS.direction,
+    unlock: "🔓",
+    manager: SOUL_EMOJIS.announcement,
+    clock: "🕒",
+    lock: "🔒",
+    activity: "🎮",
+    people: "👥",
+    arrow: "›"
 };
 
 // ======================================================

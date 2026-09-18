@@ -1427,6 +1427,8 @@ async function envoyerNouvelleRecrue(
                 .setDescription(
 `Félicitations à <@${membre.id}>, qui rejoint désormais **Soul Society** en tant que **Membre Test** !
 
+<a:speaker:1548785378276810844> **Première étape : tape /bienvenue dans le serveur et termine ton parcours d’accueil pour accéder à l’ensemble des fonctions de la famille !**
+
 **Ton aventure commence aujourd'hui.** Durant cette période d'observation, tu auras l'occasion de démontrer ton sérieux, ton implication et ta capacité à représenter les valeurs qui font la réputation de notre héritage.
 
 **Fais preuve de loyauté, de respect, de discrétion et de discipline.** Chaque action compte, et chaque étape te rapproche de ta place parmi les membres.

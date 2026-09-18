@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
-const { ROBLOX, COLORS } = require("../config/soulSociety");
+const { ROBLOX, COLORS, EMOJIS } = require("../config/soulSociety");
 const { acceptJoinRequest } = require("./robloxGroup");
 const pending = new Set();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -16,11 +16,11 @@ async function verify(interaction, userId) {
     const key = String(userId);
     if (pending.has(key)) return { success: false, message: "⏳ Une vérification est déjà en cours pour ce compte. Réessaie dans un instant." };
     pending.add(key);
-    const progress = text => interaction.editReply({ content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🔎 Communauté Soul Society").setDescription(text)], components: [] });
+    const progress = text => interaction.editReply({ content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🔎 Communauté Soul Society").setFooter({ text: "Soul Society • Vérification de ton adhésion" }).setDescription(text)], components: [] });
     try {
-        await progress("⏳ **Vérification de ton adhésion…**\nConsultation de la communauté Roblox.");
+        await progress(`${EMOJIS.loading} **Vérification de ton adhésion…**\nConsultation de la communauté Roblox.`);
         if (await membership(key)) return { success: true, alreadyMember: true };
-        await progress("⏳ **Recherche et acceptation de ta demande…**\nLe bot contacte la communauté Soul Society.");
+        await progress(`${EMOJIS.loading} **Recherche et acceptation de ta demande…**\nLe bot contacte la communauté Soul Society.`);
         const result = await acceptJoinRequest(key);
         if (!result.success) return {
             success: false,
@@ -29,7 +29,7 @@ async function verify(interaction, userId) {
                 : "❌ Roblox n’a pas permis d’accepter la demande. L’équipe doit vérifier la connexion Roblox du bot, le groupe configuré et ses droits d’acceptation."
         };
         for (let attempt = 0; attempt < 4; attempt++) {
-            await progress(`🔄 **Confirmation de ton adhésion${".".repeat(attempt % 3 + 1)}**\nVérification ${attempt + 1}/4 auprès de Roblox.`);
+            await progress(`${EMOJIS.loading} **Confirmation de ton adhésion${".".repeat(attempt % 3 + 1)}**\nVérification ${attempt + 1}/4 auprès de Roblox.`);
             if (await membership(key)) return { success: true, accepted: true };
             if (attempt < 3) await delay(1500);
         }

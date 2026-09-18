@@ -26,7 +26,8 @@ const EMOJIS = Object.freeze({
     warning: "⚠️",
     direction: "<:crown:1548785045047607416>",
     announcement: "<a:speaker:1548785378276810844>",
-    roblox: null,
+    roblox: "<:roblox:1550573304258236426>",
+    certification: "<:certification:1550573424080977930>",
     rankUp: "<:arrow_up:1548785968499261621>",
     rankDown: "<:arrow_down:1548786185189466132>",
     derank: "<a:PepeExit:1548786617685381234>"

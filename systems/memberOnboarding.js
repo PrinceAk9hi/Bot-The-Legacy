@@ -146,6 +146,7 @@ async function handle(interaction) {
                 }
                 await publishAvailability(interaction.client, actor);
                 patch(actor, { step: "done", completedAt: Date.now() });
+                clientFollowup(interaction.client);
                 return await interaction.editReply(stepPayload(profile(actor)));
             } finally { busy.delete(actor); }
         }
@@ -203,7 +204,11 @@ async function notifyRecruit(member) {
         } catch { console.warn("⚠️ MP de bienvenue indisponible ; lien accessible dans le parcours d’accueil."); }
     }
 }
+function clientFollowup(client) {
+    client.welcomeFollowup?.tick().catch(() => console.warn("⚠️ Log accueil en attente de reprise."));
+}
 function register(client) {
+    require("./welcomeFollowup")(client);
     client.on(Events.InteractionCreate, async interaction => {
         try {
             if (interaction.customId?.startsWith("profile_")) {

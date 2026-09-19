@@ -1074,7 +1074,7 @@ function buildGameEmbed(game) {
                 SOUL_COLORS.primary
             )
             .setTitle(
-                "🐺 Loup-Garou — Soul Society"
+                "🐺 Loup-Garou — La Soul Society"
             )
             .setDescription(
                 `**Phase :** ${phaseDisplay(game)}\n` +

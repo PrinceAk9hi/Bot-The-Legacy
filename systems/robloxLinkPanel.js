@@ -382,7 +382,7 @@ Tous les membres concernés ont déjà relié leur compte Roblox.
                         .setDescription(
 `Bonjour <@${member.id}>,
 
-Ton compte Discord n'est actuellement relié à **aucun compte Roblox** sur **Soul Society**.
+Ton compte Discord n'est actuellement relié à **aucun compte Roblox** sur **La Soul Society**.
 
 Merci de relier ton compte Roblox afin que tes informations et tes grades puissent être correctement synchronisés.
 
@@ -390,7 +390,7 @@ Clique sur le bouton ci-dessous pour accéder directement au salon prévu à cet
                         )
                         .setFooter({
                             text:
-                                "Soul Society • Roblox"
+                                "La Soul Society • Roblox"
                         })
                         .setTimestamp();
 

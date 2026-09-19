@@ -128,7 +128,7 @@ async function giveUnionRole(
         ) {
             await inviter.roles.add(
                 role,
-                "Union Soul Society"
+                "Union La Soul Society"
             );
         }
 
@@ -139,7 +139,7 @@ async function giveUnionRole(
         ) {
             await target.roles.add(
                 role,
-                "Union Soul Society"
+                "Union La Soul Society"
             );
         }
 
@@ -305,7 +305,7 @@ module.exports = {
                         "💌 Proposition d'Union"
                     )
                     .setDescription(
-`<@${interaction.user.id}> souhaite créer une **Union officielle** avec toi au sein de **Soul Society**.
+`<@${interaction.user.id}> souhaite créer une **Union officielle** avec toi au sein de la **Soul Society**.
 
 Il ne s'agit pas d'un tirage au sort ou d'un calcul de compatibilité : cette invitation t'a été envoyée directement par cette personne.
 
@@ -320,7 +320,7 @@ Souhaites-tu accepter ?`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Union"
+                            "La Soul Society • Union"
                     })
                     .setTimestamp();
 
@@ -640,7 +640,7 @@ Souhaites-tu accepter ?`
                             "💍 Nouvelle Union"
                         )
                         .setDescription(
-`Une nouvelle Union vient officiellement d'être créée au sein de **Soul Society** !
+`Une nouvelle Union vient officiellement d'être créée au sein de la **Soul Society** !
 
 > 🪽 <@${inviterId}> est désormais lié à <@${targetId}>.
 
@@ -650,7 +650,7 @@ Que cette nouvelle alliance écrive sa propre partie de l'héritage.`
                         )
                         .setFooter({
                             text:
-                                "Soul Society • Union"
+                                "La Soul Society • Union"
                         })
                         .setTimestamp();
 

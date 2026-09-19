@@ -1,5 +1,5 @@
 // ======================================================
-// LOUP-GAROU — Soul Society
+// LOUP-GAROU — La Soul Society
 // SYSTÈME VOCAL / NARRATION / AMBIANCES
 // ======================================================
 

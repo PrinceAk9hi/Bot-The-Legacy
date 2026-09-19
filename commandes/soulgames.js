@@ -670,7 +670,7 @@ ${game.description}`
             "🎮 Soul Games"
         )
         .setDescription(
-`Bienvenue dans le centre de jeux de **Soul Society**.
+`Bienvenue dans le centre de jeux de la **Soul Society**.
 
 ${voiceChannel
     ? `🔊 **Vocal lié :** <#${voiceChannel.id}>`
@@ -686,7 +686,7 @@ Choisis maintenant le jeu que tu souhaites lancer dans le menu ci-dessous.`
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         })
         .setTimestamp();
 }
@@ -1018,7 +1018,7 @@ ${status}`
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         });
 }
 
@@ -1172,7 +1172,7 @@ Clique sur le bouton pour proposer un nombre.`
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         });
 }
 
@@ -1306,7 +1306,7 @@ ${history ||
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         });
 }
 
@@ -1394,7 +1394,7 @@ ${session.finished
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         });
 }
 
@@ -1490,7 +1490,7 @@ ${scores ||
         )
         .setFooter({
             text:
-                "Soul Society • Soul Games"
+                "La Soul Society • Soul Games"
         });
 }
 
@@ -1681,8 +1681,8 @@ ${session.finished
         .setFooter({
             text:
                 session.finished
-                    ? "Soul Society • Partie terminée"
-                    : "Soul Society • Ne tarde pas..."
+                    ? "La Soul Society • Partie terminée"
+                    : "La Soul Society • Ne tarde pas..."
         });
 }
 
@@ -2289,7 +2289,7 @@ module.exports = {
                 "soulgames"
             )
             .setDescription(
-                "Ouvrir le centre de mini-jeux Soul Society"
+                "Ouvrir le centre de mini-jeux La Soul Society"
             ),
 
     async execute(

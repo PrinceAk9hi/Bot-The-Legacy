@@ -473,7 +473,7 @@ function buildLobbyEmbed(
                 : WARNING
         )
         .setTitle(
-            "🐺 Loup-Garou — Soul Society"
+            "🐺 Loup-Garou — La Soul Society"
         )
         .setDescription(
 `${testText}Une nouvelle partie de Loup-Garou se prépare.
@@ -531,8 +531,8 @@ ${warningText}`
         .setFooter({
             text:
                 game.config?.testMode
-                    ? "Soul Society • Loup-Garou • MODE TEST"
-                    : "Soul Society • Loup-Garou"
+                    ? "La Soul Society • Loup-Garou • MODE TEST"
+                    : "La Soul Society • Loup-Garou"
         })
         .setTimestamp();
 }
@@ -1098,7 +1098,7 @@ ${roleText.slice(
         )
         .setFooter({
             text:
-                "Soul Society • Loup-Garou"
+                "La Soul Society • Loup-Garou"
         });
 }
 
@@ -1837,7 +1837,7 @@ module.exports = {
                 "loupgarou"
             )
             .setDescription(
-                "Gérer une partie de Loup-Garou Soul Society"
+                "Gérer une partie de Loup-Garou La Soul Society"
             )
 
             .addSubcommand(

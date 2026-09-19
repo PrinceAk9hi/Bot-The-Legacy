@@ -1,5 +1,5 @@
 const { build: buildActivityAnalysis } = require("../utils/activityAnalysis");
-const { ROLES } = require("../config/soulSociety");
+const { ROLES, IDENTITY } = require("../config/soulSociety");
 const { MAIN_RANKS } = require("../config/ranks");
 
 const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
@@ -20,7 +20,7 @@ const {
 const COLOR = SOUL_COLORS.primary;
 
 // ======================================================
-// GRADES Soul Society
+// GRADES La Soul Society
 // ======================================================
 
 const rankEntries = Object.entries(MAIN_RANKS);
@@ -803,7 +803,7 @@ Une vérification manuelle de sa date de passage est recommandée avant tout ran
                 explanation:
 `Le membre a dépassé le **minimum de 3 mois et demi** et possède une forte activité.
 
-Le passage Sénior peut être envisagé, même si une ancienneté comprise autour de **5 à 6 mois reste idéale**.${hasManagement ? "\n\nLe membre est également impliqué dans la gestion de Soul Society." : ""}`,
+Le passage Sénior peut être envisagé, même si une ancienneté comprise autour de **5 à 6 mois reste idéale**.${hasManagement ? "\n\nLe membre est également impliqué dans la gestion de la Soul Society." : ""}`,
 
                 timeStatus:
                     "✅",
@@ -1091,6 +1091,8 @@ module.exports = {
                         "membre"
                     );
 
+            if (interaction.guildId !== IDENTITY.guildId) return interaction.editReply({content:"Utilise /analyse dans le serveur de la Soul Society."});
+            await interaction.guild.roles.fetch();
             const member = await interaction.guild.members.fetch({ user: user.id, force: true }).catch(() => null);
 
             if (
@@ -1120,13 +1122,13 @@ module.exports = {
                     member
                 );
 
-            if (
-                !currentGrade
-            ) {
-                return interaction.editReply({
-                    content:
-                        `⚠️ Aucun grade Test → Référent configuré n’a été reconnu pour <@${member.id}> sur ce serveur. ${member.roles.cache.has(ROLES.member) ? "Le rôle Membres de la Soul Society est bien présent, mais ce n’est pas un grade." : "Cela ne signifie pas que le membre ne possède aucun rôle Soul Society."}\nVérifie l’ID du grade porté et lance /analyse dans Soul Society.`
-                });
+            if (!currentGrade) {
+                const stats = getMemberStats(interaction.client, member.id);
+                const status = member.roles.cache.has(ROLES.interviewWaiting) ? "Attente entretien" : member.roles.cache.has(ROLES.member) ? "Membres de la Soul Society" : "Aucun grade membre configuré reconnu";
+                const summary = new EmbedBuilder().setColor(COLOR).setTitle("📊 Analyse • " + member.displayName)
+                    .setDescription(`<@${member.id}>\n**Statut :** ${status}\nUn rôle d’appartenance ou d’attente n’est pas un palier Test → Référent ; aucun passage automatique n’est évalué.`)
+                    .addFields({name:"Messages historiques",value:String(stats?.messages || 0)}, {name:"Vocal historique",value:formatSeconds(stats?.voiceSeconds || 0)}, {name:"Gestions",value:getMemberManagements(member).map(r=>r.name).join(", ") || "Aucune"});
+                return interaction.editReply({embeds:[summary, await buildActivityAnalysis(interaction.client, member)]});
             }
 
             // ==================================================
@@ -1349,7 +1351,7 @@ module.exports = {
                     )
 
                     .setDescription(
-`> Analyse automatique basée sur les statistiques Discord et l'historique de grades de **Soul Society**.
+`> Analyse automatique basée sur les statistiques Discord et l'historique de grades de la **Soul Society**.
 
 ### 👑 Situation
 
@@ -1390,12 +1392,12 @@ ${seniorNote}
 
 ${evaluation.explanation}
 
--# Cette analyse reste indicative : une décision de rankup reste à la discrétion de la gestion de Soul Society.`
+-# Cette analyse reste indicative : une décision de rankup reste à la discrétion de la gestion de la Soul Society.`
                     )
 
                     .setFooter({
                         text:
-                            `Soul Society • Analyse automatique • Demandée par ${interaction.user.username}`
+                            `La Soul Society • Analyse automatique • Demandée par ${interaction.user.username}`
                     })
 
                     .setTimestamp();

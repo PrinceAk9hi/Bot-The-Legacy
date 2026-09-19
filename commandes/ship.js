@@ -81,7 +81,7 @@ function getResultText(
         return "💞 Très grosse compatibilité détectée !";
     }
 
-    return "💍 Âmes sœurs officiellement validées par Soul Society.";
+    return "💍 Âmes sœurs officiellement validées par La Soul Society.";
 }
 
 // ======================================================
@@ -164,7 +164,7 @@ async function giveUnionRole(
         ) {
             await inviter.roles.add(
                 role,
-                "Union Soul Society"
+                "Union La Soul Society"
             );
         }
 
@@ -175,7 +175,7 @@ async function giveUnionRole(
         ) {
             await target.roles.add(
                 role,
-                "Union Soul Society"
+                "Union La Soul Society"
             );
         }
 
@@ -243,7 +243,7 @@ async function sendUnionInvitation({
                 "💌 Proposition d'Union"
             )
             .setDescription(
-`<@${inviter.id}> vient d'obtenir une compatibilité de **${percent}%** avec toi sur **Soul Society** !
+`<@${inviter.id}> vient d'obtenir une compatibilité de **${percent}%** avec toi sur **La Soul Society** !
 
 Cette compatibilité permet de créer officiellement une **Union**.
 
@@ -259,7 +259,7 @@ Souhaites-tu accepter cette Union ?`
             )
             .setFooter({
                 text:
-                    "Soul Society • Union"
+                    "La Soul Society • Union"
             })
             .setTimestamp();
 
@@ -315,7 +315,7 @@ module.exports = {
             if (target.bot) {
                 return interaction.editReply({
                     content:
-                        "😭 Même Soul Society ne peut pas calculer une relation avec un bot."
+                        "😭 Même La Soul Society ne peut pas calculer une relation avec un bot."
                 });
             }
 
@@ -370,7 +370,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Compatibilité"
+                            "La Soul Society • Compatibilité"
                     })
                     .setTimestamp();
 
@@ -706,7 +706,7 @@ module.exports = {
                                 "💍 Nouvelle Union"
                             )
                             .setDescription(
-`Une nouvelle Union vient officiellement d'être créée au sein de **Soul Society** !
+`Une nouvelle Union vient officiellement d'être créée au sein de la **Soul Society** !
 
 > 💞 <@${inviterId}> est désormais lié à <@${targetId}>.
 

@@ -531,7 +531,7 @@ ${hiddenCount
             )
             .setFooter({
                 text:
-                    `Soul Society • Surveillance • ${events.length} événement(s)`
+                    `La Soul Society • Surveillance • ${events.length} événement(s)`
             })
             .setTimestamp();
 
@@ -1556,7 +1556,7 @@ module.exports = {
                             )
                             .setFooter({
                                 text:
-                                    "Soul Society • Surveillance"
+                                    "La Soul Society • Surveillance"
                             })
                             .setTimestamp()
                     ]
@@ -1744,7 +1744,7 @@ module.exports = {
                             )
                             .setFooter({
                                 text:
-                                    `Soul Society • ${active.length} surveillance(s)`
+                                    `La Soul Society • ${active.length} surveillance(s)`
                             })
                             .setTimestamp()
                     ]

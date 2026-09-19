@@ -12,7 +12,7 @@ const {
 } = require("discord.js");
 
 // ======================================================
-// Soul Society — PANEL CANDIDATURE
+// La Soul Society — PANEL CANDIDATURE
 // ======================================================
 
 const PANEL_CHANNEL_ID =
@@ -209,10 +209,10 @@ function createMainEmbed(
                 : CLOSED_COLOR
         )
         .setTitle(
-            "Rejoindre Soul Society <:Soul_Society:1548783936010977380>"
+            "rejoindre la Soul Society <:Soul_Society:1548783936010977380>"
         )
         .setDescription(
-`Soul Society évolue dans une palette de **roses pâles et vifs**. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
+`La Soul Society évolue dans une palette de **roses pâles et vifs**. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
 
 **Période de test**
 
@@ -229,7 +229,7 @@ function createMainEmbed(
 - Whitelist non obligatoire ; casier RP vierge non obligatoire.
 - Faire preuve d'une activité soutenue sur Discord comme en jeu.
 
-> *En rejoignant Soul Society, vous reconnaissez avoir pris connaissance de l'ensemble des conditions énoncées ci-dessus. Vous vous engagez également à respecter nos valeurs, à faire preuve de patience durant le traitement de votre candidature et à accepter que chaque décision soit prise dans l'intérêt de l'héritage que nous préservons.*`
+> *En rejoignant La Soul Society, vous reconnaissez avoir pris connaissance de l'ensemble des conditions énoncées ci-dessus. Vous vous engagez également à respecter nos valeurs, à faire preuve de patience durant le traitement de votre candidature et à accepter que chaque décision soit prise dans l'intérêt de l'héritage que nous préservons.*`
         );
 }
 
@@ -266,7 +266,7 @@ function createStatusEmbed(
                 OPEN_COLOR
             )
             .setDescription(
-`### <:Soul_Society:1548783936010977380> Effectif Soul Society
+`### <:Soul_Society:1548783936010977380> Effectif La Soul Society
 
 > **Membres : ${countText}**`
             );
@@ -309,7 +309,7 @@ function createJoinRow(guild) {
                     "soul_join"
                 )
                 .setLabel(
-                    "Rejoindre Soul Society"
+                    "rejoindre la Soul Society"
                 )
                 .setEmoji(emoji)
                 .setStyle(

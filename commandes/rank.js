@@ -353,9 +353,9 @@ async function sendPublicMessage({
                 : `> **Nouveau grade :** ${newRank}`;
 
         content =
-`## <:arrow_up:1548785968499261621> Évolution au sein de Soul Society
+`## <:arrow_up:1548785968499261621> Évolution au sein de la Soul Society
 
-Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de **Soul Society** !
+Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de la **Soul Society** !
 
 ${evolution}
 
@@ -379,7 +379,7 @@ Continue ainsi, l'héritage se construit étape par étape. 🪽${note ? `
         content =
 `## ⚙️ Nouvelle responsabilité
 
-Félicitations à <@${member.id}> qui rejoint désormais une nouvelle gestion au sein de **Soul Society** !
+Félicitations à <@${member.id}> qui rejoint désormais une nouvelle gestion au sein de la **Soul Society** !
 
 > **${roleName}**
 
@@ -407,7 +407,7 @@ Félicitations à <@${member.id}> qui devient désormais :
 
 > **${roleName}**
 
-Cette évolution marque une nouvelle étape au sein de **Soul Society** et représente la confiance qui t'est accordée pour encadrer et faire évoluer ta gestion.
+Cette évolution marque une nouvelle étape au sein de la **Soul Society** et représente la confiance qui t'est accordée pour encadrer et faire évoluer ta gestion.
 
 Félicitations pour cette nouvelle responsabilité. 🪽${note ? `
 

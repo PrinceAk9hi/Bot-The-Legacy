@@ -459,7 +459,7 @@ function buildSuccessEmbed({
         )
         .setFooter({
             text:
-                `Soul Society • Rollback par ${interaction.user.username}`
+                `La Soul Society • Rollback par ${interaction.user.username}`
         })
         .setTimestamp();
 }
@@ -2067,7 +2067,7 @@ Aucune action n'a été marquée comme restaurée.`
                         )
                         .setFooter({
                             text:
-                                "Soul Society • Rollback"
+                                "La Soul Society • Rollback"
                         })
                         .setTimestamp()
                 ]

@@ -25,7 +25,7 @@ module.exports = {
                 "candidature"
             )
             .setDescription(
-                "Gérer les candidatures Soul Society"
+                "Gérer les candidatures La Soul Society"
             )
 
             // ==================================================
@@ -200,14 +200,14 @@ module.exports = {
                         "✅ Candidatures ouvertes"
                     )
                     .setDescription(
-`Les candidatures de **Soul Society** sont désormais ouvertes.
+`Les candidatures de la **Soul Society** sont désormais ouvertes.
 
 > 👥 **Membres : ${counter}**
-> 🔘 Le bouton **Rejoindre Soul Society** est disponible.`
+> 🔘 Le bouton **rejoindre la Soul Society** est disponible.`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Recrutements"
+                            "La Soul Society • Recrutements"
                     })
                     .setTimestamp();
 
@@ -282,11 +282,11 @@ module.exports = {
 
 > **Ouverture des recrutements :** ${reopening}
 
-Le bouton **Rejoindre Soul Society** a été retiré.`
+Le bouton **rejoindre la Soul Society** a été retiré.`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Recrutements"
+                            "La Soul Society • Recrutements"
                     })
                     .setTimestamp();
 

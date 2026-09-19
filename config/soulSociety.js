@@ -1,4 +1,4 @@
-// Configuration fournie pour la migration progressive vers Soul Society.
+// Configuration fournie pour la migration progressive vers La Soul Society.
 // Les rôles du catalogue ne donnent aucun accès à eux seuls.
 // Conserver les règles métier existantes jusqu'à confirmation de leurs équivalences.
 
@@ -6,7 +6,7 @@ const IDENTITY = Object.freeze({
     guildId: "1080943923691782154",
     guildName: "𝖲oulSociety🏯🌸",
     botName: "Seireitei Gestion",
-    embedName: "Soul Society"
+    embedName: "La Soul Society"
 });
 
 const COLORS = Object.freeze({
@@ -66,7 +66,7 @@ const SECURITY = Object.freeze({
     bypassRoleIds: Object.freeze([
         "1469803353964810250", // all perm
         "1522357970778718249", // 😗
-        "1497660642436448266", // Soul Society🌸🏯
+        "1497660642436448266", // La Soul Society🌸🏯
         "1471546243653304392", // Fondateur Suprême malach
         "1504782476319526932"  // Fondateur Suprême Mr Larbi
     ]),
@@ -90,7 +90,8 @@ const CHANNELS = Object.freeze({
     rankups: "1540832394217529447",
     sanctions: "1478798666470002929",
     logs: "1506723822840315957",
-    commandLogs: "1468699162890600697",
+    commandLogs: "1550814768586301510",
+    rankLogs: "1550814768586301510",
     ticketLogs: "1471556441218224209",
     recruitmentLogs: "1468699236475474032",
     candidatures: "1468699202027655179",

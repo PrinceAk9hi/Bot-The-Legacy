@@ -20,7 +20,7 @@ module.exports = {
                 "bl"
             )
             .setDescription(
-                "Ajouter un utilisateur à la blacklist Soul Society"
+                "Ajouter un utilisateur à la blacklist La Soul Society"
             )
             .addUserOption(option =>
                 option

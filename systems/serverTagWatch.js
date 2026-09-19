@@ -3,7 +3,7 @@ const { isProtectedUser } = require("../utils/security");
 const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
 
 // ======================================================
-// Soul Society — SURVEILLANCE DU TAG SERVEUR
+// La Soul Society — SURVEILLANCE DU TAG SERVEUR
 // ======================================================
 
 const fs = require("fs");
@@ -529,7 +529,7 @@ async function sendFirstWarning(
                 "⚠️ Tag de famille manquant"
             )
             .setDescription(
-`<@${member.id}>, ton **tag de famille Soul Society** n'est actuellement plus affiché sur ton profil Discord.
+`<@${member.id}>, ton **tag de famille de la Soul Society** n'est actuellement plus affiché sur ton profil Discord.
 
 Remets ton tag avant la fin du délai de trois jours suivant sa disparition.
 
@@ -548,7 +548,7 @@ Dès que ton tag est remis, le compteur est automatiquement annulé.`
             )
             .setFooter({
                 text:
-                    "Soul Society • Tag de famille"
+                    "La Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -619,7 +619,7 @@ async function sendHalfWarning(
                 "⏳ Deuxième rappel : tag manquant"
             )
             .setDescription(
-`<@${member.id}>, ton **tag de famille Soul Society** n'est toujours pas présent.
+`<@${member.id}>, ton **tag de famille de la Soul Society** n'est toujours pas présent.
 
 Remets ton tag avant la fin du délai ci-dessous.
 
@@ -634,7 +634,7 @@ Remets ton tag avant la fin du délai ci-dessous.
             )
             .setFooter({
                 text:
-                    "Soul Society • Tag de famille"
+                    "La Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -701,7 +701,7 @@ async function sendTagRestoredMessage(
                 "✅ Tag de famille rétabli"
             )
             .setDescription(
-`<@${member.id}> a remis son **tag de famille Soul Society** avant la fin du délai.
+`<@${member.id}> a remis son **tag de famille de la Soul Society** avant la fin du délai.
 
 > ✅ L'avertissement est annulé.
 > ⏳ Le compteur de 24 heures est supprimé.
@@ -715,7 +715,7 @@ async function sendTagRestoredMessage(
             )
             .setFooter({
                 text:
-                    "Soul Society • Tag de famille"
+                    "La Soul Society • Tag de famille"
             })
             .setTimestamp();
 
@@ -804,7 +804,7 @@ async function sanctionMember(
 > **Raison :** Tag de famille absent après le délai de 72 heures.
 > **Rôle attribué :** <@&${SANCTION_ROLE_ID}>
 
--# Sanction appliquée automatiquement par Soul Society.`,
+-# Sanction appliquée automatiquement par La Soul Society.`,
 
         allowedMentions: {
             users: [
@@ -863,7 +863,7 @@ async function handleMember(
         await addRole(
             member,
             TAG_ROLE_ID,
-            "Tag serveur Soul Society détecté"
+            "Tag serveur de la Soul Society détecté"
         );
 
         const hadWarning =
@@ -910,7 +910,7 @@ async function handleMember(
     await removeRole(
         member,
         TAG_ROLE_ID,
-        "Tag serveur Soul Society absent"
+        "Tag serveur de la Soul Society absent"
     );
 
     // ==================================================

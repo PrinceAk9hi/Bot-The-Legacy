@@ -6,7 +6,7 @@ function payload() {
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [] },
         embeds: [new EmbedBuilder().setColor(COLORS.primary)
-            .setTitle("📋 Guide de l’entretien • Soul Society")
+            .setTitle("📋 Guide de l’entretien • La Soul Society")
             .setDescription(`**① PRÉSENTATION / ENTRETIEN**
 1. Présente-toi rapidement.
 2. Pourquoi cette famille plutôt qu’une autre ?
@@ -46,7 +46,7 @@ Coche tous les emojis du salon d’auto-rôles pour recevoir toutes les notifica
 
 ■ **Tag du serveur**
 Le tag du serveur est **obligatoire** : il doit rester activé en permanence.`)
-            .setFooter({ text: "Soul Society • Questions et règles à présenter au candidat" })]
+            .setFooter({ text: "La Soul Society • Questions et règles à présenter au candidat" })]
     };
 }
 module.exports = { payload, QUESTION_BUTTON_ID };

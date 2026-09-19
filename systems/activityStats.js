@@ -1805,7 +1805,7 @@ function buildRankingEmbed(
                 )
                 .setFooter({
                     text:
-                        "Soul Society • Classements"
+                        "La Soul Society • Classements"
                 })
                 .setTimestamp(),
 
@@ -1944,7 +1944,7 @@ function buildMainEmbed(
             SOUL_COLORS.primary
         )
         .setTitle(
-            "📊・Statistiques Soul Society"
+            "📊・Statistiques La Soul Society"
         )
         .setDescription(
             [
@@ -1969,7 +1969,7 @@ function buildMainEmbed(
         )
         .setFooter({
             text:
-                "Soul Society • Activité Discord"
+                "La Soul Society • Activité Discord"
         })
         .setTimestamp();
 }
@@ -2153,7 +2153,7 @@ function buildPersonalEmbed(
         )
         .setFooter({
             text:
-                "Soul Society • Profil d'activité"
+                "La Soul Society • Profil d'activité"
         })
         .setTimestamp();
 }

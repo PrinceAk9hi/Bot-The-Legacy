@@ -65,7 +65,7 @@ const EXTRA_DERANK_ROLES = [
             "extra",
 
         name:
-            "Accès Society",
+            "Accès à la Soul Society",
 
         roleId:
             "1513698444588482650"
@@ -115,7 +115,7 @@ function getAllDerankRoles() {
     // GRADES
     // ==================================================
 
-    // Les grades sont conservés selon la configuration Soul Society.
+    // Les grades sont conservés selon la configuration La Soul Society.
 
     // ==================================================
     // GESTION + RESPONSABLE
@@ -266,7 +266,7 @@ async function sendDerankAnnouncement(
     const content =
 `**Mise à jour des effectifs <a:PepeExit:1548786617685381234>**
 
-Nous vous informons que <@${member.id}> **ne fait désormais plus partie de Soul Society**.
+Nous vous informons que <@${member.id}> **ne fait désormais plus partie de la Soul Society**.
 
 **Conformément à nos principes de discrétion et de respect de la confidentialité**, **les raisons de ce départ ne seront pas rendues publiques**. **Nous demandons à chacun de respecter cette décision et de ne pas alimenter de spéculations ou de débats à ce sujet**.
 

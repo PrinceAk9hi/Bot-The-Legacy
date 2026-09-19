@@ -17,7 +17,7 @@ function migrateKeys(value) {
         const next = key.replace(/Legacy/g, "Soul").replace(/legacy/g, "soul");
         const migrated = migrateKeys(child);
         if (Object.hasOwn(result, next) && JSON.stringify(result[next]) !== JSON.stringify(migrated)) {
-            throw new Error("Collision de champs pendant la migration Soul Society : " + next);
+            throw new Error("Collision de champs pendant la migration La Soul Society : " + next);
         }
         Object.defineProperty(result, next, { value: migrated, enumerable: true, writable: true, configurable: true });
     }

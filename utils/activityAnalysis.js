@@ -9,7 +9,7 @@ async function robloxRoles(id) {
         if(!response.ok)return 'Roblox indisponible : rôles non vérifiés.';
         const data=await response.json();if(!Array.isArray(data.data))return 'Réponse Roblox non exploitable.';
         const entry=data.data.find(e=>String(e.group?.id)===String(ROBLOX.groupId));
-        if(!entry)return 'Ce compte ne figure pas dans la communauté Soul Society.';
+        if(!entry)return 'Ce compte ne figure pas dans la communauté de la Soul Society.';
         if(Array.isArray(entry.roles) && entry.roles.length)return entry.roles.map(r=>escapeMarkdown(r.name||String(r.id))).join(', ').slice(0,900);
         return entry.role?.name ? `${escapeMarkdown(entry.role.name)} (rôle principal retourné par Roblox ; autres rôles non vérifiés)` : 'Rôles non fournis par Roblox.';
     }catch{return 'Roblox indisponible : rôles non vérifiés.';}

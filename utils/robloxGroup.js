@@ -40,7 +40,7 @@ function wait(ms) {
 
 async function ensureRobloxLogin() {
     if (GROUP_ID !== ROBLOX.groupId) {
-        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour Soul Society.");
+        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour La Soul Society.");
     }
 
     if (loggedIn) {

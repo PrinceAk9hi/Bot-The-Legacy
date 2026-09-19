@@ -175,7 +175,7 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        "Soul Society • Blacklist"
+                        "La Soul Society • Blacklist"
                 })
                 .setTimestamp();
 

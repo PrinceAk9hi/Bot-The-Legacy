@@ -1515,7 +1515,7 @@ function buildLobbyEmbed(
             COLOR
         )
         .setTitle(
-            "🕵️ Imposteur — Soul Society"
+            "🕵️ Imposteur — La Soul Society"
         )
         .setDescription(
 `### 🎲 Catégorie
@@ -1537,7 +1537,7 @@ L'Imposteur devra se fondre dans la discussion sans connaître le mot.`
         )
         .setFooter({
             text:
-                "Soul Society • Imposteur"
+                "La Soul Society • Imposteur"
         })
         .setTimestamp();
 }
@@ -1672,7 +1672,7 @@ Quand vous êtes prêts, l'hôte peut lancer le vote.`
         )
         .setFooter({
             text:
-                "Soul Society • Imposteur"
+                "La Soul Society • Imposteur"
         })
         .setTimestamp();
 }
@@ -1800,7 +1800,7 @@ ${ranking}
         )
         .setFooter({
             text:
-                "Soul Society • Imposteur"
+                "La Soul Society • Imposteur"
         })
         .setTimestamp();
 }
@@ -1918,7 +1918,7 @@ La partie peut donc démarrer correctement.
                         )
                         .setFooter({
                             text:
-                                "Soul Society • Imposteur"
+                                "La Soul Society • Imposteur"
                         })
                 ]
             })
@@ -2132,7 +2132,7 @@ ${voteResults}`
                 )
                 .setFooter({
                     text:
-                        "Soul Society • Imposteur"
+                        "La Soul Society • Imposteur"
                 })
                 .setTimestamp()
         ],
@@ -2324,7 +2324,7 @@ Bonne chance.`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Imposteur"
+                            "La Soul Society • Imposteur"
                     })
 
                 : new EmbedBuilder()
@@ -2347,7 +2347,7 @@ mais pas trop évidents, sinon l'Imposteur pourrait le comprendre.`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Imposteur"
+                            "La Soul Society • Imposteur"
                     });
 
         const sent =

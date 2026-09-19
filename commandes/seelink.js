@@ -231,7 +231,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Liaison Roblox"
+                            "La Soul Society • Liaison Roblox"
                     })
                     .setTimestamp();
 

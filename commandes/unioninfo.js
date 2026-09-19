@@ -307,7 +307,7 @@ module.exports = {
         embed
             .setFooter({
                 text:
-                    `Soul Society • ${history.length} Union(s) enregistrée(s)`
+                    `La Soul Society • ${history.length} Union(s) enregistrée(s)`
             })
             .setTimestamp();
 

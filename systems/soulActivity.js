@@ -20,12 +20,12 @@ function register(client) {
         const now = Date.now(), from = PERIODS[period][1] ? now - PERIODS[period][1] * 86400000 : 0;
         const rows = [...members.values()].filter(eligible).map(m => ({ id: m.id, ...ledger.totals(m.id, from, now) })).sort((a,b) => b.voiceMs-a.voiceMs || b.messages-a.messages || a.id.localeCompare(b.id));
         const pages = Math.max(1, Math.ceil(rows.length / 10)); page = Math.max(0, Math.min(page, pages-1));
-        const embed = new EmbedBuilder().setColor(COLORS.primary).setTitle('📊 Activité des membres • Soul Society')
+        const embed = new EmbedBuilder().setColor(COLORS.primary).setTitle('📊 Activité des membres • La Soul Society')
             .setDescription(`**${PERIODS[period][0]}** • Classement par temps vocal, puis messages.\nSuivi daté depuis <t:${Math.floor(ledger.data.since/1000)}:f>. ${from && from < ledger.data.since ? '**Période partielle.** ' : ''}Les anciens totaux sans dates restent dans /analyse.\nTous les messages humains sont comptés ; vocal connecté, y compris en sourdine. Le temps hors ligne du bot n’est pas compté.${complete ? '' : '\n⚠️ Liste des membres en cours de chargement ou incomplète.'}`)
             .setFooter({text:`Page ${page+1}/${pages} • ${rows.length} membres • Choisis une période pour ta vue privée`}).setTimestamp();
         for (const [index, r] of (target ? rows.filter(r => r.id === target) : rows.slice(page*10,page*10+10)).entries()) embed.addFields({name:`#${target ? rows.findIndex(item => item.id === r.id)+1 : page*10+index+1}`,value:`<@${r.id}> — 💬 **${r.messages.toLocaleString('fr-FR')}** messages\n🎙️ **${duration(r.voiceMs)}**`});
-        if (target) embed.setTitle('👤 Activité du membre • Soul Society');
-        if (target && !rows.some(r => r.id === target)) embed.addFields({name:'Membre',value:'Ce compte ne fait pas partie des membres Soul Society connus du bot.'});
+        if (target) embed.setTitle('👤 Activité du membre • La Soul Society');
+        if (target && !rows.some(r => r.id === target)) embed.addFields({name:'Membre',value:'Ce compte ne fait pas partie des membres de la Soul Society connus du bot.'});
         if (!rows.length && !target) embed.addFields({name:'Membres',value:'Aucun membre disponible pour le moment.'});
         const components = [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(target ? `${KEY}:${target}` : KEY).setPlaceholder('Choisir une période').addOptions(Object.entries(PERIODS).map(([value,[label]])=>({label,value,default:value===period}))))];
         components.push(new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId(`soulactivity_member:${period}`).setPlaceholder('Rechercher un membre précis').setMinValues(1).setMaxValues(1)));

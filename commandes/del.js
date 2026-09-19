@@ -605,7 +605,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            `Soul Society • Action ${historyEntry.id}`
+                            `La Soul Society • Action ${historyEntry.id}`
                     })
                     .setTimestamp();
 
@@ -655,7 +655,7 @@ module.exports = {
 
             try {
                 await channel.delete(
-                    `Soul Society • /del par ${interaction.user.tag} • ${reason}`
+                    `La Soul Society • /del par ${interaction.user.tag} • ${reason}`
                 );
 
             } catch (deleteError) {
@@ -709,7 +709,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "Soul Society • /del"
+                            "La Soul Society • /del"
                     })
                     .setTimestamp();
 

@@ -73,7 +73,7 @@ let robloxAuthenticated =
 
 async function ensureRobloxAuthenticated() {
     if (Number(process.env.ROBLOX_GROUP_ID || ROBLOX.groupId) !== ROBLOX.groupId) {
-        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour Soul Society.");
+        throw new Error("ROBLOX_GROUP_ID doit être 925445053 pour La Soul Society.");
     }
 
     if (
@@ -451,9 +451,9 @@ async function sendPublicMessage({
             );
 
     const content =
-`## <:arrow_up:1548785968499261621> Rankup multiple — Soul Society
+`## <:arrow_up:1548785968499261621> Rankup multiple — La Soul Society
 
-Une nouvelle vague d'évolution vient d'avoir lieu au sein de **Soul Society** !
+Une nouvelle vague d'évolution vient d'avoir lieu au sein de la **Soul Society** !
 
 ### Nouveau grade
 > **${rank.name}**

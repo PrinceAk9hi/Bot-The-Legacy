@@ -700,7 +700,7 @@ function buildStatusEmbed(
             );
 
     let footerText =
-        "Soul Society • État des services";
+        "La Soul Society • État des services";
 
     if (
         activeIssues.length
@@ -716,7 +716,7 @@ function buildStatusEmbed(
 
         .setAuthor({
             name:
-                "Soul Society • STATUT DES SERVICES",
+                "La Soul Society • STATUT DES SERVICES",
 
             iconURL:
                 guild
@@ -733,7 +733,7 @@ function buildStatusEmbed(
 
         .setDescription(
             [
-                "> Suivi en temps réel de l'état des différents systèmes de **Soul Society**.",
+                "> Suivi en temps réel de l'état des différents systèmes de la **Soul Society**.",
                 "",
                 serviceBlocks.join(
                     "\n\n"
@@ -1082,7 +1082,7 @@ ${result.since
     )}:R>`
     : ""}
 
--# Soul Society • Merci de patienter.`
+-# La Soul Society • Merci de patienter.`
         )
         .setTimestamp();
 }
@@ -1111,7 +1111,7 @@ function updateBotPresence(
             activities: [
                 {
                     name:
-                        "🛠️ Maintenance Soul Society",
+                        "🛠️ Maintenance La Soul Society",
 
                     type:
                         4
@@ -1151,7 +1151,7 @@ function updateBotPresence(
         activities: [
             {
                 name:
-                    "Soul Society",
+                    "La Soul Society",
 
                 type:
                     4
@@ -1172,7 +1172,7 @@ module.exports = {
                 "maintenance"
             )
             .setDescription(
-                "Gérer l'état des services de Soul Society"
+                "Gérer l'état des services de la Soul Society"
             )
 
             .addStringOption(option =>
@@ -1470,7 +1470,7 @@ ${panelResult.success
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Maintenance"
+                            "La Soul Society • Maintenance"
                     })
                     .setTimestamp();
 

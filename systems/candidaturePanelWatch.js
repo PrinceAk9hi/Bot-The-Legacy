@@ -9,7 +9,7 @@ const {
 } = require("../utils/candidaturePanel");
 
 // ======================================================
-// Soul Society — AUTO UPDATE CANDIDATURE PANEL
+// La Soul Society — AUTO UPDATE CANDIDATURE PANEL
 // ======================================================
 
 module.exports =

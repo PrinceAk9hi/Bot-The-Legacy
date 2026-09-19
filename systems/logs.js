@@ -359,9 +359,15 @@ function getGuildConfig(
 // ======================================================
 
 async function getLogChannel(guild, key) {
+    // Never fall back to a public channel for internal command/rank logs.
+    if (guild.id === IDENTITY.guildId && ["commands", "rank"].includes(key)) {
+        const id = key === "commands" ? CHANNELS.commandLogs : CHANNELS.rankLogs;
+        const channel = await guild.channels.fetch(id).catch(() => null);
+        return channel?.isTextBased() ? channel : null;
+    }
     const config = getGuildConfig(guild.id);
     const channelIds = [...new Set([
-        guild.id === IDENTITY.guildId ? ({ commands: CHANNELS.commandLogs, rank: CHANNELS.rankups, moderation: CHANNELS.logs, recruitment: CHANNELS.recruitmentLogs, tickets: CHANNELS.ticketLogs })[key] : null,
+        guild.id === IDENTITY.guildId ? ({ commands: CHANNELS.commandLogs, rank: CHANNELS.rankLogs, moderation: CHANNELS.logs, recruitment: CHANNELS.recruitmentLogs, tickets: CHANNELS.ticketLogs })[key] : null,
         config?.channels?.[key],
         guild.id === IDENTITY.guildId ? CHANNELS.logs : null
     ].filter(Boolean))];
@@ -438,7 +444,7 @@ async function setupGuild(
                 channel =>
                     channel.type ===
                         ChannelType.GuildCategory &&
-                    channel.name === "📁 LOGS Soul Society"
+                    channel.name === "📁 LOGS La Soul Society"
             );
     }
 
@@ -518,7 +524,7 @@ async function setupGuild(
         category =
             await guild.channels.create({
                 name:
-                    "📁 LOGS Soul Society",
+                    "📁 LOGS La Soul Society",
 
                 type:
                     ChannelType.GuildCategory,
@@ -527,7 +533,7 @@ async function setupGuild(
                     overwrites,
 
                 reason:
-                    "Installation du système de logs Soul Society"
+                    "Installation du système de logs La Soul Society"
             });
     }
 
@@ -627,7 +633,7 @@ async function setupGuild(
                         category.id,
 
                     reason:
-                        "Installation du système de logs Soul Society"
+                        "Installation du système de logs La Soul Society"
                 });
         }
 
@@ -907,7 +913,7 @@ async function logCommand(
             )
             .setFooter({
                 text:
-                    `Soul Society • ${interaction.guild.name}`
+                    `La Soul Society • ${interaction.guild.name}`
             })
             .setTimestamp();
 
@@ -953,7 +959,7 @@ async function logSpecial(
         description = null,
         fields = [],
         color = SOUL_COLORS.secondary,
-        footer = "Soul Society • Logs"
+        footer = "La Soul Society • Logs"
     }
 ) {
     const embed =

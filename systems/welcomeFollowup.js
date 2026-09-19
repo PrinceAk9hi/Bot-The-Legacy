@@ -24,7 +24,7 @@ function logPayload(actor, p) {
             {name:'Communauté Roblox',value:p.membershipVerifiedAt && p.membershipRobloxId===p.robloxId ? `Adhésion confirmée le <t:${Math.floor(p.membershipVerifiedAt/1000)}:f>.` : 'Confirmation non enregistrée.'},
             {name:'Anniversaire',value:p.birthDate ? 'Date renseignée — conservée privée dans le profil.' : 'Date non renseignée.'},
             {name:'Suite du parcours',value:'Modifications disponibles via /mon-profil.'})
-        .setFooter({text:'Soul Society • Suivi des accueils'}).setTimestamp()] };
+        .setFooter({text:'La Soul Society • Suivi des accueils'}).setTimestamp()] };
 }
 function register(client) {
     let running = false, nextAttempt = 0;
@@ -66,7 +66,7 @@ function register(client) {
                     await c.send({content:targets.map(m=>`<@${m.id}>`).join(' '),allowedMentions:{parse:[],users:targets.map(m=>m.id)},embeds:[new EmbedBuilder().setColor(COLORS.primary)
                         .setTitle('📣 Rappel • Termine ton /bienvenue')
                         .setDescription(`${EMOJIS.logo} Ton parcours d’accueil n’est pas encore terminé. Tape **/bienvenue** dans le serveur et va jusqu’à la dernière étape. Une fois terminé, utilise **/mon-profil** pour tes modifications.\n\n**Échéance personnelle :**\n${deadlines.map(d=>`<@${d.id}> : <t:${Math.floor(d.deadline/1000)}:f>${d.deadline<=now?' — délai dépassé':''}`).join('\n')}\n\n⚠️ **Tu disposes de deux jours à compter de ton premier rappel pour terminer /bienvenue, sous peine de derank. Les rappels ne prolongent pas ce délai.**`)
-                        .setFooter({text:'Soul Society • Rappel toutes les 6 heures'})]});
+                        .setFooter({text:'La Soul Society • Rappel toutes les 6 heures'})]});
                     update('welcomeFollowup',state=>{state.reminders||={};for(const d of deadlines)state.reminders[d.id]={deadline:d.deadline,lastSentAt:Date.now()};});
                 }
             }

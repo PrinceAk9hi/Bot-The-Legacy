@@ -68,7 +68,7 @@ function createInfoEmbed() {
         )
 
         .setTitle(
-            "Découvre Soul Society via ce salon ! <:Soul_Society:1548783936010977380>"
+            "Découvre La Soul Society via ce salon ! <:Soul_Society:1548783936010977380>"
         )
 
         .setDescription(
@@ -104,13 +104,13 @@ function createInfoEmbed() {
                 "",
                 "Après validation du <@&1471889647570260030> pour le rankup / accès à la bannière, **il faudra demander à rejoindre la communauté ci-dessous**.",
                 "",
-                `**Voici le lien du groupe roblox :** <:126013friends:1532080555317788782> [Soul Society](${ROBLOX_URL})`
+                `**Voici le lien du groupe roblox :** <:126013friends:1532080555317788782> [La Soul Society](${ROBLOX_URL})`
             ].join("\n")
         )
 
         .setFooter({
             text:
-                "Soul Society • Informations"
+                "La Soul Society • Informations"
         });
 }
 
@@ -173,7 +173,7 @@ function createInfoButtons() {
 
                 new ButtonBuilder()
                     .setLabel(
-                        "Soul Society"
+                        "La Soul Society"
                     )
                     .setEmoji({
                         id:
@@ -204,7 +204,7 @@ module.exports = {
                 "setupinfos"
             )
             .setDescription(
-                "Installer ou mettre à jour le panneau d'informations Soul Society"
+                "Installer ou mettre à jour le panneau d'informations La Soul Society"
             ),
 
     // ==================================================
@@ -320,7 +320,7 @@ module.exports = {
                                 embed =>
                                     embed.title
                                         ?.includes(
-                                            "Découvre Soul Society via ce salon"
+                                            "Découvre La Soul Society via ce salon"
                                         )
                             )
                     );
@@ -339,7 +339,7 @@ module.exports = {
                                     embed =>
                                         embed.description
                                             ?.includes(
-                                                "Découvre Soul Society via ce salon"
+                                                "Découvre La Soul Society via ce salon"
                                             )
                                 )
                         );

@@ -15,15 +15,15 @@ module.exports = {
         const result = await addBadge(link.robloxUserId);
         if (result.success) return interaction.editReply({
             content: result.alreadyHasBadge
-                ? `ℹ️ <@${user.id}> possède déjà le rôle **badge** dans la communauté Soul Society.`
-                : `✅ Le rôle **badge** a été ajouté au compte Roblox lié à <@${user.id}> dans la communauté Soul Society.`,
+                ? `ℹ️ <@${user.id}> possède déjà le rôle **badge** dans la communauté de la Soul Society.`
+                : `✅ Le rôle **badge** a été ajouté au compte Roblox lié à <@${user.id}> dans la communauté de la Soul Society.`,
             allowedMentions: { parse: [] }
         });
         const errors = {
             KEY_MISSING: "La clé Roblox Open Cloud n’est pas configurée sur le bot (ROBLOX_OPEN_CLOUD_API_KEY).",
-            GROUP_MISMATCH: "ROBLOX_GROUP_ID doit correspondre à la communauté Soul Society : 925445053.",
+            GROUP_MISMATCH: "ROBLOX_GROUP_ID doit correspondre à la communauté de la Soul Society : 925445053.",
             INVALID_USER: "La liaison Roblox contient un identifiant invalide.",
-            NOT_MEMBER: "Ce compte Roblox n’est pas membre de la communauté Soul Society.",
+            NOT_MEMBER: "Ce compte Roblox n’est pas membre de la communauté de la Soul Society.",
             BUSY: "Une attribution de badge est déjà en cours pour ce membre.",
             NOT_CONFIRMED: "La demande a été envoyée, mais le badge n’est pas encore confirmé. Réessaie dans quelques instants.",
             HTTP_401: "Roblox refuse l’authentification Open Cloud du bot.",

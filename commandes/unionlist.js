@@ -27,7 +27,7 @@ module.exports = {
                 "unionlist"
             )
             .setDescription(
-                "Afficher toutes les Unions actives de Soul Society"
+                "Afficher toutes les Unions actives de la Soul Society"
             ),
 
     async execute(
@@ -48,7 +48,7 @@ module.exports = {
                             COLOR
                         )
                         .setTitle(
-                            "💍 Unions Soul Society"
+                            "💍 Unions La Soul Society"
                         )
                         .setDescription(
                             "Aucune Union active n'est actuellement enregistrée."
@@ -122,7 +122,7 @@ module.exports = {
                                 )
                                 .setTitle(
                                     pageIndex === 0
-                                        ? `💍 Unions Soul Society — ${unions.length}`
+                                        ? `💍 Unions La Soul Society — ${unions.length}`
                                         : `💍 Unions — Page ${pageIndex + 1}`
                                 )
                                 .setDescription(

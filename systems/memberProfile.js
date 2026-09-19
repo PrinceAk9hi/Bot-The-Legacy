@@ -20,7 +20,7 @@ function render(userId, notice = null) {
     const embed = new EmbedBuilder().setColor(COLORS.primary);
     let components;
     if (!d) {
-        embed.setTitle("👤 Mon profil Soul Society").setDescription("Que souhaites-tu modifier ? Choisis une rubrique. Sur chaque page, **Sauvegarder** enregistre tes changements ; **Retour** abandonne le brouillon de cette page.");
+        embed.setTitle("👤 Mon profil La Soul Society").setDescription("Que souhaites-tu modifier ? Choisis une rubrique. Sur chaque page, **Sauvegarder** enregistre tes changements ; **Retour** abandonne le brouillon de cette page.");
         components = [row(...Object.entries(PAGES).map(([key, label]) => button("profile_page_" + key, label)))];
     } else {
         embed.setTitle("👤 " + PAGES[d.page]);
@@ -38,14 +38,14 @@ function render(userId, notice = null) {
                 .addOptions(Object.entries(welcome.AVAILABILITY[period]).map(([value, label]) => ({ label, value, default: p.availabilityChoices?.[period] === value })))));
             components.push(controls);
         } else {
-            embed.setDescription(`[Rejoindre Soul Society](${ROBLOX.groupUrl})\nEnvoie ta demande sur Roblox. **Sauvegarder** lance la vérification et l’acceptation automatique, puis confirme ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`);
+            embed.setDescription(`[rejoindre la Soul Society](${ROBLOX.groupUrl})\nEnvoie ta demande sur Roblox. **Sauvegarder** lance la vérification et l’acceptation automatique, puis confirme ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`);
             components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl)), controls];
         }
     }
     return { content: notice, embeds: [embed], components, allowedMentions: { parse: [] } };
 }
 async function start(i) {
-    if (i.guildId !== IDENTITY.guildId) return i.reply({ content: "Cette commande est réservée au serveur Soul Society.", flags: MessageFlags.Ephemeral });
+    if (i.guildId !== IDENTITY.guildId) return i.reply({ content: "Cette commande est réservée au serveur de la Soul Society.", flags: MessageFlags.Ephemeral });
     setDraft(i.user.id, null);
     return i.reply({ ...render(i.user.id), flags: MessageFlags.Ephemeral });
 }
@@ -82,7 +82,7 @@ async function save(i, d) {
         catch { return "Tes disponibilités sont sauvegardées, mais leur publication a échoué. Réessaie Sauvegarder ; le bot doit accéder au salon des disponibilités."; }
     }
     setDraft(actor, { page: d.page, values: { ...ownProfile(actor) } });
-    return d.page === "community" ? "✅ Roblox confirme que tu es bien dans la communauté Soul Society !" : "✅ Modifications sauvegardées.";
+    return d.page === "community" ? "✅ Roblox confirme que tu es bien dans la communauté de la Soul Society !" : "✅ Modifications sauvegardées.";
 }
 async function handle(i) {
     if (!i.customId?.startsWith("profile_") || i.guildId !== IDENTITY.guildId) return;

@@ -21,7 +21,7 @@ const COLOR =
 // ======================================================
 
 const RANDOM_REASONS = [
-    "Vol aggravé de biscuits dans les locaux de Soul Society",
+    "Vol aggravé de biscuits dans les locaux de la Soul Society",
     "Activité beaucoup trop suspecte dans les salons vocaux",
     "Disparition inexpliquée au moment de prendre ses responsabilités",
     "Excès de charisme non autorisé",
@@ -29,7 +29,7 @@ const RANDOM_REASONS = [
     "Présence inquiétante dans les vocaux à 4h du matin",
     "Détention illégale de memes douteux",
     "Abus manifeste de réactions Discord",
-    "Soupçonné d'avoir dérangé la tranquillité de Soul Society",
+    "Soupçonné d'avoir dérangé la tranquillité de la Soul Society",
     "Utilisation excessive du mot « wsh »",
     "Vol du dernier cookie de la Direction",
     "Comportement beaucoup trop mystérieux",
@@ -43,7 +43,7 @@ const RANDOM_REASONS = [
 const RANDOM_WARNINGS = [
     "⚠️ Individu potentiellement dangereux. Ne pas approcher sans biscuits.",
     "⚠️ Peut paraître innocent. Les apparences sont trompeuses.",
-    "⚠️ Si vous le croisez, restez calme et contactez immédiatement Soul Society.",
+    "⚠️ Si vous le croisez, restez calme et contactez immédiatement La Soul Society.",
     "⚠️ Sujet instable. Peut rejoindre un vocal sans prévenir.",
     "⚠️ Individu particulièrement imprévisible.",
     "⚠️ N'essayez pas de négocier seul avec cet individu.",
@@ -65,7 +65,7 @@ const RANDOM_REWARDS = [
     "50 Robux",
     "1 paquet de cookies",
     "Une place VIP dans le vocal",
-    "La reconnaissance éternelle de Soul Society"
+    "La reconnaissance éternelle de la Soul Society"
 ];
 
 // ======================================================
@@ -292,7 +292,7 @@ module.exports = {
 
                     .setAuthor({
                         name:
-                            "Soul Society • AVIS DE RECHERCHE",
+                            "La Soul Society • AVIS DE RECHERCHE",
 
                         iconURL:
                             interaction.guild
@@ -304,13 +304,13 @@ module.exports = {
                     })
 
                     .setTitle(
-                        "🚨 RECHERCHÉ PAR Soul Society"
+                        "🚨 RECHERCHÉ PAR La Soul Society"
                     )
 
                     .setDescription(
 `## <@${member.id}>
 
-> Un nouvel individu vient officiellement d'être placé sur la liste des personnes recherchées de **Soul Society**.
+> Un nouvel individu vient officiellement d'être placé sur la liste des personnes recherchées de la **Soul Society**.
 
 ${warning}`
                     )
@@ -569,7 +569,7 @@ ${warning}`
 
 <@${interaction.user.id}> vient officiellement de capturer <@${targetId}> !
 
-> La Direction de **Soul Society** étudie actuellement le versement de la récompense... 👀`,
+> La Direction de la **Soul Society** étudie actuellement le versement de la récompense... 👀`,
 
                     flags:
                         MessageFlags.Ephemeral

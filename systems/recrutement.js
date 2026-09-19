@@ -531,13 +531,13 @@ async function envoyerMPRefus(
                     .setDescription(
 `Bonjour <@${membre.id}>,
 
-Suite à ta candidature pour rejoindre **Soul Society**, nous t'annonçons que celle-ci a été **refusée**.
+Suite à ta candidature pour rejoindre la **Soul Society**, nous t'annonçons que celle-ci a été **refusée**.
 
 Tu peux retrouver les informations concernant cette décision directement dans ton ticket de candidature, tant que celui-ci est encore ouvert.
 
 Tu pourras déposer une nouvelle candidature dans un délai d'**un mois**.
 
-**Soul Society**`
+**La Soul Society**`
                     )
                     .setTimestamp()
             ]
@@ -844,7 +844,7 @@ function embedAttente(
         .setDescription(
 `**Votre candidature a bien été reçue et est désormais en attente d'examen par notre équipe de recrutement.**
 
-Nous vous remercions pour l'intérêt que vous portez à Soul Society. **Chaque candidature est étudiée avec attention afin de garantir une intégration cohérente avec nos valeurs et nos exigences.**
+Nous vous remercions pour l'intérêt que vous portez à La Soul Society. **Chaque candidature est étudiée avec attention afin de garantir une intégration cohérente avec nos valeurs et nos exigences.**
 
 Nous vous invitons à faire preuve de patience. Une réponse vous sera communiquée dans les prochaines 24h. En attendant, veillez à rester actif sur le serveur et à respecter son règlement.
 
@@ -865,7 +865,7 @@ function embedAccepte(
         .setDescription(
 `Après un examen attentif de votre candidature, **nous avons le plaisir de vous annoncer que celle-ci a été acceptée**.
 
-Cette première étape vous ouvre désormais **les portes de l'entretien de recrutement**, **une phase essentielle de notre processus d'intégration**. **Cet échange nous permettra de mieux vous connaître**, d'**évaluer votre motivation** et de **nous assurer que vous partagez les valeurs qui définissent Soul Society**.
+Cette première étape vous ouvre désormais **les portes de l'entretien de recrutement**, **une phase essentielle de notre processus d'intégration**. **Cet échange nous permettra de mieux vous connaître**, d'**évaluer votre motivation** et de **nous assurer que vous partagez les valeurs qui définissent La Soul Society**.
 
 Un membre de l’équipe de recrutement vous contactera pour vous demander vos disponibilités vocales et organiser votre entretien.
 
@@ -890,7 +890,7 @@ function embedRefuse(
         .setDescription(
 `Après une étude attentive de votre candidature, **nous vous informons que celle-ci n'a malheureusement pas été retenue**.
 
-Cette décision ne remet pas en cause votre potentiel, mais reflète simplement le fait que votre profil ne correspond pas, à ce jour, aux attentes de Soul Society.
+Cette décision ne remet pas en cause votre potentiel, mais reflète simplement le fait que votre profil ne correspond pas, à ce jour, aux attentes de la Soul Society.
 
 Nous vous invitons à **poursuivre votre évolution**, à **gagner en expérience** et à **revenir avec une candidature plus aboutie**. Un nouveau dépôt de candidature sera possible dans un délai d'**un mois à compter d'aujourd'hui**.
 
@@ -1382,8 +1382,8 @@ async function demanderDisponibilitesOrales(guild, membre) {
             allowedMentions: { parse: [], users: [membre.id] },
             embeds: [new EmbedBuilder().setColor(COLORS.attente)
                 .setTitle("🎙️ Prochaine étape : ton entretien oral")
-                .setDescription("**Félicitations, ta candidature écrite a été acceptée !** 🌸\n\nBienvenue dans l’espace dédié aux candidats ayant validé cette première étape. Nous souhaitons maintenant échanger avec toi lors d’un **entretien oral**, afin de mieux te connaître et de poursuivre ton recrutement au sein de **Soul Society**.\n\nMerci d’indiquer **tes disponibilités dans ce salon**, en précisant les jours et les horaires auxquels tu peux être présent en vocal.\n\nPrévois **au moins 30 minutes** : l’échange pourra durer un peu plus longtemps si nécessaire. Un membre de l’équipe de recrutement prendra contact avec toi pour convenir d’un créneau.\n\nÀ bientôt pour ton entretien !")
-                .setFooter({ text: "Soul Society • Équipe de recrutement" })]
+                .setDescription("**Félicitations, ta candidature écrite a été acceptée !** 🌸\n\nBienvenue dans l’espace dédié aux candidats ayant validé cette première étape. Nous souhaitons maintenant échanger avec toi lors d’un **entretien oral**, afin de mieux te connaître et de poursuivre ton recrutement au sein de la **Soul Society**.\n\nMerci d’indiquer **tes disponibilités dans ce salon**, en précisant les jours et les horaires auxquels tu peux être présent en vocal.\n\nPrévois **au moins 30 minutes** : l’échange pourra durer un peu plus longtemps si nécessaire. Un membre de l’équipe de recrutement prendra contact avec toi pour convenir d’un créneau.\n\nÀ bientôt pour ton entretien !")
+                .setFooter({ text: "La Soul Society • Équipe de recrutement" })]
         });
         const latest = lireCandidatures();
         if (latest[membre.id]) {
@@ -1717,7 +1717,7 @@ function registerRecruitmentSystem(
                             .setDescription(
 `Bienvenue <@${membre.id}>,
 
-Ce ticket est ton espace personnel de candidature pour rejoindre **Soul Society**.
+Ce ticket est ton espace personnel de candidature pour rejoindre la **Soul Society**.
 
 Lorsque tu es prêt, clique sur **Formulaire de candidature**.
 
@@ -1744,7 +1744,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                             )
                             .setFooter({
                                 text:
-                                    "Soul Society • Recrutements"
+                                    "La Soul Society • Recrutements"
                             })
                     ],
 

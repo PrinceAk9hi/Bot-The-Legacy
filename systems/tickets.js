@@ -19,7 +19,7 @@ const {
 } = require("discord.js");
 
 // ======================================================
-// Soul Society — SYSTÈME DE TICKETS
+// La Soul Society — SYSTÈME DE TICKETS
 // ======================================================
 
 // ======================================================
@@ -639,7 +639,7 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
             )
             .setFooter({
                 text:
-                    "Soul Society • Support"
+                    "La Soul Society • Support"
             })
             .setTimestamp();
 

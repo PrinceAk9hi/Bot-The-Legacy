@@ -193,7 +193,7 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        "Soul Society • Historique des sanctions"
+                        "La Soul Society • Historique des sanctions"
                 })
                 .setTimestamp();
 

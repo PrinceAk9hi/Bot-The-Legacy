@@ -131,7 +131,7 @@ const MANAGEMENT_ROLES = {
 
 const RANK_CONFIG = {
     // Salon des logs /rank
-    logChannelId: CHANNELS.rankups,
+    logChannelId: CHANNELS.rankLogs,
 
     // Salon public pour rankups / nouvelles responsabilités
     publicChannelId: CHANNELS.rankups,

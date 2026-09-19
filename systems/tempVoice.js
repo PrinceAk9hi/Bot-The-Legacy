@@ -773,7 +773,7 @@ function buildPanelEmbed(
         )
         .setFooter({
             text:
-                "Soul Society • Bureau vocal temporaire"
+                "La Soul Society • Bureau vocal temporaire"
         });
 }
 
@@ -1761,7 +1761,7 @@ function buildManagerRequestEmbed(
         )
         .setFooter({
             text:
-                `Soul Society • ${room.channelId}`
+                `La Soul Society • ${room.channelId}`
         })
         .setTimestamp(
             new Date(

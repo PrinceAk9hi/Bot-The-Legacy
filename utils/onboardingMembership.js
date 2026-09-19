@@ -16,11 +16,11 @@ async function verify(interaction, userId) {
     const key = String(userId);
     if (pending.has(key)) return { success: false, message: "⏳ Une vérification est déjà en cours pour ce compte. Réessaie dans un instant." };
     pending.add(key);
-    const progress = text => interaction.editReply({ content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🔎 Communauté Soul Society").setFooter({ text: "Soul Society • Vérification de ton adhésion" }).setDescription(text)], components: [] });
+    const progress = text => interaction.editReply({ content: null, embeds: [new EmbedBuilder().setColor(COLORS.primary).setTitle("🔎 Communauté La Soul Society").setFooter({ text: "La Soul Society • Vérification de ton adhésion" }).setDescription(text)], components: [] });
     try {
         await progress(`${EMOJIS.loading} **Vérification de ton adhésion…**\nConsultation de la communauté Roblox.`);
         if (await membership(key)) return { success: true, alreadyMember: true };
-        await progress(`${EMOJIS.loading} **Recherche et acceptation de ta demande…**\nLe bot contacte la communauté Soul Society.`);
+        await progress(`${EMOJIS.loading} **Recherche et acceptation de ta demande…**\nLe bot contacte la communauté de la Soul Society.`);
         const result = await acceptJoinRequest(key);
         if (!result.success) return {
             success: false,

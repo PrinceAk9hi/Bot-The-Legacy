@@ -37,16 +37,16 @@ function profile(actorId) { return read("welcomeProfiles")[actorId]; }
 function patch(actorId, changes) { update("welcomeProfiles", state => { state[actorId] = { ...state[actorId], ...changes, updatedAt: Date.now() }; }); }
 function welcomeEmbed() {
     return new EmbedBuilder().setColor(COLORS.primary)
-        .setAuthor({ name: "Soul Society • Ton parcours d’accueil", iconURL: "https://cdn.discordapp.com/emojis/1548783936010977380.png" })
+        .setAuthor({ name: "La Soul Society • Ton parcours d’accueil", iconURL: "https://cdn.discordapp.com/emojis/1548783936010977380.png" })
         .setThumbnail("https://cdn.discordapp.com/emojis/1548783936010977380.png")
-        .setFooter({ text: "Soul Society • Un pas de plus dans la famille 🌸" });
+        .setFooter({ text: "La Soul Society • Un pas de plus dans la famille 🌸" });
 }
-const INTRO = "🌸 **Bienvenue dans la famille !**\nComplète ces cinq étapes pour préparer ton arrivée et profiter des fonctions de Soul Society :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n<:roblox:1550573304258236426> **2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : un choix pour la semaine, puis un choix pour le week-end.\n<:certification:1550573424080977930> **4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n<a:speaker:1548785378276810844> **5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
+const INTRO = "🌸 **Bienvenue dans la famille !**\nComplète ces cinq étapes pour préparer ton arrivée et profiter des fonctions de la Soul Society :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n<:roblox:1550573304258236426> **2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : un choix pour la semaine, puis un choix pour le week-end.\n<:certification:1550573424080977930> **4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n<a:speaker:1548785378276810844> **5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
 function introPayload() {
-    return { content: null, embeds: [welcomeEmbed().setTitle("🌸 Ton accueil Soul Society").setDescription(INTRO)], components: [row(button("welcome_begin", "Commencer / continuer"))], allowedMentions: { parse: [] } };
+    return { content: null, embeds: [welcomeEmbed().setTitle("🌸 Ton accueil La Soul Society").setDescription(INTRO)], components: [row(button("welcome_begin", "Commencer / continuer"))], allowedMentions: { parse: [] } };
 }
 function panelPayload() {
-    return { embeds: [welcomeEmbed().setTitle("🌸 Bienvenue dans Soul Society")
+    return { embeds: [welcomeEmbed().setTitle("🌸 Bienvenue dans la Soul Society")
         .setDescription(INTRO)],
         components: [row(button(KEY, "Commencer / reprendre mon accueil"))], allowedMentions: { parse: [] } };
 }
@@ -58,7 +58,7 @@ function stepPayload(p) {
         case "roblox": embed.setTitle("🎮 2/5 • Ton identité Roblox").setDescription("Indique ton nom et ton @ Roblox. Le bot recherchera le compte et enregistrera sa liaison avec ton profil Discord. Utilise le @ exact, pas uniquement le nom d’affichage."); components = [row(button("welcome_roblox", "Renseigner mon Roblox"))]; break;
         case "week": embed.setTitle("📅 3/5 • Ta semaine").setDescription("Choisis la proposition qui correspond à tes disponibilités habituelles en semaine."); components = [availabilityRow("week")]; break;
         case "weekend": embed.setTitle("📅 3/5 • Ton week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
-        case "community": embed.setTitle("🏯 4/5 • Rejoins notre communauté").setDescription(`${EMOJIS.roblox} Rejoins la communauté **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
+        case "community": embed.setTitle("🏯 4/5 • Rejoins notre communauté").setDescription(`${EMOJIS.roblox} Rejoins la communauté de la **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
         case "guide": embed.setTitle("🧭 5/5 • Tes repères dans la famille").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? `${EMOJIS.certification} **Ton adhésion Roblox est confirmée !**\n\n` : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription(`${EMOJIS.logo} **Ton profil est prêt, bienvenue dans la famille !**\n\n📅 Tes disponibilités ont été enregistrées.\n👤 Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.`); components = [];
     }
@@ -69,7 +69,7 @@ function completedPayload() {
     return { content: "✅ Tu as déjà terminé ton accueil. Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.", embeds: [], components: [], allowedMentions: { parse: [] } };
 }
 async function start(interaction) {
-    if (interaction.guildId !== IDENTITY.guildId) return interaction.reply({ content: "Ce parcours est réservé au serveur Soul Society.", flags: MessageFlags.Ephemeral });
+    if (interaction.guildId !== IDENTITY.guildId) return interaction.reply({ content: "Ce parcours est réservé au serveur de la Soul Society.", flags: MessageFlags.Ephemeral });
     if (welcomeCompleted(profile(interaction.user.id))) return interaction.reply({ ...completedPayload(), flags: MessageFlags.Ephemeral });
     if (!profile(interaction.user.id)) patch(interaction.user.id, { step: "profile", discordId: interaction.user.id, discordName: interaction.user.username });
     return interaction.reply({ ...introPayload(), flags: MessageFlags.Ephemeral });
@@ -151,7 +151,7 @@ async function handle(interaction) {
             } finally { busy.delete(actor); }
         }
         if (id !== "welcome_" + p.step) return interaction.update(stepPayload(p));
-        const modal = new ModalBuilder().setCustomId("welcome_submit_" + p.step).setTitle("Soul Society • " + (p.step === "profile" ? "Profil" : p.step === "roblox" ? "Roblox" : "Disponibilités"));
+        const modal = new ModalBuilder().setCustomId("welcome_submit_" + p.step).setTitle("La Soul Society • " + (p.step === "profile" ? "Profil" : p.step === "roblox" ? "Roblox" : "Disponibilités"));
         if (p.step === "profile") modal.addComponents(input("name", "Nom Discord", p.discordName), input("discord", "ID Discord", p.discordId, false, 20), input("birth", "Date de naissance (JJ/MM/AAAA)", p.birthDate, false, 10));
         else if (p.step === "roblox") modal.addComponents(input("name", "Nom Roblox", p.robloxDisplayName), input("username", "@ Roblox exact", p.robloxUsername, false, 50));
         else return;
@@ -199,7 +199,7 @@ async function notifyRecruit(member) {
     if (member.guild.id !== IDENTITY.guildId) return;
     if (!read("welcomeNotifications")[member.id]?.recruitDmSent) {
         try {
-            await member.send(`🌸 Bienvenue dans Soul Society ! Rejoins notre communauté Roblox : ${ROBLOX.groupUrl}\nUtilise /bienvenue sur le serveur : le bot vérifiera et acceptera ta demande d’adhésion. Ajoute T Soul Society ou T Soul à la fin de ton nom en jeu.`);
+            await member.send(`🌸 Bienvenue dans la Soul Society ! Rejoins notre communauté Roblox : ${ROBLOX.groupUrl}\nUtilise /bienvenue sur le serveur : le bot vérifiera et acceptera ta demande d’adhésion. Ajoute T Soul Society ou T Soul à la fin de ton nom en jeu.`);
             update("welcomeNotifications", state => { state[member.id] = { ...state[member.id], recruitDmSent: true }; });
         } catch { console.warn("⚠️ MP de bienvenue indisponible ; lien accessible dans le parcours d’accueil."); }
     }

@@ -60,7 +60,7 @@ async function removeUnionRole(
     try {
         await member.roles.remove(
             UNION_ROLE_ID,
-            "Suppression d'une Union Soul Society"
+            "Suppression d'une Union La Soul Society"
         );
 
         return true;
@@ -280,11 +280,11 @@ module.exports = {
 
 > **Raison :** ${reason}
 
-Les deux membres ne sont désormais plus liés par une Union au sein de **Soul Society**.`
+Les deux membres ne sont désormais plus liés par une Union au sein de la **Soul Society**.`
                     )
                     .setFooter({
                         text:
-                            "Soul Society • Unions"
+                            "La Soul Society • Unions"
                     })
                     .setTimestamp();
 

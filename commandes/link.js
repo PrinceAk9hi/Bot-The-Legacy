@@ -91,8 +91,8 @@ function createLinkConfirmationEmbed({
             .setFooter({
                 text:
                     selfChange
-                        ? "Soul Society • Modification du compte Roblox"
-                        : "Soul Society • Liaison Discord ↔ Roblox"
+                        ? "La Soul Society • Modification du compte Roblox"
+                        : "La Soul Society • Liaison Discord ↔ Roblox"
             })
             .setTimestamp();
 

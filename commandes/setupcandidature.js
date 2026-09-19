@@ -21,7 +21,7 @@ module.exports = {
                 "setupcandidature"
             )
             .setDescription(
-                "Installer le panel de candidature Soul Society"
+                "Installer le panel de candidature La Soul Society"
             )
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.Administrator

@@ -20,7 +20,7 @@ module.exports = {
                 "setuptickets"
             )
             .setDescription(
-                "Installer le panel Support Soul Society"
+                "Installer le panel Support La Soul Society"
             )
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.Administrator

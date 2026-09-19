@@ -759,7 +759,7 @@ module.exports = {
             const logChannel =
                 await interaction.guild.channels
                     .fetch(
-                        RANK_CONFIG.logChannelId
+                        CHANNELS.derankLogs
                     )
                     .catch(
                         () => null

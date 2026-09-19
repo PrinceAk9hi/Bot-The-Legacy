@@ -1,5 +1,5 @@
 const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
-const { IDENTITY, COLORS, ROBLOX, EMOJIS } = require("../config/soulSociety");
+const { IDENTITY, COLORS, ROBLOX, EMOJIS, ROLES } = require("../config/soulSociety");
 const { hasBypass } = require("../utils/security");
 const { read, update } = require("../utils/recruitmentData");
 const { findRobloxUserByUsername } = require("../utils/robloxAccount");
@@ -59,6 +59,9 @@ function stepPayload(p) {
         case "week": embed.setTitle("📅 3/5 • Ta semaine").setDescription("Choisis la proposition qui correspond à tes disponibilités habituelles en semaine."); components = [availabilityRow("week")]; break;
         case "weekend": embed.setTitle("📅 3/5 • Ton week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
         case "community": embed.setTitle("🏯 4/5 • Rejoins notre communauté").setDescription(`${EMOJIS.roblox} Rejoins la communauté de la **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
+        case "communityConfirmed": embed.setColor(COLORS.success).setTitle(p.membershipAlreadyMember ? "✅ Tu es déjà dans la communauté !" : "✅ Ta demande a été acceptée !")
+            .setDescription(`${EMOJIS.certification} **${p.membershipAlreadyMember ? "Ton compte Roblox fait déjà partie de la communauté de la Soul Society." : "Roblox confirme que ton compte a bien rejoint la communauté de la Soul Society."}**\n\nClique sur **Continuer** pour découvrir les salons de la famille.`);
+            components = [row(button("welcome_continue", "Continuer", ButtonStyle.Success))]; break;
         case "guide": embed.setTitle("🧭 5/5 • Tes repères dans la famille").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? `${EMOJIS.certification} **Ton adhésion Roblox est confirmée !**\n\n` : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription(`${EMOJIS.logo} **Ton profil est prêt, bienvenue dans la famille !**\n\n📅 Tes disponibilités ont été enregistrées.\n👤 Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.`); components = [];
     }
@@ -119,6 +122,10 @@ async function handle(interaction) {
         // A button from a page opened before deployment now displays the new choices.
         if (["welcome_week", "welcome_weekend"].includes(id)) return interaction.update(stepPayload(p));
         if (id === "welcome_begin") return interaction.update(stepPayload(p));
+        if (id === "welcome_continue" && p.step === "communityConfirmed") {
+            patch(actor, {step: "guide"});
+            return interaction.update(stepPayload(profile(actor)));
+        }
         if (id === "welcome_restart") {
             patch(actor, { step: "profile" });
             return interaction.update(stepPayload(profile(actor)));
@@ -129,7 +136,7 @@ async function handle(interaction) {
                 await interaction.deferUpdate();
                 const result = await require("../utils/onboardingMembership").verify(interaction, p.robloxId);
                 if (!result.success) return interaction.editReply({ ...stepPayload(p), content: result.message });
-                patch(actor, { step: "guide", membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
+                patch(actor, { step: "communityConfirmed", membershipAlreadyMember: Boolean(result.alreadyMember), membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
                 return interaction.editReply(stepPayload(profile(actor)));
             } finally { busy.delete(actor); }
         }
@@ -196,10 +203,11 @@ async function notifyArrival(member) {
     update("welcomeNotifications", state => { state[member.id] = { ...state[member.id], joinedTimestamp: member.joinedTimestamp }; });
 }
 async function notifyRecruit(member) {
-    if (member.guild.id !== IDENTITY.guildId) return;
+    if (member.guild.id !== IDENTITY.guildId || !member.roles.cache.has(ROLES.test)) return;
     if (!read("welcomeNotifications")[member.id]?.recruitDmSent) {
         try {
-            await member.send(`🌸 Bienvenue dans la Soul Society ! Rejoins notre communauté Roblox : ${ROBLOX.groupUrl}\nUtilise /bienvenue sur le serveur : le bot vérifiera et acceptera ta demande d’adhésion. Ajoute T Soul Society ou T Soul à la fin de ton nom en jeu.`);
+            await member.send({embeds: [welcomeEmbed().setTitle("🌸 Bienvenue dans la Soul Society !")
+                .setDescription("Bienvenue en tant que **Membre Test** dans la Soul Society !\n\nTape **/bienvenue** sur le serveur pour tout découvrir et avoir accès à la communauté !")], allowedMentions: {parse: []}});
             update("welcomeNotifications", state => { state[member.id] = { ...state[member.id], recruitDmSent: true }; });
         } catch { console.warn("⚠️ MP de bienvenue indisponible ; lien accessible dans le parcours d’accueil."); }
     }

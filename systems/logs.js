@@ -360,8 +360,8 @@ function getGuildConfig(
 
 async function getLogChannel(guild, key) {
     // Never fall back to a public channel for internal command/rank logs.
-    if (guild.id === IDENTITY.guildId && ["commands", "rank"].includes(key)) {
-        const id = key === "commands" ? CHANNELS.commandLogs : CHANNELS.rankLogs;
+    if (guild.id === IDENTITY.guildId && ["commands", "rank", "derank"].includes(key)) {
+        const id = key === "derank" ? CHANNELS.derankLogs : key === "commands" ? CHANNELS.commandLogs : CHANNELS.rankLogs;
         const channel = await guild.channels.fetch(id).catch(() => null);
         return channel?.isTextBased() ? channel : null;
     }
@@ -922,6 +922,10 @@ async function logCommand(
     // ==================================================
 
     const sentChannelIds = new Set();
+    if (interaction.commandName === "derank" && interaction.guild.id === IDENTITY.guildId) {
+        await sendEmbed(interaction.guild, "derank", embed, sentChannelIds);
+        return;
+    }
     await sendEmbed(interaction.guild, "commands", embed, sentChannelIds);
 
     // ==================================================

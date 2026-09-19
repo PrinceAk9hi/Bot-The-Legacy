@@ -604,6 +604,7 @@ registerLogsSystem(
 
 require("./systems/memberOnboarding")(client);
 require("./systems/interviewPanel")(client);
+require("./systems/memberCare")(client);
 require("./systems/soulActivity")(client);
 
 // Candidatures

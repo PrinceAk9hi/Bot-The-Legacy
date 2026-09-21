@@ -58,7 +58,7 @@ function stepPayload(p) {
         case "roblox": embed.setTitle("🎮 2/5 • Ton identité Roblox").setDescription("Indique ton nom et ton @ Roblox. Le bot recherchera le compte et enregistrera sa liaison avec ton profil Discord. Utilise le @ exact, pas uniquement le nom d’affichage."); components = [row(button("welcome_roblox", "Renseigner mon Roblox"))]; break;
         case "week": embed.setTitle("📅 3/5 • Ta semaine").setDescription("Choisis la proposition qui correspond à tes disponibilités habituelles en semaine."); components = [availabilityRow("week")]; break;
         case "weekend": embed.setTitle("📅 3/5 • Ton week-end").setDescription("Choisis maintenant tes disponibilités habituelles le week-end."); components = [availabilityRow("weekend")]; break;
-        case "community": embed.setTitle("🏯 4/5 • Rejoins notre communauté").setDescription(`${EMOJIS.roblox} Rejoins la communauté de la **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nEnvoie ta demande d’adhésion sur Roblox, puis clique sur **Vérifier et accepter** : le bot la traitera et vérifiera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier et accepter"))]; break;
+        case "community": embed.setTitle("🏯 4/5 • Rejoins notre communauté").setDescription(`${EMOJIS.roblox} Rejoins la communauté de la **Soul Society** : [ouvrir la communauté](${ROBLOX.groupUrl}).\nCompte vérifié : **@${p.robloxUsername || "non renseigné"}** (ID : ${p.robloxId || "non renseigné"}).\nSi tu es **déjà membre**, clique sur **Vérifier mon adhésion** : aucune nouvelle demande n’est nécessaire. Sinon, envoie ta demande sur Roblox ; le bot tentera de l’accepter puis confirmera ton adhésion.\n\nÀ la fin de ton nom en jeu, ajoute **T Soul Society** ou **T Soul**.`); components = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel("Communauté Roblox").setURL(ROBLOX.groupUrl), button("welcome_community", "Vérifier mon adhésion"))]; break;
         case "communityConfirmed": embed.setColor(COLORS.success).setTitle(p.membershipAlreadyMember ? "✅ Tu es déjà dans la communauté !" : "✅ Ta demande a été acceptée !")
             .setDescription(`${EMOJIS.certification} **${p.membershipAlreadyMember ? "Ton compte Roblox fait déjà partie de la communauté de la Soul Society." : "Roblox confirme que ton compte a bien rejoint la communauté de la Soul Society."}**\n\nClique sur **Continuer** pour découvrir les salons de la famille.`);
             components = [row(button("welcome_continue", "Continuer", ButtonStyle.Success))]; break;
@@ -135,9 +135,11 @@ async function handle(interaction) {
             try {
                 await interaction.deferUpdate();
                 const result = await require("../utils/onboardingMembership").verify(interaction, p.robloxId);
-                if (!result.success) return interaction.editReply({ ...stepPayload(p), content: result.message });
+                if (!result.success) return await interaction.editReply({ ...stepPayload(p), content: result.message });
                 patch(actor, { step: "communityConfirmed", membershipAlreadyMember: Boolean(result.alreadyMember), membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
-                return interaction.editReply(stepPayload(profile(actor)));
+                return await interaction.editReply(stepPayload(profile(actor)));
+            } catch {
+                return await interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ La confirmation n’a pas pu être affichée. Réessaie avec le bouton ci-dessous ; ta progression est conservée." });
             } finally { busy.delete(actor); }
         }
         if (id === "welcome_finish" && p.step === "guide") {

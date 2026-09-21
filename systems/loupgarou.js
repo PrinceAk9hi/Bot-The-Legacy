@@ -61,8 +61,8 @@ const CONFIG = {
     roleTimeoutMs: 45_000,
     wolvesTimeoutMs: 60_000,
 
-    mayorCandidateMs: 60_000,
-    mayorVoteMs: 60_000,
+    mayorCandidateMs: 30_000,
+    mayorVoteMs: 30_000,
 
     discussionMs: 180_000,
 
@@ -70,7 +70,7 @@ const CONFIG = {
     secondVoteMs: 45_000,
 
     hunterTimeoutMs: 30_000,
-    successorTimeoutMs: 30_000,
+    successorTimeoutMs: 15_000,
     scapegoatTimeoutMs: 45_000,
 
     ravenExtraVotes: 2,
@@ -269,6 +269,25 @@ function sleep(ms) {
             )
     );
 }
+
+
+// Ne compte que les votants encore autorisés, une seule fois par joueur.
+function publicVotesComplete(game, mayor) {
+    const voters = getAlivePlayers(game).filter(p => mayor || canPlayerVoteToday(game, p.userId));
+    return voters.every(p => Object.prototype.hasOwnProperty.call(game.votes || {}, p.userId));
+}
+async function waitForPublicVotes(game, token, timeoutMs, mayor) {
+    const deadline = Date.now() + timeoutMs;
+    while (isRunning(game) && game.publicVoteToken === token && !publicVotesComplete(game, mayor) && Date.now() < deadline) {
+        await sleep(Math.min(100, Math.max(1, deadline - Date.now())));
+    }
+    if (game.publicVoteToken === token) {
+        game.publicVoteToken = null;
+        game.publicVoteTargets = [];
+        saveGame(game);
+    }
+}
+function voteDeadline(ms) { return '⏳ **' + Math.round(ms / 1000) + ' secondes maximum** • Fin <t:' + Math.floor((Date.now() + ms) / 1000) + ':R>.'; }
 
 function createToken() {
     return crypto
@@ -5190,7 +5209,7 @@ async function chooseMayorSuccessor(
                     "👑 Succession du Maire",
 
                 description:
-                    "Choisis secrètement ton successeur.",
+                    "Choisis secrètement ton successeur.\n\n" + voteDeadline(CONFIG.successorTimeoutMs),
 
                 players:
                     candidates,
@@ -5887,7 +5906,7 @@ async function runMayorCandidates(
                         "👑 Élection du Maire"
                     )
                     .setDescription(
-                        "Les candidatures sont ouvertes pendant une minute."
+                        "Les candidatures sont ouvertes.\n\n" + voteDeadline(CONFIG.mayorCandidateMs)
                     )
             ],
 
@@ -6099,6 +6118,7 @@ async function runMayorVote(
 
     game.publicVoteToken =
         token;
+    game.publicVoteTargets = options.map(option => option.value);
 
     saveGame(game);
 
@@ -6116,8 +6136,8 @@ async function runMayorVote(
                     )
                     .setDescription(
                         secondRound
-                            ? "Votez entre les candidats arrivés à égalité."
-                            : "Choisissez votre Maire parmi les candidats."
+                            ? "Votez entre les candidats arrivés à égalité.\n\n" + voteDeadline(CONFIG.mayorVoteMs)
+                            : "Choisissez votre Maire parmi les candidats.\n\n" + voteDeadline(CONFIG.mayorVoteMs)
                     )
             ],
 
@@ -6138,9 +6158,7 @@ async function runMayorVote(
             ]
         });
 
-    await sleep(
-        CONFIG.mayorVoteMs
-    );
+    await waitForPublicVotes(game, token, CONFIG.mayorVoteMs, true);
 
     if (
         !isRunning(
@@ -6548,6 +6566,7 @@ async function runDayVote(
 
     game.publicVoteToken =
         token;
+    game.publicVoteTargets = options.map(option => option.value);
 
     saveGame(game);
 
@@ -6589,11 +6608,7 @@ async function runDayVote(
             ]
         });
 
-    await sleep(
-        secondRound
-            ? CONFIG.secondVoteMs
-            : CONFIG.voteMs
-    );
+    await waitForPublicVotes(game, token, secondRound ? CONFIG.secondVoteMs : CONFIG.voteMs, false);
 
     if (
         !isRunning(
@@ -6673,7 +6688,7 @@ async function runDayVote(
                         "👑 Égalité",
 
                     description:
-                        "Choisis secrètement qui éliminer parmi les ex æquo.",
+                        "Choisis secrètement qui éliminer parmi les ex æquo.\n\n" + voteDeadline(15_000),
 
                     players:
                         result.leaders
@@ -6689,7 +6704,7 @@ async function runDayVote(
                             ),
 
                     timeoutMs:
-                        30_000
+                        15_000
                 }
             );
 
@@ -9759,12 +9774,7 @@ async function handleSelect(
         const candidateId =
             interaction.values[0];
 
-        if (
-            !game.mayorCandidates
-                .includes(
-                    candidateId
-                )
-        ) {
+        if (!game.publicVoteTargets?.includes(candidateId) || !getPlayer(game, candidateId)?.alive) {
             return true;
         }
 
@@ -9856,7 +9866,7 @@ async function handleSelect(
             );
 
         if (
-            !target?.alive
+            !target?.alive || !game.publicVoteTargets?.includes(targetId)
         ) {
             return true;
         }

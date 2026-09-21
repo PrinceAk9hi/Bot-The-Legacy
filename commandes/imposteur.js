@@ -1718,6 +1718,20 @@ function discussionButtons(
 // VOTE EMBED
 // ======================================================
 
+
+function voteName(lobby, id) {
+    return require('discord.js').escapeMarkdown(String(lobby.playerNames?.[id] || ('Joueur ' + (lobby.players.indexOf(id) + 1))).slice(0, 24));
+}
+function namedVoteFields(lobby) {
+    const lines = Object.entries(lobby.votes || {}).filter(([from,to]) => lobby.players.includes(from) && lobby.players.includes(to))
+        .map(([from,to]) => voteName(lobby,from) + ' → ' + voteName(lobby,to));
+    if (!lines.length) return [{ name: '🗳️ Qui vote pour qui ?', value: 'Aucun vote pour le moment.' }];
+    const fields=[];let value='';
+    for(const line of lines){if(value.length+line.length+1>1000){fields.push({name:'🗳️ Votes nominatifs',value});value='';}value+=(value?'\n':'')+line;}
+    if(value)fields.push({name:'🗳️ Votes nominatifs',value});
+    return fields;
+}
+
 function buildVoteEmbed(
     lobby
 ) {
@@ -1772,7 +1786,7 @@ function buildVoteEmbed(
                         count
                     ]
                 ) =>
-                    `<@${id}> — **${count} vote(s)**`
+                    `${voteName(lobby,id)} — **${count} vote(s)**`
             )
             .join(
                 "\n"
@@ -1798,6 +1812,7 @@ ${ranking}
 
 -# Ton vote peut être modifié tant que tout le monde n'a pas voté.`
         )
+        .addFields(...namedVoteFields(lobby))
         .setFooter({
             text:
                 "La Soul Society • Imposteur"
@@ -2079,7 +2094,7 @@ Mais l'Imposteur était en réalité <@${lobby.impostorId}>.`;
                         count
                     ]
                 ) =>
-                    `<@${playerId}> — **${count} vote(s)**`
+                    `${voteName(lobby,playerId)} — **${count} vote(s)**`
             )
             .join(
                 "\n"
@@ -2130,6 +2145,7 @@ ${category.name}
 
 ${voteResults}`
                 )
+                .addFields(...namedVoteFields(lobby))
                 .setFooter({
                     text:
                         "La Soul Society • Imposteur"
@@ -2982,6 +2998,9 @@ module.exports = {
                 return true;
             }
 
+            await interaction.deferUpdate();
+            lobby.playerNames = Object.fromEntries(await Promise.all(lobby.players.map(async id => [id, await getPlayerDisplayName(interaction.guild, id)])));
+
             lobby.phase =
                 "voting";
 
@@ -2992,7 +3011,7 @@ module.exports = {
                 lobby
             );
 
-            await interaction.update({
+            await interaction.editReply({
                 embeds: [
                     buildVoteEmbed(
                         lobby

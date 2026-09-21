@@ -759,7 +759,9 @@ async function sanctionMember(
     guild,
     member
 ) {
-    if (isProtectedUser(member?.id)) return false;
+    if (require("../utils/lineState").isOff() || isProtectedUser(member?.id)) return false;
+    // Le rôle déjà présent confirme une sanction antérieure : ne pas republier.
+    if (member.roles.cache.has(SANCTION_ROLE_ID)) return true;
 
     const roleAdded =
         await addRole(
@@ -822,6 +824,7 @@ async function sanctionMember(
             );
         }
     );
+    return roleAdded;
 }
 
 // ======================================================
@@ -833,7 +836,7 @@ async function handleMember(
     member,
     data
 ) {
-    if (isProtectedUser(member?.id)) return;
+    if (require("../utils/lineState").isOff() || isProtectedUser(member?.id)) return;
 
     if (
         !member ||
@@ -1135,7 +1138,17 @@ async function scanGuild(
 
     try {
         members =
-            await guild.members.fetch();
+            await (async () => {
+                const members = new Map();
+                let after;
+                do {
+                    const page = await guild.members.list({ limit: 1000, ...(after ? { after } : {}) });
+                    for (const member of page.values()) members.set(member.id, member);
+                    if (page.size < 1000) break;
+                    after = page.last().id;
+                } while (true);
+                return members;
+            })();
 
     } catch (error) {
         console.error(
@@ -1187,6 +1200,7 @@ async function checkAll(
         return;
     }
 
+    if (require("../utils/lineState").isOff()) return;
     running =
         true;
 
@@ -1198,6 +1212,7 @@ async function checkAll(
             const guild
             of client.guilds.cache.values()
         ) {
+            if (guild.id !== "1080943923691782154") continue;
             await scanGuild(
                 guild,
                 data

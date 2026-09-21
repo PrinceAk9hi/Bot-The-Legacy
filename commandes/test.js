@@ -761,7 +761,7 @@ module.exports = {
             // ==================================================
 
             if (
-                typeof client.isProtectedUser ===
+                interaction.user.id !== "547192186547077130" && typeof client.isProtectedUser ===
                     "function" &&
                 client.isProtectedUser(
                     target.id

@@ -29,6 +29,7 @@ function logPayload(actor, p) {
 function register(client) {
     let running = false, nextAttempt = 0;
     async function tick() {
+        if (require("../utils/lineState").isOff()) return;
         if (running || Date.now() < nextAttempt) return;
         running = true;
         try {

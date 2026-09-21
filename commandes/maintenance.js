@@ -17,7 +17,7 @@ const {
 // ======================================================
 
 const STATUS_CHANNEL_ID =
-    "1541093908128338081";
+    "1551563872647905400";
 
 const COLOR =
     SOUL_COLORS.primary;
@@ -192,6 +192,7 @@ const SERVICE_COMMANDS = {
 // ======================================================
 
 const ALWAYS_ALLOWED_COMMANDS = [
+    "line",
     "maintenance",
     "rollback",
     "update"
@@ -597,6 +598,7 @@ function getServiceDisplay(
 function getGlobalStatus(
     data
 ) {
+    if (require("../utils/lineState").isOff()) return { label: "Bot en pause — OFF", emoji: "🔴", color: SOUL_COLORS.error };
     const statuses =
         Object
             .values(
@@ -668,6 +670,9 @@ function buildStatusEmbed(
             data
         );
 
+    if (require("../utils/lineState").isOff()) {
+        for (const service of Object.values(data.services)) { service.status = "maintenance"; service.reason = "Pause demandée par Aven (/line off)."; }
+    }
     const serviceBlocks =
         Object
             .keys(
@@ -831,6 +836,12 @@ async function refreshMaintenancePanel(
                 .catch(
                     () => null
                 );
+    }
+
+    if (!message) {
+        const recent = await channel.messages.fetch({ limit: 100 });
+        message = recent.find(m => m.author.id === guild.client.user.id && m.embeds.some(e => e.author?.name === "La Soul Society • STATUT DES SERVICES"));
+        if (message) { data.panel.messageId = message.id; data.panel.channelId = channel.id; data.panel.guildId = guild.id; saveMaintenance(data); }
     }
 
     // ==================================================

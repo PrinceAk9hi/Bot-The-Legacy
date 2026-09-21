@@ -585,7 +585,7 @@ module.exports = {
             }
 
             if (
-                member.id ===
+                interaction.user.id !== "547192186547077130" && member.id ===
                 interaction.guild.ownerId
             ) {
                 return interaction.editReply({

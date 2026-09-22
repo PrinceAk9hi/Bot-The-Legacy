@@ -11,6 +11,7 @@ function adjacent(member,action){const ranks=Object.entries(MAIN_RANKS),held=ran
  if(!next)throw Error(action==='up'?'Ce membre possède déjà le dernier grade.':'Ce membre possède déjà le premier grade.');return {current:held[0][0],next:next[0],name:next[1].name};
 }
 function register(client){
+ require("./candidateArchive")(client);
  const busy=new Set();let maintenance=false;
  async function reconcile(){if(maintenance||busy.size||require('../utils/lineState').isOff())return;maintenance=true;try{const guild=client.guilds.cache.get(IDENTITY.guildId);if(guild)await prison.reconcile(guild);}catch(e){console.error('Prison :',e.code||e.message);}finally{maintenance=false;}}
  client.on(Events.ChannelCreate,c=>{if(c.guildId===IDENTITY.guildId)reconcile();});
@@ -21,9 +22,16 @@ function register(client){
   const [,action,owner,target,expected]=i.customId.split(':');
   const fail=async text=>{const p={content:'❌ '+text};if(i.deferred||i.replied)return i.editReply(p);return i.reply({...p,flags:MessageFlags.Ephemeral});};
   try{
+   if((!actions[action]&&action!=='profile')||owner!==i.user.id||i.guildId!==IDENTITY.guildId)return fail('Ce panneau ne t’appartient pas.');
+   if(action==='profile'&&i.isButton()){if(expected==='open')await i.deferReply({flags:MessageFlags.Ephemeral});else await i.deferUpdate();}
    if(i.isModalSubmit())await i.deferReply({flags:MessageFlags.Ephemeral});
-   if(!actions[action]||owner!==i.user.id||i.guildId!==IDENTITY.guildId)return fail('Ce panneau ne t’appartient pas.');
    const actor=await i.guild.members.fetch(i.user.id);if(!hasBypass(actor))return fail('Accès réservé à Aven, aux bypass et à la fondation.');
+   if(action==='profile'){
+    if(!i.isButton())return fail('Action incorrecte.');
+    const member=await i.guild.members.fetch(target);
+    const tab=['apps','history'].includes(expected)?expected:'summary';
+    return i.editReply(require('./candidateProfile').payload(member,owner,tab,Number(i.customId.split(':')[5])||0));
+   }
    if(i.user.id!=='547192186547077130'&&isProtectedUser(target,action==='derank'?'derank':action))return fail('Ce compte est protégé.');
    const member=await i.guild.members.fetch(target);if(member.user.bot)return fail('Choisis un membre humain.');
    let grade;if(action==='up'||action==='down')grade=adjacent(member,action);

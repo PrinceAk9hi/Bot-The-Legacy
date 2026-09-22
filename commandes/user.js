@@ -363,6 +363,8 @@ module.exports = {
                     );
 
             // =====================================================
+            ligne3.addComponents(new ButtonBuilder().setCustomId(`memberctl:profile:${owner}:${target}:open:0`).setLabel("Profil candidat").setEmoji("📋").setStyle(ButtonStyle.Secondary));
+
             // MENU VOCAL
             // =====================================================
 

@@ -21,7 +21,8 @@ function render(embed,rows,owner,target,category='profile'){
   container.addActionRowComponents(new ActionRowBuilder().addComponents(locks));
  }else{
   const profile=rows[2].components.filter(c=>c.data.custom_id?.startsWith('memberctl:profile:'));
-  if(profile.length)container.addActionRowComponents(new ActionRowBuilder().addComponents(profile));
+  profile.push(new ButtonBuilder().setCustomId(`userpage:${owner}:${target}:stats`).setLabel('📊 Statistiques').setStyle(ButtonStyle.Secondary));
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(profile));
  }
  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${escapeMarkdown(e.footer?.text||'Panel de gestion')} • Choisis une rubrique pour actualiser les informations.`));
  return {content:null,embeds:[],components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
@@ -29,8 +30,19 @@ function render(embed,rows,owner,target,category='profile'){
 async function handle(i){
  if(!i.isButton())return;
  const [,owner,target,category]=i.customId.split(':');
- if(owner!==i.user.id||i.guildId!==IDENTITY.guildId||!categories[category])return i.reply({content:'❌ Ce panneau ne t’appartient pas.',flags:MessageFlags.Ephemeral});
+ if(owner!==i.user.id||i.guildId!==IDENTITY.guildId||(!categories[category]&&category!=='stats'))return i.reply({content:'❌ Ce panneau ne t’appartient pas.',flags:MessageFlags.Ephemeral});
  if(!hasBypass(i)&&!RANK_ALLOWED_ROLES.some(id=>i.member.roles.cache.has(id)))return i.reply({content:'❌ Tu n’as plus accès à ce panneau.',flags:MessageFlags.Ephemeral});
+ if(category==='stats'){
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  const statsInteraction=new Proxy(i,{get(obj,key){
+   if(key==='options')return {getUser:()=>({id:target})};
+   if(key==='commandName')return 'analyse';
+   if(key==='deferReply')return async()=>{};
+   const value=Reflect.get(obj,key,obj);return typeof value==='function'?value.bind(obj):value;
+  }});
+  try{return await require('../commandes/analyse').execute(statsInteraction);}
+  catch{return i.editReply({content:'❌ Impossible de charger les statistiques pour le moment.'});}
+ }
  await i.deferUpdate();
  const proxy=new Proxy(i,{get(obj,key){
   if(key==='options')return {getUser:()=>({id:target})};

@@ -20,7 +20,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function membership(userId) {
     // Bypass noblox's rank cache: confirmation must reflect the actual membership.
     const response = await fetch(`https://groups.roblox.com/v2/users/${userId}/groups/roles`, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error("ROBLOX_UNAVAILABLE");
+    if (!response.ok) throw new Error("ROBLOX_HTTP_" + response.status);
     const body = await response.json();
     if (!Array.isArray(body.data)) throw new Error("ROBLOX_INVALID_RESPONSE");
     return body.data.some(entry => String(entry.group?.id) === String(ROBLOX.groupId));
@@ -53,8 +53,10 @@ async function verify(interaction, userId) {
             if (attempt < 3) await delay(1500);
         }
         return { success: false, message: "⏳ La demande a été traitée, mais Roblox ne confirme pas encore ton adhésion. Réessaie dans quelques instants." };
-    } catch {
-        return { success: false, message: "❌ Vérification Roblox indisponible pour le moment. Réessaie plus tard ; ton adhésion n’a pas été confirmée." };
+    } catch (error) {
+        const code = /^ROBLOX_(HTTP_\d+|INVALID_RESPONSE)$/.test(error.message) ? error.message : error.name === "TimeoutError" ? "ROBLOX_TIMEOUT" : "VERIFICATION_ERROR";
+        console.warn("[Accueil v32] Vérification échouée", { robloxId: key, code });
+        return { success: false, code, message: "❌ Vérification Roblox indisponible pour le moment. Réessaie plus tard ; ton adhésion n’a pas été confirmée." };
     } finally { pending.delete(key); }
 }
 module.exports = { verify, membership };

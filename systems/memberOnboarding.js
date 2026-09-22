@@ -62,7 +62,7 @@ function stepPayload(p) {
         case "communityConfirmed": embed.setColor(COLORS.success).setTitle(p.membershipAlreadyMember ? "✅ Tu es déjà dans la communauté !" : "✅ Ta demande a été acceptée !")
             .setDescription(`${EMOJIS.certification} **${p.membershipAlreadyMember ? "Ton compte Roblox fait déjà partie de la communauté de la Soul Society." : "Roblox confirme que ton compte a bien rejoint la communauté de la Soul Society."}**\n\nClique sur **Continuer** pour découvrir les salons de la famille.`);
             components = [row(button("welcome_continue", "Continuer", ButtonStyle.Success))]; break;
-        case "guide": embed.setTitle("🧭 5/5 • Tes repères dans la famille").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? `${EMOJIS.certification} **Ton adhésion Roblox est confirmée !**\n\n` : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
+        case "guide": embed.setTitle(p.membershipAlreadyMember ? "✅ Déjà membre • 5/5 • Tes repères" : "✅ Adhésion confirmée • 5/5 • Tes repères").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? `${EMOJIS.certification} **Ton adhésion Roblox est confirmée !**\n\n` : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
         default: embed.setTitle("✅ Accueil terminé").setDescription(`${EMOJIS.logo} **Ton profil est prêt, bienvenue dans la famille !**\n\n📅 Tes disponibilités ont été enregistrées.\n👤 Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.`); components = [];
     }
     return { content: null, embeds: [embed], components, allowedMentions: { parse: [] } };
@@ -103,6 +103,15 @@ async function publishAvailability(client, actorId) {
     if (message) await message.edit(payload); else message = await channel.send(payload);
     patch(actorId, { availabilityMessageId: message.id, availabilityChannelId: CHANNEL });
 }
+
+function membershipFailure(p, result) {
+    return { content: null, embeds: [welcomeEmbed().setColor(COLORS.error)
+        .setTitle("⚠️ Adhésion non confirmée — étape 4")
+        .setDescription((result.message || "La vérification n’a pas abouti.") + "\n\n**Compte vérifié :** @" + (p.robloxUsername || "non renseigné") + "\n**ID Roblox :** " + (p.robloxId || "non renseigné") + "\n**Communauté :** " + ROBLOX.groupId + "\n\nSi ce compte n’est pas le tien, utilise **Corriger mon compte Roblox**.")
+        .setFooter({text:"La Soul Society • Accueil v32 • " + (result.code || "ADHESION_NON_CONFIRMEE")})],
+        components: [row(button("welcome_community", "Réessayer"),button("welcome_correct_roblox", "Corriger mon compte Roblox",ButtonStyle.Secondary))], allowedMentions:{parse:[]} };
+}
+
 async function handle(interaction) {
     const id = interaction.customId || "";
     if (!id.startsWith("welcome_") || interaction.guildId !== IDENTITY.guildId) return;
@@ -126,6 +135,10 @@ async function handle(interaction) {
             patch(actor, {step: "guide"});
             return interaction.update(stepPayload(profile(actor)));
         }
+        if (id === "welcome_correct_roblox" && p.step === "community") {
+            patch(actor, { step: "roblox" });
+            return interaction.update(stepPayload(profile(actor)));
+        }
         if (id === "welcome_restart") {
             patch(actor, { step: "profile" });
             return interaction.update(stepPayload(profile(actor)));
@@ -135,11 +148,12 @@ async function handle(interaction) {
             try {
                 await interaction.deferUpdate();
                 const result = await require("../utils/onboardingMembership").verify(interaction, p.robloxId);
-                if (!result.success) return await interaction.editReply({ ...stepPayload(p), content: result.message });
-                patch(actor, { step: "communityConfirmed", membershipAlreadyMember: Boolean(result.alreadyMember), membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
+                if (!result.success) return await interaction.editReply(membershipFailure(p, result));
+                patch(actor, { step: "guide", membershipAlreadyMember: Boolean(result.alreadyMember), membershipVerifiedAt: Date.now(), membershipRobloxId: p.robloxId });
                 return await interaction.editReply(stepPayload(profile(actor)));
-            } catch {
-                return await interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ La confirmation n’a pas pu être affichée. Réessaie avec le bouton ci-dessous ; ta progression est conservée." });
+            } catch (error) {
+                console.warn("[Accueil v32] Affichage/enregistrement échoué", { actor, code: error.code || error.name });
+                return await interaction.editReply(membershipFailure(p, { message: "La confirmation n’a pas pu être enregistrée ou affichée. Réessaie.", code: "ENREGISTREMENT_OU_AFFICHAGE" }));
             } finally { busy.delete(actor); }
         }
         if (id === "welcome_finish" && p.step === "guide") {
@@ -189,7 +203,7 @@ async function handle(interaction) {
             const other = getDiscordLinkByRobloxId(result.user.id);
             if (other && other.discordUserId !== p.discordId && !hasBypass(interaction)) return interaction.editReply({ ...stepPayload(profile(actor)), content: "❌ Ce compte Roblox est déjà lié à un autre Discord. Contacte l’équipe." });
             setRobloxLink({ discordUserId: p.discordId, robloxUserId: result.user.id, robloxUsername: result.user.username, source: "bienvenue-declaration" });
-            patch(actor, { robloxDisplayName: field("name"), robloxUsername: result.user.username, robloxId: result.user.id, step: "week" });
+            patch(actor, { robloxDisplayName: field("name"), robloxUsername: result.user.username, robloxId: result.user.id, membershipVerifiedAt: null, membershipRobloxId: null, membershipAlreadyMember: null, step: "week" });
         } else if (["week", "weekend"].includes(p.step)) {
             return interaction.editReply({ ...stepPayload(p), content: "Les disponibilités se choisissent maintenant avec les boutons ci-dessous." });
         }

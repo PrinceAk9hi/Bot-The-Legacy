@@ -2328,6 +2328,11 @@ client.on(
                 }
             }
 
+            if (interaction.customId?.startsWith("userpage:")) {
+                await require("./utils/userPanel").handle(interaction);
+                return;
+            }
+
             if (interaction.customId?.startsWith("memberctl:")) {
                 await client.userActions(interaction);
                 return;

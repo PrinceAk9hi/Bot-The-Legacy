@@ -388,19 +388,10 @@ module.exports = {
             // AFFICHAGE FINAL
             // =====================================================
 
-            return interaction.editReply({
-                embeds: [
-                    embed
-                ],
-
-                components: [
-                    ligne1,
-                    ligne2,
-                    ligne3,
-                    selectVoc,
-                    require("../systems/userActions").buttons(owner, target)
-                ]
-            });
+            return interaction.editReply(require("../utils/userPanel").render(
+                embed, [ligne1, ligne2, ligne3, selectVoc, require("../systems/userActions").buttons(owner, target)],
+                owner, target, interaction.userPanelCategory || "profile"
+            ));
 
         } catch (error) {
 

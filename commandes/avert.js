@@ -732,3 +732,5 @@ module.exports = {
         }
     }
 };
+// Configuration partagée avec le panneau de sanctions /user.
+module.exports.WARNING_ROLES = WARNING_ROLES;

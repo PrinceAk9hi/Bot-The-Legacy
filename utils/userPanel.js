@@ -17,6 +17,11 @@ function render(embed,rows,owner,target,category='profile'){
  if(category==='voice')container.addActionRowComponents(rows[0],rows[1],rows[3]);
  else if(category==='management'){
   container.addActionRowComponents(rows[4]);
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(
+   new ButtonBuilder().setCustomId(`userpage:${owner}:${target}:convocation`).setLabel('📨 Convoquer').setStyle(ButtonStyle.Secondary),
+   new ButtonBuilder().setCustomId(`userpage:${owner}:${target}:validate`).setLabel('✅ Valider le test').setStyle(ButtonStyle.Success),
+   new ButtonBuilder().setCustomId(`userpage:${owner}:${target}:sanctions`).setLabel('⚠️ Sanctions').setStyle(ButtonStyle.Danger)
+  ));
   const locks=rows[2].components.filter(c=>!c.data.custom_id?.startsWith('memberctl:profile:'));
   container.addActionRowComponents(new ActionRowBuilder().addComponents(locks));
  }else{
@@ -28,10 +33,12 @@ function render(embed,rows,owner,target,category='profile'){
  return {content:null,embeds:[],components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
 async function handle(i){
- if(!i.isButton())return;
+ if(!i.isButton()&&!i.isModalSubmit())return;
  const [,owner,target,category]=i.customId.split(':');
- if(owner!==i.user.id||i.guildId!==IDENTITY.guildId||(!categories[category]&&category!=='stats'))return i.reply({content:'❌ Ce panneau ne t’appartient pas.',flags:MessageFlags.Ephemeral});
+ if(owner!==i.user.id||i.guildId!==IDENTITY.guildId||(!categories[category]&&!['stats','convocation','validate','sanctions','warning'].includes(category)))return i.reply({content:'❌ Ce panneau ne t’appartient pas.',flags:MessageFlags.Ephemeral});
  if(!hasBypass(i)&&!RANK_ALLOWED_ROLES.some(id=>i.member.roles.cache.has(id)))return i.reply({content:'❌ Tu n’as plus accès à ce panneau.',flags:MessageFlags.Ephemeral});
+ if(['convocation','validate','sanctions','warning'].includes(category))return require('./userManagement').handle(i);
+ if(!i.isButton())return i.reply({content:'❌ Action incorrecte.',flags:MessageFlags.Ephemeral});
  if(category==='stats'){
   await i.deferReply({flags:MessageFlags.Ephemeral});
   const statsInteraction=new Proxy(i,{get(obj,key){

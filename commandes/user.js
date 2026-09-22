@@ -395,7 +395,8 @@ module.exports = {
                     ligne1,
                     ligne2,
                     ligne3,
-                    selectVoc
+                    selectVoc,
+                    require("../systems/userActions").buttons(owner, target)
                 ]
             });
 

@@ -1,8 +1,5 @@
 const {Events,EmbedBuilder,MessageFlags}=require('discord.js');const {IDENTITY,ROLES}=require('../config/soulSociety');const {read,update}=require('../utils/recruitmentData');
 function register(client){const busy=new Set();
 client.on(Events.GuildMemberUpdate,(oldMember,member)=>{if(member.guild.id!==IDENTITY.guildId||member.user.bot)return;const was=oldMember.roles.cache.has(ROLES.test),now=member.roles.cache.has(ROLES.test);if(was===now)return;update('memberTests',all=>{if(now)all[member.id]={startedAt:Date.now(),guildId:member.guild.id,source:'Attribution observée du rôle Membre Test'};else if(all[member.id])all[member.id].endedAt=Date.now();});});
-client.on(Events.InteractionCreate,async i=>{if(!i.isButton()||!i.customId.startsWith('membercare_confirm:')||i.guildId!==IDENTITY.guildId)return;
-const id=i.customId.split(':')[1],record=read('memberConvocations')[id];if(!record||record.channelId!==i.channelId||record.guildId!==i.guildId||i.message.id!==id)return i.reply({content:'Convocation introuvable.',flags:MessageFlags.Ephemeral});
-if(record.userId!==i.user.id)return i.reply({content:'Seul le membre convoqué peut confirmer sa présence.',flags:MessageFlags.Ephemeral});if(busy.has(id))return i.reply({content:'Confirmation en cours.',flags:MessageFlags.Ephemeral});busy.add(id);
-try{await i.deferUpdate();const confirmedAt=record.confirmedAt||Date.now();const embed=EmbedBuilder.from(i.message.embeds[0]);const fields=(embed.data.fields||[]).map(f=>f.name==='Réponse'?{name:'Réponse',value:`✅ Présence confirmée le <t:${Math.floor(confirmedAt/1000)}:f>.`}:f);embed.setFields(fields);await i.editReply({embeds:[embed],components:[]});update('memberConvocations',all=>{all[id].confirmedAt=confirmedAt;});}catch{if(i.deferred)await i.followUp({content:'Confirmation incomplète. Réessaie ou contacte le recruteur.',flags:MessageFlags.Ephemeral}).catch(()=>{});}finally{busy.delete(id);}});
+require("./convocationFollowup")(client);
 }module.exports=register;

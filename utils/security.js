@@ -56,7 +56,7 @@ async function blockUnauthorizedSlash(interaction) {
     if (interaction.guildId) {
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
-        if (["bienvenue", "mon-profil", "absence"].includes(interaction.commandName) && personal(interaction.member)) return false;
+        if (["bienvenue", "mon-profil", "absence", "anniversaire"].includes(interaction.commandName) && personal(interaction.member)) return false;
         if (["suivi-test", "convocation"].includes(interaction.commandName) && recruiter(interaction.member)) return false;
     }
     if (autocomplete) await interaction.respond([]);

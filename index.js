@@ -608,6 +608,7 @@ require("./systems/memberOnboarding")(client);
 require("./systems/interviewPanel")(client);
 require("./systems/memberCare")(client);
 require("./systems/userActions")(client);
+require("./systems/familyLife")(client);
 require("./systems/soulActivity")(client);
 
 // Candidatures

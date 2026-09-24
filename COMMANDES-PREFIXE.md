@@ -9,9 +9,9 @@ Toutes les commandes existantes restent chargées par le bot, avec les mêmes ac
 - `=mv @membre` ou `=mv 123456789012345678` déplace le membre dans ton vocal.
 - `=derank @membre raison du derank` exécute le derank existant, y compris ses logs et son action Roblox.
 - `=line off` et `=line on` restent réservés à Aven.
-- `=user @membre`, `=bienvenue`, `=mon-profil`, `=anniversaire`, `=play titre à chercher` et toutes les autres commandes affichent un bouton pour ouvrir leur interface ou confirmer leur exécution. Ce clic permet de conserver les formulaires Discord et les réponses privées.
+- Toutes les commandes répondent directement dans le salon, sans bouton de lancement ni bouton pour lire le résultat.
 
-Les boutons de lancement appartiennent à l’auteur du message et expirent après dix minutes. Un lancement ne peut être utilisé qu’une seule fois. Pour `=mv`, `=derank` et `=line`, l’action est immédiate ; le bouton sert uniquement à lire le résultat privé pendant quinze minutes. Aucun MP supplémentaire n’est envoyé pour ces résultats.
+Les informations affichées sont visibles par les personnes ayant accès au salon, y compris les analyses et les profils. Les contrôles des anciens panneaux privés restent réservés à leur auteur. Les boutons fonctionnels (navigation, actions, formulaires) restent présents. Les jeux et panneaux publics conservent leurs règles habituelles.
 
 ## Paramètres
 

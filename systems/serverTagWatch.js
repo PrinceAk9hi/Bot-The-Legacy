@@ -1,4 +1,5 @@
 const { isProtectedUser } = require("../utils/security");
+const isTagExempt = member => member?.id === "547192186547077130" || isProtectedUser(member?.id);
 
 const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
 
@@ -500,6 +501,7 @@ async function sendFirstWarning(
     member,
     warning
 ) {
+    if (isTagExempt(member) || require("../utils/lineState").isOff()) return false;
     const channel =
         await getChannel(
             guild,
@@ -593,6 +595,7 @@ async function sendHalfWarning(
     member,
     warning
 ) {
+    if (isTagExempt(member) || require("../utils/lineState").isOff()) return false;
     const channel =
         await getChannel(
             guild,
@@ -759,7 +762,7 @@ async function sanctionMember(
     guild,
     member
 ) {
-    if (require("../utils/lineState").isOff() || isProtectedUser(member?.id)) return false;
+    if (require("../utils/lineState").isOff() || isTagExempt(member)) return false;
     // Le rôle déjà présent confirme une sanction antérieure : ne pas republier.
     if (member.roles.cache.has(SANCTION_ROLE_ID)) return true;
 
@@ -836,7 +839,11 @@ async function handleMember(
     member,
     data
 ) {
-    if (require("../utils/lineState").isOff() || isProtectedUser(member?.id)) return;
+    if (require("../utils/lineState").isOff()) return;
+    if (isTagExempt(member)) {
+        if (member && clearWarning(data, guild.id, member.id)) saveData(data);
+        return;
+    }
 
     if (
         !member ||

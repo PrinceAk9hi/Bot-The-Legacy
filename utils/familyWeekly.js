@@ -8,7 +8,7 @@ async function build(guild,end=Date.now()){
  for(const m of roster.values()){if(!eligible(m))continue;const stats=ledger.totals(m.id,from,end);messages+=stats.messages;voiceMs+=stats.voiceMs;if(stats.messages||stats.voiceMs)active.push({id:m.id,...stats});}
  const history=read('ranks'),ranks=(Array.isArray(history)?history:[]).filter(r=>r.category==='grade'&&r.timestamp>=from&&r.timestamp<=end);
  const tests=Object.values(read('memberTests')).filter(r=>r.guildId===guild.id&&r.startedAt>=from&&r.startedAt<=end);
- const absences=Object.values(read('memberAbsences')).filter(r=>r.guildId===guild.id&&r.start<=end&&r.end>=from);
+ const absences=Object.values(read('memberAbsences')).filter(r=>r.guildId===guild.id&&require('./memberAbsence').overlaps(r,from,end));
  const welcomes=Object.values(read('welcomeProfiles')).filter(r=>Number(r.completedAt)>=from&&Number(r.completedAt)<=end);
  const e=new EmbedBuilder().setColor(COLORS.primary).setTitle('📊 Bilan de la semaine • La Soul Society')
  .setDescription(`Du <t:${Math.floor(from/1000)}:f> au <t:${Math.floor(end/1000)}:f>\nActivité des membres actuellement dans la famille. Données enregistrées par le bot ; les périodes hors ligne ne sont pas reconstituées.`)

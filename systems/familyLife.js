@@ -1,5 +1,5 @@
 const {Events}=require('discord.js');const {IDENTITY}=require('../config/soulSociety');const {read,update}=require('../utils/recruitmentData');const {isOff}=require('../utils/lineState');const {sunday}=require('../utils/familyCalendar');
-module.exports=function(client){if(client.familyLifeRegistered)return;client.familyLifeRegistered=true;require("../utils/birthdayBoard").register(client);let running=false,birthdayNext=0,consentNext=0;
+module.exports=function(client){if(client.familyLifeRegistered)return;client.familyLifeRegistered=true;require("../utils/memberAbsence").register(client);require("../utils/meetingAttendance").register(client);require("../utils/birthdayBoard").register(client);let running=false,birthdayNext=0,consentNext=0;
  client.on(Events.InteractionCreate,i=>{require('../utils/familyBirthdays').handle(i).catch(e=>console.error('Profil anniversaire :',e.code||e.message));});
  client.on(Events.InteractionCreate,i=>{require('../utils/birthdayConsent').handle(i).catch(e=>console.error('Préférences anniversaire :',e.code||e.message));});
  async function tick(){if(running||isOff())return;running=true;try{const guild=client.guilds.cache.get(IDENTITY.guildId);if(!guild)return;

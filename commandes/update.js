@@ -75,7 +75,7 @@ module.exports = {
 
                 } catch (error) {
                     console.error(
-                        "❌ /update réponse :",
+                        "❌ =update réponse :",
                         error
                     );
 
@@ -98,7 +98,7 @@ module.exports = {
             );
 
             console.log(
-                `🔄 /update lancé par ${interaction.user.username}`
+                `🔄 =update lancé par ${interaction.user.username}`
             );
 
             // ==================================================
@@ -241,11 +241,11 @@ module.exports = {
                     loaded++;
 
                     results.push(
-                        `✅ /${commandName}`
+                        `✅ =${commandName}`
                     );
 
                     console.log(
-                        `✅ Reload : ${file} → /${commandName}`
+                        `✅ Reload : ${file} → =${commandName}`
                     );
 
                     // ==========================================
@@ -257,7 +257,7 @@ module.exports = {
                             "function"
                     ) {
                         console.log(
-                            `↳ 🔎 Autocomplete : /${commandName}`
+                            `↳ 🔎 Autocomplete : =${commandName}`
                         );
                     }
 
@@ -289,7 +289,7 @@ module.exports = {
                     previousCommands;
 
                 console.error(
-                    "❌ /update annulé : aucune commande valide."
+                    "❌ =update annulé : aucune commande valide."
                 );
 
                 console.log(
@@ -352,7 +352,7 @@ module.exports = {
                         "effectué";
 
                     console.log(
-                        "✅ Slash commands réenregistrées auprès de Discord."
+                        "✅ Commandes = rechargées ; anciennes commandes slash retirées."
                     );
 
                 } catch (error) {
@@ -438,7 +438,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /update :",
+                "❌ =update :",
                 error
             );
 
@@ -468,7 +468,7 @@ module.exports = {
 
             } catch (replyError) {
                 console.error(
-                    "❌ Impossible d'envoyer l'erreur /update :",
+                    "❌ Impossible d'envoyer l'erreur =update :",
                     replyError
                 );
             }

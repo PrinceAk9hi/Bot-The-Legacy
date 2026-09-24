@@ -349,7 +349,7 @@ Souhaites-tu accepter ?`
 
         } catch (error) {
             console.error(
-                "❌ /union :",
+                "❌ =union :",
                 error
             );
 

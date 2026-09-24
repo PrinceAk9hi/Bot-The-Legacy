@@ -110,7 +110,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/setuptpv`."
+                        "❌ Tu n'as pas la permission d'utiliser `=setuptpv`."
                 });
             }
 
@@ -284,7 +284,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /setuptpv :",
+                "❌ =setuptpv :",
                 error
             );
 

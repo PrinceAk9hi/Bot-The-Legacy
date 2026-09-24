@@ -214,7 +214,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/link`."
+                        "❌ Tu n'as pas la permission d'utiliser `=link`."
                 });
             }
 
@@ -319,7 +319,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ Erreur /link :",
+                "❌ Erreur =link :",
                 error
             );
 

@@ -29,7 +29,7 @@ async function handle(i){
     await i.deferReply({flags:MessageFlags.Ephemeral});
     const member=await i.guild.members.fetch({user:target,force:true});
     const held=Object.values(warnings).filter(w=>member.roles.cache.has(w.roleId)).map(w=>w.label);
-    const c=new ContainerBuilder().setAccentColor(COLORS.sanction).addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ⚠️ Sanctions\n<@${target}>\n**Avertissements actuels :** ${held.join(', ')||'Aucun'}\nChoisis le niveau à attribuer, puis renseigne le motif. Le fonctionnement et les protections de /avert s’appliquent.`));
+    const c=new ContainerBuilder().setAccentColor(COLORS.sanction).addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ⚠️ Sanctions\n<@${target}>\n**Avertissements actuels :** ${held.join(', ')||'Aucun'}\nChoisis le niveau à attribuer, puis renseigne le motif. Le fonctionnement et les protections de =avert s’appliquent.`));
     c.addActionRowComponents(new ActionRowBuilder().addComponents(Object.entries(warnings).map(([key,w])=>new ButtonBuilder().setCustomId(`userpage:${owner}:${target}:warning:${key}`).setLabel(w.label).setStyle(ButtonStyle.Danger))));
     return i.editReply({components:[c],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}});
    }
@@ -57,9 +57,9 @@ async function handle(i){
    if(action==='warning')return await require('../commandes/avert').execute(adapter(i,member,actor,'avert',{choixavert:level,raison:reason}));
    if(i.user.id!=='547192186547077130'&&isProtectedUser(target,'rank'))return fail('Ce compte est protégé.');
    if(!member.roles.cache.has(ROLES.test))return fail('Ce membre n’est plus en période de test. Aucune modification effectuée.');
-   if(Object.values(MAIN_RANKS).some(r=>r.roleId!==ROLES.test&&member.roles.cache.has(r.roleId))||member.roles.cache.has(ROLES.confirmed))return fail('Le membre possède déjà un autre grade : vérifie ses rôles avec /rank avant de valider son test.');
+   if(Object.values(MAIN_RANKS).some(r=>r.roleId!==ROLES.test&&member.roles.cache.has(r.roleId))||member.roles.cache.has(ROLES.confirmed))return fail('Le membre possède déjà un autre grade : vérifie ses rôles avec =rank avant de valider son test.');
    return await require('../commandes/rank').execute(adapter(i,member,actor,'rank',{categorie:'grade',action:'add',role:'confirme',note:'Validation de la période de test : '+reason}));
   }finally{busy.delete(key);}
- }catch(e){console.error('Gestion /user :',e.code||e.message);return fail('Action interrompue. Vérifie les rôles et les logs avant de réessayer.').catch(()=>{});}
+ }catch(e){console.error('Gestion =user :',e.code||e.message);return fail('Action interrompue. Vérifie les rôles et les logs avant de réessayer.').catch(()=>{});}
 }
 module.exports={handle,adapter};

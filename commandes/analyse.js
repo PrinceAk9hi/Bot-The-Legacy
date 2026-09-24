@@ -1091,7 +1091,7 @@ module.exports = {
                         "membre"
                     );
 
-            if (interaction.guildId !== IDENTITY.guildId) return interaction.editReply({content:"Utilise /analyse dans le serveur de la Soul Society."});
+            if (interaction.guildId !== IDENTITY.guildId) return interaction.editReply({content:"Utilise =analyse dans le serveur de la Soul Society."});
             await interaction.guild.roles.fetch();
             const member = await interaction.guild.members.fetch({ user: user.id, force: true }).catch(() => null);
 
@@ -1124,9 +1124,10 @@ module.exports = {
 
             if (!currentGrade) {
                 const stats = getMemberStats(interaction.client, member.id);
-                const status = member.roles.cache.has(ROLES.interviewWaiting) ? "Attente entretien" : member.roles.cache.has(ROLES.member) ? "Membres de la Soul Society" : "Aucun grade membre configuré reconnu";
+                const confirmed = member.roles.cache.has(ROLES.confirmed);
+                const status = confirmed ? "Membre Confirmé" : member.roles.cache.has(ROLES.interviewWaiting) ? "Attente entretien" : member.roles.cache.has(ROLES.member) ? "Membres de la Soul Society" : "Aucun grade membre configuré reconnu";
                 const summary = new EmbedBuilder().setColor(COLOR).setTitle("📊 Analyse • " + member.displayName)
-                    .setDescription(`<@${member.id}>\n**Statut :** ${status}\nUn rôle d’appartenance ou d’attente n’est pas un palier Test → Référent ; aucun passage automatique n’est évalué.`)
+                    .setDescription(`<@${member.id}>\n**${confirmed ? "Grade actuel" : "Statut"} :** ${status}\n${confirmed ? "Ce grade est reconnu. Sa place dans la progression reste à configurer ; aucune recommandation de promotion n’est calculée." : "Un rôle d’appartenance ou d’attente n’est pas un palier Test → Référent ; aucun passage automatique n’est évalué."}`)
                     .addFields({name:"Messages historiques",value:String(stats?.messages || 0)}, {name:"Vocal historique",value:formatSeconds(stats?.voiceSeconds || 0)}, {name:"Gestions",value:getMemberManagements(member).map(r=>r.name).join(", ") || "Aucune"});
                 return interaction.editReply({embeds:[summary, await buildActivityAnalysis(interaction.client, member)]});
             }
@@ -1407,7 +1408,7 @@ ${evaluation.explanation}
 
         } catch (error) {
             console.error(
-                "❌ /analyse :",
+                "❌ =analyse :",
                 error
             );
 

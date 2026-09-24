@@ -11,7 +11,7 @@ module.exports = {
         const user = interaction.options.getUser("membre", true);
         if (user.bot) return interaction.editReply("❌ Choisis un membre humain.");
         const link = getRobloxLink(user.id);
-        if (!link?.robloxUserId) return interaction.editReply("❌ Ce membre n’a pas de compte Roblox lié. Utilise /link ou demande-lui de compléter son profil.");
+        if (!link?.robloxUserId) return interaction.editReply("❌ Ce membre n’a pas de compte Roblox lié. Utilise =link ou demande-lui de compléter son profil.");
         const result = await addBadge(link.robloxUserId);
         if (result.success) return interaction.editReply({
             content: result.alreadyHasBadge

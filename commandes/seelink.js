@@ -273,7 +273,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /seelink :",
+                "❌ =seelink :",
                 error
             );
 

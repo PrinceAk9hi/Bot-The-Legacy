@@ -5,7 +5,7 @@ module.exports=function(client){if(client.familyLifeRegistered)return;client.fam
  async function tick(){if(running||isOff())return;running=true;try{const guild=client.guilds.cache.get(IDENTITY.guildId);if(!guild)return;
   const tasks=[];
   if(Date.now()>=consentNext){consentNext=Date.now()+60000;tasks.push(require('../utils/birthdayConsent').remind(guild).catch(e=>console.error('Rappels préférences anniversaire :',e.code||e.message)));}
-  if(Date.now()>=birthdayNext){birthdayNext=Date.now()+300000;tasks.push(require('../utils/familyBirthdays').sync(guild).catch(e=>console.error('Anniversaires :',e.code||e.message)));}
+  if(Date.now()>=birthdayNext){birthdayNext=Date.now()+300000;tasks.push(require('../utils/familyBirthdays').sync(guild).catch(e=>console.error('Anniversaires :',e.code||e.message)));tasks.push(require('../utils/birthdayAnnouncements').announce(guild).catch(e=>console.error('Annonce anniversaire :',e.code||e.message)));}
   tasks.push(require('../utils/familyMeetings').reminders(guild).catch(e=>console.error('Rappels réunion :',e.code||e.message)));
   tasks.push((async()=>{let s=read('familySchedule');if(!s.nextWeekAt){update('familySchedule',v=>{v.nextWeekAt=sunday();});return;}if(Date.now()<s.nextWeekAt)return;
    const end=sunday(Date.now(),false);await require('../utils/familyWeekly').publish(guild,end,true);update('familySchedule',v=>{v.nextWeekAt=sunday();});

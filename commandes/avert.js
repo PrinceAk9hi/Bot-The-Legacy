@@ -164,7 +164,7 @@ async function removeOldWarningRoles(
 
         } catch (error) {
             console.error(
-                `❌ /avert retrait ${role.name} :`,
+                `❌ =avert retrait ${role.name} :`,
                 error
             );
 
@@ -250,7 +250,7 @@ async function addWarningRole(
     try {
         await member.roles.add(
             role,
-            `/avert par ${moderator.tag} • ${reason}`
+            `=avert par ${moderator.tag} • ${reason}`
         );
 
         return {
@@ -263,7 +263,7 @@ async function addWarningRole(
 
     } catch (error) {
         console.error(
-            "❌ /avert ajout rôle :",
+            "❌ =avert ajout rôle :",
             error
         );
 
@@ -344,7 +344,7 @@ Nous demandons à chacun de respecter cette décision et de prendre en compte ce
 
     } catch (error) {
         console.error(
-            "❌ /avert message public :",
+            "❌ =avert message public :",
             error
         );
 
@@ -480,7 +480,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/avert`."
+                        "❌ Tu n'as pas la permission d'utiliser `=avert`."
                 });
             }
 
@@ -713,7 +713,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ Erreur /avert :",
+                "❌ Erreur =avert :",
                 error
             );
 
@@ -732,5 +732,5 @@ module.exports = {
         }
     }
 };
-// Configuration partagée avec le panneau de sanctions /user.
+// Configuration partagée avec le panneau de sanctions =user.
 module.exports.WARNING_ROLES = WARNING_ROLES;

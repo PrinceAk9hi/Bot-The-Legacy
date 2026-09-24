@@ -306,7 +306,7 @@ Les deux membres ne sont désormais plus liés par une Union au sein de la **Sou
         );
 
         // Le système global dans index.js enregistrera
-        // également automatiquement /delunion dans les logs.
+        // également automatiquement =delunion dans les logs.
 
         const confirmation =
             new EmbedBuilder()

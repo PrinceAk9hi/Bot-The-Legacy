@@ -136,7 +136,7 @@ async function sendRankLog({
 
     if (!channel?.isTextBased()) {
         console.log(
-            "⚠️ Salon logs /rank introuvable."
+            "⚠️ Salon logs =rank introuvable."
         );
 
         return;
@@ -156,8 +156,8 @@ async function sendRankLog({
             )
             .setTitle(
                 action === "add"
-                    ? "📈 Utilisation de /rank"
-                    : "📉 Retrait via /rank"
+                    ? "📈 Utilisation de =rank"
+                    : "📉 Retrait via =rank"
             )
             .addFields(
                 {
@@ -293,7 +293,7 @@ async function sendRankLog({
         embeds: [embed]
     }).catch(error => {
         console.error(
-            "❌ Erreur log /rank :",
+            "❌ Erreur log =rank :",
             error
         );
     });
@@ -330,7 +330,7 @@ async function sendPublicMessage({
 
     if (!channel?.isTextBased()) {
         console.log(
-            "⚠️ Salon public /rank introuvable."
+            "⚠️ Salon public =rank introuvable."
         );
 
         return;
@@ -455,7 +455,7 @@ ${category === "grade"
         }
     }).catch(error => {
         console.error(
-            "❌ Message public /rank :",
+            "❌ Message public =rank :",
             error
         );
     });
@@ -1286,7 +1286,7 @@ Vérifie son ID dans \`config/ranks.js\`.`
 
         } catch (error) {
             console.error(
-                "❌ Erreur /rank :",
+                "❌ Erreur =rank :",
                 error
             );
 

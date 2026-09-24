@@ -302,7 +302,7 @@ async function sendMassRankLog({
                 RANK_CONFIG.embedColor
             )
             .setTitle(
-                "👑 Utilisation de /mrankup"
+                "👑 Utilisation de =mrankup"
             )
             .setDescription(
 `**Nouveau grade :** ${rank.name}
@@ -396,7 +396,7 @@ async function sendMassRankLog({
     }).catch(
         error =>
             console.error(
-                "❌ Log /mrankup :",
+                "❌ Log =mrankup :",
                 error
             )
     );
@@ -485,7 +485,7 @@ Continuez ainsi, **l'héritage se construit étape par étape.** 🪽${note ? `
     }).catch(
         error =>
             console.error(
-                "❌ Message public /mrankup :",
+                "❌ Message public =mrankup :",
                 error
             )
     );
@@ -621,7 +621,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/mrankup`."
+                        "❌ Tu n'as pas la permission d'utiliser `=mrankup`."
                 });
             }
 
@@ -1148,7 +1148,7 @@ ${lines.join("\n\n")}`
 
         } catch (error) {
             console.error(
-                "❌ Erreur /mrankup :",
+                "❌ Erreur =mrankup :",
                 error
             );
 

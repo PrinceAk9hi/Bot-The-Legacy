@@ -478,7 +478,7 @@ ${warning}`
 
         } catch (error) {
             console.error(
-                "❌ /wanted :",
+                "❌ =wanted :",
                 error
             );
 

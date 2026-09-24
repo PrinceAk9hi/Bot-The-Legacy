@@ -1796,7 +1796,7 @@ async function startSelectedGame(
                         "❌ Vocal requis"
                     )
                     .setDescription(
-                        "Ce jeu utilise les participants présents dans un salon vocal. Rejoins un vocal puis relance `/soulgames`."
+                        "Ce jeu utilise les participants présents dans un salon vocal. Rejoins un vocal puis relance `=soulgames`."
                     )
             ],
 

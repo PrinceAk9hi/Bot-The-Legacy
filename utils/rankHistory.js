@@ -179,7 +179,7 @@ function addRankHistory(entry) {
     }
 
     console.log(
-        `📝 Historique /rank enregistré : ${finalEntry.roleName} → ${finalEntry.userId}`
+        `📝 Historique =rank enregistré : ${finalEntry.roleName} → ${finalEntry.userId}`
     );
 
     return finalEntry;

@@ -41,7 +41,7 @@ function welcomeEmbed() {
         .setThumbnail("https://cdn.discordapp.com/emojis/1548783936010977380.png")
         .setFooter({ text: "La Soul Society • Un pas de plus dans la famille 🌸" });
 }
-const INTRO = "🌸 **Bienvenue dans la famille !**\nComplète ces cinq étapes pour préparer ton arrivée et profiter des fonctions de la Soul Society :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n<:roblox:1550573304258236426> **2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : un choix pour la semaine, puis un choix pour le week-end.\n<:certification:1550573424080977930> **4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n<a:speaker:1548785378276810844> **5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec /bienvenue. Ta date de naissance reste privée.";
+const INTRO = "🌸 **Bienvenue dans la famille !**\nComplète ces cinq étapes pour préparer ton arrivée et profiter des fonctions de la Soul Society :\n\n**1. Ton profil Discord** : nom, ID et date de naissance. Ta date de naissance sert au rôle **Joyeux anniversaire**, pour le jour de ton anniversaire.\n<:roblox:1550573304258236426> **2. Ton profil Roblox** : nom et @ pour relier ton compte.\n**3. Tes disponibilités vocales** : un choix pour la semaine, puis un choix pour le week-end.\n<:certification:1550573424080977930> **4. La communauté Roblox** : le lien pour la rejoindre et la suite de ton admission.\n<a:speaker:1548785378276810844> **5. Les salons** : les informations essentielles pour bien commencer.\n\nTon parcours personnel se met à jour dans un seul message. Tes étapes sont sauvegardées ; tu peux reprendre plus tard avec =bienvenue. Ta date de naissance reste privée.";
 function introPayload() {
     return { content: null, embeds: [welcomeEmbed().setTitle("🌸 Ton accueil La Soul Society").setDescription(INTRO)], components: [row(button("welcome_begin", "Commencer / continuer"))], allowedMentions: { parse: [] } };
 }
@@ -63,13 +63,13 @@ function stepPayload(p) {
             .setDescription(`${EMOJIS.certification} **${p.membershipAlreadyMember ? "Ton compte Roblox fait déjà partie de la communauté de la Soul Society." : "Roblox confirme que ton compte a bien rejoint la communauté de la Soul Society."}**\n\nClique sur **Continuer** pour découvrir les salons de la famille.`);
             components = [row(button("welcome_continue", "Continuer", ButtonStyle.Success))]; break;
         case "guide": embed.setTitle(p.membershipAlreadyMember ? "✅ Déjà membre • 5/5 • Tes repères" : "✅ Adhésion confirmée • 5/5 • Tes repères").setDescription((p.membershipVerifiedAt && p.membershipRobloxId === p.robloxId ? `${EMOJIS.certification} **Ton adhésion Roblox est confirmée !**\n\n` : "") + "Ajoute **T Soul Society** ou **T Soul** à la fin de ton nom en jeu.").addFields(GUIDE.map(([name,value]) => ({name,value}))); components = [row(button("welcome_finish", "Terminer mon accueil", ButtonStyle.Success))]; break;
-        default: embed.setTitle("✅ Accueil terminé").setDescription(`${EMOJIS.logo} **Ton profil est prêt, bienvenue dans la famille !**\n\n📅 Tes disponibilités ont été enregistrées.\n👤 Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.`); components = [];
+        default: embed.setTitle("✅ Accueil terminé").setDescription(`${EMOJIS.logo} **Ton profil est prêt, bienvenue dans la famille !**\n\n📅 Tes disponibilités ont été enregistrées.\n👤 Utilise désormais **=mon-profil** pour modifier tes informations et tes disponibilités.`); components = [];
     }
     return { content: null, embeds: [embed], components, allowedMentions: { parse: [] } };
 }
 function welcomeCompleted(p) { return Boolean(p?.completedAt) || p?.step === "done"; }
 function completedPayload() {
-    return { content: "✅ Tu as déjà terminé ton accueil. Utilise désormais **/mon-profil** pour modifier tes informations et tes disponibilités.", embeds: [], components: [], allowedMentions: { parse: [] } };
+    return { content: "✅ Tu as déjà terminé ton accueil. Utilise désormais **=mon-profil** pour modifier tes informations et tes disponibilités.", embeds: [], components: [], allowedMentions: { parse: [] } };
 }
 async function start(interaction) {
     if (interaction.guildId !== IDENTITY.guildId) return interaction.reply({ content: "Ce parcours est réservé au serveur de la Soul Society.", flags: MessageFlags.Ephemeral });
@@ -223,7 +223,7 @@ async function notifyRecruit(member) {
     if (!read("welcomeNotifications")[member.id]?.recruitDmSent) {
         try {
             await member.send({embeds: [welcomeEmbed().setTitle("🌸 Bienvenue dans la Soul Society !")
-                .setDescription("Bienvenue en tant que **Membre Test** dans la Soul Society !\n\nTape **/bienvenue** sur le serveur pour tout découvrir et avoir accès à la communauté !")], allowedMentions: {parse: []}});
+                .setDescription("Bienvenue en tant que **Membre Test** dans la Soul Society !\n\nTape **=bienvenue** sur le serveur pour tout découvrir et avoir accès à la communauté !")], allowedMentions: {parse: []}});
             update("welcomeNotifications", state => { state[member.id] = { ...state[member.id], recruitDmSent: true }; });
         } catch { console.warn("⚠️ MP de bienvenue indisponible ; lien accessible dans le parcours d’accueil."); }
     }

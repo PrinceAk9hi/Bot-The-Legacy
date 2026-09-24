@@ -949,7 +949,7 @@ async function rollbackDeletedRole({
         try {
             await member.roles.add(
                 newRole,
-                "Restauration /rollback"
+                "Restauration =rollback"
             );
 
             restoredMembers++;
@@ -1294,7 +1294,7 @@ async function rollbackDeletedMessage({
                     ? `${payload.content}\n\n`
                     : ""
             ) +
-            `-# Message original de <@${data.authorId}> • restauré par /rollback`;
+            `-# Message original de <@${data.authorId}> • restauré par =rollback`;
     }
 
     const message =
@@ -1845,7 +1845,7 @@ module.exports = {
             if (!allowed) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/rollback`."
+                        "❌ Tu n'as pas la permission d'utiliser `=rollback`."
                 });
             }
 
@@ -2037,7 +2037,7 @@ Le bot n'a actuellement aucune action enregistrée pouvant être annulée.`
 
         } catch (error) {
             console.error(
-                "❌ /rollback :",
+                "❌ =rollback :",
                 error
             );
 

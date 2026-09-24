@@ -396,7 +396,7 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "❌ Erreur dans /user :",
+                "❌ Erreur dans =user :",
                 error
             );
 
@@ -409,7 +409,7 @@ module.exports = {
             } catch (replyError) {
 
                 console.error(
-                    "❌ Impossible même de modifier la réponse /user :",
+                    "❌ Impossible même de modifier la réponse =user :",
                     replyError
                 );
             }

@@ -463,7 +463,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /ship :",
+                "❌ =ship :",
                 error
             );
 

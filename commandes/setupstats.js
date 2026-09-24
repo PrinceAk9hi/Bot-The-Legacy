@@ -109,7 +109,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /setupstats :",
+                "❌ =setupstats :",
                 error
             );
 

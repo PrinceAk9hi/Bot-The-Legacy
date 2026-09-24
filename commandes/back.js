@@ -214,7 +214,7 @@ module.exports = {
 
             await member.voice.setChannel(
                 previousChannel,
-                `/back par ${interaction.user.tag}`
+                `=back par ${interaction.user.tag}`
             );
 
             // ==================================================
@@ -249,7 +249,7 @@ module.exports = {
                                 "↩️ Retour vocal",
 
                             description:
-                                `<@${interaction.user.id}> a utilisé **/back** sur <@${member.id}>.`,
+                                `<@${interaction.user.id}> a utilisé **=back** sur <@${member.id}>.`,
 
                             fields: [
                                 {
@@ -293,13 +293,13 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "❌ /back :",
+                "❌ =back :",
                 error
             );
 
             return interaction.editReply({
                 content:
-                    `❌ Impossible d'utiliser /back.\n\`${error.message}\``
+                    `❌ Impossible d'utiliser =back.\n\`${error.message}\``
             }).catch(
                 () => {}
             );

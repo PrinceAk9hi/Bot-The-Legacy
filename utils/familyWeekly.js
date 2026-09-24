@@ -13,8 +13,8 @@ async function build(guild,end=Date.now()){
  const e=new EmbedBuilder().setColor(COLORS.primary).setTitle('📊 Bilan de la semaine • La Soul Society')
  .setDescription(`Du <t:${Math.floor(from/1000)}:f> au <t:${Math.floor(end/1000)}:f>\nActivité des membres actuellement dans la famille. Données enregistrées par le bot ; les périodes hors ligne ne sont pas reconstituées.`)
  .addFields({name:'💬 Messages',value:messages.toLocaleString('fr-FR'),inline:true},{name:'🎙️ Temps vocal',value:duration(voiceMs),inline:true},{name:'👥 Membres actifs',value:String(active.length),inline:true},
- {name:'🌸 Recrutement et accueil',value:`${tests.length} début(s) de test enregistré(s)\n${welcomes.length} parcours /bienvenue terminé(s)`},
- {name:'📈 Grades et absences',value:`${ranks.length} action(s) de grade enregistrée(s) par /rank\n${absences.length} absence(s) recouvrant la période`});
+ {name:'🌸 Recrutement et accueil',value:`${tests.length} début(s) de test enregistré(s)\n${welcomes.length} parcours =bienvenue terminé(s)`},
+ {name:'📈 Grades et absences',value:`${ranks.length} action(s) de grade enregistrée(s) par =rank\n${absences.length} absence(s) recouvrant la période`});
  const top=active.sort((a,b)=>b.voiceMs-a.voiceMs||b.messages-a.messages).slice(0,5);
  e.addFields({name:'🏆 Top activité vocale',value:top.map((m,n)=>`${n+1}. <@${m.id}> — ${duration(m.voiceMs)} • ${m.messages} messages`).join('\n')||'Aucune activité enregistrée.'});
  if(!ledger.data.since||ledger.data.since>from)e.addFields({name:'⚠️ Historique partiel',value:'Le suivi daté ne couvre pas toute la période. Les anciens totaux sans date ne sont pas répartis artificiellement sur la semaine.'});

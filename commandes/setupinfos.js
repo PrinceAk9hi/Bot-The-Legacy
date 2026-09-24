@@ -215,7 +215,7 @@ module.exports = {
         interaction
     ) {
         console.log(
-            "ℹ️ /setupinfos exécuté"
+            "ℹ️ =setupinfos exécuté"
         );
 
         await interaction.deferReply({
@@ -244,7 +244,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/setupinfos`."
+                        "❌ Tu n'as pas la permission d'utiliser `=setupinfos`."
                 });
             }
 
@@ -397,7 +397,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /setupinfos :",
+                "❌ =setupinfos :",
                 error
             );
 

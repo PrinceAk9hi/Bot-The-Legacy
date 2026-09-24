@@ -291,7 +291,7 @@ function buildCommandText(
     interaction
 ) {
     let text =
-        `/${interaction.commandName}`;
+        `=${interaction.commandName}`;
 
     function append(
         options

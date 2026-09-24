@@ -31,7 +31,7 @@ function payload(member,owner,tab='summary',page=0){
   embed.addFields({name:'Grades actuels',value:ranks.join(', ')||'Aucun grade principal actuellement attribué'},
    {name:'Candidatures',value:`${apps.length} candidature(s) Appy archivée(s).${app?' Une candidature existe aussi dans le bot actuel.':''}`},
    {name:'Période de test',value:`${member.roles.cache.has(ROLES.test)?'🧪 Actuellement Membre Test':'N’est pas actuellement Membre Test'}\n${period?`Début : ${date(period.startedAt)}${period.endedAt?'\nFin : '+date(period.endedAt):''}\n${period.source?'[Source]('+period.source+')':''}${period.evidence==='announcement'?' — date issue d’une annonce':''}`:'Début non établi par les sources disponibles.'}\nRepère : 1 à 2 semaines, validation par la gestion.`},
-   {name:'Accueil /bienvenue',value:profile?.completedAt||profile?.step==='done'?'✅ Terminé':'⏳ Non terminé'},
+   {name:'Accueil =bienvenue',value:profile?.completedAt||profile?.step==='done'?'✅ Terminé':'⏳ Non terminé'},
    {name:'Comptes-rendus entretien',value:'<#1550241655255203921>'});
  }
  const errors=Object.values(state.sources||{}).filter(s=>s.error).length,done=Object.keys(SOURCES).filter(c=>state.sources?.[c]?.complete).length;

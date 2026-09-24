@@ -1426,7 +1426,7 @@ async function envoyerNouvelleRecrue(
 📜 **Chaque Shinigami est prié de répondre à ce message pour lui souhaiter la bienvenue.**
 ⚠️ Toute personne concernée qui n’aurait pas souhaité la bienvenue **s’exposera à une sanction**.
 
-<a:speaker:1548785378276810844> **Pour toi qui nous rejoins : tape /bienvenue dans le serveur et termine ton parcours d’accueil pour accéder à l’ensemble des fonctions de la famille !**
+<a:speaker:1548785378276810844> **Pour toi qui nous rejoins : tape =bienvenue dans le serveur et termine ton parcours d’accueil pour accéder à l’ensemble des fonctions de la famille !**
 
 Que ton parcours parmi nous soit riche et honorable. ⚔️🌸`
                 )

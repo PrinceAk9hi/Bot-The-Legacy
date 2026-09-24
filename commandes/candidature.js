@@ -123,7 +123,7 @@ module.exports = {
         ) {
             return interaction.editReply({
                 content:
-                    "❌ Aucun panel n'est actuellement installé. Utilise `/setupcandidature`."
+                    "❌ Aucun panel n'est actuellement installé. Utilise `=setupcandidature`."
             });
         }
 
@@ -177,7 +177,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Impossible de retrouver le panel. Relance `/setupcandidature`."
+                        "❌ Impossible de retrouver le panel. Relance `=setupcandidature`."
                 });
             }
 
@@ -261,7 +261,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Impossible de retrouver le panel. Relance `/setupcandidature`."
+                        "❌ Impossible de retrouver le panel. Relance `=setupcandidature`."
                 });
             }
 

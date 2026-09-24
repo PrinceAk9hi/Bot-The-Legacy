@@ -1409,7 +1409,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/surveillance`."
+                        "❌ Tu n'as pas la permission d'utiliser `=surveillance`."
                 });
             }
 
@@ -1753,7 +1753,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /surveillance :",
+                "❌ =surveillance :",
                 error
             );
 

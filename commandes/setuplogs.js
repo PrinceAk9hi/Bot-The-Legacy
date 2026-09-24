@@ -95,7 +95,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /setuplogs :",
+                "❌ =setuplogs :",
                 error
             );
 

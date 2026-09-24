@@ -671,7 +671,7 @@ function buildStatusEmbed(
         );
 
     if (require("../utils/lineState").isOff()) {
-        for (const service of Object.values(data.services)) { service.status = "maintenance"; service.reason = "Pause demandée par Aven (/line off)."; }
+        for (const service of Object.values(data.services)) { service.status = "maintenance"; service.reason = "Pause demandée par Aven (=line off)."; }
     }
     const serviceBlocks =
         Object
@@ -1523,7 +1523,7 @@ ${panelResult.success
 
         } catch (error) {
             console.error(
-                "❌ /maintenance :",
+                "❌ =maintenance :",
                 error
             );
 

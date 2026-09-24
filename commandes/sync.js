@@ -57,7 +57,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu dois avoir la permission **Gérer les salons** pour utiliser `/sync`."
+                        "❌ Tu dois avoir la permission **Gérer les salons** pour utiliser `=sync`."
                 });
             }
 
@@ -521,7 +521,7 @@ module.exports = {
                             },
                             {
                                 reason:
-                                    `/sync rôle par ${interaction.user.tag}`
+                                    `=sync rôle par ${interaction.user.tag}`
                             }
                         );
                     }
@@ -540,7 +540,7 @@ module.exports = {
                             existing
                         ) {
                             await existing.delete(
-                                `/sync rôle par ${interaction.user.tag}`
+                                `=sync rôle par ${interaction.user.tag}`
                             );
                         }
                     }
@@ -592,7 +592,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /sync :",
+                "❌ =sync :",
                 error
             );
 

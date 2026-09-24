@@ -141,7 +141,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /ban :",
+                "❌ =ban :",
                 error
             );
 

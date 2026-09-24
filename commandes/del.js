@@ -526,7 +526,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Ce type de salon n'est pas pris en charge par `/del`."
+                        "❌ Ce type de salon n'est pas pris en charge par `=del`."
                 });
             }
 
@@ -601,7 +601,7 @@ module.exports = {
                         `**Type :** ${getChannelTypeName(channel)}\n` +
                         `**ID :** \`${channel.id}\`\n` +
                         `**Raison :** ${reason}\n\n` +
-                        `↩️ Cette suppression a été sauvegardée et peut être annulée avec **/rollback**.`
+                        `↩️ Cette suppression a été sauvegardée et peut être annulée avec **=rollback**.`
                     )
                     .setFooter({
                         text:
@@ -655,13 +655,13 @@ module.exports = {
 
             try {
                 await channel.delete(
-                    `La Soul Society • /del par ${interaction.user.tag} • ${reason}`
+                    `La Soul Society • =del par ${interaction.user.tag} • ${reason}`
                 );
 
             } catch (deleteError) {
                 // La suppression a échoué :
                 // on retire l'action de l'historique pour éviter
-                // qu'un /rollback tente de restaurer quelque chose
+                // qu'un =rollback tente de restaurer quelque chose
                 // qui n'a jamais été supprimé.
 
                 const history =
@@ -685,7 +685,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /del :",
+                "❌ =del :",
                 error
             );
 
@@ -709,7 +709,7 @@ module.exports = {
                     )
                     .setFooter({
                         text:
-                            "La Soul Society • /del"
+                            "La Soul Society • =del"
                     })
                     .setTimestamp();
 

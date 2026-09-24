@@ -60,7 +60,7 @@ module.exports = {
             if (!destination) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu dois être dans un salon vocal pour utiliser `/mv`."
+                        "❌ Tu dois être dans un salon vocal pour utiliser `=mv`."
                 });
             }
 
@@ -166,7 +166,7 @@ module.exports = {
 
             await member.voice.setChannel(
                 destination,
-                `/mv par ${interaction.user.tag}`
+                `=mv par ${interaction.user.tag}`
             );
 
             // ==================================================
@@ -186,7 +186,7 @@ module.exports = {
                                 "🔊 Déplacement vocal",
 
                             description:
-                                `<@${interaction.user.id}> a utilisé **/mv** sur <@${member.id}>.`,
+                                `<@${interaction.user.id}> a utilisé **=mv** sur <@${member.id}>.`,
 
                             fields: [
                                 {
@@ -229,7 +229,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ /mv :",
+                "❌ =mv :",
                 error
             );
 

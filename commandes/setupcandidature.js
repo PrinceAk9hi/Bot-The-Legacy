@@ -56,7 +56,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        `❌ Le panel de candidature est déjà installé : ${existing.url}\n\nUtilise \`/candidature on\` ou \`/candidature off\` pour le gérer.`
+                        `❌ Le panel de candidature est déjà installé : ${existing.url}\n\nUtilise \`=candidature on\` ou \`=candidature off\` pour le gérer.`
                 });
             }
         }

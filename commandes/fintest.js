@@ -53,7 +53,7 @@ module.exports = {
         ) {
             return interaction.editReply({
                 content:
-                    "❌ Tu n'as pas la permission d'utiliser `/fintest`."
+                    "❌ Tu n'as pas la permission d'utiliser `=fintest`."
             });
         }
 

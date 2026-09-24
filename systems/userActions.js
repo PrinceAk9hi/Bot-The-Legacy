@@ -6,7 +6,7 @@ const prison=require('../utils/prison');
 const actions={derank:'Derank',up:'Rankup',down:'Rétrograder',prison:'Prison',release:'Libérer'};
 function buttons(owner,target){return new ActionRowBuilder().addComponents(Object.entries(actions).map(([a,label])=>new ButtonBuilder().setCustomId(`memberctl:${a}:${owner}:${target}`).setLabel(label).setStyle(['derank','prison'].includes(a)?ButtonStyle.Danger:ButtonStyle.Secondary)));}
 function adjacent(member,action){const ranks=Object.entries(MAIN_RANKS),held=ranks.filter(([,r])=>member.roles.cache.has(r.roleId));
- if(held.length!==1)throw Error('Le membre doit posséder un seul grade principal reconnu. Utilise /rank pour choisir explicitement son grade.');
+ if(held.length!==1)throw Error('Le membre doit posséder un seul grade principal reconnu. Utilise =rank pour choisir explicitement son grade.');
  const index=ranks.findIndex(([k])=>k===held[0][0]),next=ranks[index+(action==='up'?1:-1)];
  if(!next)throw Error(action==='up'?'Ce membre possède déjà le dernier grade.':'Ce membre possède déjà le premier grade.');return {current:held[0][0],next:next[0],name:next[1].name};
 }

@@ -539,7 +539,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/derank`."
+                        "❌ Tu n'as pas la permission d'utiliser `=derank`."
                 });
             }
 
@@ -956,7 +956,7 @@ module.exports = {
                 }).catch(
                     error =>
                         console.error(
-                            "❌ Log /derank :",
+                            "❌ Log =derank :",
                             error
                         )
                 );
@@ -978,7 +978,7 @@ module.exports = {
 
             } catch (error) {
                 console.error(
-                    "❌ Annonce publique /derank :",
+                    "❌ Annonce publique =derank :",
                     error
                 );
             }
@@ -1048,7 +1048,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ Erreur /derank :",
+                "❌ Erreur =derank :",
                 error
             );
 

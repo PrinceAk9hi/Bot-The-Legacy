@@ -43,14 +43,14 @@ function formatSource(
         source ===
         "ship"
     ) {
-        return "💘 `/ship`";
+        return "💘 `=ship`";
     }
 
     if (
         source ===
         "union"
     ) {
-        return "💍 `/union`";
+        return "💍 `=union`";
     }
 
     return "❔ Inconnue";

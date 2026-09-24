@@ -604,6 +604,8 @@ async function connectToVoice(
         );
     }
 
+    require("../utils/musicVoiceGuard").assertNotMusic(guild);
+
     let connection =
         getVoiceConnection(
             guild.id

@@ -97,7 +97,7 @@ function createHalfSpeedAudio() {
             }
 
             console.log(
-                "🐢 Création audio /test en 0.5x..."
+                "🐢 Création audio =test en 0.5x..."
             );
 
             const ffmpeg =
@@ -141,7 +141,7 @@ function createHalfSpeedAudio() {
                     }
 
                     console.log(
-                        "✅ Audio /test 0.5x créé."
+                        "✅ Audio =test 0.5x créé."
                     );
 
                     resolve(
@@ -195,7 +195,7 @@ function removeTestMenotte(
         );
 
         console.log(
-            `🔓 Menotte /test retirée pour ${session.targetId}`
+            `🔓 Menotte =test retirée pour ${session.targetId}`
         );
     }
 
@@ -282,7 +282,7 @@ function stopTestSession(
     );
 
     console.log(
-        "🛑 Session /test terminée."
+        "🛑 Session =test terminée."
     );
 }
 
@@ -301,6 +301,8 @@ async function connectToTarget(
     ) {
         return null;
     }
+
+    require("../utils/musicVoiceGuard").assertNotMusic(guild);
 
     let connection =
         getVoiceConnection(
@@ -444,7 +446,7 @@ function installTestVoiceListener(
 
                         await newState.setMute(
                             false,
-                            "Protection du bot pendant /test"
+                            "Protection du bot pendant =test"
                         ).catch(
                             error =>
                                 console.error(
@@ -467,7 +469,7 @@ function installTestVoiceListener(
 
                         await newState.setDeaf(
                             false,
-                            "Protection du bot pendant /test"
+                            "Protection du bot pendant =test"
                         ).catch(
                             error =>
                                 console.error(
@@ -506,7 +508,7 @@ function installTestVoiceListener(
                             session.lockedChannelId
                     ) {
                         console.log(
-                            "🔒 /test : cible tente de quitter son vocal → retour."
+                            "🔒 =test : cible tente de quitter son vocal → retour."
                         );
 
                         await newState.setChannel(
@@ -514,7 +516,7 @@ function installTestVoiceListener(
                         ).catch(
                             error =>
                                 console.error(
-                                    "❌ Menotte /test :",
+                                    "❌ Menotte =test :",
                                     error
                                 )
                         );
@@ -628,7 +630,7 @@ function installTestVoiceListener(
 
                     } catch (error) {
                         console.error(
-                            "❌ /test suivi vocal :",
+                            "❌ =test suivi vocal :",
                             error
                         );
                     }
@@ -636,7 +638,7 @@ function installTestVoiceListener(
 
             } catch (error) {
                 console.error(
-                    "❌ Listener /test :",
+                    "❌ Listener =test :",
                     error
                 );
             }
@@ -707,7 +709,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `/test`."
+                        "❌ Tu n'as pas la permission d'utiliser `=test`."
                 });
             }
 
@@ -769,7 +771,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "🛡️ Ce membre est protégé et ne peut pas être ciblé par `/test`."
+                        "🛡️ Ce membre est protégé et ne peut pas être ciblé par `=test`."
                 });
             }
 
@@ -778,7 +780,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu ne peux pas lancer `/test` sur un bot."
+                        "❌ Tu ne peux pas lancer `=test` sur un bot."
                 });
             }
 
@@ -867,6 +869,8 @@ module.exports = {
                     null
             };
 
+            require("../utils/musicVoiceGuard").assertNotMusic(guild);
+
             // ==================================================
             // MENOTTER SI DEMANDÉ
             // ==================================================
@@ -901,7 +905,7 @@ module.exports = {
                     lockedChannelId;
 
                 console.log(
-                    `🔒 /test : ${target.user.tag} menotté dans ${lockedChannelId}`
+                    `🔒 =test : ${target.user.tag} menotté dans ${lockedChannelId}`
                 );
             }
 
@@ -946,7 +950,7 @@ module.exports = {
             ) {
                 await botMember.voice.setMute(
                     false,
-                    "Démarrage /test"
+                    "Démarrage =test"
                 ).catch(
                     () => {}
                 );
@@ -957,7 +961,7 @@ module.exports = {
             ) {
                 await botMember.voice.setDeaf(
                     false,
-                    "Démarrage /test"
+                    "Démarrage =test"
                 ).catch(
                     () => {}
                 );
@@ -981,7 +985,7 @@ module.exports = {
             );
 
             console.log(
-                `🧪 /test lancé sur ${target.user.tag} • 0.5x • Menotte : ${shouldMenotte ? "OUI" : "NON"}`
+                `🧪 =test lancé sur ${target.user.tag} • 0.5x • Menotte : ${shouldMenotte ? "OUI" : "NON"}`
             );
 
             // ==================================================
@@ -1006,7 +1010,7 @@ module.exports = {
                     }
 
                     console.log(
-                        "✅ Speech /test terminé."
+                        "✅ Speech =test terminé."
                     );
 
                     stopTestSession(
@@ -1020,7 +1024,7 @@ module.exports = {
                 "error",
                 error => {
                     console.error(
-                        "❌ Audio /test :",
+                        "❌ Audio =test :",
                         error
                     );
 
@@ -1051,7 +1055,7 @@ module.exports = {
 
         } catch (error) {
             console.error(
-                "❌ Erreur /test :",
+                "❌ Erreur =test :",
                 error
             );
 

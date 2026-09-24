@@ -572,7 +572,7 @@ client.reloadCommands =
                     ),
                     {
                         body:
-                            commands
+                            []
                     }
                 );
 
@@ -609,6 +609,8 @@ require("./systems/interviewPanel")(client);
 require("./systems/memberCare")(client);
 require("./systems/userActions")(client);
 require("./systems/familyLife")(client);
+require("./systems/music")(client);
+require("./systems/prefixCommands")(client);
 require("./systems/soulActivity")(client);
 
 // Candidatures
@@ -2252,6 +2254,14 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
+            if (interaction.isChatInputCommand()) {
+                await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
+                return;
+            }
+            if (interaction.customId?.startsWith('prefix-run:') || interaction.customId?.startsWith('prefix-result:')) {
+                await client.prefixCommands.handle(interaction);
+                return;
+            }
             if (await blockUnauthorizedSlash(interaction)) return;
             // ==================================================
             // AUTOCOMPLETE
@@ -2287,7 +2297,7 @@ client.on(
 
                 } catch (error) {
                     console.error(
-                        `❌ Autocomplete /${interaction.commandName} :`,
+                        `❌ Autocomplete =${interaction.commandName} :`,
                         error
                     );
 
@@ -2327,6 +2337,11 @@ client.on(
 
                     return;
                 }
+            }
+
+            if (interaction.customId?.startsWith("music:") || interaction.customId?.startsWith("music-search:")) {
+                await client.soulMusic.handle(interaction);
+                return;
             }
 
             if (interaction.customId?.startsWith("userpage:")) {
@@ -2485,7 +2500,7 @@ client.on(
                 maintenance.blocked
             ) {
                 console.log(
-                    `🛠️ /${interaction.commandName} bloquée : maintenance`
+                    `🛠️ =${interaction.commandName} bloquée : maintenance`
                 );
 
                 await replyMaintenanceBlocked(
@@ -2526,7 +2541,7 @@ client.on(
                 protectedTarget
             ) {
                 console.log(
-                    `🛡️ /${interaction.commandName} bloquée sur ${protectedTarget}`
+                    `🛡️ =${interaction.commandName} bloquée sur ${protectedTarget}`
                 );
 
                 await replyProtected(
@@ -2556,7 +2571,7 @@ client.on(
             }
 
             console.log(
-                `⚡ Commande reçue : /${interaction.commandName} par ${interaction.user.tag}`
+                `⚡ Commande reçue : =${interaction.commandName} par ${interaction.user.tag}`
             );
 
             let executionError =
@@ -2577,7 +2592,7 @@ client.on(
                     error;
 
                 console.error(
-                    `❌ /${interaction.commandName} :`,
+                    `❌ =${interaction.commandName} :`,
                     error
                 );
 
@@ -3162,7 +3177,7 @@ client.once(
                 await client.reloadCommands();
 
             console.log(
-                `✅ ${result.commands} commande(s) enregistrée(s) sur ${result.guilds} serveur(s) !`
+                `✅ ${result.commands} commande(s) = chargée(s) ; anciennes commandes slash retirées sur ${result.guilds} serveur(s) !`
             );
 
             console.log("");
@@ -3176,7 +3191,7 @@ client.once(
             // ==================================================
 
             console.log(
-                "🔎 /rank autocomplete :",
+                "🔎 =rank autocomplete :",
                 typeof client.commands
                     .get(
                         "rank"
@@ -3188,7 +3203,7 @@ client.once(
             );
 
             console.log(
-                "👤 /user :",
+                "👤 =user :",
                 client.commands.has(
                     "user"
                 )
@@ -3215,7 +3230,7 @@ client.once(
             );
 
             console.log(
-                "📜 /setuplogs :",
+                "📜 =setuplogs :",
                 client.commands.has(
                     "setuplogs"
                 )
@@ -3228,7 +3243,7 @@ client.once(
             // ==================================================
 
             console.log(
-                "📨 /candidature :",
+                "📨 =candidature :",
                 client.commands.has(
                     "candidature"
                 )
@@ -3237,7 +3252,7 @@ client.once(
             );
 
             console.log(
-                "📝 /setupcandidature :",
+                "📝 =setupcandidature :",
                 client.commands.has(
                     "setupcandidature"
                 )
@@ -3250,7 +3265,7 @@ client.once(
             // ==================================================
 
             console.log(
-                "🎫 /setuptickets :",
+                "🎫 =setuptickets :",
                 client.commands.has(
                     "setuptickets"
                 )

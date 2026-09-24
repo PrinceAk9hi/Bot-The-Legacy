@@ -56,7 +56,7 @@ async function blockUnauthorizedSlash(interaction) {
     if (interaction.guildId) {
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
-        if (["bienvenue", "mon-profil", "absence", "anniversaire"].includes(interaction.commandName) && personal(interaction.member)) return false;
+        if (["bienvenue", "mon-profil", "absence", "anniversaire", "play", "musique", "queue", "skip"].includes(interaction.commandName) && personal(interaction.member)) return false;
         if (["suivi-test", "convocation"].includes(interaction.commandName) && recruiter(interaction.member)) return false;
     }
     if (autocomplete) await interaction.respond([]);
@@ -64,3 +64,12 @@ async function blockUnauthorizedSlash(interaction) {
     return true;
 }
 module.exports.blockUnauthorizedSlash = blockUnauthorizedSlash;
+
+function canUseCommand(subject, name) {
+    if (hasBypass(subject)) return true;
+    const member = subject.member || subject;
+    const { personal, recruiter } = require('./memberCare');
+    if (['bienvenue','mon-profil','absence','anniversaire','play','musique','queue','skip'].includes(name)) return personal(member);
+    return ['suivi-test','convocation'].includes(name) && recruiter(member);
+}
+module.exports.canUseCommand = canUseCommand;

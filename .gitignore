@@ -1,2 +1,5 @@
 .env
 node_modules/
+
+# Outils audio téléchargés pendant npm install
+.music-bin/

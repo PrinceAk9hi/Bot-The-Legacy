@@ -631,200 +631,11 @@ async function logTicketClosure(
 // FERMETURE TICKET REFUSÉ
 // ======================================================
 
-async function closeRefusedTicket(
-    client,
-    guild,
-    ticket,
-    candidateId,
-    {
-        closedById = null,
-        automatic = false
-    } = {}
-) {
-    if (
-        !ticket
-    ) {
-        return false;
-    }
-
-    const candidatures =
-        lireCandidatures();
-
-    const candidature =
-        candidatures[
-            candidateId
-        ];
-
-    if (
-        candidature
-    ) {
-        candidature.ticketClosedAt =
-            Date.now();
-
-        candidature.ticketClosedBy =
-            automatic
-                ? "AUTO_12H"
-                : closedById;
-
-        sauvegarderCandidatures(
-            candidatures
-        );
-    }
-
-    let transcript =
-        null;
-
-    if (
-        ticket.isTextBased()
-    ) {
-        transcript =
-            await createTranscript(
-                ticket
-            ).catch(
-                () => null
-            );
-    }
-
-    await logTicketClosure(
-        guild,
-        {
-            candidateId,
-
-            closedById,
-
-            ticketName:
-                ticket.name,
-
-            transcript,
-
-            automatic
-        }
-    );
-
-    await ticket.delete(
-        automatic
-            ? "Candidature refusée • fermeture automatique après 12h"
-            : "Candidature refusée • fermeture manuelle"
-    ).catch(
-        error => {
-            console.error(
-                "❌ Fermeture ticket refusé :",
-                error
-            );
-        }
-    );
-
-    return true;
+async function closeRefusedTicket(client, guild, ticket, candidateId, options = {}) {
+    return require('../utils/candidatureClosure').close(client, guild, ticket, candidateId, options);
 }
-
-// ======================================================
-// VÉRIFICATION DES TICKETS REFUSÉS
-// ======================================================
-
-async function checkExpiredRefusedTickets(
-    client
-) {
-    const candidatures =
-        lireCandidatures();
-
-    let changed =
-        false;
-
-    for (
-        const [
-            candidateId,
-            candidature
-        ]
-        of Object.entries(
-            candidatures
-        )
-    ) {
-        if (
-            candidature.decision !==
-                "refused" ||
-            !candidature.closeAt ||
-            candidature.ticketClosedAt
-        ) {
-            continue;
-        }
-
-        if (
-            Date.now() <
-            candidature.closeAt
-        ) {
-            continue;
-        }
-
-        const ticketId =
-            candidature.ticketId;
-
-        if (
-            !ticketId
-        ) {
-            candidature.ticketClosedAt =
-                Date.now();
-
-            candidature.ticketClosedBy =
-                "AUTO_12H";
-
-            changed =
-                true;
-
-            continue;
-        }
-
-        const ticket =
-            await client.channels
-                .fetch(
-                    ticketId
-                )
-                .catch(
-                    () => null
-                );
-
-        if (
-            !ticket
-        ) {
-            candidature.ticketClosedAt =
-                Date.now();
-
-            candidature.ticketClosedBy =
-                "AUTO_12H";
-
-            changed =
-                true;
-
-            continue;
-        }
-
-        const guild =
-            ticket.guild;
-
-        if (
-            !guild
-        ) {
-            continue;
-        }
-
-        await closeRefusedTicket(
-            client,
-            guild,
-            ticket,
-            candidateId,
-            {
-                automatic:
-                    true
-            }
-        );
-    }
-
-    if (
-        changed
-    ) {
-        sauvegarderCandidatures(
-            candidatures
-        );
-    }
+async function checkExpiredRefusedTickets(client) {
+    return require('../utils/candidatureClosure').check(client);
 }
 
 // ======================================================
@@ -868,6 +679,8 @@ function embedAccepte(
 Cette première étape vous ouvre désormais **les portes de l'entretien de recrutement**, **une phase essentielle de notre processus d'intégration**. **Cet échange nous permettra de mieux vous connaître**, d'**évaluer votre motivation** et de **nous assurer que vous partagez les valeurs qui définissent La Soul Society**.
 
 Un membre de l’équipe de recrutement vous contactera pour vous demander vos disponibilités vocales et organiser votre entretien.
+
+**Ce ticket sera supprimé 12 heures après l’acceptation. Votre candidature restera enregistrée pour l’entretien.**
 
 **L'entretien dure généralement une vingtaine de minutes et se déroule dans une atmosphère calme et respectueuse**. Nous vous recommandons d'être disponible, muni d'un microphone fonctionnel et de prendre connaissance du règlement avant votre passage.
 
@@ -1442,6 +1255,7 @@ module.exports =
 function registerRecruitmentSystem(
     client
 ) {
+    require("./foundationPanel").register(client);
     // ==================================================
     // RESTAURATION DES FERMETURES 12H
     // ==================================================
@@ -1475,7 +1289,7 @@ function registerRecruitmentSystem(
             );
 
             console.log(
-                "🕒 Fermeture automatique des candidatures refusées : ✅ 12h"
+                "🕒 Fermeture automatique des candidatures acceptées ou refusées : ✅ 12h"
             );
         }
     );
@@ -2500,15 +2314,11 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         userId
                     ]
                 ) {
-                    candidatures[
-                        userId
-                    ].decision =
-                        "accepted";
-
-                    candidatures[
-                        userId
-                    ].closeAt =
-                        null;
+                    if (candidatures[userId].decision !== "accepted" || !candidatures[userId].acceptedAt) {
+                        candidatures[userId].acceptedAt = Date.now();
+                    }
+                    candidatures[userId].decision = "accepted";
+                    candidatures[userId].closeAt = candidatures[userId].acceptedAt + REFUSED_CLOSE_DELAY;
 
                     sauvegarderCandidatures(
                         candidatures

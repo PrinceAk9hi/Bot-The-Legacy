@@ -80,15 +80,16 @@ function hasPermission(
 // ======================================================
 
 async function getAvertChannel(
-    guild
+    guild,
+    channelId = AVERT_CHANNEL_ID
 ) {
     return (
         guild.channels.cache.get(
-            AVERT_CHANNEL_ID
+            channelId
         ) ||
         await guild.channels
             .fetch(
-                AVERT_CHANNEL_ID
+                channelId
             )
             .catch(
                 () => null
@@ -285,11 +286,13 @@ async function sendWarningMessage({
     guild,
     member,
     warning,
-    reason
+    reason,
+    channelId = AVERT_CHANNEL_ID
 }) {
     const channel =
         await getAvertChannel(
-            guild
+            guild,
+            channelId
         );
 
     if (
@@ -666,6 +669,12 @@ module.exports = {
                     reason
                 });
 
+            const rankChannelId = "1540832394217529447";
+            const rankMessageResult = await sendWarningMessage({
+                guild: interaction.guild, member, warning, reason,
+                channelId: rankChannelId
+            });
+
             // ==================================================
             // CONFIRMATION
             // ==================================================
@@ -705,6 +714,10 @@ module.exports = {
                 confirmation +=
                     "\n⚠️ Le rôle a été appliqué, mais l'annonce publique n'a pas pu être envoyée.";
             }
+
+            confirmation += rankMessageResult.success
+                ? `\n📢 Message également envoyé dans <#${rankChannelId}>.`
+                : `\n⚠️ L’annonce dans <#${rankChannelId}> n’a pas pu être envoyée.`;
 
             return interaction.editReply({
                 content:

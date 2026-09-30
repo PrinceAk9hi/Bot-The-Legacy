@@ -10,7 +10,7 @@ const money=n=>n.toLocaleString('fr-FR')+' ¥';
 function payload(id,view='home',notice=''){
  const a=store.snapshot(id),g=a.game||(view==='game'?a.last:null),e=new EmbedBuilder().setColor(COLORS.primary).setAuthor({name:'Casino • La Soul Society'});
  const nav=row(btn('cs:home:'+id,'Accueil'),btn('cs:balance:'+id,'Mon solde'),btn('cs:daily:'+id,'Récompense quotidienne',ButtonStyle.Success),btn('cs:board:'+id,'Classement'),btn('cs:rules:'+id,'Règles'));
- let components=[row(...Object.entries(names).map(([key,label])=>btn(`cs:play:${id}:${key}`,label,ButtonStyle.Primary))),nav],files=[];
+ let components=[row(btn('cs:games:'+id,'🎮 Jeux',ButtonStyle.Primary)),nav],files=[];
  if(g&&(view==='game'||a.game)){
   const done=Boolean(g.finishedAt),net=done?g.payout-g.stake:0;
   e.setColor(done?(net>0?0x35d28e:net<0?0xf15067:0xf8c45e):COLORS.primary)
@@ -24,6 +24,9 @@ function payload(id,view='home',notice=''){
   if(g.kind==='mines'&&!done){
    components=Array.from({length:4},(_,y)=>row(...Array.from({length:4},(_,x)=>{const n=y*4+x,seen=g.revealed.includes(n);return btn(prefix+n,seen?'💎':String(n+1),seen?ButtonStyle.Success:ButtonStyle.Secondary).setDisabled(seen);})));components.push(row(btn(prefix+'cash','Encaisser',ButtonStyle.Success)));
   }
+ }else if(view==='games'){
+  e.setTitle('🎮 Choisis ton jeu').setDescription('Sélectionne un jeu pour choisir ta mise.');
+  components=[row(...Object.entries(names).map(([key,label])=>btn(`cs:play:${id}:${key}`,label,ButtonStyle.Primary))),row(btn('cs:home:'+id,'Retour'))];
  }else if(view==='board'){
   e.setTitle('Classement du casino').setDescription(store.leaderboard().map(([user,v],index)=>`${index+1}. <@${user}> — **${money(v.balance)}**`).join('\n')||'Aucun joueur pour le moment.');components=[nav];
  }else if(view==='rules'){
@@ -31,7 +34,7 @@ function payload(id,view='home',notice=''){
  }else if(view==='balance'){
   e.setTitle('Ton portefeuille').setDescription(`<@${id}>\n**Solde : ${money(a.balance)}**\nParties terminées : ${a.played}\nTotal misé : ${money(a.wagered)}\nTotal retourné : ${money(a.returned)}\n\n**Dernières parties**\n`+a.history.slice(0,8).map(h=>`${names[h.kind]} : ${money(h.payout-h.stake)} nets`).join('\n'));components=[nav];
  }else{
-  e.setTitle('Bienvenue au casino').setDescription(`<@${id}>, choisis ton jeu ci-dessous.\n\n**Ton solde : ${money(a.balance)}**\nRécompense quotidienne : **500 Yens**.\n\nSlots · Roulette · Blackjack · Mines\nTu peux aussi utiliser directement les commandes avec une mise, par exemple **=slots 50**.`).setImage('attachment://casino-banner.png');
+  e.setTitle('Bienvenue au casino').setDescription(`<@${id}>, appuie sur **🎮 Jeux** pour choisir ton jeu.\n\n**Ton solde : ${money(a.balance)}**\nRécompense quotidienne : **500 Yens**.\n\nSlots · Roulette · Blackjack · Mines\nTu peux aussi utiliser directement les commandes avec une mise, par exemple **=slots 50**.`).setImage('attachment://casino-banner.png');
   files=[new AttachmentBuilder(path.join(__dirname,'../assets/casino/banner.png'),{name:'casino-banner.png'})];
  }
  return {content:notice||null,embeds:[e],components,files,attachments:[],allowedMentions:{parse:[]}};
@@ -65,7 +68,7 @@ async function handle(i){if(!i.customId?.startsWith('cs:'))return;
   await i.deferUpdate();let view='home',note='';
   if(action==='daily'){store.daily(owner);note='✅ Récompense de 500 Yens récupérée.';}
   else if(action==='act'){store.action(owner,arg,Number(version),move);view='game';}
-  else if(['balance','board','rules','home'].includes(action))view=action;
+  else if(['balance','board','rules','home','games'].includes(action))view=action;
   else throw Error('Action inconnue.');
   return i.editReply(payload(owner,view,note));
  }catch(e){const p={content:'❌ '+e.message+' Tu peux rouvrir =casino pour retrouver ton état sauvegardé.',flags:MessageFlags.Ephemeral};if(i.deferred||i.replied)return i.followUp(p).catch(()=>{});return i.reply(p).catch(()=>{});}

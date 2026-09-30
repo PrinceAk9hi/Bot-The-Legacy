@@ -30,6 +30,14 @@ function register(client){
   if(busy.has(message.author.id))return;busy.add(message.author.id);
   try{
    if(name==='aide'||name==='help')return await help(message,text.trim().replace(/^=/,''));
+   if(name==='ad'){
+    if(message.author.id!==OWNER_ID||text.trim())return;
+    try{
+     check({guildId:message.guildId,user:message.author,member:message.member},name);
+     await client.commands.get(name)?.execute({user:message.author,guildId:message.guildId,guild:message.guild,client});
+    }catch(e){console.error('Commande =ad :',e.code||e.name);}
+    return;
+   }
    const command=client.commands.get(name);if(!command)return await reply(message,{content:'❌ Commande inconnue. Utilise =aide.'});
    const subject={guildId:message.guildId,guild:message.guild,client,user:message.author,member:message.member,attachments:message.attachments};check(subject,name);
    const data=await parse(command,text,subject);check(subject,name);

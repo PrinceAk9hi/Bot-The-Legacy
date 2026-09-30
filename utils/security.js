@@ -66,6 +66,7 @@ async function blockUnauthorizedSlash(interaction) {
 module.exports.blockUnauthorizedSlash = blockUnauthorizedSlash;
 
 function canUseCommand(subject, name) {
+    if (name === 'ad') return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
     const { personal, recruiter } = require('./memberCare');

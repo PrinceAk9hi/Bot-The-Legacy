@@ -9,7 +9,12 @@ const btn=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomI
 const money=n=>n.toLocaleString('fr-FR')+' ¥';
 function payload(id,view='home',notice=''){
  const a=store.snapshot(id),g=a.game||(view==='game'?a.last:null),e=new EmbedBuilder().setColor(COLORS.primary).setAuthor({name:'Casino • La Soul Society'});
- const nav=row(btn('cs:home:'+id,'Accueil'),btn('cs:balance:'+id,'Mon solde'),btn('cs:daily:'+id,'Récompense quotidienne',ButtonStyle.Success),btn('cs:board:'+id,'Classement'),btn('cs:rules:'+id,'Règles'));
+ const navigation=[];
+ if(view!=='home')navigation.push(btn('cs:home:'+id,'Accueil',ButtonStyle.Danger));
+ navigation.push(btn('cs:balance:'+id,'Mon solde',ButtonStyle.Secondary));
+ if(!a.dailyAt||Date.now()-a.dailyAt>=86400000)navigation.push(btn('cs:daily:'+id,'Récompense quotidienne',ButtonStyle.Success));
+ navigation.push(btn('cs:board:'+id,'Classement',ButtonStyle.Primary),btn('cs:rules:'+id,'Règles',ButtonStyle.Danger));
+ const nav=row(...navigation);
  let components=[row(btn('cs:games:'+id,'🎮 Jeux',ButtonStyle.Primary)),nav],files=[];
  if(g&&(view==='game'||a.game)){
   const done=Boolean(g.finishedAt),net=done?g.payout-g.stake:0;
@@ -19,14 +24,14 @@ function payload(id,view='home',notice=''){
    .setImage('attachment://casino-game.png');
   files=[new AttachmentBuilder(renderGame(g),{name:'casino-game.png'})];
   const prefix=`cs:act:${id}:${g.id}:${g.version}:`;
-  components=done?[row(btn(`cs:play:${id}:${g.kind}`,'Rejouer',ButtonStyle.Primary))]:[];
+  components=done?[row(btn(`cs:play:${id}:${g.kind}`,'Rejouer',ButtonStyle.Success),btn('cs:home:'+id,'Accueil',ButtonStyle.Danger))]:[];
   if(g.kind==='blackjack'&&!done)components=[row(btn(prefix+'hit','Tirer',ButtonStyle.Primary),btn(prefix+'stand','Rester'),btn(prefix+'double','Doubler').setDisabled(g.player.length!==2||a.balance<g.stake))];
   if(g.kind==='mines'&&!done){
    components=Array.from({length:4},(_,y)=>row(...Array.from({length:4},(_,x)=>{const n=y*4+x,seen=g.revealed.includes(n);return btn(prefix+n,seen?'💎':String(n+1),seen?ButtonStyle.Success:ButtonStyle.Secondary).setDisabled(seen);})));components.push(row(btn(prefix+'cash','Encaisser',ButtonStyle.Success)));
   }
  }else if(view==='games'){
   e.setTitle('🎮 Choisis ton jeu').setDescription('Sélectionne un jeu pour choisir ta mise.');
-  components=[row(...Object.entries(names).map(([key,label])=>btn(`cs:play:${id}:${key}`,label,ButtonStyle.Primary))),row(btn('cs:home:'+id,'Retour'))];
+  components=[row(...Object.entries(names).map(([key,label],index)=>btn(`cs:play:${id}:${key}`,label,[ButtonStyle.Danger,ButtonStyle.Secondary,ButtonStyle.Primary,ButtonStyle.Success][index]))),row(btn('cs:home:'+id,'Retour'))];
  }else if(view==='board'){
   e.setTitle('Classement du casino').setDescription(store.leaderboard().map(([user,v],index)=>`${index+1}. <@${user}> — **${money(v.balance)}**`).join('\n')||'Aucun joueur pour le moment.');components=[nav];
  }else if(view==='rules'){

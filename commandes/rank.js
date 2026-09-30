@@ -34,13 +34,21 @@ function hasRankPermission(member) {
 
 function getCurrentMainRank(member) {
     return (
-        Object.entries(MAIN_RANKS).find(
+        Object.entries(MAIN_RANKS).reverse().find(
             ([, rank]) =>
                 member.roles.cache.has(
                     rank.roleId
                 )
         ) || null
     );
+}
+
+function rankMovement(category, action, oldRank, newRank) {
+    if (category !== 'grade' || action !== 'add') return null;
+    const names = Object.values(MAIN_RANKS).map(rank => rank.name);
+    const before = names.indexOf(oldRank), after = names.indexOf(newRank);
+    if (before < 0 || after < 0) return 'assignment';
+    return after < before ? 'demotion' : after > before ? 'promotion' : 'unchanged';
 }
 
 function getChoicesForCategory(category) {
@@ -147,16 +155,18 @@ async function sendRankLog({
             Date.now() / 1000
         );
 
+    const movement = rankMovement(category, action, oldRank, newRank);
+    const demotion = movement === "demotion";
     const embed =
         new EmbedBuilder()
             .setColor(
-                action === "add"
+                action === "add" && !demotion
                     ? RANK_CONFIG.embedColor
                     : RANK_CONFIG.removalColor
             )
             .setTitle(
                 action === "add"
-                    ? "📈 Utilisation de =rank"
+                    ? (demotion ? "📉 Rétrogradation via =rank" : movement === "promotion" ? "📈 Promotion via =rank" : "🎭 Attribution via =rank")
                     : "📉 Retrait via =rank"
             )
             .addFields(
@@ -190,7 +200,7 @@ async function sendRankLog({
 
                     value:
                         action === "add"
-                            ? "Attribuer"
+                            ? (demotion ? "Rétrograder" : movement === "promotion" ? "Promouvoir" : "Attribuer")
                             : "Retirer",
 
                     inline:
@@ -352,8 +362,15 @@ async function sendPublicMessage({
                 ? `> **${oldRank}** → **${newRank}**`
                 : `> **Nouveau grade :** ${newRank}`;
 
-        content =
-`## <:arrow_up:1548785968499261621> Évolution au sein de la Soul Society
+        const movement = rankMovement(category, action, oldRank, newRank);
+        if (movement === 'demotion') {
+            content = `## <:arrow_down:1548786185189466132> Rétrogradation au sein de la Soul Society
+
+<@${member.id}> passe du grade **${oldRank}** au grade **${newRank}**.
+${note ? '\n> 📝 **Raison :** ' + note + '\n' : ''}
+-# Rétrogradation effectuée par <@${moderator.id}>`;
+        } else if (movement === 'promotion') {
+            content = `## <:arrow_up:1548785968499261621> Évolution au sein de la Soul Society
 
 Félicitations à <@${member.id}> qui évolue aujourd'hui au sein de la **Soul Society** !
 
@@ -366,6 +383,13 @@ Continue ainsi, l'héritage se construit étape par étape. 🪽${note ? `
 > 📝 **Note :** ${note}` : ""}
 
 -# Rank effectué par <@${moderator.id}>`;
+        } else {
+            content = `## 🎭 Mise à jour du grade
+
+<@${member.id}> : **${newRank}** au sein de la Soul Society.${movement === 'unchanged' ? '\nLe grade reste inchangé.' : ''}${note ? '\n\n> 📝 **Note :** ' + note : ''}
+
+-# Mise à jour effectuée par <@${moderator.id}>`;
+        }
     }
 
     // ==================================================
@@ -1271,7 +1295,7 @@ Vérifie son ID dans \`config/ranks.js\`.`
                 oldRank !== newRank
             ) {
                 confirmation +=
-                    `\n📈 **${oldRank} → ${newRank}**`;
+                    `\n${rankMovement(category, action, oldRank, newRank) === "demotion" ? "📉" : "📈"} **${oldRank} → ${newRank}**`;
             }
 
             if (autoManagement) {

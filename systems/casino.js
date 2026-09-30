@@ -1,29 +1,28 @@
 const path=require('node:path');const {randomUUID}=require('node:crypto');
 const {Events,EmbedBuilder,AttachmentBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,ModalBuilder,TextInputBuilder,TextInputStyle,MessageFlags}=require('discord.js');
 const {COLORS}=require('../config/soulSociety');const {allowed}=require('../utils/memberCare');const {isOff}=require('../utils/lineState');const store=require('../utils/casinoStore');
+const {renderGame}=require('../utils/casinoImage');
 const offers=new Map();
 const names={slots:'Slots',roulette:'Roulette',blackjack:'Blackjack',mines:'Mines'};
-const symbols=['🌸','💎','👑','🍒','⭐','🏯'];
 const row=(...buttons)=>new ActionRowBuilder().addComponents(...buttons);
 const btn=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 const money=n=>n.toLocaleString('fr-FR')+' ¥';
-const cards=hand=>hand.map(c=>['A','2','3','4','5','6','7','8','9','10','V','D','R'][c%13]+['♠','♥','♦','♣'][Math.floor(c/13)]).join('  ·  ');
 function payload(id,view='home',notice=''){
- const a=store.snapshot(id),g=a.game||(view==='game'?a.last:null),e=new EmbedBuilder().setColor(COLORS.primary).setAuthor({name:'Casino • La Soul Society'}).setFooter({text:'Yens fictifs • Aucun achat, retrait ou échange en argent réel.'});
+ const a=store.snapshot(id),g=a.game||(view==='game'?a.last:null),e=new EmbedBuilder().setColor(COLORS.primary).setAuthor({name:'Casino • La Soul Society'});
  const nav=row(btn('cs:home:'+id,'Accueil'),btn('cs:balance:'+id,'Mon solde'),btn('cs:daily:'+id,'Récompense quotidienne',ButtonStyle.Success),btn('cs:board:'+id,'Classement'),btn('cs:rules:'+id,'Règles'));
  let components=[row(...Object.entries(names).map(([key,label])=>btn(`cs:play:${id}:${key}`,label,ButtonStyle.Primary))),nav],files=[];
- if(g&&(view==='game'||a.game&&view==='home')){
-  e.setTitle(names[g.kind]+' • '+money(g.stake)).setDescription(`<@${id}> • Solde disponible : **${money(a.balance)}**\n${g.finishedAt?`${g.note}\nRetour : **${money(g.payout)}** (mise comprise) • Résultat net : **${money(g.payout-g.stake)}**`:'Partie en cours. Expiration <t:'+Math.floor(g.expiresAt/1000)+':R>.'}`);
+ if(g&&(view==='game'||a.game)){
+  const done=Boolean(g.finishedAt),net=done?g.payout-g.stake:0;
+  e.setColor(done?(net>0?0x35d28e:net<0?0xf15067:0xf8c45e):COLORS.primary)
+   .setTitle(names[g.kind]+(done?(net>0?' • Gagné !':net<0?' • Perdu':' • Égalité'):' • À toi de jouer'))
+   .setDescription(done?`<@${id}> • **${net>0?'+':''}${money(net)}** • Solde : **${money(a.balance)}**`:`<@${id}> • Mise : **${money(g.stake)}**`)
+   .setImage('attachment://casino-game.png');
+  files=[new AttachmentBuilder(renderGame(g),{name:'casino-game.png'})];
   const prefix=`cs:act:${id}:${g.id}:${g.version}:`;
-  if(g.kind==='slots')e.addFields({name:'Résultat',value:'## '+g.reels.map(n=>symbols[n]).join(' │ ')});
-  if(g.kind==='roulette')e.addFields({name:'La bille s’arrête sur…',value:`## ${g.color==='rouge'?'🔴':g.color==='noir'?'⚫':'🟢'} ${g.number}\nTon pari : **${g.bet}**`});
-  if(g.kind==='blackjack'){
-   e.addFields({name:'🃏 Tes cartes',value:cards(g.player)+'\n**'+store.score(g.player)+' points**'},{name:'Croupier',value:g.finishedAt?cards(g.dealer)+'\n**'+store.score(g.dealer)+' points**':cards(g.dealer.slice(0,1))+'  ·  🂠'});
-   if(!g.finishedAt)components=[row(btn(prefix+'hit','Tirer',ButtonStyle.Primary),btn(prefix+'stand','Rester'),btn(prefix+'double','Doubler').setDisabled(g.player.length!==2||a.balance<g.stake)),nav];
-  }
-  if(g.kind==='mines'){
-   e.addFields({name:'💎 16 cases · 3 mines',value:g.finishedAt?'Partie terminée.':`Cases sûres : **${g.revealed.length}/13**\nEncaissement actuel : **${money(store.cash(g))}**`});
-   components=Array.from({length:4},(_,y)=>row(...Array.from({length:4},(_,x)=>{const n=y*4+x,seen=g.revealed.includes(n),done=Boolean(g.finishedAt);return btn(prefix+n,done&&g.mines.includes(n)?'💥':seen?'💎':String(n+1),seen?ButtonStyle.Success:ButtonStyle.Secondary).setDisabled(done||seen);})));components.push(row(...(g.finishedAt?[btn('cs:home:'+id,'Retour au casino')]:[btn(prefix+'cash','Encaisser',ButtonStyle.Success)])));
+  components=done?[row(btn(`cs:play:${id}:${g.kind}`,'Rejouer',ButtonStyle.Primary))]:[];
+  if(g.kind==='blackjack'&&!done)components=[row(btn(prefix+'hit','Tirer',ButtonStyle.Primary),btn(prefix+'stand','Rester'),btn(prefix+'double','Doubler').setDisabled(g.player.length!==2||a.balance<g.stake))];
+  if(g.kind==='mines'&&!done){
+   components=Array.from({length:4},(_,y)=>row(...Array.from({length:4},(_,x)=>{const n=y*4+x,seen=g.revealed.includes(n);return btn(prefix+n,seen?'💎':String(n+1),seen?ButtonStyle.Success:ButtonStyle.Secondary).setDisabled(seen);})));components.push(row(btn(prefix+'cash','Encaisser',ButtonStyle.Success)));
   }
  }else if(view==='board'){
   e.setTitle('Classement du casino').setDescription(store.leaderboard().map(([user,v],index)=>`${index+1}. <@${user}> — **${money(v.balance)}**`).join('\n')||'Aucun joueur pour le moment.');components=[nav];

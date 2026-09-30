@@ -34,6 +34,7 @@ const EMOJIS = Object.freeze({
 });
 
 const ROLES = Object.freeze({
+    confirmed: "1471548646322475252", // Membre Confirmé ; position dans la progression à préciser.
     interviewWaiting: "1468703799995666636",
     member: "1513698444588482650",
     test: "1468701337243090954",
@@ -70,7 +71,8 @@ const SECURITY = Object.freeze({
         "1471546243653304392", // Fondateur Suprême malach
         "1504782476319526932"  // Fondateur Suprême Mr Larbi
     ]),
-    bypassUserIds: Object.freeze(["547192186547077130"]), // Aven
+    bypassUserIds: Object.freeze(["547192186547077130", "1474804870757220554"]),
+    deniedBypassUserIds: Object.freeze(["1323507074885488755"]),
     protectedUserIds: Object.freeze([
         "1376211193433428069", // malach
         "1273044755504169083", // Zerka

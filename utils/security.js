@@ -6,6 +6,7 @@ const FOUNDATION_ROLE_IDS = [ROLES.founderMalach, ROLES.founderMrLarbi, ROLES.ri
 function hasBypass(subject) {
     const member = subject?.member || subject;
     const userId = subject?.user?.id || member?.user?.id || member?.id;
+    if (userId && SECURITY.deniedBypassUserIds?.includes(String(userId))) return false;
     if (userId && SECURITY.bypassUserIds.includes(String(userId))) return true;
     const roles = member?.roles;
     return [...SECURITY.bypassRoleIds, ...FOUNDATION_ROLE_IDS].some(id =>
@@ -56,7 +57,7 @@ async function blockUnauthorizedSlash(interaction) {
     if (interaction.guildId) {
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
-        if (["bienvenue", "mon-profil", "absence", "anniversaire", "play", "musique", "queue", "skip"].includes(interaction.commandName) && personal(interaction.member)) return false;
+        if (["bienvenue", "mon-profil", "absence", "anniversaire", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
         if (["suivi-test", "convocation"].includes(interaction.commandName) && recruiter(interaction.member)) return false;
     }
     if (autocomplete) await interaction.respond([]);
@@ -66,11 +67,11 @@ async function blockUnauthorizedSlash(interaction) {
 module.exports.blockUnauthorizedSlash = blockUnauthorizedSlash;
 
 function canUseCommand(subject, name) {
-    if (name === 'ad') return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
+    if (['ad', 'line'].includes(name)) return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
     const { personal, recruiter } = require('./memberCare');
-    if (['bienvenue','mon-profil','absence','anniversaire','play','musique','queue','skip'].includes(name)) return personal(member);
+    if (['bienvenue','mon-profil','absence','anniversaire','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
     return ['suivi-test','convocation'].includes(name) && recruiter(member);
 }
 module.exports.canUseCommand = canUseCommand;

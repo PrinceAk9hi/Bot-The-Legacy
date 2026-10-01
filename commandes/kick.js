@@ -28,7 +28,7 @@ module.exports = {
     async execute(interaction) {
         if (await blockProtectedInteraction(interaction, "kick")) return;
 
-        const membre = interaction.options.getMember("membre");
+        const membre = await interaction.guild.members.fetch(interaction.options.getUser("membre").id).catch(() => null);
         const raison =
             interaction.options.getString("raison") ||
             "Aucune raison précisée";

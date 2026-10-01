@@ -1,112 +1,16 @@
-const { COLORS: SOUL_COLORS } = require("../config/soulSociety");
-
-const {
-    SlashCommandBuilder,
-    PermissionFlagsBits,
-    EmbedBuilder,
-    MessageFlags
-} = require("discord.js");
-
-module.exports = {
-    data:
-        new SlashCommandBuilder()
-            .setName(
-                "banlist"
-            )
-            .setDescription(
-                "Afficher la liste des utilisateurs bannis"
-            )
-            .setDefaultMemberPermissions(
-                PermissionFlagsBits.BanMembers
-            ),
-
-    async execute(
-        interaction
-    ) {
-        await interaction.deferReply({
-            flags:
-                MessageFlags.Ephemeral
-        });
-
-        const bans =
-            await interaction.guild.bans
-                .fetch()
-                .catch(
-                    () => null
-                );
-
-        if (!bans) {
-            return interaction.editReply({
-                content:
-                    "❌ Impossible de récupérer la liste des bans."
-            });
-        }
-
-        if (!bans.size) {
-            return interaction.editReply({
-                content:
-                    "✅ Aucun utilisateur n'est actuellement banni."
-            });
-        }
-
-        const entries =
-            [...bans.values()];
-
-        const chunks =
-            [];
-
-        for (
-            let i = 0;
-            i < entries.length;
-            i += 10
-        ) {
-            chunks.push(
-                entries.slice(
-                    i,
-                    i + 10
-                )
-            );
-        }
-
-        const embeds =
-            chunks
-                .slice(
-                    0,
-                    10
-                )
-                .map(
-                    (chunk, index) =>
-                        new EmbedBuilder()
-                            .setColor(
-                                SOUL_COLORS.sanction
-                            )
-                            .setTitle(
-                                index === 0
-                                    ? `🔨 Liste des bannis — ${bans.size}`
-                                    : `🔨 Liste des bannis — page ${index + 1}`
-                            )
-                            .setDescription(
-                                chunk
-                                    .map(
-                                        ban =>
-`**${ban.user.tag}**
-ID : \`${ban.user.id}\`
-Raison : ${ban.reason || "Aucune raison"}
-
-`
-                                    )
-                                    .join(
-                                        ""
-                                    )
-                                    .slice(
-                                        0,
-                                        4000
-                                    )
-                            )
-                );
-
-        return interaction.editReply({
-            embeds
-        });
-    }
+const {COLORS}=require('../config/soulSociety');
+const {SlashCommandBuilder,PermissionFlagsBits,EmbedBuilder,MessageFlags,escapeMarkdown}=require('discord.js');
+module.exports={
+ data:new SlashCommandBuilder().setName('banlist').setDescription('Afficher les utilisateurs bannis, par page.').addIntegerOption(o=>o.setName('page').setDescription('Page à afficher').setMinValue(1)).setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+ async execute(i){
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  const bans=await i.guild.bans.fetch().catch(()=>null);
+  if(!bans)return i.editReply({content:'❌ Impossible de récupérer les bannissements. Vérifie la permission Bannir des membres du bot.'});
+  if(!bans.size)return i.editReply({content:'✅ Aucun utilisateur n’est actuellement banni.'});
+  const entries=[...bans.values()].sort((a,b)=>a.user.id.localeCompare(b.user.id));
+  const pages=Math.ceil(entries.length/10),page=i.options.getInteger('page')||1;
+  if(page>pages)return i.editReply({content:`Cette page n’existe pas. Choisis une page entre 1 et ${pages}.`});
+  const embed=new EmbedBuilder().setColor(COLORS.sanction).setTitle(`🔨 Liste des bannis — ${entries.length}`).setDescription(entries.slice((page-1)*10,page*10).map(b=>`**${escapeMarkdown(String(b.user.tag).slice(0,60))}**\nID : \`${b.user.id}\`\nRaison : ${escapeMarkdown(String(b.reason||'Aucune raison').slice(0,120))}`).join('\n\n')).setFooter({text:`Page ${page}/${pages} • =banlist ${page<pages?page+1:1}`});
+  return i.editReply({embeds:[embed],allowedMentions:{parse:[]}});
+ }
 };

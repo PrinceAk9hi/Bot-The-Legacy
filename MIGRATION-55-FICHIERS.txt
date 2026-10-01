@@ -1,0 +1,5 @@
+commandes/ban.js
+commandes/kick.js
+commandes/banlist.js
+utils/prefixOptions.js
+MIGRATION-55-FICHIERS.txt

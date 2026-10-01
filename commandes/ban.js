@@ -57,10 +57,7 @@ module.exports = {
                 "membre"
             );
 
-        const membre =
-            interaction.options.getMember(
-                "membre"
-            );
+        const membre = await interaction.guild.members.fetch(user.id).catch(() => null);
 
         const raison =
             interaction.options.getString(

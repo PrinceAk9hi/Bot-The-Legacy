@@ -1,3 +1,4 @@
+const { replaceMainRank } = require('../utils/replaceMainRank');
 const { ROBLOX } = require("../config/soulSociety");
 
 const { hasBypass } = require("../utils/security");
@@ -55,7 +56,7 @@ function getCurrentMainRank(member) {
     return (
         Object.entries(
             MAIN_RANKS
-        ).find(
+        ).reverse().find(
             ([, rank]) =>
                 member.roles.cache.has(
                     rank.roleId
@@ -302,7 +303,7 @@ async function sendMassRankLog({
                 RANK_CONFIG.embedColor
             )
             .setTitle(
-                "👑 Utilisation de =mrankup"
+                "👑 Utilisation de /mrankup"
             )
             .setDescription(
 `**Nouveau grade :** ${rank.name}
@@ -396,7 +397,7 @@ async function sendMassRankLog({
     }).catch(
         error =>
             console.error(
-                "❌ Log =mrankup :",
+                "❌ Log /mrankup :",
                 error
             )
     );
@@ -485,7 +486,7 @@ Continuez ainsi, **l'héritage se construit étape par étape.** 🪽${note ? `
     }).catch(
         error =>
             console.error(
-                "❌ Message public =mrankup :",
+                "❌ Message public /mrankup :",
                 error
             )
     );
@@ -525,7 +526,7 @@ const command =
                                     rank.name,
 
                                 value:
-                                    key
+                                    rank.name
                             })
                         )
                     )
@@ -621,7 +622,7 @@ module.exports = {
             ) {
                 return interaction.editReply({
                     content:
-                        "❌ Tu n'as pas la permission d'utiliser `=mrankup`."
+                        "❌ Tu n'as pas la permission d'utiliser `/mrankup`."
                 });
             }
 
@@ -629,12 +630,13 @@ module.exports = {
             // GRADE
             // ==========================================
 
-            const rankKey =
+            let rankKey =
                 interaction.options
                     .getString(
                         "grade"
                     );
 
+            rankKey = Object.entries(MAIN_RANKS).find(([key, rank]) => key === rankKey || rank.name === rankKey)?.[0] || rankKey;
             const rank =
                 MAIN_RANKS[
                     rankKey
@@ -821,71 +823,8 @@ module.exports = {
                     // RETIRER LES AUTRES GRADES
                     // ==================================
 
-                    for (
-                        const [
-                            key,
-                            oldRank
-                        ]
-                        of Object.entries(
-                            MAIN_RANKS
-                        )
-                    ) {
-                        if (
-                            key ===
-                            rankKey
-                        ) {
-                            continue;
-                        }
-
-                        if (
-                            !member.roles.cache.has(
-                                oldRank.roleId
-                            )
-                        ) {
-                            continue;
-                        }
-
-                        const oldRole =
-                            interaction.guild
-                                .roles
-                                .cache
-                                .get(
-                                    oldRank.roleId
-                                );
-
-                        if (
-                            !oldRole
-                        ) {
-                            continue;
-                        }
-
-                        if (
-                            oldRole.position >=
-                            botMember.roles.highest.position
-                        ) {
-                            throw new Error(
-                                `Impossible de retirer ${oldRole.name} : rôle au-dessus du bot.`
-                            );
-                        }
-
-                        await member.roles.remove(
-                            oldRole
-                        );
-                    }
-
-                    // ==================================
-                    // AJOUTER NOUVEAU GRADE
-                    // ==================================
-
-                    if (
-                        !member.roles.cache.has(
-                            newDiscordRole.id
-                        )
-                    ) {
-                        await member.roles.add(
-                            newDiscordRole
-                        );
-                    }
+                    const change = await replaceMainRank(member, rankKey, interaction.user);
+                    result.oldRank = change.oldRank;
 
                     result.discordSuccess =
                         true;
@@ -1148,7 +1087,7 @@ ${lines.join("\n\n")}`
 
         } catch (error) {
             console.error(
-                "❌ Erreur =mrankup :",
+                "❌ Erreur /mrankup :",
                 error
             );
 

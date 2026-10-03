@@ -1,6 +1,6 @@
 const {SlashCommandBuilder,MessageFlags}=require('discord.js');
 const {hasBypass}=require('../utils/security');const {IDENTITY}=require('../config/soulSociety');const {parseParis}=require('../utils/convocationTime');const meeting=require('../utils/familyMeetings');
-module.exports={data:new SlashCommandBuilder().setName('reunion').setDescription('Organiser une réunion de la famille')
+module.exports={data:new SlashCommandBuilder().setName('réunion').setDescription('Organiser une réunion de la famille')
  .addSubcommand(s=>s.setName('creer').setDescription('Créer l’événement et annoncer la réunion')
  .addStringOption(o=>o.setName('titre').setDescription('Titre de la réunion').setRequired(true).setMaxLength(100))
  .addStringOption(o=>o.setName('date').setDescription('JJ/MM/AAAA HH:MM — heure de Paris').setRequired(true).setMaxLength(16))

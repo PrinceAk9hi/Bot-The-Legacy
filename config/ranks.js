@@ -13,6 +13,14 @@ const MAIN_RANKS = {
         promotionIdealDays: 14
     },
 
+    initie: {
+        name: "Membre Initié", roleId: "1495439283501138073", robloxRank: null,
+        promotionMinimumDays: null, promotionIdealDays: null
+    },
+    membre_confirme: {
+        name: "Membre Confirmé", roleId: "1471548646322475252", robloxRank: null,
+        promotionMinimumDays: null, promotionIdealDays: null
+    },
     confirme: {
         name: "Membre Aspirant",
         roleId: "1468701415475118282",

@@ -34,7 +34,8 @@ const EMOJIS = Object.freeze({
 });
 
 const ROLES = Object.freeze({
-    confirmed: "1471548646322475252", // Membre Confirmé ; position dans la progression à préciser.
+    initiated: "1495439283501138073",
+    confirmed: "1471548646322475252", // Membre Confirmé, après Initié.
     interviewWaiting: "1468703799995666636",
     member: "1513698444588482650",
     test: "1468701337243090954",

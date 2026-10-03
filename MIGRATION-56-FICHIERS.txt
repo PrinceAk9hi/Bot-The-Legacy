@@ -1,0 +1,9 @@
+commandes/mrankup.js
+commandes/rank.js
+commandes/reunion.js
+config/ranks.js
+config/soulSociety.js
+index.js
+systems/prefixCommands.js
+utils/replaceMainRank.js
+MIGRATION-56-FICHIERS.txt

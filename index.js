@@ -572,7 +572,8 @@ client.reloadCommands =
                     ),
                     {
                         body:
-                            []
+                            guild.id === require("./config/soulSociety").IDENTITY.guildId
+                                ? commands.filter(c => ["rank", "mrankup", "réunion"].includes(c.name)) : []
                     }
                 );
 
@@ -2254,7 +2255,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
-            if (interaction.isChatInputCommand()) {
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "réunion"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }
@@ -3177,7 +3178,7 @@ client.once(
                 await client.reloadCommands();
 
             console.log(
-                `✅ ${result.commands} commande(s) = chargée(s) ; anciennes commandes slash retirées sur ${result.guilds} serveur(s) !`
+                `✅ ${result.commands} commande(s) = chargée(s) ; /rank, /mrankup et /réunion publiées sur ${result.guilds} serveur(s) !`
             );
 
             console.log("");

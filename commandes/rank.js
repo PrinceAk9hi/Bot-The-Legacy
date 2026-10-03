@@ -1,3 +1,4 @@
+const { replaceMainRank } = require('../utils/replaceMainRank');
 const { syncSoulMember } = require("../utils/syncSoulMember");
 const { hasBypass } = require("../utils/security");
 
@@ -57,7 +58,7 @@ function getChoicesForCategory(category) {
             MAIN_RANKS
         ).map(([key, rank]) => ({
             name: rank.name,
-            value: key,
+            value: rank.name,
             roleId: rank.roleId
         }));
     }
@@ -144,7 +145,7 @@ async function sendRankLog({
 
     if (!channel?.isTextBased()) {
         console.log(
-            "⚠️ Salon logs =rank introuvable."
+            "⚠️ Salon logs /rank introuvable."
         );
 
         return;
@@ -166,8 +167,8 @@ async function sendRankLog({
             )
             .setTitle(
                 action === "add"
-                    ? (demotion ? "📉 Rétrogradation via =rank" : movement === "promotion" ? "📈 Promotion via =rank" : "🎭 Attribution via =rank")
-                    : "📉 Retrait via =rank"
+                    ? (demotion ? "📉 Rétrogradation via /rank" : movement === "promotion" ? "📈 Promotion via /rank" : "🎭 Attribution via /rank")
+                    : "📉 Retrait via /rank"
             )
             .addFields(
                 {
@@ -303,7 +304,7 @@ async function sendRankLog({
         embeds: [embed]
     }).catch(error => {
         console.error(
-            "❌ Erreur log =rank :",
+            "❌ Erreur log /rank :",
             error
         );
     });
@@ -340,7 +341,7 @@ async function sendPublicMessage({
 
     if (!channel?.isTextBased()) {
         console.log(
-            "⚠️ Salon public =rank introuvable."
+            "⚠️ Salon public /rank introuvable."
         );
 
         return;
@@ -479,7 +480,7 @@ ${category === "grade"
         }
     }).catch(error => {
         console.error(
-            "❌ Message public =rank :",
+            "❌ Message public /rank :",
             error
         );
     });
@@ -825,11 +826,12 @@ module.exports = {
                     "action"
                 );
 
-            const roleKey =
+            let roleKey =
                 interaction.options.getString(
                     "role"
                 );
 
+            if (category === 'grade') roleKey = Object.entries(MAIN_RANKS).find(([key, rank]) => key === roleKey || rank.name === roleKey)?.[0] || roleKey;
             const note =
                 interaction.options.getString(
                     "note"
@@ -985,56 +987,8 @@ Vérifie son ID dans \`config/ranks.js\`.`
                 if (
                     action === "add"
                 ) {
-                    for (
-                        const [
-                            key,
-                            rank
-                        ]
-                        of Object.entries(
-                            MAIN_RANKS
-                        )
-                    ) {
-                        if (
-                            key === roleKey
-                        ) {
-                            continue;
-                        }
-
-                        if (
-                            !member.roles.cache.has(
-                                rank.roleId
-                            )
-                        ) {
-                            continue;
-                        }
-
-                        const oldDiscordRole =
-                            interaction.guild.roles.cache.get(
-                                rank.roleId
-                            );
-
-                        if (!oldDiscordRole) {
-                            continue;
-                        }
-
-                        if (
-                            oldDiscordRole.position >=
-                            botMember.roles.highest.position
-                        ) {
-                            return interaction.editReply({
-                                content:
-`❌ Je ne peux pas retirer l'ancien grade **${oldDiscordRole.name}** car il est placé au-dessus de mon rôle.`
-                            });
-                        }
-
-                        await member.roles.remove(
-                            oldDiscordRole
-                        );
-                    }
-
-                    await member.roles.add(
-                        discordRole
-                    );
+                    const change = await replaceMainRank(member, roleKey, interaction.user);
+                    oldRank = change.oldRank;
                 if (category === "grade") await syncSoulMember(member, { discordRank: roleKey }).catch(() => null);
 
                     newRank =
@@ -1310,7 +1264,7 @@ Vérifie son ID dans \`config/ranks.js\`.`
 
         } catch (error) {
             console.error(
-                "❌ Erreur =rank :",
+                "❌ Erreur /rank :",
                 error
             );
 

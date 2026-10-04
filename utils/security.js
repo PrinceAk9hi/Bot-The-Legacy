@@ -57,7 +57,7 @@ async function blockUnauthorizedSlash(interaction) {
     if (interaction.guildId) {
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
-        if (["bienvenue", "mon-profil", "absence", "anniversaire", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
+        if (["bienvenue", "mon-profil", "absence", "anniversaire", "sound", "stopsound", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
         if (["suivi-test", "convocation"].includes(interaction.commandName) && recruiter(interaction.member)) return false;
     }
     if (autocomplete) await interaction.respond([]);
@@ -71,7 +71,7 @@ function canUseCommand(subject, name) {
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
     const { personal, recruiter } = require('./memberCare');
-    if (['bienvenue','mon-profil','absence','anniversaire','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
+    if (['bienvenue','mon-profil','absence','anniversaire','sound','stopsound','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
     return ['suivi-test','convocation'].includes(name) && recruiter(member);
 }
 module.exports.canUseCommand = canUseCommand;

@@ -1,0 +1,2 @@
+const {SlashCommandBuilder,MessageFlags}=require('discord.js');
+module.exports={data:new SlashCommandBuilder().setName('stopsound').setDescription('Arrêter les sons, vider la file et quitter le vocal.'),async execute(i){try{const stopped=require('../systems/soundboard')(i.client).stop(i);return i.reply({content:stopped?'⏹️ Son arrêté, file vidée et vocal quitté.':'Aucune lecture soundboard en cours.',flags:MessageFlags.Ephemeral});}catch(e){return i.reply({content:'❌ '+e.message,flags:MessageFlags.Ephemeral});}}};

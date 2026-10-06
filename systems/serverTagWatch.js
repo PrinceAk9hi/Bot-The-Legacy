@@ -48,11 +48,11 @@ const COLOR =
 
 // Rappel au bout de 12h
 const HALF_TIME =
-    48 * 60 * 60 * 1000;
+    12 * 60 * 60 * 1000;
 
 // Sanction au bout de 24h
 const FULL_TIME =
-    72 * 60 * 60 * 1000;
+    24 * 60 * 60 * 1000;
 
 // Vérification toutes les 60 secondes
 const CHECK_INTERVAL =
@@ -224,8 +224,7 @@ async function fetchFreshUser(
             error.message
         );
 
-        return member.user ||
-            null;
+        return null;
     }
 }
 
@@ -234,7 +233,7 @@ async function fetchFreshUser(
 // ======================================================
 
 async function hasServerTag(
-    member
+    member, suppliedUser
 ) {
     if (
         !member ||
@@ -244,14 +243,14 @@ async function hasServerTag(
     }
 
     const user =
-        await fetchFreshUser(
+        suppliedUser || await fetchFreshUser(
             member
         );
 
     if (
         !user
     ) {
-        return false;
+        return null;
     }
 
     const primaryGuild =
@@ -533,12 +532,13 @@ async function sendFirstWarning(
             .setDescription(
 `<@${member.id}>, ton **tag de famille de la Soul Society** n'est actuellement plus affiché sur ton profil Discord.
 
-Remets ton tag avant la fin du délai de trois jours suivant sa disparition.
+Remets ton tag pour éviter les sanctions automatiques.
 
-> ⏳ **Premier rappel après un jour**
+> ⏳ **Rappel immédiat, puis à 12 heures**
+> ⚠️ **Avertissement 1 à 24 h • Avertissement 2 à 48 h • Derank à 72 h**
 > 📅 Fin du délai : <t:${Math.floor(deadline / 1000)}:R>
 
-Si ton tag n'est toujours pas présent à la fin du délai, tu passeras automatiquement dans le rôle prévu pour cette situation.
+Le premier avertissement sera appliqué à la fin du délai indiqué. Le compteur repart de zéro si tu remets ton tag ; les sanctions déjà reçues restent enregistrées.
 
 Dès que ton tag est remis, le compteur est automatiquement annulé.`
             )
@@ -758,379 +758,77 @@ async function sendTagRestoredMessage(
 // SANCTION
 // ======================================================
 
-async function sanctionMember(
-    guild,
-    member
-) {
-    if (require("../utils/lineState").isOff() || isTagExempt(member)) return false;
-    // Le rôle déjà présent confirme une sanction antérieure : ne pas republier.
-    if (member.roles.cache.has(SANCTION_ROLE_ID)) return true;
-
-    const roleAdded =
-        await addRole(
-            member,
-            SANCTION_ROLE_ID,
-            "Tag de famille absent après 72 heures"
-        );
-
-    if (
-        !roleAdded
-    ) {
-        return false;
-        console.error(
-            `❌ Impossible d'appliquer le rôle sanction à ${member.user.tag}`
-        );
+async function sanctionMember(guild, member, level = 1) {
+    if (require('../utils/lineState').isOff() || isTagExempt(member)) return false;
+    const roleId = level === 2 ? '1468698901077823653' : SANCTION_ROLE_ID;
+    if (member.roles.cache.has(roleId)) return true;
+    if (!await addRole(member, roleId, 'Tag absent depuis ' + (level === 2 ? 48 : 24) + ' heures')) return false;
+    // Le rôle confirme la sanction, même si une notification échoue : aucun renvoi en boucle.
+    for (const id of [SANCTION_CHANNEL_ID, '1540832394217529447']) {
+        try {
+            const channel = await getChannel(guild, id);
+            await channel?.send({content: '## ⚠️ Sanction automatique\n> **Membre :** <@' + member.id + '>\n> **Rôle :** <@&' + roleId + '>\n> **Raison :** Tag de la Soul Society absent depuis ' + (level === 2 ? 48 : 24) + ' heures.\n> Sans rétablissement du tag : derank à 72 heures.', allowedMentions: { parse: [], users: [member.id] }});
+        } catch { console.warn('Notification sanction tag impossible :', id); }
     }
-
-    const channel =
-        await getChannel(
-            guild,
-            SANCTION_CHANNEL_ID
-        );
-
-    if (
-        !channel ||
-        !channel.isTextBased()
-    ) {
-        console.error(
-            `❌ Salon sanctions introuvable : ${SANCTION_CHANNEL_ID}`
-        );
-
-        return roleAdded;
-    }
-
-    await channel.send({
-        content:
-`## ⚠️ Sanction
-
-> **Membre :** <@${member.id}>
-> **ID :** \`${member.id}\`
-> **Sanction :** Passage automatique
-> **Raison :** Tag de famille absent après le délai de 72 heures.
-> **Rôle attribué :** <@&${SANCTION_ROLE_ID}>
-
--# Sanction appliquée automatiquement par La Soul Society.`,
-
-        allowedMentions: {
-            users: [
-                member.id
-            ],
-
-            roles:
-                []
-        }
-    }).catch(
-        error => {
-            console.error(
-                `❌ Message sanction tag ${member.user.tag} :`,
-                error
-            );
-        }
-    );
-    return roleAdded;
+    return true;
 }
 
 // ======================================================
 // HANDLE MEMBER
 // ======================================================
 
-async function handleMember(
-    guild,
-    member,
-    data
-) {
-    if (require("../utils/lineState").isOff()) return;
-    if (isTagExempt(member)) {
-        if (member && clearWarning(data, guild.id, member.id)) saveData(data);
+async function handleMember(guild, member, data) {
+    if (require('../utils/lineState').isOff() || !member || member.user.bot) return;
+    const key = getWarningKey(guild.id, member.id);
+    if (isTagExempt(member)) { if (clearWarning(data, guild.id, member.id)) saveData(data); return; }
+    const user = await fetchFreshUser(member);
+    if (!user) return;
+    if (await require('../utils/tagBanPolicy').inspect(guild, member, user)) return;
+    const tagged = await hasServerTag(member, user);
+    if (tagged === null) return; // Donnée inconnue : ne jamais la traiter comme un tag absent.
+    if (tagged) {
+        await addRole(member, TAG_ROLE_ID, 'Tag de la Soul Society détecté');
+        if (clearWarning(data, guild.id, member.id)) saveData(data);
         return;
     }
-
-    if (
-        !member ||
-        member.user.bot
-    ) {
+    await removeRole(member, TAG_ROLE_ID, 'Tag de la Soul Society absent');
+    if (!member.roles.cache.has(REQUIRED_ROLE_ID)) {
+        if (clearWarning(data, guild.id, member.id)) saveData(data);
         return;
     }
-
-    const key =
-        getWarningKey(
-            guild.id,
-            member.id
-        );
-
-    const tagged =
-        await hasServerTag(
-            member
-        );
-
-    // ==================================================
-    // TAG PRÉSENT
-    // ==================================================
-
-    if (
-        tagged
-    ) {
-        await addRole(
-            member,
-            TAG_ROLE_ID,
-            "Tag serveur de la Soul Society détecté"
-        );
-
-        const hadWarning =
-            Boolean(
-                data.warnings[
-                    key
-                ]
-            );
-
-        if (
-            clearWarning(
-                data,
-                guild.id,
-                member.id
-            )
-        ) {
-            saveData(
-                data
-            );
-
-            console.log(
-                `✅ ${member.user.tag} a remis son tag : compteur annulé.`
-            );
-        }
-
-        // Le message vert ne part QUE si la personne
-        // avait réellement un compteur / avertissement actif.
-        if (
-            hadWarning
-        ) {
-            await sendTagRestoredMessage(
-                guild,
-                member
-            );
-        }
-
-        return;
+    const now = Date.now();
+    let warning = data.warnings[key];
+    // Nouveau calendrier : pas de sanctions rétroactives issues des anciens compteurs.
+    if (!warning || warning.policyVersion !== 3) {
+        warning = data.warnings[key] = { policyVersion: 3, guildId: guild.id, userId: member.id,
+            startedAt: now, firstWarningSent: false, halfReminderSent: false,
+            sanctionApplied: false, secondSanctionApplied: false, derankRecorded: false };
+        saveData(data);
     }
-
-    // ==================================================
-    // TAG ABSENT
-    // ==================================================
-
-    await removeRole(
-        member,
-        TAG_ROLE_ID,
-        "Tag serveur de la Soul Society absent"
-    );
-
-    // ==================================================
-    // PAS DANS LE RÔLE SURVEILLÉ
-    // ==================================================
-
-    if (
-        !member.roles.cache.has(
-            REQUIRED_ROLE_ID
-        )
-    ) {
-        if (
-            clearWarning(
-                data,
-                guild.id,
-                member.id
-            )
-        ) {
-            saveData(
-                data
-            );
-        }
-
-        return;
-    }
-
-    const now =
-        Date.now();
-
-    let warning =
-        data.warnings[
-            key
-        ];
-
-    // ==================================================
-    // PREMIÈRE DÉTECTION
-    // ==================================================
-
-    if (
-        !warning
-    ) {
-        const sent = false; // Premier rappel après un jour d’absence.
-
-        warning = {
-            guildId:
-                guild.id,
-
-            userId:
-                member.id,
-
-            username:
-                member.user.tag,
-
-            startedAt:
-                now,
-
-            firstWarningSent:
-                sent,
-
-            halfReminderSent:
-                false,
-
-            sanctionApplied:
-                false,
-
-            createdAt:
-                now
-        };
-
-        data.warnings[
-            key
-        ] =
-            warning;
-
-        saveData(
-            data
-        );
-
-        console.log(
-            `⏳ Compteur 72h lancé pour ${member.user.tag}`
-        );
-
-        return;
-    }
-
-    // ==================================================
-    // PREMIER MESSAGE ÉCHOUÉ
-    // ==================================================
-
-    if (
-        now - Number(warning.startedAt) >= 24 * 60 * 60 * 1000 &&
-        now - Number(warning.startedAt) < HALF_TIME &&
-        warning.firstWarningSent ===
-            false
-    ) {
-        const sent =
-            await sendFirstWarning(guild, member, warning);
-
-        if (
-            sent
-        ) {
-            warning.firstWarningSent =
-                true;
-
-            saveData(
-                data
-            );
+    const action = require('../utils/tagSchedule').nextAction(warning, now);
+    if (!action) return;
+    if (action === 'first') {
+        warning.startedAt = now;
+        if (await sendFirstWarning(guild, member, warning)) warning.firstWarningSent = true;
+    } else if (action === 'half') {
+        if (await sendHalfWarning(guild, member, warning)) warning.halfReminderSent = true;
+    } else {
+        const fresh = await guild.members.fetch({ user: member.id, force: true }).catch(() => null);
+        if (!fresh || isTagExempt(fresh) || !fresh.roles.cache.has(REQUIRED_ROLE_ID)) return;
+        const stillTagged = await hasServerTag(fresh);
+        if (stillTagged !== false) return;
+        if (action === 'derank') {
+            const result = await require('../utils/automaticDerank').automaticDerank(fresh,
+                'Tag de la Soul Society absent pendant 72 heures malgré les rappels.',
+                'tag:' + key + ':' + warning.startedAt,
+                async m => await hasServerTag(m) === false);
+            if (result.status || result.recorded) warning.derankRecorded = true;
+        } else {
+            const level = action === 'warn2' ? 2 : 1;
+            if (await sanctionMember(guild, fresh, level)) warning[level === 2 ? 'secondSanctionApplied' : 'sanctionApplied'] = true;
         }
     }
-
-    const elapsed =
-        now -
-        Number(
-            warning.startedAt
-        );
-
-    // ==================================================
-    // RAPPEL 12H
-    // ==================================================
-
-    if (
-        elapsed >=
-            HALF_TIME &&
-        elapsed <
-            FULL_TIME &&
-        !warning.halfReminderSent
-    ) {
-        const sent =
-            await sendHalfWarning(
-                guild,
-                member,
-                warning
-            );
-
-        if (
-            sent
-        ) {
-            warning.halfReminderSent =
-                true;
-
-            warning.halfReminderSentAt =
-                Date.now();
-
-            saveData(
-                data
-            );
-        }
-
-        return;
-    }
-
-    // ==================================================
-    // SANCTION 24H
-    // ==================================================
-
-    if (
-        elapsed >=
-            FULL_TIME &&
-        !warning.sanctionApplied
-    ) {
-        // Vérification finale juste avant sanction
-        const stillMissing =
-            !await hasServerTag(
-                member
-            );
-
-        if (
-            !stillMissing
-        ) {
-            await addRole(
-                member,
-                TAG_ROLE_ID,
-                "Tag remis avant la sanction"
-            );
-
-            clearWarning(
-                data,
-                guild.id,
-                member.id
-            );
-
-            saveData(
-                data
-            );
-
-            await sendTagRestoredMessage(
-                guild,
-                member
-            );
-
-            return;
-        }
-
-        const applied = await sanctionMember(guild, member);
-        if (!applied) return;
-
-        warning.sanctionApplied =
-            true;
-
-        warning.sanctionAppliedAt =
-            Date.now();
-
-        saveData(
-            data
-        );
-
-        console.log(
-            `🚨 Sanction tag appliquée à ${member.user.tag}`
-        );
-    }
+    saveData(data);
 }
 
 // ======================================================
@@ -1215,6 +913,7 @@ async function checkAll(
         loadData();
 
     try {
+        await require('../utils/tagBanPolicy').sweep(client);
         for (
             const guild
             of client.guilds.cache.values()
@@ -1332,5 +1031,5 @@ module.exports = {
     stopServerTagWatch,
 
     checkAll,
-    hasServerTag
+    hasServerTag, handleMember
 };

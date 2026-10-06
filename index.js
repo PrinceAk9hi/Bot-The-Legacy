@@ -2835,6 +2835,9 @@ client.on(
                             () => null
                         );
 
+                // Une libération peut survenir pendant les fetch ci-dessus.
+                if (client.chiens.get(targetId) !== data) continue;
+
                 if (
                     !cible ||
                     !maitre
@@ -3033,6 +3036,8 @@ async function restoreActiveVoiceControls() {
                     () => null
                 );
 
+        if (client.menottes.get(memberId) !== data) continue;
+
         if (
             !member ||
             !member.voice.channelId
@@ -3110,6 +3115,8 @@ async function restoreActiveVoiceControls() {
                 .catch(
                     () => null
                 );
+
+        if (client.chiens.get(targetId) !== data) continue;
 
         if (
             !target ||

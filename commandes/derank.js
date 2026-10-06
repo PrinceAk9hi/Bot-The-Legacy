@@ -1,3 +1,4 @@
+const AUTOMATIC_DERANK = Symbol("automaticDerank");
 const { ROBLOX } = require("../config/soulSociety");
 
 const { blockProtectedInteraction } = require("../utils/security");
@@ -533,7 +534,7 @@ module.exports = {
             // ==================================================
 
             if (
-                !hasDerankPermission(
+                !interaction[AUTOMATIC_DERANK] && !hasDerankPermission(
                     interaction.member
                 )
             ) {
@@ -987,6 +988,10 @@ module.exports = {
             // CONFIRMATION
             // ==================================================
 
+            if (interaction[AUTOMATIC_DERANK]) interaction.automaticResult = {
+                success: failedRoles.length === 0 && (!robloxResult.attempted || robloxResult.success)
+            };
+
             let confirmation =
                 `✅ <@${member.id}> a été **derank complètement**.` +
                 `\n🎭 **${removedRoles.length} rôle(s)** retiré(s).`;
@@ -1060,4 +1065,23 @@ module.exports = {
             );
         }
     }
+};
+// Entrée interne réservée aux systèmes automatiques : auteur réel = bot, protections conservées.
+module.exports.automatic = async function(member, reason) {
+    const { exempt } = require('../utils/automaticDerank');
+    if (exempt(member)) return { success: false };
+    const i = {
+        [AUTOMATIC_DERANK]: true, guild: member.guild, guildId: member.guild.id,
+        client: member.client, user: member.client.user, member: member.guild.members.me,
+        commandName: 'derank', deferred: false, replied: false,
+        options: {
+            data: [{ type: 6, name: 'membre', value: member.id }],
+            getUser: () => member.user,
+            getString: name => name === 'raison' ? reason : 'Sanction automatique selon le règlement.'
+        },
+        async deferReply() { this.deferred = true; },
+        async reply() {}, async followUp() {}, async editReply() {}
+    };
+    await module.exports.execute(i);
+    return i.automaticResult || { success: false };
 };

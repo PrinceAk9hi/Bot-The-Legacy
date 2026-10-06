@@ -4,7 +4,9 @@ const { eligible } = require('../utils/soulActivityHelpers');
 const { read, update } = require('../utils/recruitmentData');
 const LOG_CHANNEL = '1550615172895473736';
 const REMINDER_CHANNEL = '1550808374357131264';
-const SIX_HOURS = 6 * 3600000, TWO_DAYS = 48 * 3600000;
+const SIX_HOURS = 6 * 3600000;
+const { automaticDerank, exempt } = require("../utils/automaticDerank");
+const pendingProfile = (profiles, id) => !complete(profiles[id]) && !Object.values(profiles).some(p => p.discordId === id && complete(p));
 const complete = p => Boolean(p?.completedAt) || p?.step === 'done';
 function text(value) { return escapeMarkdown(String(value || 'Non renseigné')).slice(0, 900); }
 async function channel(client, id) {
@@ -53,22 +55,37 @@ function register(client) {
                 members.push(...batch.values()); if(batch.size<1000)break; after=batch.last().id;
             }
             const current = read('welcomeProfiles'), now = Date.now();
-            const pending = members.filter(m=>eligible(m) && !complete(current[m.id]) && !Object.values(current).some(p=>p.discordId===m.id && complete(p)))
+            const pending = members.filter(m=>!exempt(m) && eligible(m) && !complete(current[m.id]) && !Object.values(current).some(p=>p.discordId===m.id && complete(p)))
                 .filter(m=>now-(saved.reminders?.[m.id]?.lastSentAt || 0)>=SIX_HOURS);
+            // Reprise après redémarrage entre le 12e rappel et le derank.
+            for (const member of members) {
+                if (exempt(member) || !eligible(member) || !pendingProfile(read('welcomeProfiles'), member.id)) continue;
+                const reminder = read('welcomeFollowup').reminders?.[member.id];
+                if ((reminder?.count || 0) < 12) continue;
+                await automaticDerank(member, '=bienvenue non terminé après 12 rappels.',
+                    'welcome:' + guild.id + ':' + member.id + ':' + reminder.firstSentAt,
+                    async m => pendingProfile(read('welcomeProfiles'), m.id));
+            }
             if(pending.length) {
                 const c=await channel(client,REMINDER_CHANNEL);
                 for(let offset=0;offset<pending.length;offset+=25) {
                     const group=pending.slice(offset,offset+25);
                     // Recheck just before sending: a member may have finished during the inventory.
                     const latest=read('welcomeProfiles');
-                    const targets=group.filter(m=>!complete(latest[m.id]) && !Object.values(latest).some(p=>p.discordId===m.id && complete(p)));
+                    const targets=group.filter(m=>pendingProfile(latest,m.id) && (read("welcomeFollowup").reminders?.[m.id]?.count || 0)<12);
                     if(!targets.length)continue;
-                    const deadlines=targets.map(m=>({id:m.id, deadline:saved.reminders?.[m.id]?.deadline || now+TWO_DAYS}));
+                    const reminders=targets.map(m=>({id:m.id, count:(saved.reminders?.[m.id]?.count || 0)+1, firstSentAt:saved.reminders?.[m.id]?.firstSentAt || now}));
                     await c.send({content:targets.map(m=>`<@${m.id}>`).join(' '),allowedMentions:{parse:[],users:targets.map(m=>m.id)},embeds:[new EmbedBuilder().setColor(COLORS.primary)
                         .setTitle('📣 Rappel • Termine ton =bienvenue')
-                        .setDescription(`${EMOJIS.logo} Ton parcours d’accueil n’est pas encore terminé. Tape **=bienvenue** dans le serveur et va jusqu’à la dernière étape. Une fois terminé, utilise **=mon-profil** pour tes modifications.\n\n**Échéance personnelle :**\n${deadlines.map(d=>`<@${d.id}> : <t:${Math.floor(d.deadline/1000)}:f>${d.deadline<=now?' — délai dépassé':''}`).join('\n')}\n\n⚠️ **Tu disposes de deux jours à compter de ton premier rappel pour terminer =bienvenue, sous peine de derank. Les rappels ne prolongent pas ce délai.**`)
+                        .setDescription(`${EMOJIS.logo} Ton parcours d’accueil n’est pas encore terminé. Tape **=bienvenue** dans le serveur et va jusqu’à la dernière étape. Une fois terminé, utilise **=mon-profil** pour tes modifications.\n\n**Rappels envoyés :**\n${reminders.map(d=>`<@${d.id}> : **${d.count}/12**`).join('\n')}\n\n⚠️ **Après 12 rappels envoyés sans avoir terminé =bienvenue, un derank sera appliqué automatiquement.**`)
                         .setFooter({text:'La Soul Society • Rappel toutes les 6 heures'})]});
-                    update('welcomeFollowup',state=>{state.reminders||={};for(const d of deadlines)state.reminders[d.id]={deadline:d.deadline,lastSentAt:Date.now()};});
+                    update('welcomeFollowup',state=>{state.reminders||={};for(const d of reminders)state.reminders[d.id]={...d,lastSentAt:Date.now()};});
+                    for(const member of targets) {
+                        const reminder=read('welcomeFollowup').reminders[member.id];
+                        if(reminder.count>=12) await automaticDerank(member, '=bienvenue non terminé après 12 rappels.',
+                            'welcome:'+guild.id+':'+member.id+':'+reminder.firstSentAt,
+                            async m=>pendingProfile(read('welcomeProfiles'),m.id));
+                    }
                 }
             }
             update('welcomeFollowup',state=>{state.nextReminderAt=Date.now()+SIX_HOURS;});

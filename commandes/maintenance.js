@@ -1105,6 +1105,10 @@ ${result.since
 function updateBotPresence(
     client
 ) {
+    if (require('../utils/lineState').isOff()) {
+        client.user.setPresence({status:'idle',activities:[{name:'En pause • =line on',type:0}]});
+        return;
+    }
     const data =
         loadMaintenance();
 
@@ -1154,6 +1158,8 @@ function updateBotPresence(
 
         return;
     }
+
+    if (require('../utils/botPresence').apply(client)) return;
 
     client.user.setPresence({
         status:

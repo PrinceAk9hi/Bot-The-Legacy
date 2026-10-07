@@ -23,7 +23,7 @@ function register(client){
   finally{await client.logs?.logCommand?.(i,{status:error?'error':status,durationMs:Date.now()-started,error}).catch(()=>{});}
  }
  async function help(message,name){const subject={guildId:message.guildId,user:message.author,member:message.member};if(name){const command=client.commands.get(name);if(!command||!canUseCommand(subject,name))throw new PrefixError('Commande introuvable ou non autorisée.');const text=usages(command.data.toJSON());return reply(message,{embeds:[new EmbedBuilder().setColor(COLORS.primary).setTitle('📖 ='+name).setDescription(('```text\n'+text.slice(0,3300)+'\n```\nUtilise une mention ou un ID pour les membres. Mets les textes de plusieurs mots entre guillemets. Tu peux aussi nommer les options : `raison:texte` et `note:texte`.').slice(0,4096))]});}
-  const names=[...client.commands.keys()].filter(name=>canUseCommand(subject,name)).sort();if(!names.length)throw new PrefixError('Aucune commande accessible.');return reply(message,{embeds:[new EmbedBuilder().setColor(COLORS.primary).setTitle('📚 Commandes de La Soul Society').setDescription(names.map(n=>'`'+(['rank','mrankup','réunion'].includes(n)?'/':'=')+n+'`').join(' • ')+'\n\n**=aide nom** : syntaxe et paramètres.\n**=mv @membre** : déplacer dans ton vocal.\n**=derank @membre raison** : derank.\nLes réponses apparaissent directement dans le salon. Les boutons servent aux actions du panneau ; les informations affichées sont visibles par les personnes ayant accès au salon.')]});
+  const names=[...client.commands.keys()].filter(name=>canUseCommand(subject,name)).sort();if(!names.length)throw new PrefixError('Aucune commande accessible.');return reply(message,{embeds:[new EmbedBuilder().setColor(COLORS.primary).setTitle('📚 Commandes de La Soul Society').setDescription(names.map(n=>'`'+(['rank','mrankup','sound','stopsound'].includes(n)?'/':'=')+n+'`').join(' • ')+'\n\n**=aide nom** : syntaxe et paramètres.\n**=mv @membre** : déplacer dans ton vocal.\n**=derank @membre raison** : derank.\nLes réponses apparaissent directement dans le salon. Les boutons servent aux actions du panneau ; les informations affichées sont visibles par les personnes ayant accès au salon.')]});
  }
  async function onMessage(message){if(["1506015762333307132","1506015725104402542"].includes(message.channelId)&&!["1497659584415006780","1550234646711631884"].includes(message.author.id))return;if(message.author.bot||message.webhookId||message.guildId!==IDENTITY.guildId||!message.content?.startsWith('='))return;const match=/^=([\p{L}\d_-]+)(?:\s+([\s\S]*))?$/u.exec(message.content.trim());if(!match)return;const name=match[1].toLowerCase(),text=match[2]||'';
   if(isOff()&&!(name==='line'&&message.author.id===OWNER_ID))return;
@@ -38,7 +38,8 @@ function register(client){
     }catch(e){console.error('Commande =ad :',e.code||e.name);}
     return;
    }
-   if(['rank','mrankup','reunion','réunion'].includes(name))return await reply(message,{content:'Utilise /'+(name==='reunion'?'réunion':name)+' dans le menu des commandes Discord.'});
+   if(['reunion','réunion'].includes(name))return await reply(message,{content:'La préparation des réunions se fait maintenant avec =conf.'});
+   if(['rank','mrankup'].includes(name))return await reply(message,{content:'Utilise /'+(name==='reunion'?'réunion':name)+' dans le menu des commandes Discord.'});
    const command=client.commands.get(name);if(!command)return await reply(message,{content:'❌ Commande inconnue. Utilise =aide.'});
    const subject={guildId:message.guildId,guild:message.guild,client,user:message.author,member:message.member,attachments:message.attachments};check(subject,name);
    const data=await parse(command,text,subject);check(subject,name);

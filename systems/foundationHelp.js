@@ -17,7 +17,7 @@ module.exports=async function(client){
  {name:'🔗 =seelink • =badge membre',value:'Consulter une liaison Discord / Roblox ; attribuer le badge Roblox au compte lié.'},
  {name:'🏡 =bienvenue • =mon-profil • =absence',value:'Accueil initial du membre ; modification de son profil et de ses disponibilités ; déclaration d’une absence.'},
  {name:'🎂 =anniversaire [activer]',value:'Consulter ou modifier sa date privée et activer le rôle anniversaire automatique, lié au profil =bienvenue.'},
- {name:'📅 =reunion creer • =reunion annuler',value:'Créer une réunion dans la scène famille avec annonce et rappels privés 30 minutes avant. Annuler avec l’ID de l’événement.'},
+ {name:'📅 =conf',value:'Configurer une conférence : jour et heure de Paris, titre et description, notes et grades maintenant ou 6 h / 3 h / 1 h avant. Après validation, application 1 h / 2 h / 3 h après le début. Événement et rappel privé 30 minutes avant conservés. Reprendre ou annuler depuis =conf.'},
  {name:'📊 =bilan-semaine',value:'Publier manuellement les sept derniers jours. Un bilan est aussi envoyé le dimanche à 23 h, heure de Paris, dans le salon fondation.'},
  {name:'🛠️ =maintenance • =line',value:'Gestion de la maintenance. **=line on|off est exclusivement réservé à Aven.**'}
  ).setFooter({text:'Les boutons de =user conservent les contrôles des commandes existantes.'});

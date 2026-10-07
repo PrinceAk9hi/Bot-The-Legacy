@@ -16,18 +16,19 @@ async function privateConference(guild){
  await c.permissionOverwrites.set([...overwrites.values()],'Réunions réservées aux membres — autres permissions conservées');
  return c;
 }
-async function create(guild,{name,description,start,duration,authorId}){
+async function create(guild,{name,description,start,duration,authorId,conferenceId}){
  if(creating)throw Error('Une création de réunion est déjà en cours.');creating=true;
  try{const c=await privateConference(guild);const event=await guild.scheduledEvents.create({name,description:description||'Réunion des membres de la Soul Society.',scheduledStartTime:new Date(start),scheduledEndTime:new Date(start+duration*60000),privacyLevel:GuildScheduledEventPrivacyLevel.GuildOnly,entityType:c.type===ChannelType.GuildStageVoice?GuildScheduledEventEntityType.StageInstance:GuildScheduledEventEntityType.Voice,channel:c.id,reason:'Réunion créée par '+authorId});
- const r={eventId:event.id,guildId:guild.id,name,start,end:start+duration*60000,authorId,createdAt:Date.now(),recipients:{},attendanceVersion:1};update('familyMeetings',all=>{all[event.id]=r;});
+ const r={eventId:event.id,guildId:guild.id,name,start,end:start+duration*60000,authorId,createdAt:Date.now(),recipients:{},attendanceVersion:1,...(conferenceId?{conferenceId}:{})};update('familyMeetings',all=>{all[event.id]=r;});
  try{const channel=await guild.channels.fetch(ANNOUNCEMENTS);const msg=await channel.send({content:`<@&${ROLES.member}>`,allowedMentions:{parse:[],roles:[ROLES.member]},embeds:[new EmbedBuilder().setColor(COLORS.primary).setTitle('📅 '+name).setDescription(description||'Réunion de la Soul Society.').addFields({name:'Date',value:`<t:${Math.floor(start/1000)}:F>`},{name:'Salon conférence',value:`<#${CONFERENCE}>`},{name:'Événement',value:`https://discord.com/events/${guild.id}/${event.id}`},{name:'Rappel',value:'Un MP sera envoyé 30 minutes avant (sauf absence déclarée). Une absence injustifiée pendant toute la réunion entraîne un avertissement progressif. Déclare ton absence dans <#1479835698793156833>.'})]});update('familyMeetings',all=>{all[event.id].announcementId=msg.id;});}
  catch(e){update('familyMeetings',all=>{all[event.id].announcementError=String(e.code||e.message).slice(0,150);});return {id:event.id,announcement:false};}
  return {id:event.id,announcement:true};
  }finally{creating=false;}
 }
 async function cancel(guild,id){const r=read('familyMeetings')[id];if(!r||r.guildId!==guild.id)throw Error('Cette réunion n’est pas enregistrée par le bot.');
- const e=await guild.scheduledEvents.fetch(id).catch(err=>{if(err.code===10070)return null;throw err;});if(e)await e.delete('Réunion annulée');
  update('familyMeetings',all=>{all[id].cancelledAt=Date.now();});
+ const e=await guild.scheduledEvents.fetch(id).catch(err=>{if(err.code===10070)return null;throw err;});if(e)await e.delete('Réunion annulée');
+ 
  if(r.announcementId){const c=await guild.channels.fetch(ANNOUNCEMENTS),m=await c.messages.fetch(r.announcementId);await m.edit({content:'❌ Réunion annulée : '+r.name,embeds:[],allowedMentions:{parse:[]}});}
 }
 async function reminders(guild){if(reminding)return;reminding=true;try{

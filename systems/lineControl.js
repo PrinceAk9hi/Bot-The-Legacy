@@ -2,6 +2,7 @@ const {Events,MessageFlags}=require('discord.js');
 const {isOff,OWNER_ID}=require('../utils/lineState');
 const {IDENTITY}=require('../config/soulSociety');
 module.exports=function(client){
+ require('./botPanel')(client);
  const request=client.rest.request.bind(client.rest);
  client.rest.request=async function(options){
   const route=options.fullRoute||'';
@@ -22,7 +23,7 @@ module.exports=function(client){
   return emit.call(this,event,...args);
  };
  client.once(Events.ClientReady,async()=>{
-  try{if(isOff())client.user.setPresence({status:'idle',activities:[{name:'En pause • =line on',type:0}]});const guild=client.guilds.cache.get(IDENTITY.guildId);if(guild)await require('../commandes/maintenance').maintenanceSystem.refreshMaintenancePanel(guild);}
+  try{require('../commandes/maintenance').maintenanceSystem.updateBotPresence(client);const guild=client.guilds.cache.get(IDENTITY.guildId);if(guild)await require('../commandes/maintenance').maintenanceSystem.refreshMaintenancePanel(guild);}
   catch(e){console.error('Panel =line :',e.message);}
  });
 };

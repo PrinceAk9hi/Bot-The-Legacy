@@ -612,6 +612,8 @@ require("./systems/userActions")(client);
 require("./systems/familyLife")(client);
 require("./systems/music")(client);
 require("./systems/soundboard")(client);
+require("./systems/accessControls")(client);
+require("./systems/entryVerification")(client);
 require("./systems/prefixCommands")(client);
 require("./systems/soulActivity")(client);
 

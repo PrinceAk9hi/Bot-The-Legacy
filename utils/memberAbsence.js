@@ -1,6 +1,6 @@
 const {randomUUID}=require('node:crypto');
 const {EmbedBuilder,ActionRowBuilder,StringSelectMenuBuilder,ButtonBuilder,ButtonStyle,ModalBuilder,TextInputBuilder,TextInputStyle,MessageFlags,Events,AttachmentBuilder}=require('discord.js');
-const {IDENTITY,COLORS}=require('../config/soulSociety');
+const {IDENTITY,COLORS,CHANNELS}=require('../config/soulSociety');
 const {allowed}=require('./memberCare');
 const {read,update,ensurePanel}=require('./recruitmentData');
 const {parseParis}=require('./convocationTime');
@@ -42,6 +42,7 @@ async function declare(guild,userId,start,finish,reason=''){
  if(records(guild.id,now).some(r=>r.userId===userId))throw Error('Tu as déjà une absence en cours ou prévue. Utilise « Je suis de retour / annuler » avant de la remplacer.');
  const id=randomUUID();update('memberAbsences',all=>{all[id]={userId,guildId:guild.id,start,end:finish-1,endExclusive:finish,reason:reason.slice(0,900),createdAt:now,source:'absence-panel'};});
  let roles=true,panel=true;try{await syncMember(guild,userId);}catch(e){roles=false;console.error('Rôles absence :',e.code||e.message);}try{await publish(guild.client);}catch(e){panel=false;console.error('Panel absence :',e.code||e.message);}
+ await require('./securityGate').log(guild,'📅 Absence déclarée',{id:userId,user:{username:guild.members.cache.get(userId)?.user.username||userId}},`Début : <t:${Math.floor(start/1000)}:F>\nFin : <t:${Math.floor(finish/1000)}:F>\nMotif : ${reason||'Non précisé'}`,CHANNELS.absenceLogs);
  return `✅ Absence enregistrée jusqu’au <t:${Math.floor(finish/1000)}:f>.${roles?'':' ⚠️ Rôles non actualisés : la gestion doit vérifier leur hiérarchie et les permissions du bot.'}${panel?'':' ⚠️ Actualisation du panel en attente.'}`;
 }
 function field(id,label,value='',required=true){const f=new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Short).setRequired(required).setMaxLength(id==='reason'?900:40);if(value)f.setValue(value);return row(f);}
@@ -58,7 +59,7 @@ async function handle(i){if(!i.customId?.startsWith('absence_'))return;if(!allow
  try{await i.deferReply({flags:MessageFlags.Ephemeral});
   if(i.customId==='absence_return'){
    const now=Date.now();update('memberAbsences',all=>{for(const r of Object.values(all))if(r.guildId===i.guildId&&r.userId===i.user.id&&end(r)>now)r.cancelledAt=now;});
-   await syncMember(i.guild,i.user.id);await publish(i.client);return i.editReply('✅ Ton retour est enregistré. Les rôles ajoutés par le système ont été retirés.');
+   await syncMember(i.guild,i.user.id);await publish(i.client);await require('./securityGate').log(i.guild,'✅ Retour d’absence',i.member,'Retour déclaré par le membre.',CHANNELS.absenceLogs);return i.editReply('✅ Ton retour est enregistré. Les rôles ajoutés par le système ont été retirés.');
   }
   const kind=i.customId.split(':')[1],now=Date.now();let start=now,finish;
   if(kind==='short'){const h=Number(i.fields.getTextInputValue('hours'));if(!Number.isInteger(h)||h<1||h>23)throw Error('Choisis une durée entière de 1 à 23 heures.');finish=now+h*3600000;}

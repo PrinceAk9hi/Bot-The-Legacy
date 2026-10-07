@@ -1,6 +1,6 @@
 const { read, update } = require('./recruitmentData');
 const { isProtectedUser } = require('./security');
-const { IDENTITY } = require('../config/soulSociety');
+const { IDENTITY, CHANNELS } = require('../config/soulSociety');
 const locks = new Set();
 const exempt = member => !member || member.user.bot || member.id === '547192186547077130' ||
     member.id === member.guild.ownerId || isProtectedUser(member.id, 'derank');
@@ -26,7 +26,7 @@ async function automaticDerank(member, reason, key, stillEligible = async () => 
         if (!result.success) {
             console.warn('Derank automatique à vérifier manuellement :', member.id, key);
             try {
-                const c = await member.guild.channels.fetch('1550814768586301510');
+                const c = await member.guild.channels.fetch(CHANNELS.derankLogs);
                 await c?.send({ content: `⚠️ Derank automatique de <@${member.id}> incomplet ou non confirmé. Vérification manuelle nécessaire ; aucune nouvelle tentative automatique.`, allowedMentions: { parse: [] } });
             } catch {}
         }

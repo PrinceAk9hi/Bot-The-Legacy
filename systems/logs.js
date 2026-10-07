@@ -359,11 +359,11 @@ function getGuildConfig(
 // ======================================================
 
 async function getLogChannel(guild, key) {
-    // Never fall back to a public channel for internal command/rank logs.
-    if (guild.id === IDENTITY.guildId && ["commands", "rank", "derank"].includes(key)) {
-        const id = key === "derank" ? CHANNELS.derankLogs : key === "commands" ? CHANNELS.commandLogs : CHANNELS.rankLogs;
+    if (guild.id === IDENTITY.guildId) {
+        const id = ({ commands: CHANNELS.commandLogs, rank: CHANNELS.rankLogs, derank: CHANNELS.derankLogs,
+            absence: CHANNELS.absenceLogs, recruitment: CHANNELS.recruitmentLogs, tickets: CHANNELS.ticketLogs })[key] || CHANNELS.logs;
         const channel = await guild.channels.fetch(id).catch(() => null);
-        return channel?.isTextBased() ? channel : null;
+        return channel?.isTextBased() && channel.guildId === guild.id ? channel : null;
     }
     const config = getGuildConfig(guild.id);
     const channelIds = [...new Set([

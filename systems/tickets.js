@@ -26,196 +26,14 @@ const {
 // CONFIG
 // ======================================================
 
-const CONFIG = {
-    // ==================================================
-    // BYPASS
-    // ==================================================
-
-    bypassRoles: [
-        "1469803353964810250",
-        "1522357970778718249",
-        "1497660642436448266",
-        "1527996778727870496",
-        "1471546243653304392",
-
-        "1504782476319526932"
-    ],
-
-    // ==================================================
-    // TICKETS GÉNÉRAUX
-    // ==================================================
-
-    ticketGestion:
-        "1471557970079912047",
-
-    // ==================================================
-    // ANIMATIONS
-    // ==================================================
-
-    animationGestion:
-        "1477056805103206450",
-
-    // ==================================================
-    // SANCTIONS / RANKUPS
-    // ==================================================
-
-    sanctionGestion:
-        "1471889647570260030",
-
-    // ==================================================
-    // CATÉGORIES
-    // ==================================================
-
-    categoryGeneral:
-        "1521895023472414721",
-
-    categoryReport:
-        "1521894502485327962",
-
-    categoryEvent:
-        "1521890653439656038",
-
-    categoryFoundation:
-        "1458476133124407351",
-
-    // ==================================================
-    // LOGS
-    // ==================================================
-
-    logsChannel:
-        "1471556441218224209"
-};
-
-// ======================================================
-// TYPES DE TICKETS
-// ======================================================
-
-const TICKET_TYPES = {
-    questions: {
-        label:
-            "Questions/Aide",
-
-        channelPrefix:
-            "aide",
-
-        categoryId:
-            CONFIG.categoryGeneral,
-
-        responsibleRoles: [],
-
-        gestionRoles: [
-            CONFIG.ticketGestion
-        ],
-
-        pingRoles: [
-            CONFIG.ticketGestion
-        ]
-    },
-
-    event: {
-        label:
-            "Création d'un évènement",
-
-        channelPrefix:
-            "evenement",
-
-        categoryId:
-            CONFIG.categoryEvent,
-
-        responsibleRoles: [],
-
-        gestionRoles: [
-            CONFIG.animationGestion
-        ],
-
-        pingRoles: [
-            CONFIG.animationGestion
-        ]
-    },
-
-    report: {
-        label:
-            "Signaler un membre",
-
-        channelPrefix:
-            "signalement",
-
-        categoryId:
-            CONFIG.categoryReport,
-
-        responsibleRoles: [],
-
-        gestionRoles: [
-            CONFIG.sanctionGestion
-        ],
-
-        pingRoles: [
-            CONFIG.sanctionGestion
-        ]
-    },
-
-    partnership: {
-        label:
-            "Demander un partenariat",
-
-        channelPrefix:
-            "partenariat",
-
-        categoryId:
-            CONFIG.categoryGeneral,
-
-        responsibleRoles: [],
-
-        gestionRoles: [
-            CONFIG.ticketGestion
-        ],
-
-        pingRoles: [
-            CONFIG.ticketGestion
-        ]
-    },
-
-    role: {
-        label:
-            "Demander un rôle particulier",
-
-        channelPrefix:
-            "role",
-
-        categoryId:
-            CONFIG.categoryGeneral,
-
-        responsibleRoles: [],
-
-        gestionRoles: [
-            CONFIG.ticketGestion
-        ],
-
-        pingRoles: [
-            CONFIG.ticketGestion
-        ]
-    },
-
-    foundation: {
-        label:
-            "Contacter la direction",
-
-        channelPrefix:
-            "direction",
-
-        categoryId:
-            CONFIG.categoryFoundation,
-
-        responsibleRoles:
-            [],
-
-        gestionRoles:
-            [],
-
-        pingRoles:
-            CONFIG.bypassRoles
-    }
-};
+const ticketConfig = require('../config/tickets');
+const {IDENTITY}=require('../config/soulSociety');
+const CONFIG={bypassRoles:[],logsChannel:ticketConfig.logsChannel};
+// Legacy kinds can still be closed, but cannot be opened from old panels.
+const TICKET_TYPES={...ticketConfig.types,
+ role:{...ticketConfig.types.questions,label:'Ancien ticket — rôle'},
+ foundation:{...ticketConfig.types.questions,label:'Ancien ticket — direction'}};
+const operations=new Set(),closing=new Set();
 
 // ======================================================
 // ANTI DOUBLE REGISTER
@@ -506,6 +324,8 @@ function buildPermissions(
         }
     ];
 
+    overwrites.push({id:guild.client.user.id,allow:[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory,PermissionFlagsBits.AttachFiles,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.ManageChannels]});
+
     const staffRoles =
         new Set([
             ...CONFIG.bypassRoles,
@@ -794,10 +614,7 @@ async function createTranscript(
     let before =
         undefined;
 
-    while (
-        messages.length <
-        1000
-    ) {
+    while (true) {
         const fetched =
             await channel.messages.fetch({
                 limit:
@@ -827,6 +644,7 @@ async function createTranscript(
         }
     }
 
+    // Keep the channel if Discord cannot accept the transcript attachment.
     messages.sort(
         (
             a,
@@ -858,9 +676,12 @@ async function createTranscript(
                             " "
                         );
 
+                const rich = [...(message.embeds||[])].map(e=>JSON.stringify(e.toJSON())).join('\n');
                 let content =
                     message.content ||
                     "";
+
+                if (rich) content += "\n" + rich;
 
                 if (
                     attachments
@@ -1075,7 +896,7 @@ async function logTicketClose(
     if (
         !logs?.isTextBased()
     ) {
-        return;
+        throw Error("Logs tickets inaccessibles : fermeture annulée, salon conservé.");
     }
 
     const ticketType =
@@ -1163,7 +984,9 @@ async function logTicketClose(
             )
             .setTimestamp();
 
+    if (!transcript || transcript.length > 7 * 1024 * 1024) throw Error("Transcript absent ou trop volumineux : salon conservé pour archivage manuel.");
     const payload = {
+        allowedMentions: {parse:[]},
         embeds: [
             embed
         ]
@@ -1202,7 +1025,7 @@ async function createTicket(
         ];
 
     if (
-        !ticketType
+        !ticketConfig.types[type]
     ) {
         return interaction.editReply({
             content:
@@ -1220,6 +1043,7 @@ async function createTicket(
     // 1 TICKET PAR TYPE
     // ==================================================
 
+    await guild.channels.fetch();
     const existing =
         findExistingTicket(
             guild,
@@ -1253,7 +1077,7 @@ async function createTicket(
             );
 
     if (
-        !category
+        !category || category.type !== ChannelType.GuildCategory
     ) {
         return interaction.editReply({
             content:
@@ -1471,6 +1295,9 @@ function registerTicketSystem(
     registered =
         true;
 
+    const install=()=>{if(!require('../utils/lineState').isOff())require('../utils/ticketPanel').install(client).catch(e=>console.error('Panel tickets :',e.code||e.message));};
+    if(client.isReady())install();else client.once(Events.ClientReady,install);
+
     console.log(
         "🎫 Système de tickets : ✅ enregistré"
     );
@@ -1478,6 +1305,10 @@ function registerTicketSystem(
     client.on(
         Events.InteractionCreate,
         async interaction => {
+            if (!interaction.customId?.startsWith('soul_ticket_') || interaction.guildId!==IDENTITY.guildId || require('../utils/lineState').isOff()) return;
+            const key=interaction.customId==='soul_ticket_select' ? interaction.guildId+':'+interaction.user.id+':'+interaction.values?.[0] : interaction.channelId;
+            if (operations.has(key)||closing.has(interaction.channelId)) return interaction.reply({content:'Une opération est déjà en cours pour ce ticket.',flags:MessageFlags.Ephemeral}).catch(()=>{});
+            operations.add(key);
             try {
                 // ==================================================
                 // OUVERTURE VIA SELECT
@@ -1999,37 +1830,8 @@ function registerTicketSystem(
                     // TRANSCRIPT
                     // ==================================================
 
-                    const transcript =
-                        await createTranscript(
-                            interaction.channel
-                        ).catch(
-                            error => {
-                                console.error(
-                                    "❌ Transcript ticket :",
-                                    error
-                                );
-
-                                return null;
-                            }
-                        );
-
-                    // ==================================================
-                    // LOG
-                    // ==================================================
-
-                    await logTicketClose(
-                        interaction.channel,
-                        interaction.user,
-                        metadata,
-                        transcript
-                    ).catch(
-                        error => {
-                            console.error(
-                                "❌ Log fermeture ticket :",
-                                error
-                            );
-                        }
-                    );
+                    const transcript = await createTranscript(interaction.channel);
+                    await logTicketClose(interaction.channel,interaction.user,metadata,transcript);
 
                     // ==================================================
                     // MESSAGE FERMETURE
@@ -2067,6 +1869,7 @@ function registerTicketSystem(
                     // DELETE 4 SEC
                     // ==================================================
 
+                    closing.add(interaction.channelId);
                     setTimeout(
                         async () => {
                             await interaction.channel.delete(
@@ -2078,7 +1881,7 @@ function registerTicketSystem(
                                         error
                                     );
                                 }
-                            );
+                            ).finally(()=>closing.delete(interaction.channelId));
                         },
                         4000
                     );
@@ -2094,11 +1897,11 @@ function registerTicketSystem(
 
                 try {
                     if (
-                        interaction.deferred
+                        interaction.deferred || interaction.replied
                     ) {
                         await interaction.followUp({
                             content:
-                                "❌ Une erreur est survenue avec le système de tickets.",
+                                "❌ Opération interrompue. Le ticket reste accessible si son archivage ou sa fermeture a échoué. Vérifie les permissions puis réessaie.",
 
                             flags:
                                 MessageFlags.Ephemeral
@@ -2117,7 +1920,7 @@ function registerTicketSystem(
                     }
 
                 } catch {}
-            }
+            } finally { operations.delete(key); }
         }
     );
 };

@@ -28,6 +28,7 @@ function register(client) {
     }
     function voice(i, session) {
         permission(i);
+        if (client.soulRadio?.active(i.guildId)) throw new youtube.MusicError("Une annonce radio est en cours. La musique reprendra après la tournée.");
         const channel = i.guild.members.cache.get(i.user.id)?.voice.channel;
         if (!channel || channel.type !== ChannelType.GuildVoice) throw new youtube.MusicError('Rejoins un salon vocal classique pour utiliser la musique.');
         if (session && channel.id !== session.channel.id) throw new youtube.MusicError('Rejoins le même vocal que le bot pour contrôler cette session.');
@@ -39,7 +40,7 @@ function register(client) {
     function threshold(session) { return Math.max(1, Math.ceil(listeners(session).size / 2)); }
     function panel(session) {
         const current = session.current;
-        const state = session.closed ? '⏹️ Session terminée' : session.status === 'paused' ? '⏸️ En pause' : session.status === 'loading' ? '⏳ Préparation de la musique' : current ? '▶️ Lecture en cours' : '🎶 En attente d’un titre';
+        const state = session.radioSuspended ? '📻 En pause pendant une annonce radio' : session.closed ? '⏹️ Session terminée' : session.status === 'paused' ? '⏸️ En pause' : session.status === 'loading' ? '⏳ Préparation de la musique' : current ? '▶️ Lecture en cours' : '🎶 En attente d’un titre';
         const embed = new EmbedBuilder().setColor(COLORS.primary).setTitle('🎵 Musique • La Soul Society')
             .setDescription(`**${state}**\n${current ? `[${label(current.title)}](${current.url})\n⏱️ ${duration(current.duration)} • Ajouté par <@${current.requester}>` : 'Utilise =play avec un titre ou un lien YouTube.'}`)
             .addFields({ name: '🔊 Volume', value: `${session.volume} %`, inline: true }, { name: '🎙️ Vocal', value: `<#${session.channel.id}>`, inline: true }, { name: '📜 File d’attente', value: `${session.tracks.length} titre(s)`, inline: true });
@@ -67,7 +68,7 @@ function register(client) {
     }
     function stop(session, notice = 'Session arrêtée.') {
         if (session.closed) return;
-        session.closed = true;
+        session.closed = true; session.radioSuspended = false;
         cancelTrack(session); session.tracks = []; session.notice = notice;
         if (sessions.get(session.guild.id) === session) sessions.delete(session.guild.id);
         if (session.connection && session.connection.state.status !== VoiceConnectionStatus.Destroyed) session.connection.destroy();
@@ -75,13 +76,14 @@ function register(client) {
     }
     function finish(session, token, error) {
         if (session.closed || token !== session.generation || !session.current) return;
+        if (session.radioSuspended) { session.radioError = error || new Error('Flux musical interrompu pendant la radio.'); return; }
         if (error) session.notice = error instanceof youtube.MusicError ? error.message : 'La lecture a été interrompue. Le titre suivant sera essayé.';
         cancelTrack(session);
         session.status = 'idle'; session.idleSince = Date.now();
         setImmediate(() => pump(session));
     }
     function pump(session) {
-        if (session.closed || session.current) return;
+        if (session.closed || session.current || session.radioSuspended) return;
         if (isOff()) return stop(session, 'Bot mis en pause.');
         const track = session.tracks.shift();
         if (!track) { session.status = 'idle'; session.idleSince = Date.now(); refresh(session); return; }
@@ -97,6 +99,43 @@ function register(client) {
         } catch (error) { finish(session, token, error); }
         refresh(session);
     }
+    function bindConnection(session, connection) {
+        const current = () => !session.radioSuspended && session.connection === connection && !session.closed;
+        connection.on('error', () => { if(current()) stop(session, 'Connexion vocale interrompue. Relance =play.'); });
+        connection.on(VoiceConnectionStatus.Destroyed, () => { if(current()) stop(session, 'Le bot a quitté le vocal.'); });
+        connection.on(VoiceConnectionStatus.Disconnected, () => {
+            if(!current()) return;
+            Promise.race([entersState(connection, VoiceConnectionStatus.Signalling, 5000), entersState(connection, VoiceConnectionStatus.Connecting, 5000)]).catch(() => { if(current()) stop(session, 'Connexion vocale perdue.'); });
+        });
+    }
+    async function suspendForRadio(guildId) {
+        return serial(guildId, async () => {
+            const session = sessions.get(guildId); if(!session) return null;
+            if(session.status === 'loading' || session.connection.state.status !== VoiceConnectionStatus.Ready) throw new youtube.MusicError('Attends la fin du chargement musical avant la radio.');
+            session.radioWasPaused = session.status === 'paused';
+            if(session.current && !session.radioWasPaused && !session.player.pause(true)) throw new youtube.MusicError('La musique ne peut pas être mise en pause actuellement.');
+            session.radioSuspended = true;
+            clearTimeout(session.startTimer);
+            session.connection.destroy(); await refresh(session); return session.id;
+        });
+    }
+    async function resumeAfterRadio(guildId, token) {
+        return serial(guildId, async () => {
+            const session = sessions.get(guildId); if(!session || session.id !== token || session.closed) return false;
+            if(isOff()) { stop(session, 'Bot mis en pause.'); return false; }
+            try {
+                session.connection=joinVoiceChannel({channelId:session.channel.id,guildId,adapterCreator:session.guild.voiceAdapterCreator,group:'soul-music',selfDeaf:true,selfMute:false});
+                bindConnection(session,session.connection);
+                await entersState(session.connection,VoiceConnectionStatus.Ready,15000);
+                if(session.closed) return false;
+                session.connection.subscribe(session.player);session.radioSuspended=false;
+                if(session.radioError) { const error=session.radioError;session.radioError=null;finish(session,session.generation,error); }
+                else if(session.current) { if(!session.radioWasPaused) { session.player.unpause(); session.status='playing'; } else session.status='paused'; }
+                else pump(session);
+                session.emptySince=null;session.idleSince=Date.now();await refresh(session);return true;
+            } catch(error) { stop(session,'La musique n’a pas pu reprendre après la radio. Relance =play.');throw error; }
+        });
+    }
     async function connect(i) {
         const channel = voice(i);
         try { assertFree(i.guild); } catch (error) { throw new youtube.MusicError(error.message); }
@@ -105,13 +144,9 @@ function register(client) {
         sessions.set(i.guildId, session);
         try {
             session.connection = joinVoiceChannel({ channelId: channel.id, guildId: i.guildId, adapterCreator: i.guild.voiceAdapterCreator, group: 'soul-music', selfDeaf: true, selfMute: false });
-            session.connection.on('error', () => stop(session, 'Connexion vocale interrompue. Relance =play.'));
-            session.connection.on(VoiceConnectionStatus.Destroyed, () => stop(session, 'Le bot a quitté le vocal.'));
-            session.connection.on(VoiceConnectionStatus.Disconnected, () => {
-                Promise.race([entersState(session.connection, VoiceConnectionStatus.Signalling, 5000), entersState(session.connection, VoiceConnectionStatus.Connecting, 5000)]).catch(() => stop(session, 'Connexion vocale perdue.'));
-            });
+            bindConnection(session, session.connection);
             session.player.on('stateChange', (before, after) => {
-                if (after.status === AudioPlayerStatus.Playing && session.current) { clearTimeout(session.startTimer); session.status = 'playing'; session.pausedSince = null; refresh(session); }
+                if (after.status === AudioPlayerStatus.Playing && session.current && !session.radioSuspended) { clearTimeout(session.startTimer); session.status = 'playing'; session.pausedSince = null; refresh(session); }
                 if (after.status === AudioPlayerStatus.Idle && before.resource) finish(session, before.resource.metadata.token);
             });
             session.player.on('error', error => finish(session, error.resource?.metadata?.token ?? session.generation, error));
@@ -250,6 +285,7 @@ function register(client) {
         for (const [id, time] of cooldown) if (now - time > 60000) cooldown.delete(id);
         for (const session of sessions.values()) {
             if (isOff() || client.maintenanceSystem?.checkCommandMaintenance?.('play')?.blocked) { stop(session, 'Bot en pause ou en maintenance.'); continue; }
+            if (session.radioSuspended) continue;
             if (session.guild.members.me?.voice.channelId && session.guild.members.me.voice.channelId !== session.channel.id) { stop(session, 'Le bot a été déplacé. Relance =play dans le nouveau vocal.'); continue; }
             if (!listeners(session).size) session.emptySince ||= now; else session.emptySince = null;
             if (session.emptySince && now - session.emptySince >= 60000) { stop(session, 'Vocal vide depuis une minute.'); continue; }
@@ -260,11 +296,11 @@ function register(client) {
     const timer = setInterval(tick, 5000); timer.unref();
     client.on(Events.VoiceStateUpdate, (before, after) => {
         const session = sessions.get(after.guild.id);
-        if (!session) return;
+        if (!session || session.radioSuspended) return;
         if (after.id === client.user.id && before.channelId === session.channel.id && after.channelId !== session.channel.id) stop(session, 'Le bot a quitté le vocal musical.');
         if (!after.channelId || after.channelId !== session.channel.id) session.votes.delete(after.id);
     });
-    const api = { command, handle, active: guildId => sessions.has(guildId), stopAll: () => { for (const session of sessions.values()) stop(session); }, sessions, searches, tick };
+    const api = { command, handle, suspendForRadio, resumeAfterRadio, active: guildId => sessions.has(guildId), stopAll: () => { for (const session of sessions.values()) stop(session); }, sessions, searches, tick };
     client.soulMusic = api;
     return api;
 }

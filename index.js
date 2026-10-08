@@ -612,6 +612,7 @@ require("./systems/userActions")(client);
 require("./systems/familyLife")(client);
 require("./systems/music")(client);
 require("./systems/soundboard")(client);
+require("./systems/radio")(client);
 require("./systems/accessControls")(client);
 require("./systems/entryVerification")(client);
 require("./systems/prefixCommands")(client);
@@ -2350,6 +2351,11 @@ client.on(
 
             if (interaction.customId?.startsWith("conf:") || interaction.customId?.startsWith("confhome:")) {
                 await require("./systems/conferences").handle(interaction);
+                return;
+            }
+
+            if (interaction.customId?.startsWith("radio:")) {
+                await require("./systems/radioPanel").handle(interaction);
                 return;
             }
 

@@ -54,6 +54,7 @@ const {
     Client,
     Collection,
     GatewayIntentBits,
+    Partials,
     Events,
     REST,
     Routes,
@@ -139,10 +140,12 @@ const client =
             GatewayIntentBits.GuildMembers,
             GatewayIntentBits.GuildVoiceStates,
             GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.GuildMessageReactions,
             GatewayIntentBits.MessageContent,
             GatewayIntentBits.GuildPresences
         ],
 
+        partials: [Partials.Message, Partials.Channel, Partials.Reaction],
         presence: {
             status:
                 "dnd"
@@ -3616,6 +3619,8 @@ if (
         1
     );
 }
+
+require("./systems/qgServer")(client);
 
 client.login(
     process.env.TOKEN

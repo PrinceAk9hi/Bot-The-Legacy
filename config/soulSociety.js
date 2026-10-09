@@ -10,8 +10,8 @@ const IDENTITY = Object.freeze({
 });
 
 const COLORS = Object.freeze({
-    primary: 0xF8BBD0,
-    secondary: 0xFF1493,
+    primary: 0xFFFFFF,
+    secondary: 0xFFFFFF,
     sanction: 0xFF1744,
     success: 0x57F287,
     error: 0xFFB3B3

@@ -13,7 +13,7 @@ const text=content=>({type:10,content});
 const row=(...components)=>({type:1,components});
 const button=(custom_id,label,style=2,disabled=false)=>({type:2,custom_id,label,style,disabled});
 const menu=(custom_id,placeholder,options)=>row({type:3,custom_id,placeholder,options});
-const box=components=>({flags:MessageFlags.IsComponentsV2,components:[{type:17,accent_color:0xe8a6c8,components}],allowedMentions:{parse:[]}});
+const box=components=>({flags:MessageFlags.IsComponentsV2,components:[{type:17,accent_color:0xffffff,components}],allowedMentions:{parse:[]}});
 const cid=(r,action,extra='')=>`conf:${r.id}:${r.revision||0}:${action}${extra?':'+extra:''}`;
 const stamp=t=>`<t:${Math.floor(t/1000)}:F>`;
 const esc=s=>String(s).replace(/[\\*_~`|]/g,'\\$&').replace(/@/g,'＠');

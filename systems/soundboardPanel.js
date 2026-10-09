@@ -11,7 +11,7 @@ module.exports = function registerPanel(client, api) {
         const sounds = live ? await catalog.list() : [];
         const pages = Math.max(1, Math.ceil(sounds.length / 25));
         p.page = Math.max(0, Math.min(p.page, pages - 1));
-        const embed = new EmbedBuilder().setColor(live ? 0xf6b9d4 : 0x777777)
+        const embed = new EmbedBuilder().setColor(0xffffff)
             .setTitle('🔊 Soundboard • La Soul Society')
             .setDescription(live
                 ? `${s.paused ? '⏸️ En pause' : '▶️ Lecture'} : **${escapeMarkdown(s.current?.name || 'En attente du prochain son')}**\nVocal : <#${s.channel.id}>\nVolume : **${Math.round(s.volume * 100)} %**\nFile : **${s.queue.length} son(s)**`

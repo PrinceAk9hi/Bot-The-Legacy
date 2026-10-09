@@ -680,7 +680,7 @@ Cette première étape vous ouvre désormais **les portes de l'entretien de recr
 
 Un membre de l’équipe de recrutement vous contactera pour vous demander vos disponibilités vocales et organiser votre entretien.
 
-**Ce ticket sera supprimé 12 heures après l’acceptation. Votre candidature restera enregistrée pour l’entretien.**
+**Si un ticket d’échange a été ouvert, il sera supprimé 12 heures après l’acceptation. Votre candidature restera enregistrée pour l’entretien.**
 
 **L'entretien dure généralement une vingtaine de minutes et se déroule dans une atmosphère calme et respectueuse**. Nous vous recommandons d'être disponible, muni d'un microphone fonctionnel et de prendre connaissance du règlement avant votre passage.
 
@@ -711,7 +711,7 @@ Nous vous remercions pour le temps que vous avez consacré à votre candidature 
 
 **L'héritage récompense ceux qui savent patienter**.
 
-> 🗑️ Ce ticket peut être fermé avec le bouton ci-dessous. Dans le cas contraire, il sera automatiquement supprimé dans **12 heures**.
+> Si un ticket d’échange a été ouvert, il sera automatiquement supprimé dans **12 heures**.
 
 > <@${membre.id}>`
         );
@@ -727,6 +727,7 @@ function createReviewButtons(
     ddsStatus = "none",
     decision = "pending"
 ) {
+    ticketId = ticketId || "dm";
     const decisionPrise =
         decision !==
         "pending";
@@ -820,7 +821,8 @@ function createReviewButtons(
                 )
                 .setDisabled(
                     ddsDisabled
-                )
+                ),
+            new ButtonBuilder().setCustomId(`candticket:${userId}`).setLabel("Ouvrir un ticket").setStyle(ButtonStyle.Secondary).setDisabled(decisionPrise)
         );
 }
 
@@ -1256,6 +1258,7 @@ function registerRecruitmentSystem(
     client
 ) {
     require("./foundationPanel").register(client);
+    const dmApplications = require("./candidatureDm")({QUESTIONS, CONFIG, recruteurAutorise, createFormEmbed, createReviewButtons, updateReviewMessage, embedAccepte, embedRefuse});
     // ==================================================
     // RESTAURATION DES FERMETURES 12H
     // ==================================================
@@ -1263,6 +1266,13 @@ function registerRecruitmentSystem(
     client.once(
         Events.ClientReady,
         async () => {
+            for (const [id, application] of Object.entries(lireCandidatures())) {
+                if (application.decision !== 'pending' || !application.reviewMessageId || application.dmReviewVersion === 1) continue;
+                try {
+                    await updateReviewMessage(client, id);
+                    require('../utils/recruitmentData').update('candidatures', all => { if (all[id]) all[id].dmReviewVersion = 1; });
+                } catch (error) { console.error('Actualisation candidature :', error.code || error.message); }
+            }
             await checkExpiredRefusedTickets(
                 client
             ).catch(
@@ -1297,6 +1307,14 @@ function registerRecruitmentSystem(
     client.on(
         Events.InteractionCreate,
         client.handleRecruitmentInteraction = async interaction => {
+            if (await dmApplications.handle(interaction)) return;
+            if (/^soul_(accept|refuse)_/.test(interaction.customId || '')) {
+                const id = interaction.customId.split('_')[2];
+                const application = lireCandidatures()[id];
+                if (!application || application.reviewMessageId !== interaction.message?.id || application.reviewChannelId !== interaction.channelId) {
+                    return interaction.reply({content:'❌ Cette candidature n’est plus active.',flags:MessageFlags.Ephemeral});
+                }
+            }
             if (interaction.customId?.startsWith("entretien_") && !inOffice(interaction)) return interaction.reply({content: OFFICE_MESSAGE, flags: MessageFlags.Ephemeral});
             if (interaction.customId?.startsWith("entretien_") && !/^entretien_(candidature|sanctions)_/.test(interaction.customId) && !recruteurAutorise(interaction.member)) {
                 return interaction.reply({ content: "❌ Action réservée à l’équipe de recrutement.", flags: MessageFlags.Ephemeral });
@@ -1387,198 +1405,6 @@ function registerRecruitmentSystem(
                 );
 
                 return;
-            }
-
-            // ==================================================
-            // REJOINDRE
-            // ==================================================
-
-            if (
-                interaction.isButton() &&
-                interaction.customId ===
-                "soul_join"
-            ) {
-                await interaction.deferReply({
-                    flags:
-                        MessageFlags.Ephemeral
-                });
-
-                const guild =
-                    interaction.guild;
-
-                const membre =
-                    interaction.member;
-
-                const existing =
-                    guild.channels.cache.find(
-                        channel =>
-                            channel.topic ===
-                            `candidature:${membre.id}`
-                    );
-
-                if (
-                    existing
-                ) {
-                    return interaction.editReply({
-                        content:
-                            `❌ Tu possèdes déjà une candidature : ${existing}`
-                    });
-                }
-
-                const ticket =
-                    await guild.channels.create({
-                        name:
-                            `candidature-${cleanChannelName(
-                                membre.user.username
-                            )}`,
-
-                        type:
-                            ChannelType.GuildText,
-
-                        parent:
-                            CONFIG.categorieTickets,
-
-                        topic:
-                            `candidature:${membre.id}`,
-
-                        permissionOverwrites: [
-                            {
-                                id:
-                                    guild.id,
-
-                                deny: [
-                                    PermissionFlagsBits
-                                        .ViewChannel
-                                ]
-                            },
-
-                            {
-                                id:
-                                    membre.id,
-
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.SendMessages,
-                                    PermissionFlagsBits.ReadMessageHistory
-                                ]
-                            },
-
-                            
-
-                            {
-                                id:
-                                    CONFIG.gestionRecrutement,
-
-                                allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.SendMessages,
-                                    PermissionFlagsBits.ReadMessageHistory
-                                ]
-                            },
-
-                            ...["1527996778727870496", "1471546243653304392", "1504782476319526932", "1469803353964810250", "1522357970778718249", "1497660642436448266"].map(id => ({ id, allow: [
-                                    PermissionFlagsBits.ViewChannel,
-                                    PermissionFlagsBits.SendMessages,
-                                    PermissionFlagsBits.ReadMessageHistory
-                                ] }))
-                        ]
-                    });
-
-                const boutons =
-                    new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(
-                                    `soul_form_${membre.id}`
-                                )
-                                .setLabel(
-                                    "Formulaire de candidature"
-                                )
-                                .setEmoji(
-                                    "📝"
-                                )
-                                .setStyle(
-                                    ButtonStyle.Primary
-                                ),
-
-                            new ButtonBuilder()
-                                .setCustomId(
-                                    `soul_cancel_${membre.id}`
-                                )
-                                .setLabel(
-                                    "Annuler ma candidature"
-                                )
-                                .setEmoji(
-                                    "✖️"
-                                )
-                                .setStyle(
-                                    ButtonStyle.Danger
-                                )
-                        );
-
-                await ticket.send({
-                    content:
-                        `<@&${CONFIG.gestionRecrutement}> <@${membre.id}>`,
-
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(
-                                COLORS.attente
-                            )
-                            .setTitle(
-                                "Bienvenue dans ta candidature 🪽"
-                            )
-                            .setDescription(
-`Bienvenue <@${membre.id}>,
-
-Ce ticket est ton espace personnel de candidature pour rejoindre la **Soul Society**.
-
-Lorsque tu es prêt, clique sur **Formulaire de candidature**.
-
-### Comment fonctionne le questionnaire ?
-
-Le bot t'enverra les **11 questions une par une**, directement dans ce ticket.
-
-Pour chaque question :
-
-> **Tu dois envoyer toute ta réponse dans UN SEUL MESSAGE.**
-
-Une fois ta réponse envoyée :
-
-- elle est enregistrée automatiquement ;
-- le message de la question est supprimé ;
-- ton message de réponse est supprimé ;
-- la question suivante apparaît automatiquement.
-
-⏱️ **Tu disposes de 5 minutes maximum pour chaque question.**
-
-Une fois les 11 questions terminées, ta candidature est automatiquement transmise à notre équipe de recrutement.
-
-Prends le temps de fournir des réponses sérieuses, précises et complètes.`
-                            )
-                            .setFooter({
-                                text:
-                                    "La Soul Society • Recrutements"
-                            })
-                    ],
-
-                    components: [
-                        boutons
-                    ]
-                });
-
-                await logAction(
-                    guild,
-                    "📂 Ticket candidature créé",
-                    membre.user,
-                    membre.user,
-                    `${ticket}`
-                );
-
-                return interaction.editReply({
-                    content:
-                        `✅ Ton ticket a été créé : ${ticket}`
-                });
             }
 
             // ==================================================
@@ -2256,8 +2082,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 const userId =
                     parts[2];
 
-                const ticketId =
-                    parts[3];
+                const ticketId = lireCandidatures()[parts[2]]?.ticketId || parts[3];
 
                 const membre =
                     await getMember(
@@ -2325,6 +2150,9 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     );
                 }
 
+                if (lireCandidatures()[userId]?.source === 'dm') {
+                    await membre.send({embeds:[embedAccepte(membre)]}).catch(error => console.error('MP acceptation :', error.code || error.message));
+                }
                 let oralInvitationSent = true;
                 await demanderDisponibilitesOrales(interaction.guild, membre).catch(error => {
                     oralInvitationSent = false;
@@ -2383,8 +2211,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                 const userId =
                     parts[2];
 
-                const ticketId =
-                    parts[3];
+                const ticketId = lireCandidatures()[parts[2]]?.ticketId || parts[3];
 
                 const membre =
                     await getMember(
@@ -2434,8 +2261,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
 
                 candidatures[
                     userId
-                ].ticketId =
-                    ticketId;
+                ].ticketId = ticketId === "dm" ? null : ticketId;
 
                 candidatures[
                     userId
@@ -2512,7 +2338,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                     interaction.user,
                     membre.user,
                     [
-                        "Ticket programmé pour fermeture automatique dans 12 heures.",
+                        ticketId !== "dm" ? "Ticket programmé pour fermeture automatique dans 12 heures." : "Candidature reçue en MP, sans ticket.",
                         dmSent
                             ? "✅ MP de refus envoyé."
                             : "⚠️ Impossible d'envoyer le MP."
@@ -2526,7 +2352,7 @@ Prends le temps de fournir des réponses sérieuses, précises et complètes.`
                         [
                             `❌ Candidature de **${membre.user.username}** refusée.`,
                             "",
-                            "🕒 Le ticket sera automatiquement supprimé dans **12 heures**.",
+                            ticketId !== "dm" ? "🕒 Le ticket sera automatiquement supprimé dans **12 heures**." : "La décision a été enregistrée.",
                             dmSent
                                 ? "📩 Le candidat a reçu un MP."
                                 : "⚠️ Le candidat n'accepte pas les MP du bot."

@@ -31,7 +31,7 @@ const OPEN_COLOR =
     SOUL_COLORS.primary;
 
 const CLOSED_COLOR =
-    SOUL_COLORS.error;
+    SOUL_COLORS.primary;
 
 // ======================================================
 // DATA
@@ -212,7 +212,9 @@ function createMainEmbed(
             "rejoindre la Soul Society <:Soul_Society:1548783936010977380>"
         )
         .setDescription(
-`La Soul Society évolue dans une palette de **roses pâles et vifs**. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
+`Clique sur **rejoindre la Soul Society** : les **12 questions te seront envoyées en MP**. Autorise les messages privés du serveur avant de commencer. Aucun ticket ne sera ouvert automatiquement ; un recruteur pourra en ouvrir un avec toi si un échange est nécessaire.
+
+La Soul Society t’accueille. Notre héritage repose sur **la discrétion**, **la loyauté** et **le respect**, des valeurs qui **façonnent chacun de nos membres**.
 
 **Période de test**
 

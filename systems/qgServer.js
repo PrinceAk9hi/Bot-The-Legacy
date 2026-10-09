@@ -2,7 +2,8 @@ const {Events,ChannelType:T,PermissionFlagsBits:P,MessageFlags,ActionRowBuilder,
 const config=require('../config/qg'),layout=require('../config/qgLayout');
 const {read,update}=require('../utils/recruitmentData');
 const locks=new Map();let installing=false;
-const saved=()=>read('qgServer');
+const seeds=require('../config/qgSeeds');
+const saved=()=>{const s=read('qgServer');return {...seeds,...s,roles:{...seeds.roles,...s.roles},levelRoles:{...seeds.levelRoles,...s.levelRoles},categories:{...seeds.categories,...s.categories},channels:{...seeds.channels,...s.channels},panels:{...seeds.panels,...s.panels}};};
 const store=fn=>update('qgServer',fn);
 const serial=(key,fn)=>{const next=(locks.get(key)||Promise.resolve()).catch(()=>{}).then(fn);locks.set(key,next);next.finally(()=>{if(locks.get(key)===next)locks.delete(key);}).catch(()=>{});return next;};
 const allowedMentions={parse:[]};
@@ -23,11 +24,18 @@ async function setup(client,guild){
   // Create from bottom to top, then enforce the requested order below the bot.
   for(const [key,name,permissions] of [...layout.roles].reverse()){
    let role=roles.get(saved().roles?.[key])||roles.find(x=>x.name===name&&!x.managed);
-   if(role){if(!role.editable)throw Error('Place le rôle du bot au-dessus de '+name+'.');await role.edit({permissions,hoist:true,mentionable:false});}
+   if(role){if(!role.editable)throw Error('Place le rôle du bot au-dessus de '+name+'.');await role.edit({name,permissions,hoist:true,mentionable:false});}
    else role=await guild.roles.create({name,permissions,hoist:true,mentionable:false,reason:'Installation QG demandée par le propriétaire'});
    r[key]=role.id;store(s=>{s.roles||={};s.roles[key]=role.id;});
   }
   await guild.roles.setPositions([...layout.roles].reverse().map(([key],index)=>({role:r[key],position:index+1})));
+  // XP roles are created highest milestone first; tied bottom positions keep that order below Membre.
+  for(const n of [...layout.levelMilestones].reverse()){
+   const name='« I Niveau '+n;let role=roles.get(saved().levelRoles?.[n])||roles.find(r=>r.name===name&&!r.managed);
+   if(!role)role=await guild.roles.create({name,permissions:[],hoist:false,mentionable:false,reason:'Palier XP QG'});
+   else if(role.editable)await role.edit({name,permissions:[],hoist:false,mentionable:false});
+   store(s=>{s.levelRoles||={};s.levelRoles[n]=role.id;});
+  }
   const owner=await guild.fetchOwner();await owner.roles.add(r.creator,'Creator du serveur QG');
   const all=await guild.channels.fetch(),cats={},c={};
   const existingPublic=[...all.values()].filter(ch=>ch?.permissionsFor(guild.roles.everyone)?.has(P.ViewChannel,false));
@@ -39,12 +47,12 @@ async function setup(client,guild){
   }
   for(const [key,name,parent,type] of layout.channels){
    let ch=all.get(saved().channels?.[key])||all.find(x=>x?.type===type&&x.parentId===cats[parent]&&(x.name===name||(key==='memberCount'&&x.name.endsWith(' • .gg/QG'))));
-   if(ch){if(ch.type!==type)throw Error('Type de salon incorrect : '+name);await ch.setParent(cats[parent],{lockPermissions:true});}
+   if(ch){if(ch.type!==type)throw Error('Type de salon incorrect : '+name);await ch.setParent(cats[parent],{lockPermissions:true});if(key!=='memberCount'&&ch.name!==name)await ch.setName(name);}
    else ch=await guild.channels.create({name,type,parent:cats[parent],permissionOverwrites:layout.overwrites(guild.id,client.user.id,r,parent)});
    c[key]=ch.id;
-   if(['rules','tos','arrivals','departures','tickets'].includes(key)){
+   if(['rules','tos','arrivals','departures','tickets','announcements','levels','supportApply','supportInfo'].includes(key)){
     await ch.permissionOverwrites.edit(guild.id,{SendMessages:false,CreatePublicThreads:false,CreatePrivateThreads:false,SendMessagesInThreads:false,...(key==='rules'?{AddReactions:true}:{})});
-    if(key==='tickets')await ch.permissionOverwrites.edit(r.member,{SendMessages:false,CreatePublicThreads:false,CreatePrivateThreads:false,SendMessagesInThreads:false});
+    if(['tickets','announcements','levels','supportApply','supportInfo'].includes(key))await ch.permissionOverwrites.edit(r.member,{SendMessages:false,CreatePublicThreads:false,CreatePrivateThreads:false,SendMessagesInThreads:false});
    }
    if(key==='memberCount')await ch.permissionOverwrites.edit(guild.id,{Connect:false});
    store(s=>{s.channels||={};s.channels[key]=ch.id;});
@@ -58,11 +66,19 @@ async function setup(client,guild){
    await ch.permissionOverwrites.edit(r.member,{ViewChannel:true});
    await ch.permissionOverwrites.edit(client.user.id,{ViewChannel:true,SendMessages:true,ReadMessageHistory:true});
   }
+  for(const ch of (await guild.channels.fetch()).values()){
+   if(ch&&!ch.name.includes('・')&&[T.GuildText,T.GuildVoice,T.GuildCategory,T.GuildAnnouncement].includes(ch.type))await ch.setName((ch.type===T.GuildCategory?'📁':ch.type===T.GuildVoice?'🔊':'💬')+'・'+ch.name);
+  }
   const get=id=>guild.channels.fetch(id);
   const rules=await panel(await get(c.rules),'rules',layout.rules(),client);await rules.react('✅');
   await panel(await get(c.tos),'tos',layout.tos(),client);
   await panel(await get(c.tickets),'tickets',layout.ticket(),client);
-  await panel(await get(c.commands),'commands',{embeds:[layout.embed('Commandes du QG','**Membres**\n`=aide` : consulter cette aide.\n`=suggestion ton idée` : proposer une amélioration dans le salon suggestions.\n\n**Tickets**\nUtilise le bouton du salon tickets. L’équipe peut prendre en charge ou renommer le ticket. Son auteur et l’équipe peuvent le fermer ; un transcript est conservé.\n\n**Vocaux**\nRejoins « ➕ Crée ton vocal » pour créer ton salon temporaire. Il sera supprimé quand il sera vide.\n\n**Installation**\n`=setupqg` est réservé au propriétaire du serveur et à Aven. Les commandes de gestion de la Soul Society restent réservées à leur serveur.')],allowedMentions},client);
+  await panel(await get(c.commands),'commands',{embeds:[layout.embed('Commandes du QG','**Membres**\n`=niveau` : ton niveau et ta progression.\n`=classement` : les dix membres les plus actifs.\n`=aide` : consulter cette aide.\n`=suggestion ton idée` : proposer une amélioration dans le salon suggestions.\n\n**Tickets**\nUtilise le bouton du salon tickets. L’équipe peut prendre en charge ou renommer le ticket. Son auteur et l’équipe peuvent le fermer ; un transcript est conservé.\n\n**Vocaux**\nRejoins « ➕ Crée ton vocal » pour créer ton salon temporaire. Il sera supprimé quand il sera vide.\n\n**Installation**\n`=setupqg` est réservé au propriétaire du serveur et à Aven. Les commandes de gestion de la Soul Society restent réservées à leur serveur.')],allowedMentions},client);
+  await panel(await get(c.levels),'levels',require('./qgLevels').panel(),client);
+  await panel(await get(c.supportApply),'supportApply',require('./qgSupport').panel(),client);
+  await panel(await get(c.supportInfo),'supportInfo',{embeds:[layout.embed('Besoin d’aide ?',`**Demande privée** : ouvre un ticket dans <#${c.tickets}>.\n**Aide vocale** : rejoins <#${c.waiting}> et attends un membre de l’équipe.\n**Rejoindre le support** : dépose une candidature dans <#${c.supportApply}>.\n\nNe communique jamais de mot de passe ni de token.`)],allowedMentions},client);
+  await panel(await get(c.introductions),'introductions',{embeds:[layout.embed('Fais connaissance avec le QG','Présente-toi en quelques mots : le pseudo que tu utilises, tes jeux favoris, tes passions et ce que tu aimerais trouver ici. Tu peux rester discret sur tes informations personnelles.')],allowedMentions},client);
+  await panel(await get(c.gaming),'gaming',{embeds:[layout.embed('Trouve des partenaires de jeu','Indique ton jeu, ta plateforme, le nombre de joueurs recherchés et ton créneau. Propose ensuite un vocal pour vous retrouver. Pas de spam ni de mentions massives.')],allowedMentions},client);
   store(s=>{s.guildId=guild.id;s.installedAt=Date.now();s.version=1;});
   await stats(guild,true);
   return {roles:r,channels:c};
@@ -73,7 +89,7 @@ async function stats(guild,force=false){
  checkGuild(guild);const s=saved();if(!s.roles?.member||!s.channels?.memberCount||!force&&Date.now()-lastCountRefresh<600000)return;
  let after,count=0;
  for(;;){const members=await guild.members.list({limit:1000,...(after?{after}:{})});count+=members.filter(m=>!m.user.bot&&m.roles.cache.has(s.roles.member)).size;if(members.size<1000)break;after=members.lastKey();}
- const channel=await guild.channels.fetch(s.channels.memberCount);const name=`Membres : ${count} • ${config.statSuffix}`;
+ const channel=await guild.channels.fetch(s.channels.memberCount);const name=`📊・Membres : ${count} • ${config.statSuffix}`;
  if(channel&&channel.name!==name)await channel.setName(name);lastCountRefresh=Date.now();
 }
 async function log(guild,title,description,files=[]){const ch=await guild.channels.fetch(saved().channels.logs);if(!ch?.isTextBased())throw Error('Salon de logs QG indisponible.');return ch.send({embeds:[layout.embed(title,description)],files,allowedMentions});}
@@ -111,6 +127,7 @@ async function ticket(i){
  await log(i.guild,'Ticket ouvert',`<@${i.user.id}> • <#${ch.id}>`);return i.editReply(`✅ Ton ticket : <#${ch.id}>`);
 }
 async function interaction(i){
+ if(await require('./qgSupport').handle(i,saved()))return;
  if(!i.customId?.startsWith('qg:'))return i.isRepliable?.()?i.reply({content:'Cette commande appartient au serveur de la Soul Society. Utilise =aide pour le QG.',flags:MessageFlags.Ephemeral}):undefined;
  const action=i.customId.split(':')[1];
  if(action==='rename'){
@@ -142,7 +159,7 @@ async function voice(oldState,newState){
   const fresh=await newState.guild.members.fetch(member.id);if(fresh.voice.channelId!==s.channels.createVoice||!fresh.roles.cache.has(s.roles.member)&&!staff(fresh))return;
   const existing=Object.entries(saved().temporaryVoices||{}).find(([,r])=>r.ownerId===member.id);
   let ch=existing?await newState.guild.channels.fetch(existing[0]).catch(e=>{if(e.code===10003)return null;throw e;}):null;
-  if(!ch){ch=await newState.guild.channels.create({name:`Vocal de ${member.displayName}`.slice(0,95),type:T.GuildVoice,parent:s.categories.voice,permissionOverwrites:layout.overwrites(newState.guild.id,newState.client.user.id,s.roles,'voice')});store(x=>{x.temporaryVoices||={};x.temporaryVoices[ch.id]={ownerId:member.id};});}
+  if(!ch){ch=await newState.guild.channels.create({name:`🔊・Vocal de ${member.displayName}`.slice(0,95),type:T.GuildVoice,parent:s.categories.voice,permissionOverwrites:layout.overwrites(newState.guild.id,newState.client.user.id,s.roles,'voice')});store(x=>{x.temporaryVoices||={};x.temporaryVoices[ch.id]={ownerId:member.id};});}
   try{await fresh.voice.setChannel(ch);}catch(e){if(ch.members.size===0){await ch.delete('Déplacement impossible');store(x=>{delete x.temporaryVoices[ch.id];});}throw e;}
  });
  if(oldState.channelId&&saved().temporaryVoices?.[oldState.channelId])await serial('cleanup:'+oldState.channelId,async()=>{
@@ -151,6 +168,8 @@ async function voice(oldState,newState){
 }
 async function message(m){
  if(m.author.bot)return;
+ if(await require('./qgLevels').command(m,saved()))return;
+ await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){
   if(m.author.id!==config.ownerId&&m.author.id!==m.guild.ownerId)return;
   await m.reply({content:'Installation / actualisation du QG en cours…',allowedMentions});await setup(m.client,m.guild);return m.reply({content:'✅ Rôles, salons, règlement, tickets et vocaux QG configurés.',allowedMentions});
@@ -176,13 +195,14 @@ function register(client){
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred?first.editReply(p):first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,()=>reaction(first,args[1],event===Events.MessageReactionAdd)));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
-  if(event===Events.VoiceStateUpdate){guarded(voice,...args);return true;}
+  if(event===Events.VoiceStateUpdate){require('./qgLevels').resetVoice(first.id);guarded(voice,...args);return true;}
   if([Events.GuildMemberUpdate,Events.PresenceUpdate,Events.MessageUpdate,Events.MessageDelete,Events.MessageBulkDelete].includes(event))return true;
   return emit.call(this,event,...args);
  };
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await setup(client,guild);
+  setInterval(()=>guarded(require('./qgLevels').voice,guild,saved()),120000).unref();
   const s=saved(),rulesChannel=await guild.channels.fetch(s.channels.rules),rulesMessage=await rulesChannel.messages.fetch(s.panels.rules);
   const accept=rulesMessage.reactions.cache.find(r=>r.emoji.name==='✅');
   if(accept){let after;for(;;){const users=await accept.users.fetch({limit:100,...(after?{after}:{})});for(const user of users.values()){

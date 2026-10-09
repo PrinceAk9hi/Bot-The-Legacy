@@ -6,6 +6,7 @@ const roles=[
  ['confirmed','Modérateur confirmé',[P.ModerateMembers,P.ManageMessages,P.MoveMembers]],
  ['test','Modérateur test',[P.ManageMessages]],['member','Membre',[]]
 ];
+roles.forEach(r=>r[1]='« I '+r[1]);
 const staffKeys=roles.map(r=>r[0]).filter(k=>k!=='member');
 const categories=[['welcome','ACCUEIL'],['community','COMMUNAUTÉ'],['voice','SALONS VOCAUX'],['help','ASSISTANCE'],['staff','ÉQUIPE'],['stats','STATISTIQUES']];
 const channels=[
@@ -16,6 +17,15 @@ const channels=[
  ['createVoice','➕ Crée ton vocal','voice',T.GuildVoice],['tickets','tickets','help',T.GuildText],['waiting','Attente aide','help',T.GuildVoice],
  ['logs','logs','staff',T.GuildText],['team','discussion-équipe','staff',T.GuildText],['memberCount','Membres : 0 • .gg/QG','stats',T.GuildVoice]
 ];
+const categoryNames={welcome:'👋・ACCUEIL',community:'💬・COMMUNAUTÉ',voice:'🔊・VOCAUX',help:'🆘・SUPPORT',staff:'⛔・ACCÈS STAFF',stats:'📊・STATISTIQUES'};
+categories.forEach(c=>c[1]=categoryNames[c[0]]);
+const icons={rules:'📜',tos:'📋',arrivals:'👋',departures:'🚪',chat:'💬',media:'🖼️',commands:'🤖',suggestions:'💡',createVoice:'➕',tickets:'🎫',waiting:'🆘',logs:'📋',team:'💭',memberCount:'📊'};
+channels.forEach(c=>{c[1]=(icons[c[0]]||'🔊')+'・'+c[1].replace(/^➕ /,'').toLowerCase().replace(/ /g,'-');});
+channels.push(
+ ['announcements','📢・annonces','community',T.GuildText],['introductions','👋・présentations','community',T.GuildText],['gaming','🎮・recherche-de-joueurs','community',T.GuildText],['levels','🏆・niveaux','community',T.GuildText],
+ ['supportApply','📝・candidature-support','help',T.GuildText],['supportInfo','ℹ️・infos-support','help',T.GuildText],
+ ['staffAnnouncements','📢・annonces-staff','staff',T.GuildText],['staffGiveaways','🎉・giveaways-staff','staff',T.GuildText],['staffRequests','📍・demandes-staff','staff',T.GuildText],['staffAlerts','⏰・alertes-staff','staff',T.GuildText],['staffIdeas','📬・boîte-à-idées','staff',T.GuildText],['staffMemories','📸・souvenirs-staff','staff',T.GuildText],['staffSanctions','✏️・suivi-sanctions','staff',T.GuildText],['staffCommands','🤖・commandes-staff','staff',T.GuildText],['staffApplications','📨・candidatures-support','staff',T.GuildText]
+);
 const embed=(title,description)=>new EmbedBuilder().setColor(0xffffff).setTitle(title).setDescription(description).setFooter({text:'QG • Communauté'});
 const rules=()=>({embeds:[embed('Bienvenue au QG — Règlement',
 'Bienvenue dans notre communauté ! Lis ces règles avant de participer.\n\n'+
@@ -29,7 +39,7 @@ const rules=()=>({embeds:[embed('Bienvenue au QG — Règlement',
 const tos=()=>({embeds:[embed('Conditions d’utilisation et confidentialité',
 'Ce serveur est une communauté indépendante, sans affiliation officielle avec Discord.\n\n'+
 '**Règles de la plateforme**\nRespecte les [Conditions d’utilisation de Discord](https://discord.com/terms) et les [Règles de la communauté](https://discord.com/guidelines), notamment les conditions d’âge applicables à ton pays.\n\n'+
-'**Fonctionnement du bot**\nLe bot utilise ton identifiant Discord, ton rôle Membre et les événements d’arrivée et de départ pour gérer les accès et les statistiques. Les tickets sont archivés dans un salon réservé à l’équipe lors de leur fermeture. Ne partage jamais de mot de passe, de token ou de donnée sensible dans un ticket.\n\n'+
+'**Fonctionnement du bot**\nLe bot utilise ton identifiant Discord, ton rôle Membre et les événements d’arrivée et de départ pour gérer les accès et les statistiques. Le système de niveaux conserve ton XP et tes plafonds quotidiens ; une empreinte de tes derniers messages éligibles limite les répétitions sans conserver leur texte dans le fichier XP. Les candidatures support sont conservées pour leur traitement par l’équipe. Les tickets sont archivés dans un salon réservé à l’équipe lors de leur fermeture. Ne partage jamais de mot de passe, de token ou de donnée sensible dans un ticket.\n\n'+
 '**Contact**\nContacte l’équipe dans un ticket pour une question, un signalement ou une demande concernant tes données. Ces informations expliquent le fonctionnement du serveur ; elles ne remplacent pas les règles officielles de Discord.')],allowedMentions:{parse:[]}});
 const ticket=()=>({embeds:[embed('Contacter l’équipe','Une question, un souci ou un signalement ? Ouvre un ticket privé.\n\nDécris ta demande et joins les éléments utiles. Un seul ticket ouvert par membre. Le contenu sera archivé à la fermeture, dans un salon réservé à l’équipe.')],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:ticket').setLabel('Ouvrir un ticket').setEmoji('✉️').setStyle(ButtonStyle.Primary))],allowedMentions:{parse:[]}});
 function overwrites(guildId,botId,r,kind){
@@ -38,4 +48,5 @@ function overwrites(guildId,botId,r,kind){
  const staff=staffKeys.map(k=>({id:r[k],allow:write}));
  return [everyone,{id:botId,allow:[...write,P.ManageChannels,P.ManageRoles,P.ManageMessages]},...staff,...(kind!=='staff'&&kind!=='welcome'?[{id:r.member,allow:kind==='stats'?read:write,...(kind==='stats'?{deny:[P.Connect]}:{})}]:[])];
 }
-module.exports={roles,staffKeys,categories,channels,embed,rules,tos,ticket,overwrites};
+const levelMilestones=[5,10,15,20,30,40,50];
+module.exports={levelMilestones,roles,staffKeys,categories,channels,embed,rules,tos,ticket,overwrites};

@@ -18,7 +18,7 @@ async function check(member, checkTag = true) {
     // Une donnée indisponible ne doit jamais déclencher une exclusion.
     const user = await member.user.fetch({ force: true });
     if (!Number.isFinite(user.createdTimestamp)) throw Error('Date de création Discord indisponible. Réessaie plus tard.');
-    const young = Date.now() - user.createdTimestamp < 45 * 86400000;
+    const young = Date.now() - user.createdTimestamp < 45 * 86400000 && !require('./accountRecovery').hasAgeException(member);
     const ordr = checkTag && user.primaryGuild?.identityEnabled === true && String(user.primaryGuild.identityGuildId) === ORDR;
     if (!young && !ordr) return true;
     if (!member.kickable) {

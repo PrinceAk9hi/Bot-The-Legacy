@@ -12,9 +12,14 @@ const DEFAULTS = [
     { id: 'partnerships', title: 'Demande de partenariat', tags: ['partenariat', 'serveur', 'school rp', '+18'], content: 'Une demande de partenariat doit indiquer le nom et le lien du serveur, son objectif, s’il promeut du contenu +18 et son éventuel lien avec School RP. Une demande complète est transmise à la Gestion Requête ; seul le staff décide.' }
 ];
 
-const STOP = new Set('avec dans pour une des les est aux qui que quoi comment quand quel quelle quels quelles mais par sur cette sont plus pas nous vous mon ma mes ton ta tes cela alors donc'.split(' '));
+const STOP = new Set('avec dans pour une des les est aux qui que quoi comment quand quel quelle quels quelles mais par sur cette sont plus pas nous vous mon ma mes ton ta tes cela alors donc c est ce se du de la le un en au et ou si quoi faire peux peut comment avez avait ont a'.split(' '));
 function normalize(text) { return String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
-function tokens(text) { return normalize(text).split(/[^a-z0-9]+/).filter(word => word.length > 2 && !STOP.has(word)); }
+function stem(word) {
+    if (word.length > 5 && word.endsWith('es')) return word.slice(0, -1);
+    if (word.length > 4 && word.endsWith('s')) return word.slice(0, -1);
+    return word;
+}
+function tokens(text) { return normalize(text).split(/[^a-z0-9]+/).map(stem).filter(word => word.length > 2 && !STOP.has(word)); }
 function entries() {
     const ranks = { id: 'current-ranks', title: 'Grades Discord reconnus', tags: ['grade', 'rang', 'membre', 'promotion'], content: `Grades principaux configurés dans le bot : ${Object.values(MAIN_RANKS).map(rank => rank.name).join(', ')}. Le rôle présent dans le profil indique uniquement le rôle actuel ; toute promotion, sanction ou décision future relève de l’équipe.` };
     return [...DEFAULTS, ranks, ...Object.values(read('ticketKnowledgeEntries'))];
@@ -22,10 +27,17 @@ function entries() {
 function search(query, limit = 5) {
     const queryTokens = new Set(tokens(query));
     return entries().map(entry => {
-        const text = `${entry.title} ${(entry.tags || []).join(' ')} ${entry.content}`;
-        const matched = tokens(text).filter(word => queryTokens.has(word));
-        return { ...entry, score: matched.length + matched.filter(word => (entry.tags || []).some(tag => tokens(tag).includes(word))).length };
-    }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
+        const titleTokens = new Set(tokens(entry.title));
+        const tagTokens = new Set(tokens((entry.tags || []).join(' ')));
+        const contentTokens = new Set(tokens(entry.content));
+        const titleMatches = [...queryTokens].filter(word => titleTokens.has(word)).length;
+        const tagMatches = [...queryTokens].filter(word => tagTokens.has(word)).length;
+        const contentMatches = [...queryTokens].filter(word => contentTokens.has(word)).length;
+        const matchedTokens = [...queryTokens].filter(word => titleTokens.has(word) || tagTokens.has(word) || contentTokens.has(word)).length;
+        const custom = entry.source === 'ia-staff-improvement' || entry.source === 'staff';
+        const score = titleMatches * 4 + tagMatches * 3 + contentMatches + (custom ? 2 : 0);
+        return { ...entry, score, coverage: queryTokens.size ? matchedTokens / queryTokens.size : 0, matchedTokens, titleMatches, custom };
+    }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score || Number(b.custom) - Number(a.custom)).slice(0, limit);
 }
 function add(title, content, metadata = {}) {
     const entry = { id: metadata.id || `kb-${randomUUID().slice(0, 8)}`, title: String(title).trim(), content: String(content).trim(), tags: (metadata.tags || []).slice(0, 12), createdAt: Date.now(), createdBy: metadata.createdBy || null, source: metadata.source || 'staff' };

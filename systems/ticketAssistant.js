@@ -117,7 +117,7 @@ module.exports = function registerTicketAssistant(client) {
         const metadata = ticketMetadata(message.channel);
         if (!metadata || metadata.claimedBy || !message.channel.isTextBased()) return;
         const staffRoles = [...(ticketConfig.types[metadata.type].responsibleRoles || []), ...(ticketConfig.types[metadata.type].gestionRoles || [])];
-        if (message.member && staffRoles.some(id => message.member.roles.cache.has(id))) {
+        if (message.author.id !== metadata.ownerId && message.member && staffRoles.some(id => message.member.roles.cache.has(id))) {
             update("ticketAiPaused", all => { all[message.channelId] = Date.now(); });
             return;
         }

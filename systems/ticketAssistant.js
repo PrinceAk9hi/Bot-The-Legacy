@@ -89,12 +89,19 @@ function recordGap(message, metadata, question, answer, reason) {
     return item;
 }
 
+function staffNotificationRole(metadata, text = '') {
+    const roles = ticketConfig.notificationRoles;
+    if (metadata.type === 'event') return roles.animation;
+    const highImportance = /\b(?:urgent|urgence|grave|danger|menace|harcel|harc[eè]lement|sanction|plainte|recours|faire appel|pirat|compte vol[eé]|doxx|fraude|agression|s[eé]curit[eé])\b/i.test(String(text));
+    if (metadata.type === 'report' || metadata.type === 'partnership' || highImportance) return roles.request;
+    return roles.ticket;
+}
+
 async function tellStaff(message, metadata, summary, reference) {
-    const roles = [...new Set(ticketConfig.types[metadata.type]?.gestionRoles || [])];
-    const mentions = roles.map(id => `<@&${id}>`).join(" ");
+    const roleId = staffNotificationRole(metadata, `${summary || message.content || ''}`);
     await message.channel.send({
-        content: `${mentions ? `${mentions}\n` : ""}🧑‍💼 Je transmets cette demande à l’équipe, qui prendra le relais dans ce ticket.${summary ? `\n\n**Résumé pour l’équipe :** ${summary}` : ''}${reference ? `\nRéférence de suivi : \`${reference}\`` : ''}`,
-        allowedMentions: { roles }
+        content: `<@&${roleId}>\n🧑‍💼 Je transmets cette demande à l’équipe, qui prendra le relais dans ce ticket.${summary ? `\n\n**Résumé pour l’équipe :** ${summary}` : ''}${reference ? `\nRéférence de suivi : \`${reference}\`` : ''}`,
+        allowedMentions: { roles: [roleId] }
     });
 }
 
@@ -130,10 +137,10 @@ async function handleRudeMessage(message, metadata) {
         return false;
     }
 
-    const roles = [...new Set(ticketConfig.types[metadata.type]?.gestionRoles || [])];
-    const mentions = roles.map(id => `<@&${id}>`).join(' ');
+    const roleId = staffNotificationRole(metadata, count >= 3 ? 'harcèlement répété' : message.content);
+    const mentions = `<@&${roleId}>`;
     if (count === 2) {
-        await message.channel.send({ content: `${mentions ? `${mentions}\n` : ''}<@${message.author.id}> Je veux bien continuer à t’aider, mais les insultes doivent s’arrêter. L’équipe est prévenue et pourra reprendre le ticket.`, allowedMentions: { users: [message.author.id], roles } });
+        await message.channel.send({ content: `${mentions ? `${mentions}\n` : ''}<@${message.author.id}> Je veux bien continuer à t’aider, mais les insultes doivent s’arrêter. L’équipe est prévenue et pourra reprendre le ticket.`, allowedMentions: { users: [message.author.id], roles: [roleId] } });
         return true;
     }
 
@@ -247,9 +254,9 @@ async function submitWorkflow(message, metadata, state) {
         state.forwardedMessageId = sent.id; saveWorkflow(message.channelId, state);
     } else if (metadata.type === 'report') {
         if (state.reportNotifiedAt) return;
-        const roles = [...new Set(ticketConfig.types.report.gestionRoles || [])];
+        const roleId = ticketConfig.notificationRoles.request;
         const fields = Object.entries(FLOW_FIELDS.report).map(([key, name]) => ({ name, value: String(state.fields[key] || 'Non renseigné').slice(0, 1024) }));
-        await message.channel.send({ content: `${roles.map(id => `<@&${id}>`).join(' ')}\n📌 Le signalement contient les informations demandées et une preuve image/vidéo jointe. L’équipe peut le traiter.`, embeds: [new EmbedBuilder().setTitle('Résumé du signalement').addFields(fields).setTimestamp()], allowedMentions: { roles } });
+        await message.channel.send({ content: `<@&${roleId}>\n📌 Le signalement contient les informations demandées et une preuve image/vidéo jointe. L’équipe peut le traiter.`, embeds: [new EmbedBuilder().setTitle('Résumé du signalement').addFields(fields).setTimestamp()], allowedMentions: { roles: [roleId] } });
         state.reportNotifiedAt = Date.now(); saveWorkflow(message.channelId, state);
     }
 }
@@ -273,8 +280,8 @@ module.exports = function registerTicketAssistant(client) {
                 const channel = await interaction.client.channels.fetch(answer.channelId).catch(() => null);
                 const metadata = ticketMetadata(channel);
                 if (channel?.isTextBased() && metadata) {
-                    const roles = [...new Set(ticketConfig.types[metadata.type]?.gestionRoles || [])];
-                    await channel.send({ content: `${roles.map(id => `<@&${id}>`).join(' ')}\n⚠️ Une réponse IA a été signalée comme incorrecte. Référence : \`${issue.id}\`. Question : ${answer.question.slice(0, 500)}`, allowedMentions: { roles } });
+                    const roleId = staffNotificationRole(metadata, answer.question);
+                    await channel.send({ content: `<@&${roleId}>\n⚠️ Une réponse IA a été signalée comme incorrecte. Référence : \`${issue.id}\`. Question : ${answer.question.slice(0, 500)}`, allowedMentions: { roles: [roleId] } });
                 }
             }
             return;

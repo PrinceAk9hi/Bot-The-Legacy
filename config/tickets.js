@@ -1,6 +1,7 @@
 const {CHANNELS}=require('./soulSociety');
 const accessRoles=['1473356789453029376','1469803353964810250','1522357970778718249','1471546243653304392','1504782476319526932','1527996778727870496','1471557970079912047','1550252288365436998','1554925010664300634'];
 const pingRoles=['1471557970079912047','1550252288365436998'];
+const notificationRoles=Object.freeze({ticket:'1471557970079912047',request:'1550252288365436998',animation:'1477056805103206450'});
 const categoryId='1468698948616323155';
 const type=(label,emoji,description,channelPrefix)=>({label,emoji,description,channelPrefix,categoryId,responsibleRoles:[],gestionRoles:accessRoles,pingRoles});
 const types={
@@ -9,4 +10,4 @@ const types={
  event:type("Demande d’animation",'🎉','Proposer une animation ou un évènement.','evenement'),
  partnership:type('Demande de partenariat','🤝','Présenter une demande de partenariat.','partenariat')
 };
-module.exports={accessRoles,pingRoles,categoryId,types,panelChannel:CHANNELS.ticketPanel,logsChannel:'1471556441218224209'};
+module.exports={accessRoles,pingRoles,notificationRoles,categoryId,types,panelChannel:CHANNELS.ticketPanel,logsChannel:'1471556441218224209'};

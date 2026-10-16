@@ -620,6 +620,7 @@ require("./systems/accessControls")(client);
 require("./systems/entryVerification")(client);
 require("./systems/prefixCommands")(client);
 require("./systems/soulActivity")(client);
+require("./systems/managementApplications")(client);
 
 // Candidatures
 registerRecruitmentSystem(

@@ -7,13 +7,16 @@ const { read, update } = require('../utils/recruitmentData');
 const { MAIN_RANKS } = require('../config/ranks');
 const { getRobloxLink } = require('../utils/robloxLinks');
 const { PrefixError } = require('../utils/prefixOptions');
+const ticketConfig = require('../config/tickets');
+const ticketKnowledge = require('../utils/ticketAiKnowledge');
 
 const WINDOW_MS = 60 * 60 * 1000;
 const MAX_REQUESTS_PER_HOUR = 8;
 const pendingKey = 'iaPendingActions';
 
-const data = new SlashCommandBuilder().setName('ia').setDescription('Poser une question ou demander une action à l’IA')
-    .addStringOption(o => o.setName('question').setDescription('Ce que tu veux savoir ou faire').setRequired(true).setMaxLength(1800));
+const data = new SlashCommandBuilder().setName('ia').setDescription('Poser une question ou enrichir les connaissances de l’IA')
+    .addStringOption(o => o.setName('question').setDescription('Ta question ou demande (pour =ia : écris directement le texte)').setMaxLength(1800))
+    .addStringOption(o => o.setName('ameliorer').setDescription('Règle ou information vérifiée à ajouter à la base (réservé au staff)').setMaxLength(1800));
 
 function memberContext(interaction) {
     const roles = interaction.member.roles.cache.filter(role => role.id !== interaction.guildId).map(role => role.name).slice(0, 25);
@@ -47,8 +50,29 @@ async function sendPrivately(interaction, payload, confirmation) {
     }
 }
 
+function canImproveKnowledge(interaction) {
+    return interaction.user.id === OWNER_ID || ticketConfig.accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId));
+}
+
+async function improveKnowledge(interaction, raw) {
+    if (!canImproveKnowledge(interaction)) return interaction.editReply('Cette action est réservée au staff de gestion des tickets.');
+    const content = String(raw || '').trim().slice(0, 1800);
+    if (content.length < 12) return interaction.editReply('Ajoute une information complète et vérifiée (au moins 12 caractères).');
+    const firstLine = content.split(/\r?\n/).find(line => line.trim()) || content;
+    const titleSource = firstLine.replace(/^(?:titre|r[eè]gle|connaissance)\s*:\s*/i, '').trim();
+    const title = titleSource.length > 80 ? titleSource.slice(0, 77).trimEnd() + '…' : titleSource;
+    const tags = [...new Set(content.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3))].slice(0, 12);
+    const entry = ticketKnowledge.add(title || 'Nouvelle information du serveur', content, { tags, createdBy: interaction.user.id, source: 'ia-staff-improvement' });
+    return interaction.editReply({ content: 'Information ajoutée à la base de connaissances. Sujet : ' + entry.title + '. Référence : ' + entry.id + '. L’IA pourra s’en servir pour répondre aux prochains tickets.', allowedMentions: { parse: [] } });
+}
+
 async function ask(interaction) {
-    const question = interaction.options.getString('question').trim();
+    const question = (interaction.options.getString('question') || '').trim();
+    const directImprovement = (interaction.options.getString('ameliorer') || '').trim();
+    const prefixImprovement = /^ameliorer(?:\s+|:)\s*([\s\S]+)$/i.exec(question);
+    const improvement = directImprovement || prefixImprovement?.[1];
+    if (improvement) return improveKnowledge(interaction, improvement);
+    if (!question) return interaction.editReply('Écris ta demande après =ia, ou utilise /ia avec l’option ameliorer pour ajouter une information au savoir de l’IA.');
     if (!consumeLimit(interaction.user.id)) return interaction.editReply('Tu as atteint la limite de 8 demandes IA par heure. Réessaie plus tard.');
     if (!process.env.OPENAI_API_KEY) return interaction.editReply('La clé IA n’est pas configurée sur Railway.');
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 1, timeout: 25000 });
@@ -134,7 +158,9 @@ function registerActionButtons(client) {
 module.exports = {
     data,
     async execute(interaction) {
-        if (interaction.guildId !== IDENTITY.guildId || interaction.user.id !== OWNER_ID) throw new PrefixError('Commande réservée au propriétaire du bot sur le serveur Soul Society.');
+        if (interaction.guildId !== IDENTITY.guildId) throw new PrefixError('Cette commande est réservée au serveur Soul Society.');
+        const isImprovement = Boolean(interaction.options.getString('ameliorer')?.trim() || /^ameliorer(?:\s+|:)/i.test(interaction.options.getString('question') || ''));
+        if (isImprovement ? !canImproveKnowledge(interaction) : interaction.user.id !== OWNER_ID) throw new PrefixError(isImprovement ? 'Cette action est réservée au staff de gestion des tickets.' : 'Les questions et actions IA restent réservées au propriétaire du bot.');
         registerActionButtons(interaction.client);
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         return ask(interaction);

@@ -356,32 +356,6 @@ function buildPermissions(
 }
 
 // ======================================================
-// PING À L'OUVERTURE
-// ======================================================
-
-function buildPingContent(
-    ownerId,
-    type
-) {
-    const ticketType =
-        TICKET_TYPES[
-            type
-        ];
-
-    const roles =
-        ticketType.pingRoles
-            .map(
-                roleId =>
-                    `<@&${roleId}>`
-            )
-            .join(
-                " "
-            );
-
-    return `${roles} <@${ownerId}>`;
-}
-
-// ======================================================
 // EMBED DU TICKET
 // ======================================================
 
@@ -405,7 +379,7 @@ function createTicketEmbed({
                 "Ticket Support 🎫"
             )
             .setDescription(
-`Bienvenue <@${ownerId}>,
+`Bienvenue dans votre ticket,
 
 Merci de nous expliquer **clairement et précisément la raison de votre ticket** afin que notre équipe puisse traiter votre demande dans les meilleures conditions.
 
@@ -438,7 +412,7 @@ Un membre de notre équipe prendra en charge votre demande **dès que possible**
                         "👤 Créateur",
 
                     value:
-                        `<@${ownerId}>`,
+                        ownerName || String(ownerId),
 
                     inline:
                         false
@@ -1122,20 +1096,8 @@ async function createTicket(
 
     const ticketMessage =
         await channel.send({
-            content:
-                buildPingContent(
-                    owner.id,
-                    type
-                ),
-
-            allowedMentions: {
-                users: [
-                    owner.id
-                ],
-
-                roles:
-                    ticketType.pingRoles
-            },
+            content: '🎫 Ticket créé. L’assistant IA répondra ici et transmettra à l’équipe si nécessaire.',
+            allowedMentions: { parse: [] },
 
             embeds: [
                 createTicketEmbed({

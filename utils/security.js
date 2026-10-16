@@ -55,6 +55,10 @@ async function blockUnauthorizedSlash(interaction) {
     const autocomplete = interaction.isAutocomplete?.();
     if (!autocomplete && !interaction.isChatInputCommand?.()) return false;
     if (interaction.guildId) {
+        if (interaction.commandName === 'ia') {
+            const allowed = hasBypass(interaction) || interaction.memberPermissions?.has?.('Administrator') || require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId));
+            if (allowed) return false;
+        }
         if (interaction.commandName === 'ia' && interaction.options?.getString?.('ameliorer')?.trim() && require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId))) return false;
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
@@ -69,7 +73,7 @@ module.exports.blockUnauthorizedSlash = blockUnauthorizedSlash;
 
 function canUseCommand(subject, name) {
     if (['ad', 'line', 'bot'].includes(name)) return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
-    if (name === 'ia') return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130' || require('../config/tickets').accessRoles.some(roleId => (subject?.member || subject)?.roles?.cache?.has?.(roleId));
+    if (name === 'ia') return hasBypass(subject) || Boolean((subject?.member || subject)?.permissions?.has?.('Administrator')) || require('../config/tickets').accessRoles.some(roleId => (subject?.member || subject)?.roles?.cache?.has?.(roleId));
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
     if (name === 'ticket-ia') return require('../config/tickets').accessRoles.some(roleId => member?.roles?.cache?.has?.(roleId));

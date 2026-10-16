@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Same data directory as the existing bot: /app/data on Railway.
-const directory = path.join(__dirname, "..", "data");
+let directory = path.join(__dirname, "..", "data");
 function read(name) {
     const file = path.join(directory, name + ".json");
     if (!fs.existsSync(file)) return {};
@@ -38,4 +38,5 @@ async function ensurePanel(client, channelId, key, payload) {
     update("recruitmentPanels", state => { state[key] = { channelId, messageId: message.id }; });
     return message;
 }
-module.exports = { read, update, ensurePanel };
+function setDataDirectory(next) { directory = next; }
+module.exports = { read, update, ensurePanel, setDataDirectory };

@@ -1,6 +1,7 @@
 const { randomUUID } = require('node:crypto');
 const { read, update } = require('./recruitmentData');
 const { MAIN_RANKS } = require('../config/ranks');
+const iaStore = require('./iaControlStore');
 
 const DEFAULTS = [
     { id: 'discord-troubleshooting', title: 'Dépannage Discord et commandes', tags: ['discord', 'commande', 'slash', 'bouton', 'interaction', 'permission', 'salon', 'accès', 'erreur', 'missing permissions', 'unknown interaction'], content: 'Aide générale Discord (ne garantit pas qu’une fonctionnalité existe sur Soul Society) : une commande slash se lance depuis le bouton / près de la zone de texte, puis on choisit la commande et on remplit les champs affichés. Une commande non visible peut ne pas être enregistrée, être désactivée dans ce serveur, ne pas être autorisée pour le membre, ou l’application peut manquer de permissions ; essayer de rechercher par son nom, vérifier le bon serveur et demander à un admin de vérifier l’intégration. Un menu/bouton doit être utilisé dans le message où il apparaît ; s’il ne répond plus, le message peut avoir expiré ou l’application manquer de permissions. « Missing Permissions » signifie généralement que le bot ou le membre n’a pas l’autorisation requise ou que le rôle du bot est trop bas ; « Unknown Interaction »/« Interaction Failed » survient souvent si l’action n’a pas été acquittée assez vite, si l’interaction a expiré ou si une erreur serveur est survenue. Vérifier l’accès au salon, les rôles/permissions, réessayer une fois après quelques secondes et fournir le nom de la commande, l’heure, une capture du message d’erreur et les étapes déjà tentées. Ne jamais fournir mot de passe, code, token ou cookie. Les rôles contrôlent l’accès, mais leur nom seul ne prouve pas leurs permissions. Les invitations Discord peuvent expirer ou être révoquées; utiliser seulement un lien fourni par une source fiable du serveur.' },
@@ -31,8 +32,10 @@ function stem(word) {
 function tokens(text) { return normalize(text).split(/[^a-z0-9]+/).map(stem).filter(word => word.length > 2 && !STOP.has(word)); }
 function entries() {
     const ranks = { id: 'current-ranks', title: 'Grades Discord reconnus', tags: ['grade', 'rang', 'membre', 'promotion'], content: `Grades principaux configurés dans le bot : ${Object.values(MAIN_RANKS).map(rank => rank.name).join(', ')}. Le rôle présent dans le profil indique uniquement le rôle actuel ; toute promotion, sanction ou décision future relève de l’équipe.` };
-    return [...DEFAULTS, ranks, ...Object.values(read('ticketKnowledgeEntries'))];
+    let legacy = {}; try { legacy = read('ticketKnowledgeEntries'); } catch {}
+    return [...DEFAULTS, ranks, ...Object.values(legacy).filter(item => item.active !== false), ...Object.values(iaStore.read('knowledge').items||{}).filter(item => item.active !== false)];
 }
+function list() { let legacy={};try{legacy=read('ticketKnowledgeEntries');}catch{};return [...Object.values(legacy),...Object.values(iaStore.read('knowledge').items||{})]; }
 function search(query, limit = 5) {
     const rawTokens = tokens(query);
     const expansions = {
@@ -61,8 +64,8 @@ function search(query, limit = 5) {
     }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score || Number(b.custom) - Number(a.custom)).slice(0, limit);
 }
 function add(title, content, metadata = {}) {
-    const entry = { id: metadata.id || `kb-${randomUUID().slice(0, 8)}`, title: String(title).trim(), content: String(content).trim(), tags: (metadata.tags || []).slice(0, 12), createdAt: Date.now(), createdBy: metadata.createdBy || null, source: metadata.source || 'staff' };
-    update('ticketKnowledgeEntries', all => { all[entry.id] = entry; });
+    const entry = { id: metadata.id || `kb-${randomUUID().slice(0, 8)}`, title: String(title).trim(), content: String(content).trim(), tags: (metadata.tags || []).slice(0, 12), category: metadata.category || 'Autre', active: true, createdAt: Date.now(), updatedAt: Date.now(), createdBy: metadata.createdBy || null, updatedBy: metadata.createdBy || null, source: metadata.source || 'staff' };
+    iaStore.transact('knowledge', all => { all.items ||= {}; all.items[entry.id] = entry; });
     return entry;
 }
 function getAnswer(id) { return read('ticketAiAnswers')[id] || null; }
@@ -76,4 +79,6 @@ function stats() {
     return { knowledge: entries().length, answers: answers.length, helpful: answers.filter(item => item.feedback === 'good').length, negative: answers.filter(item => item.feedback === 'bad').length, gaps: issues.filter(item => !item.resolvedAt).length, resolved: issues.filter(item => item.resolvedAt).length };
 }
 
-module.exports = { DEFAULTS, search, add, getAnswer, recordAnswer, updateAnswer, recordIssue, updateIssue, stats };
+function edit(id, patch, actorId) { let result = null; iaStore.transact('knowledge', data => { const all=data.items||{}; if (!all[id]) return; result = all[id] = { ...all[id], ...patch, id, updatedAt: Date.now(), updatedBy: actorId || null }; }); if(result)return result; try{update('ticketKnowledgeEntries',all=>{if(all[id])result=all[id]={...all[id],...patch,id,updatedAt:Date.now(),updatedBy:actorId||null};});}catch{} return result; }
+function remove(id) { let removed = false; iaStore.transact('knowledge', data => { if (data.items?.[id]) { delete data.items[id]; removed = true; } }); if(removed)return true;try{update('ticketKnowledgeEntries',all=>{if(all[id]){delete all[id];removed=true;}});}catch{}return removed; }
+module.exports = { DEFAULTS, search, add, list, edit, remove, getAnswer, recordAnswer, updateAnswer, recordIssue, updateIssue, stats };

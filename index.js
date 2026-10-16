@@ -576,7 +576,7 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/soulSociety").IDENTITY.guildId
-                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound"].includes(c.name)) : []
+                            ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia"].includes(c.name)) : []
                     }
                 );
 
@@ -2263,7 +2263,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
-            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound"].includes(interaction.commandName)) {
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }
@@ -2370,6 +2370,11 @@ client.on(
 
             if (interaction.customId?.startsWith("memberctl:")) {
                 await client.userActions(interaction);
+                return;
+            }
+
+            if (interaction.customId?.startsWith('iac:')) {
+                await require('./systems/iaControlPanel').handle(interaction);
                 return;
             }
 
@@ -3203,7 +3208,7 @@ client.once(
                 await client.reloadCommands();
 
             console.log(
-                `✅ ${result.commands} commande(s) = chargée(s) ; /rank, /mrankup, /sound et /stopsound publiées sur ${result.guilds} serveur(s) !`
+                `✅ ${result.commands} commande(s) = chargée(s) ; /rank, /mrankup, /sound, /stopsound et /ia publiées sur ${result.guilds} serveur(s) !`
             );
 
             console.log("");

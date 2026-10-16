@@ -12,6 +12,7 @@ const { canUseCommand } = require('../utils/security');
 const { accessibleCommands, findRelevantCommands, formatCommandContext } = require('../utils/ticketAiCommands');
 const { decide, hasRecentNotice } = require('../utils/ticketAiPolicy');
 const { discordTurns, compactHistory } = require('../utils/ticketAiHistory');
+const iaStore = require('../utils/iaControlStore');
 
 const WINDOW_MS = 60 * 60 * 1000;
 const MAX_HISTORY = 24;
@@ -149,6 +150,7 @@ function recordGap(message, metadata, question, answer, reason) {
     if (metadata.type !== 'questions') return null;
     const item = { id: `gap-${require('node:crypto').randomUUID().slice(0, 8)}`, question: String(question || '').slice(0, 1500), answer: String(answer || '').slice(0, 1500), reason, channelId: message.channelId, memberId: message.author.id, createdAt: Date.now(), resolvedAt: null };
     ticketKnowledge.recordIssue(item);
+    iaStore.transact('issues', data => { data.items ||= {}; if (!data.items[item.id]) data.items[item.id] = { id:item.id, question:item.question, summary:String(answer||'').slice(0,500), category:metadata.type, at:item.createdAt, channelId:item.channelId, reason, status:'new' }; });
     return item;
 }
 
@@ -169,6 +171,9 @@ async function tellStaff(message, metadata, summary, reference) {
         update('ticketAiPaused', all => { all[message.channelId] = now; });
         return;
     }
+    const escalationId = `esc-${message.channelId}`;
+    iaStore.transact('escalations', data => { data.items ||= {}; if (!data.items[escalationId]) data.items[escalationId] = { id:escalationId, channelId:message.channelId, at:now, reason:String(summary||'Intervention humaine').slice(0,300), status:'pending', reference:reference||null }; });
+    iaStore.audit('escalation_created', null, {message:String(summary||'Escalade envoyée').slice(0,300)}, escalationId);
     await message.channel.send({
         content: `<@&${roleId}>\n🧑‍💼 Je transmets cette demande à l’équipe, qui prendra le relais dans ce ticket.${summary ? `\n\n**Résumé pour l’équipe :** ${summary}` : ''}${reference ? `\nRéférence de suivi : \`${reference}\`` : ''}`,
         allowedMentions: { roles: [roleId] }
@@ -227,6 +232,10 @@ async function handleRudeMessage(message, metadata) {
 }
 async function replyWithAI(message, metadata) {
     if (await handleRudeMessage(message, metadata)) return;
+    const startedAt = Date.now();
+    const control = iaStore.read('config').config;
+    if (control.maintenance || control.autoRepliesEnabled === false) return;
+    iaStore.push('metrics', { id:`analyzed:${message.id}`, type:'analyzed', at:startedAt, ticketId:message.channelId }, 20000);
     if (!process.env.OPENAI_API_KEY) {
         const issue = recordGap(message, metadata, message.content, '', 'Clé IA absente');
         return tellStaff(message, metadata, 'Le service IA est indisponible ; la question attend une réponse humaine.', issue?.id);
@@ -269,6 +278,7 @@ async function replyWithAI(message, metadata) {
         result = JSON.parse(response.choices?.[0]?.message?.content || "{}");
     } catch (error) {
         console.error("Assistant tickets indisponible :", error.status || error.code || error.message);
+        iaStore.push('errors', { at:Date.now(), code:String(error.status||error.code||'provider_error').slice(0,40), message:'Échec du fournisseur pendant une réponse ticket' });
         const issue = recordGap(message, metadata, message.content, '', 'Erreur du fournisseur IA');
         await tellStaff(message, metadata, `L’IA n’a pas pu traiter la demande : ${message.content.slice(0, 700)}`, issue?.id);
         return;
@@ -323,6 +333,7 @@ async function replyWithAI(message, metadata) {
         }
     }
     await message.channel.send({ content: `<@${message.author.id}> ${answer}`, allowedMentions: { users: [message.author.id] } });
+    iaStore.push('metrics', { id:`response:${message.id}`, type:'response', at:Date.now(), durationMs:Date.now()-startedAt, ticketId:message.channelId }, 20000);
     saveHistory(message.channelId, [...thread, { role: "assistant", content: answer }]);
 }
 

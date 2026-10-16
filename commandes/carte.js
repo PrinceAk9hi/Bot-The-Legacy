@@ -56,7 +56,7 @@ function drawPetal(ctx, x, y, scale, rotation = 0) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rotation);
-    ctx.fillStyle = "rgba(255, 184, 208, .78)";
+    ctx.fillStyle = "rgba(238, 153, 174, .72)";
     ctx.beginPath();
     ctx.ellipse(0, -scale * 0.55, scale * 0.28, scale * 0.58, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -75,21 +75,22 @@ function makeCard({ member, profile, rank }) {
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext("2d");
 
+    // Warm, welcoming colors give the card the feel of a family keepsake.
     const background = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-    background.addColorStop(0, "#0b1026");
-    background.addColorStop(0.55, "#18203d");
-    background.addColorStop(1, "#28162c");
+    background.addColorStop(0, "#fff3e6");
+    background.addColorStop(0.52, "#ffe5df");
+    background.addColorStop(1, "#f4e5f4");
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     const glow = ctx.createRadialGradient(250, 325, 10, 250, 325, 480);
-    glow.addColorStop(0, "rgba(90, 115, 180, .3)");
-    glow.addColorStop(1, "rgba(10, 14, 32, 0)");
+    glow.addColorStop(0, "rgba(255, 255, 255, .72)");
+    glow.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Japanese-inspired moon and understated sakura decoration.
-    ctx.fillStyle = "rgba(255, 230, 205, .09)";
+    // Soft paper-like medallion and sakura accents.
+    ctx.fillStyle = "rgba(255, 255, 255, .42)";
     ctx.beginPath();
     ctx.arc(1040, 100, 160, 0, Math.PI * 2);
     ctx.fill();
@@ -98,32 +99,41 @@ function makeCard({ member, profile, rank }) {
     drawSakura(ctx, 625, 570, 14);
     drawSakura(ctx, 48, 106, 16);
 
-    // Gold frame and title band.
-    ctx.strokeStyle = "rgba(232, 199, 132, .72)";
+    // Rounded cream frame, with a subtle rosy edge.
+    ctx.fillStyle = "rgba(255, 251, 246, .82)";
+    roundedRect(ctx, 24, 24, WIDTH - 48, HEIGHT - 48, 30);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(196, 126, 133, .46)";
     ctx.lineWidth = 2;
     roundedRect(ctx, 24, 24, WIDTH - 48, HEIGHT - 48, 28);
     ctx.stroke();
-    ctx.fillStyle = "#e8c784";
-    ctx.fillRect(66, 76, 6, 46);
-    ctx.font = "600 20px sans-serif";
-    ctx.letterSpacing = "4px";
-    ctx.fillText("SOUL SOCIETY", 88, 106);
+    ctx.fillStyle = "#d88e9a";
+    roundedRect(ctx, 66, 76, 7, 46, 4);
+    ctx.fill();
+    ctx.fillStyle = "#704b59";
+    ctx.font = "700 20px sans-serif";
+    ctx.letterSpacing = "3px";
+    ctx.fillText("SOUL SOCIETY", 88, 98);
+    ctx.fillStyle = "#a47b82";
+    ctx.font = "400 14px sans-serif";
+    ctx.letterSpacing = "1px";
+    ctx.fillText("UNE FAMILLE, UNE HISTOIRE", 88, 119);
     ctx.letterSpacing = "0px";
 
     // Character portrait panel.
     const panelX = 66, panelY = 150, panelW = 435, panelH = 445;
-    ctx.fillStyle = "rgba(8, 12, 28, .58)";
+    ctx.fillStyle = "#f1d4d0";
     roundedRect(ctx, panelX, panelY, panelW, panelH, 24);
     ctx.fill();
     ctx.save();
     roundedRect(ctx, panelX + 12, panelY + 12, panelW - 24, panelH - 24, 18);
     ctx.clip();
     const art = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
-    art.addColorStop(0, "#36456d");
-    art.addColorStop(1, "#70415f");
+    art.addColorStop(0, "#f8d9cf");
+    art.addColorStop(1, "#e9d8ec");
     ctx.fillStyle = art;
     ctx.fillRect(panelX + 12, panelY + 12, panelW - 24, panelH - 24);
-    ctx.fillStyle = "rgba(255, 230, 205, .11)";
+    ctx.fillStyle = "rgba(255, 255, 255, .36)";
     ctx.beginPath();
     ctx.arc(panelX + panelW / 2, panelY + 190, 154, 0, Math.PI * 2);
     ctx.fill();
@@ -135,52 +145,53 @@ function makeCard({ member, profile, rank }) {
 
     // Character information.
     const infoX = 560;
-    ctx.fillStyle = "#b9c3df";
-    ctx.font = "500 18px sans-serif";
+    ctx.fillStyle = "#a56e7a";
+    ctx.font = "700 16px sans-serif";
     ctx.letterSpacing = "2px";
-    ctx.fillText("CARTE DE MEMBRE", infoX, 202);
+    ctx.fillText("NOTRE FAMILLE", infoX, 198);
     ctx.letterSpacing = "0px";
 
-    ctx.fillStyle = "#fff8ef";
+    ctx.fillStyle = "#493944";
     ctx.font = "700 54px sans-serif";
     const displayName = profile.displayName;
     ctx.fillText(displayName, infoX, 282, 570);
-    ctx.fillStyle = "#c9cce0";
+    ctx.fillStyle = "#8b737f";
     ctx.font = "400 26px sans-serif";
     ctx.fillText(`@${profile.username}`, infoX, 328, 570);
 
-    ctx.strokeStyle = "rgba(232, 199, 132, .55)";
+    ctx.strokeStyle = "rgba(196, 126, 133, .38)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(infoX, 368);
     ctx.lineTo(1085, 368);
     ctx.stroke();
 
-    ctx.fillStyle = "#b9c3df";
-    ctx.font = "500 16px sans-serif";
+    ctx.fillStyle = "#a56e7a";
+    ctx.font = "700 15px sans-serif";
     ctx.letterSpacing = "2px";
     ctx.fillText("GRADE", infoX, 416);
     ctx.letterSpacing = "0px";
 
     const badgeWidth = Math.min(520, Math.max(250, ctx.measureText(rank).width + 58));
-    ctx.fillStyle = "rgba(232, 199, 132, .13)";
+    ctx.fillStyle = "#f8e8df";
     roundedRect(ctx, infoX, 438, badgeWidth, 62, 18);
     ctx.fill();
-    ctx.strokeStyle = "rgba(232, 199, 132, .8)";
+    ctx.strokeStyle = "rgba(196, 126, 133, .55)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.fillStyle = "#f1d89f";
-    ctx.font = "600 25px sans-serif";
+    ctx.fillStyle = "#704b59";
+    ctx.font = "700 25px sans-serif";
     ctx.fillText(rank, infoX + 24, 477, badgeWidth - 44);
 
-    ctx.fillStyle = "rgba(232, 236, 250, .62)";
+    ctx.fillStyle = "#8b737f";
     ctx.font = "400 16px sans-serif";
     ctx.fillText(`Membre Discord • ${member.guild.name}`, infoX, 562, 570);
-    ctx.fillStyle = "#e8c784";
-    ctx.fillRect(infoX, 590, 78, 3);
-    ctx.fillStyle = "rgba(232, 236, 250, .56)";
+    ctx.fillStyle = "#d88e9a";
+    roundedRect(ctx, infoX, 590, 78, 4, 2);
+    ctx.fill();
+    ctx.fillStyle = "#a47b82";
     ctx.font = "400 14px sans-serif";
-    ctx.fillText("LA SOUL SOCIETY  •  PROFIL ROBLOX", infoX + 94, 596);
+    ctx.fillText("HEUREUX DE T’AVOIR PARMI NOUS", infoX + 94, 596);
 
     return canvas.toBuffer("image/png");
 }

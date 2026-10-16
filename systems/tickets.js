@@ -1295,6 +1295,24 @@ function registerTicketSystem(
     registered =
         true;
 
+    client.closeTicketAutomatically = async (channel, reason = 'Fermeture automatique') => {
+        if (!channel || closing.has(channel.id)) return false;
+        const metadata = parseTopic(channel.topic);
+        if (!metadata) return false;
+        closing.add(channel.id);
+        try {
+            const transcript = await createTranscript(channel);
+            await logTicketClose(channel, client.user, metadata, transcript);
+            await channel.send({ content: '🔒 Ce ticket est fermé après trois rappels sans réponse. Le transcript a été sauvegardé dans les logs.' }).catch(() => {});
+            setTimeout(() => channel.delete(reason).catch(error => console.error('Fermeture automatique ticket :', error.code || error.message)).finally(() => closing.delete(channel.id)), 4000);
+            return true;
+        } catch (error) {
+            closing.delete(channel.id);
+            console.error('Fermeture automatique ticket :', error.code || error.message);
+            return false;
+        }
+    };
+
     require("./ticketAssistant")(client);
 
     const install=()=>{if(!require('../utils/lineState').isOff())require('../utils/ticketPanel').install(client).catch(e=>console.error('Panel tickets :',e.code||e.message));};

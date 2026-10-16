@@ -4,9 +4,9 @@ const pingRoles=['1471557970079912047','1550252288365436998'];
 const categoryId='1468698948616323155';
 const type=(label,emoji,description,channelPrefix)=>({label,emoji,description,channelPrefix,categoryId,responsibleRoles:[],gestionRoles:accessRoles,pingRoles});
 const types={
- questions:type('Support Général','✉️','Pour toute question ou besoin d’assistance.','support'),
+ questions:type('Questions/Aide','✉️','Pour toute question ou besoin d’assistance.','support'),
  report:type("Report d’un joueur de la famille",'⚒️','Signaler un joueur de la famille et transmettre des preuves.','signalement'),
- event:type("Demande d’évènement / animation",'🎉','Proposer un évènement ou une animation.','evenement'),
+ event:type("Demande d’animation",'🎉','Proposer une animation ou un évènement.','evenement'),
  partnership:type('Demande de partenariat','🤝','Présenter une demande de partenariat.','partenariat')
 };
 module.exports={accessRoles,pingRoles,categoryId,types,panelChannel:CHANNELS.ticketPanel,logsChannel:'1471556441218224209'};

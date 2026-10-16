@@ -1881,9 +1881,19 @@ function registerTicketSystem(
                     if (
                         interaction.deferred || interaction.replied
                     ) {
+                        const creationFailed = interaction.customId === "soul_ticket_select";
+                        let partialTicket = null;
+                        if (creationFailed) {
+                            try { partialTicket = findExistingTicket(interaction.guild, interaction.user.id, interaction.values?.[0]); } catch {}
+                        }
+                        const detail = error?.code ? ` (code ${error.code})` : "";
+                        const message = creationFailed
+                            ? (partialTicket
+                                ? `⚠️ La création s’est interrompue, mais ton ticket existe déjà : <#${partialTicket.id}>.`
+                                : `❌ Le salon du ticket n’a pas pu être créé${detail}. Vérifie que le bot peut gérer les salons et accéder à la catégorie des tickets.`)
+                            : "❌ Opération interrompue. Le ticket reste accessible si son archivage ou sa fermeture a échoué. Vérifie les permissions puis réessaie.";
                         await interaction.followUp({
-                            content:
-                                "❌ Opération interrompue. Le ticket reste accessible si son archivage ou sa fermeture a échoué. Vérifie les permissions puis réessaie.",
+                            content: message,
 
                             flags:
                                 MessageFlags.Ephemeral

@@ -41,13 +41,8 @@ function consumeLimit(userId) {
     return allowed;
 }
 
-async function sendPrivately(interaction, payload, confirmation) {
-    try {
-        await interaction.user.send(payload);
-        return interaction.editReply(confirmation);
-    } catch {
-        return interaction.editReply('Je n’ai pas pu t’envoyer de message privé. Active les MP du serveur et relance la commande ; aucun détail n’a été affiché ici.');
-    }
+async function sendInChannel(interaction, payload) {
+    return interaction.editReply(payload);
 }
 
 function canImproveKnowledge(interaction) {
@@ -88,7 +83,7 @@ async function ask(interaction) {
         });
         const result = JSON.parse(response.choices?.[0]?.message?.content || '{}');
         if (typeof result.answer !== 'string' || !result.answer.trim()) throw new Error('Réponse IA vide');
-        if (result.action !== 'announcement') return sendPrivately(interaction, result.answer.trim().slice(0, 1800), 'Je t’ai envoyé ma réponse en message privé.');
+        if (result.action !== 'announcement') return sendInChannel(interaction, { content: result.answer.trim().slice(0, 1800), allowedMentions: { parse: [] } });
         const content = String(result.content || '').trim().slice(0, 1800);
         if (!content) return interaction.editReply('L’IA n’a pas produit de texte d’annonce exploitable. Reformule ta demande.');
         const code = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
@@ -99,7 +94,7 @@ async function ask(interaction) {
             new ButtonBuilder().setCustomId(`ia:confirm:${code}`).setLabel('Publier').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`ia:cancel:${code}`).setLabel('Annuler').setStyle(ButtonStyle.Secondary)
         );
-        return sendPrivately(interaction, { content: 'L’IA a préparé une annonce. Elle ne sera publiée qu’après ta confirmation explicite.', embeds: [embed], components: [row] }, 'Aperçu envoyé en MP. Clique sur Publier ou Annuler pour choisir.');
+        return sendInChannel(interaction, { content: 'L’IA a préparé une annonce. Elle ne sera publiée qu’après ta confirmation explicite.', embeds: [embed], components: [row], allowedMentions: { parse: [] } });
     } catch (error) {
         console.error('Commande IA :', error.status || error.code || error.message);
         return interaction.editReply('Je n’ai pas pu traiter la demande. Vérifie la configuration IA ou reformule plus simplement.');
@@ -159,10 +154,11 @@ module.exports = {
     data,
     async execute(interaction) {
         if (interaction.guildId !== IDENTITY.guildId) throw new PrefixError('Cette commande est réservée au serveur Soul Society.');
+        if (interaction.commandPrefix === '=' && interaction.user.id !== OWNER_ID) throw new PrefixError('La commande =ia est réservée au propriétaire du bot.');
         const isImprovement = Boolean(interaction.options.getString('ameliorer')?.trim() || /^ameliorer(?:\s+|:)/i.test(interaction.options.getString('question') || ''));
         if (isImprovement ? !canImproveKnowledge(interaction) : interaction.user.id !== OWNER_ID) throw new PrefixError(isImprovement ? 'Cette action est réservée au staff de gestion des tickets.' : 'Les questions et actions IA restent réservées au propriétaire du bot.');
         registerActionButtons(interaction.client);
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
         return ask(interaction);
     }
 };

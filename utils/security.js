@@ -70,6 +70,7 @@ function canUseCommand(subject, name) {
     if (['ad', 'line', 'bot'].includes(name)) return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
+    if (name === 'ticket-ia') return require('../config/tickets').accessRoles.some(roleId => member?.roles?.cache?.has?.(roleId));
     const { personal, recruiter } = require('./memberCare');
     if (['bienvenue','mon-profil','absence','anniversaire','sound','stopsound','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
     return ['suivi-test','convocation'].includes(name) && recruiter(member);

@@ -7,11 +7,32 @@ const { createCanvas, loadImage } = require("@napi-rs/canvas");
 const { MAIN_RANKS } = require("../config/ranks");
 const { ROLES } = require("../config/soulSociety");
 const { getRobloxLink } = require("../utils/robloxLinks");
+const { hasBypass } = require("../utils/security");
 
-const WIDTH = 1200;
-const HEIGHT = 675;
+const WIDTH = 780;
+const HEIGHT = 1080;
 const avatarCache = new Map();
 const CACHE_MS = 5 * 60 * 1000;
+const CARD_THEMES = [
+    { name: "Or impérial", foil: "#e6bd69", glow: "#815c36", edge: "#e0c37d" },
+    { name: "Sakura nocturne", foil: "#e78cae", glow: "#853c75", edge: "#d995b5" },
+    { name: "Améthyste", foil: "#b79aff", glow: "#5e4b9c", edge: "#aaa0e8" },
+    { name: "Jade royal", foil: "#8bd0ac", glow: "#326f66", edge: "#a5d2b6" },
+    { name: "Azur astral", foil: "#86c7ee", glow: "#35698f", edge: "#9bcbe6" }
+];
+const lastThemeByUser = new Map();
+
+function randomTheme(userId) {
+    let index = Math.floor(Math.random() * CARD_THEMES.length);
+    if (CARD_THEMES.length > 1 && lastThemeByUser.get(userId) === index) index = (index + 1 + Math.floor(Math.random() * (CARD_THEMES.length - 1))) % CARD_THEMES.length;
+    lastThemeByUser.set(userId, index);
+    if (lastThemeByUser.size > 500) lastThemeByUser.delete(lastThemeByUser.keys().next().value);
+    return CARD_THEMES[index];
+}
+
+function canUseCard(member) {
+    return Boolean(member?.roles?.cache?.has(ROLES.member) || hasBypass(member));
+}
 
 function currentRank(member) {
     const rank = Object.values(MAIN_RANKS).reverse().find(item => member.roles.cache.has(item.roleId));
@@ -71,127 +92,93 @@ function drawSakura(ctx, x, y, size) {
     ctx.fill();
 }
 
-function makeCard({ member, profile, rank }) {
+function makeCard({ member, profile, rank, theme = CARD_THEMES[0] }) {
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext("2d");
+    const rounded = (x, y, w, h, r) => { roundedRect(ctx, x, y, w, h, r); };
 
-    // Warm, welcoming colors give the card the feel of a family keepsake.
-    const background = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-    background.addColorStop(0, "#fff3e6");
-    background.addColorStop(0.52, "#ffe5df");
-    background.addColorStop(1, "#f4e5f4");
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    // A vertical collectible keepsake with a dark metallic frame and a bright foil portrait.
+    const bg = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+    bg.addColorStop(0, "#101218"); bg.addColorStop(.48, "#252630"); bg.addColorStop(1, "#090a0e");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    const sheen = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+    sheen.addColorStop(0, "rgba(255,255,255,.19)"); sheen.addColorStop(.18, "rgba(255,255,255,0)"); sheen.addColorStop(.72, `${theme.foil}18`); sheen.addColorStop(1, "rgba(255,255,255,.12)");
+    ctx.fillStyle = sheen; ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    const glow = ctx.createRadialGradient(250, 325, 10, 250, 325, 480);
-    glow.addColorStop(0, "rgba(255, 255, 255, .72)");
-    glow.addColorStop(1, "rgba(255, 255, 255, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    // Metallic double border and subtle foil flecks.
+    ctx.strokeStyle = "#737783"; ctx.lineWidth = 3; rounded(12, 12, WIDTH - 24, HEIGHT - 24, 28); ctx.stroke();
+    ctx.strokeStyle = theme.edge; ctx.lineWidth = 2; rounded(23, 23, WIDTH - 46, HEIGHT - 46, 22); ctx.stroke();
+    for (let i = 0; i < 115; i++) {
+        ctx.fillStyle = `${theme.foil}${i % 3 === 0 ? "48" : "20"}`;
+        ctx.beginPath(); ctx.arc(35 + Math.random() * (WIDTH - 70), 35 + Math.random() * (HEIGHT - 70), .5 + Math.random() * 1.6, 0, Math.PI * 2); ctx.fill();
+    }
 
-    // Soft paper-like medallion and sakura accents.
-    ctx.fillStyle = "rgba(255, 255, 255, .42)";
-    ctx.beginPath();
-    ctx.arc(1040, 100, 160, 0, Math.PI * 2);
-    ctx.fill();
-    drawSakura(ctx, 1080, 110, 28);
-    drawSakura(ctx, 1135, 490, 18);
-    drawSakura(ctx, 625, 570, 14);
-    drawSakura(ctx, 48, 106, 16);
+    // Header: title, Soul Society seal, and rank stars.
+    ctx.fillStyle = theme.foil; ctx.font = "700 16px sans-serif"; ctx.letterSpacing = "2px";
+    ctx.fillText("SOUL SOCIETY • CARTE DE MEMBRE", 50, 66);
+    ctx.fillStyle = "#f1e6ce"; ctx.letterSpacing = "0px";
+    ctx.font = "700 39px sans-serif";
+    const title = String(profile.displayName || profile.username).slice(0, 26);
+    ctx.fillText(title, 49, 119, 590);
+    ctx.fillStyle = "#aaa8b4"; ctx.font = "500 18px sans-serif";
+    ctx.fillText(`@${profile.username}  •  ${String(rank).toUpperCase()}`, 51, 151, 670);
 
-    // Rounded cream frame, with a subtle rosy edge.
-    ctx.fillStyle = "rgba(255, 251, 246, .82)";
-    roundedRect(ctx, 24, 24, WIDTH - 48, HEIGHT - 48, 30);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(196, 126, 133, .46)";
-    ctx.lineWidth = 2;
-    roundedRect(ctx, 24, 24, WIDTH - 48, HEIGHT - 48, 28);
-    ctx.stroke();
-    ctx.fillStyle = "#d88e9a";
-    roundedRect(ctx, 66, 76, 7, 46, 4);
-    ctx.fill();
-    ctx.fillStyle = "#704b59";
-    ctx.font = "700 20px sans-serif";
-    ctx.letterSpacing = "3px";
-    ctx.fillText("SOUL SOCIETY", 88, 98);
-    ctx.fillStyle = "#a47b82";
-    ctx.font = "400 14px sans-serif";
-    ctx.letterSpacing = "1px";
-    ctx.fillText("UNE FAMILLE, UNE HISTOIRE", 88, 119);
-    ctx.letterSpacing = "0px";
+    const rankIndex = Math.max(0, Object.values(MAIN_RANKS).findIndex(item => item.name === rank));
+    const starCount = Math.max(1, Math.min(10, rankIndex + 1));
+    for (let i = 0; i < 10; i++) {
+        const x = 55 + i * 35;
+        ctx.fillStyle = i < starCount ? theme.foil : "#565762";
+        ctx.font = "700 27px sans-serif"; ctx.fillText("★", x, 190);
+    }
+    ctx.textAlign = "right"; ctx.fillStyle = theme.foil; ctx.font = "700 13px sans-serif";
+    ctx.fillText(theme.name.toUpperCase(), WIDTH - 48, 188); ctx.textAlign = "left";
 
-    // Character portrait panel.
-    const panelX = 66, panelY = 150, panelW = 435, panelH = 445;
-    ctx.fillStyle = "#f1d4d0";
-    roundedRect(ctx, panelX, panelY, panelW, panelH, 24);
-    ctx.fill();
-    ctx.save();
-    roundedRect(ctx, panelX + 12, panelY + 12, panelW - 24, panelH - 24, 18);
-    ctx.clip();
-    const art = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
-    art.addColorStop(0, "#f8d9cf");
-    art.addColorStop(1, "#e9d8ec");
-    ctx.fillStyle = art;
-    ctx.fillRect(panelX + 12, panelY + 12, panelW - 24, panelH - 24);
-    ctx.fillStyle = "rgba(255, 255, 255, .36)";
-    ctx.beginPath();
-    ctx.arc(panelX + panelW / 2, panelY + 190, 154, 0, Math.PI * 2);
-    ctx.fill();
+    // Main portrait area with luminous foil color behind the Roblox avatar.
+    const x = 48, y = 216, w = WIDTH - 96, h = 500;
+    const frame = ctx.createLinearGradient(x, y, x + w, y + h);
+    frame.addColorStop(0, theme.glow); frame.addColorStop(.45, "#14151d"); frame.addColorStop(1, theme.foil);
+    ctx.fillStyle = frame; rounded(x, y, w, h, 22); ctx.fill();
+    ctx.save(); rounded(x + 10, y + 10, w - 20, h - 20, 16); ctx.clip();
+    const art = ctx.createLinearGradient(x, y, x + w, y + h);
+    art.addColorStop(0, `${theme.glow}`); art.addColorStop(.55, "#171923"); art.addColorStop(1, `${theme.foil}`);
+    ctx.fillStyle = art; ctx.fillRect(x + 10, y + 10, w - 20, h - 20);
+    const aura = ctx.createRadialGradient(WIDTH / 2, y + h * .48, 20, WIDTH / 2, y + h * .48, 330);
+    aura.addColorStop(0, `${theme.foil}88`); aura.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = aura; ctx.fillRect(x + 10, y + 10, w - 20, h - 20);
+    // Fine diagonal holographic lines.
+    ctx.globalAlpha = .19; ctx.strokeStyle = theme.edge; ctx.lineWidth = 2;
+    for (let line = -h; line < w + h; line += 28) { ctx.beginPath(); ctx.moveTo(x + line, y + 10); ctx.lineTo(x + line - h, y + h - 10); ctx.stroke(); }
+    ctx.globalAlpha = 1;
     const image = profile.avatar;
-    const scale = Math.min((panelW - 42) / image.width, (panelH - 28) / image.height);
-    const imageW = image.width * scale, imageH = image.height * scale;
-    ctx.drawImage(image, panelX + (panelW - imageW) / 2, panelY + (panelH - imageH) / 2 - 2, imageW, imageH);
+    const scale = Math.min((w - 36) / image.width, (h - 30) / image.height);
+    const iw = image.width * scale, ih = image.height * scale;
+    ctx.drawImage(image, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
     ctx.restore();
+    ctx.strokeStyle = `${theme.edge}cc`; ctx.lineWidth = 2; rounded(x + 10, y + 10, w - 20, h - 20, 16); ctx.stroke();
 
-    // Character information.
-    const infoX = 560;
-    ctx.fillStyle = "#a56e7a";
-    ctx.font = "700 16px sans-serif";
-    ctx.letterSpacing = "2px";
-    ctx.fillText("NOTRE FAMILLE", infoX, 198);
-    ctx.letterSpacing = "0px";
+    // Lower identity panel, styled like a collectible card without fabricated stats.
+    const py = 744, ph = 265;
+    const panel = ctx.createLinearGradient(0, py, 0, py + ph);
+    panel.addColorStop(0, "#e8e3d4"); panel.addColorStop(1, "#c9c4b8");
+    ctx.fillStyle = panel; rounded(48, py, WIDTH - 96, ph, 10); ctx.fill();
+    ctx.strokeStyle = `${theme.edge}dd`; ctx.lineWidth = 3; rounded(48, py, WIDTH - 96, ph, 10); ctx.stroke();
+    ctx.fillStyle = "#25242a"; ctx.font = "700 16px sans-serif"; ctx.letterSpacing = "1px";
+    ctx.fillText("DOSSIER DE LA FAMILLE", 70, py + 39); ctx.letterSpacing = "0px";
+    ctx.strokeStyle = "#827d72"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(70, py + 54); ctx.lineTo(WIDTH - 70, py + 54); ctx.stroke();
+    ctx.fillStyle = "#39363a"; ctx.font = "700 24px sans-serif";
+    ctx.fillText(`Grade : ${rank}`, 70, py + 99, WIDTH - 140);
+    ctx.font = "400 19px sans-serif"; ctx.fillStyle = "#55515a";
+    ctx.fillText(`Roblox : @${profile.username}`, 70, py + 139, WIDTH - 140);
+    ctx.fillText(`Discord : ${String(member.displayName || member.user?.globalName || member.user?.username || "Membre").slice(0, 32)}`, 70, py + 174, WIDTH - 140);
+    ctx.font = "400 15px sans-serif"; ctx.fillStyle = "#69636b";
+    ctx.fillText("Une famille, une histoire — heureux de t’avoir parmi nous.", 70, py + 222, WIDTH - 140);
 
-    ctx.fillStyle = "#493944";
-    ctx.font = "700 54px sans-serif";
-    const displayName = profile.displayName;
-    ctx.fillText(displayName, infoX, 282, 570);
-    ctx.fillStyle = "#8b737f";
-    ctx.font = "400 26px sans-serif";
-    ctx.fillText(`@${profile.username}`, infoX, 328, 570);
-
-    ctx.strokeStyle = "rgba(196, 126, 133, .38)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(infoX, 368);
-    ctx.lineTo(1085, 368);
-    ctx.stroke();
-
-    ctx.fillStyle = "#a56e7a";
-    ctx.font = "700 15px sans-serif";
-    ctx.letterSpacing = "2px";
-    ctx.fillText("GRADE", infoX, 416);
-    ctx.letterSpacing = "0px";
-
-    const badgeWidth = Math.min(520, Math.max(250, ctx.measureText(rank).width + 58));
-    ctx.fillStyle = "#f8e8df";
-    roundedRect(ctx, infoX, 438, badgeWidth, 62, 18);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(196, 126, 133, .55)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = "#704b59";
-    ctx.font = "700 25px sans-serif";
-    ctx.fillText(rank, infoX + 24, 477, badgeWidth - 44);
-
-    ctx.fillStyle = "#8b737f";
-    ctx.font = "400 16px sans-serif";
-    ctx.fillText(`Membre Discord • ${member.guild.name}`, infoX, 562, 570);
-    ctx.fillStyle = "#d88e9a";
-    roundedRect(ctx, infoX, 590, 78, 4, 2);
-    ctx.fill();
-    ctx.fillStyle = "#a47b82";
-    ctx.font = "400 14px sans-serif";
-    ctx.fillText("HEUREUX DE T’AVOIR PARMI NOUS", infoX + 94, 596);
+    // Collector footer and serial accent.
+    ctx.fillStyle = theme.foil; rounded(48, 1030, 74, 5, 2); ctx.fill();
+    ctx.fillStyle = "#c7c4ca"; ctx.font = "600 14px sans-serif";
+    ctx.fillText("SOUL SOCIETY  •  ÉDITION FAMILLE", 136, 1040);
+    ctx.textAlign = "right"; ctx.fillStyle = theme.edge; ctx.font = "700 14px monospace";
+    ctx.fillText(`SS-${String(member.id || member.user?.id || "0000").slice(-4)}`, WIDTH - 48, 1040); ctx.textAlign = "left";
 
     return canvas.toBuffer("image/png");
 }
@@ -211,6 +198,10 @@ module.exports = {
         await interaction.deferReply();
 
         try {
+            const caller = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+            if (!canUseCard(caller)) {
+                return interaction.editReply("❌ La commande carte est réservée aux membres de la Soul Society.");
+            }
             const user = interaction.options.getUser("membre") || interaction.user;
             const member = await interaction.guild.members.fetch(user.id).catch(() => null);
             if (!member || user.bot) return interaction.editReply("❌ Je ne trouve pas ce membre sur le serveur.");
@@ -222,7 +213,8 @@ module.exports = {
 
             const profile = await robloxProfile(link.robloxUserId);
             const rank = currentRank(member);
-            const image = makeCard({ member, profile, rank });
+            const theme = randomTheme(interaction.user.id);
+            const image = makeCard({ member, profile, rank, theme });
             const file = new AttachmentBuilder(image, { name: `carte-${link.robloxUserId}.png` });
             return interaction.editReply({
                 content: `🪪 Carte de **${profile.displayName}** • **${rank}**`,
@@ -233,5 +225,8 @@ module.exports = {
             console.error("Erreur commande /carte :", error.status || error.code || error.message);
             return interaction.editReply("❌ Je n’ai pas pu récupérer l’avatar Roblox pour créer la carte. Réessaie un peu plus tard.");
         }
-    }
+    },
+    canUseCard,
+    randomTheme,
+    makeCard
 };

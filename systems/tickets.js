@@ -361,6 +361,7 @@ function buildPermissions(
 
 function createTicketEmbed({
     ownerId,
+    ownerName = null,
     ownerAvatar = null,
     type,
     claimedBy = null
@@ -1028,9 +1029,52 @@ async function createTicket(
     if (
         existing
     ) {
+        const metadata = parseTopic(existing.topic);
+        let mainMessage = metadata?.messageId
+            ? await existing.messages.fetch(metadata.messageId).catch(() => null)
+            : null;
+
+        if (!mainMessage) {
+            const recentMessages = await existing.messages.fetch({ limit: 20 }).catch(() => null);
+            mainMessage = recentMessages?.find(message =>
+                message.author.id === interaction.client.user.id &&
+                message.components.some(row =>
+                    row.components.some(component =>
+                        ['soul_ticket_claim', 'soul_ticket_close'].includes(component.customId)
+                    )
+                )
+            ) || null;
+        }
+
+        if (!mainMessage) {
+            mainMessage = await existing.send({
+                content: '🎫 Ticket créé. L’assistant IA répondra ici et transmettra à l’équipe si nécessaire.',
+                allowedMentions: { parse: [] },
+                embeds: [
+                    createTicketEmbed({
+                        ownerId: owner.id,
+                        ownerName: owner.globalName || owner.username,
+                        ownerAvatar: owner.displayAvatarURL({ size: 512 }),
+                        type,
+                        claimedBy: metadata?.claimedBy || null
+                    })
+                ],
+                components: [createTicketButtons(metadata?.claimedBy || null)]
+            });
+        }
+
+        if (metadata?.messageId !== mainMessage.id) {
+            await existing.setTopic(buildTopic({
+                type,
+                ownerId: owner.id,
+                claimedBy: metadata?.claimedBy || null,
+                messageId: mainMessage.id
+            }));
+        }
+
         return interaction.editReply({
             content:
-                `❌ Tu possèdes déjà un ticket **${ticketType.label}** : ${existing}`
+                `✅ Tu avais déjà un ticket **${ticketType.label}** : ${existing}. Son message d’accueil est prêt.`
         });
     }
 
@@ -1103,6 +1147,9 @@ async function createTicket(
                 createTicketEmbed({
                     ownerId:
                         owner.id,
+
+                    ownerName:
+                        owner.globalName || owner.username,
 
                     ownerAvatar:
                         owner.displayAvatarURL({
@@ -1219,6 +1266,9 @@ async function updateTicketMainMessage(
             createTicketEmbed({
                 ownerId:
                     metadata.ownerId,
+
+                ownerName:
+                    owner?.displayName || owner?.user?.username || String(metadata.ownerId),
 
                 ownerAvatar,
 
@@ -1889,10 +1939,10 @@ function registerTicketSystem(
                         const detail = error?.code ? ` (code ${error.code})` : "";
                         const message = creationFailed
                             ? (partialTicket
-                                ? `⚠️ La création s’est interrompue, mais ton ticket existe déjà : <#${partialTicket.id}>.`
+                                ? `✅ Ton ticket est crée et accessible ici : <#${partialTicket.id}>. Tu peux y écrire.`
                                 : `❌ Le salon du ticket n’a pas pu être créé${detail}. Vérifie que le bot peut gérer les salons et accéder à la catégorie des tickets.`)
                             : "❌ Opération interrompue. Le ticket reste accessible si son archivage ou sa fermeture a échoué. Vérifie les permissions puis réessaie.";
-                        await interaction.followUp({
+                        await interaction.editReply({
                             content: message,
 
                             flags:

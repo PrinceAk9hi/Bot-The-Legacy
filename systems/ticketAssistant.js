@@ -301,13 +301,7 @@ async function replyWithAI(message, metadata) {
             return;
         }
     }
-    const feedbackId = require('node:crypto').randomUUID().slice(0, 8);
-    const feedbackRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`ticket_ai_feedback:good:${feedbackId}`).setLabel('Utile').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(`ticket_ai_feedback:bad:${feedbackId}`).setLabel('Réponse incorrecte').setStyle(ButtonStyle.Secondary)
-    );
-    const sent = await message.channel.send({ content: `<@${message.author.id}> ${answer}`, components: [feedbackRow], allowedMentions: { users: [message.author.id] } });
-    ticketKnowledge.recordAnswer({ id: feedbackId, memberId: message.author.id, channelId: message.channelId, messageId: sent.id, question: message.content.slice(0, 1500), answer, sourceIds: relevantFacts.map(item => item.id), createdAt: Date.now(), feedback: null });
+    await message.channel.send({ content: `<@${message.author.id}> ${answer}`, allowedMentions: { users: [message.author.id] } });
     saveHistory(message.channelId, [...thread, { role: "assistant", content: answer }]);
 }
 

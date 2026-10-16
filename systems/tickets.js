@@ -1295,6 +1295,8 @@ function registerTicketSystem(
     registered =
         true;
 
+    require("./ticketAssistant")(client);
+
     const install=()=>{if(!require('../utils/lineState').isOff())require('../utils/ticketPanel').install(client).catch(e=>console.error('Panel tickets :',e.code||e.message));};
     if(client.isReady())install();else client.once(Events.ClientReady,install);
 

@@ -28,7 +28,6 @@ const DEPARTMENTS = [
     ['recrutement', 'Gestion Recrutement'],
     ['musical', 'Gestion Musical'],
     ['bot', 'Gestion Bot'],
-    ['requete', 'Gestion Requête'],
     ['animation', 'Gestion Animation'],
     ['roleplay', 'Gestion Roleplay'],
     ['ticket', 'Gestion Ticket']

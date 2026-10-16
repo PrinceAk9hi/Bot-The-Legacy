@@ -16,7 +16,7 @@ module.exports = function registerPanel(client, api) {
             .setDescription(live
                 ? `${s.paused ? '⏸️ En pause' : '▶️ Lecture'} : **${escapeMarkdown(s.current?.name || 'En attente du prochain son')}**\nVocal : <#${s.channel.id}>\nVolume : **${Math.round(s.volume * 100)} %**\nFile : **${s.queue.length} son(s)**`
                 : '⏹️ Lecture terminée. Le bot a quitté le vocal. Relance /sound pour écouter un autre son.')
-            .setFooter({ text: 'Même vocal requis • Le menu ajoute un son à la file • Volume maximum : 100 %' });
+            .setFooter({ text: 'Effet sono club : basses renforcées + écho léger • Même vocal requis • Volume max. : 100 %' });
         if (!live) return { embeds: [embed], components: [], allowedMentions: { parse: [] } };
         const button = (action, label, style = ButtonStyle.Secondary, disabled = false) => new ButtonBuilder()
             .setCustomId(`soundpanel:${p.id}:${action}`).setLabel(label).setStyle(style).setDisabled(disabled);

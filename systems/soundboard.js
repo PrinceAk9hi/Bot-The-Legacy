@@ -9,6 +9,11 @@ const {isOff}=require('../utils/lineState');
 function setting(name,fallback,min,max){const n=Number(process.env[name]);return process.env[name]!==undefined&&Number.isFinite(n)?Math.min(max,Math.max(min,n)):fallback;}
 const SOUND_COOLDOWN=setting('SOUND_COOLDOWN',3,0,60)*1000;
 const DEFAULT_VOLUME=setting('DEFAULT_VOLUME',0.5,0,1);
+// A small club-style chain: controlled bass lift, compression and short room echoes.
+// Keep it configurable so a server can disable or tune the effect without changing code.
+const CLUB_MODE=String(process.env.SOUND_CLUB_MODE??'true').toLowerCase()!=='false';
+const CLUB_BASS_DB=setting('SOUND_CLUB_BASS_DB',8,0,18);
+const CLUB_ECHO=setting('SOUND_CLUB_ECHO',0.22,0,0.6);
 const IDLE_DELAY=setting('SOUND_IDLE_SECONDS',5,1,60)*1000;
 const MAX_QUEUE=50;
 function register(client){
@@ -30,7 +35,11 @@ function register(client){
   clearTimeout(s.idleTimer);s.paused=false;s.current={...track,token:++s.generation};const token=s.current.token;
   try{
    const ffmpeg=require('ffmpeg-static');if(!ffmpeg)throw Error('FFmpeg indisponible sur cette plateforme.');
-   const child=spawn(ffmpeg,['-hide_banner','-loglevel','error','-nostdin','-protocol_whitelist','file,pipe','-i',track.path,'-vn','-f','s16le','-ar','48000','-ac','2','pipe:1'],{stdio:['ignore','pipe','ignore'],windowsHide:true});s.process=child;
+   const filters=CLUB_MODE?`bass=g=${CLUB_BASS_DB}:f=85:w=0.7,acompressor=threshold=0.125:ratio=3:attack=15:release=250,aecho=0.9:0.9:55|110|175:${CLUB_ECHO}|${(CLUB_ECHO*0.62).toFixed(2)}|${(CLUB_ECHO*0.35).toFixed(2)}`:null;
+   const args=['-hide_banner','-loglevel','error','-nostdin','-protocol_whitelist','file,pipe','-i',track.path,'-vn'];
+   if(filters)args.push('-af',filters);
+   args.push('-f','s16le','-ar','48000','-ac','2','pipe:1');
+   const child=spawn(ffmpeg,args,{stdio:['ignore','pipe','ignore'],windowsHide:true});s.process=child;
    child.on('error',e=>finish(s,token,e));child.stdout.on('error',e=>finish(s,token,e));child.on('close',code=>{if(code!==0)finish(s,token,new Error('Décodage audio interrompu.'));});
    const resource=createAudioResource(child.stdout,{inputType:StreamType.Raw,inlineVolume:true,metadata:{token}});resource.volume.setVolume(s.volume);s.resource=resource;s.player.play(resource);panel.refresh(s.guild.id);
    s.startTimer=setTimeout(()=>finish(s,token,new Error('Le son ne démarre pas.')),20000);s.startTimer.unref();

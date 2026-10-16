@@ -9,7 +9,6 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('
 const { getRobloxLink } = require('../utils/robloxLinks');
 
 const WINDOW_MS = 60 * 60 * 1000;
-const MAX_PER_HOUR = 10;
 const MAX_HISTORY = 12;
 const HISTORY_TTL_MS = 30 * 24 * WINDOW_MS;
 const queues = new Map();
@@ -144,28 +143,6 @@ async function handleRudeMessage(message, metadata) {
 }
 async function replyWithAI(message, metadata) {
     if (await handleRudeMessage(message, metadata)) return;
-    const now = Date.now();
-    const stored = read("ticketAiLimits");
-    const userKey = `${message.guildId}:${message.author.id}`;
-    const recent = (stored[userKey] || []).filter(ts => now - ts < WINDOW_MS);
-    if (recent.length >= MAX_PER_HOUR) {
-        const notified = read('ticketAiRateNotified')[userKey] || 0;
-        if (now - notified > WINDOW_MS) {
-            update('ticketAiRateNotified', all => { all[userKey] = now; });
-            await message.channel.send({ content: `<@${message.author.id}> Tu as atteint la limite temporaire de l’assistant. L’équipe est prévenue et reprendra ta demande.`, allowedMentions: { users: [message.author.id] } });
-            await tellStaff(message, metadata, `Limite de réponses IA atteinte. Dernière question : ${message.content.slice(0, 600)}`);
-        }
-        return;
-    }
-    recent.push(now);
-    update("ticketAiLimits", all => {
-        for (const [key, values] of Object.entries(all)) {
-            const kept = Array.isArray(values) ? values.filter(ts => now - ts < WINDOW_MS) : [];
-            if (kept.length) all[key] = kept; else delete all[key];
-        }
-        all[userKey] = recent;
-    });
-
     if (sensitive(message.content, metadata.type) && metadata.type === 'questions') {
         const issue = recordGap(message, metadata, message.content, '', 'Demande sensible transmise à l’équipe');
         return tellStaff(message, metadata, `Demande sensible : ${message.content.slice(0, 700)}`, issue?.id);

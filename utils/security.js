@@ -62,7 +62,7 @@ async function blockUnauthorizedSlash(interaction) {
         if (interaction.commandName === 'ia' && interaction.options?.getString?.('ameliorer')?.trim() && require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId))) return false;
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
-        if (["bienvenue", "mon-profil", "absence", "anniversaire", "sound", "stopsound", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
+        if (["bienvenue", "mon-profil", "carte", "absence", "anniversaire", "sound", "stopsound", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
         if (["suivi-test", "convocation"].includes(interaction.commandName) && recruiter(interaction.member)) return false;
     }
     if (autocomplete) await interaction.respond([]);
@@ -78,7 +78,7 @@ function canUseCommand(subject, name) {
     const member = subject.member || subject;
     if (name === 'ticket-ia') return require('../config/tickets').accessRoles.some(roleId => member?.roles?.cache?.has?.(roleId));
     const { personal, recruiter } = require('./memberCare');
-    if (['bienvenue','mon-profil','absence','anniversaire','sound','stopsound','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
+    if (['bienvenue','mon-profil','carte','absence','anniversaire','sound','stopsound','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
     return ['suivi-test','convocation'].includes(name) && recruiter(member);
 }
 module.exports.canUseCommand = canUseCommand;

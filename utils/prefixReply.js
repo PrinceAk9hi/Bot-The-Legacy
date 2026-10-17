@@ -39,7 +39,7 @@ function createReply(client, message, name, protect) {
         isChatInputCommand: () => true, isAutocomplete: () => false,
         inGuild: () => true, inCachedGuild: () => true, isRepliable: () => true
     };
-    const run = fn => name === 'line' && message.author.id === OWNER_ID
+    const run = fn => ['line', 'ia'].includes(name) && message.author.id === OWNER_ID
         ? ownerLineReply(message.channelId, fn) : fn();
     function body(payload = {}) {
         const value = typeof payload === 'string' ? { content: payload } : { ...payload };

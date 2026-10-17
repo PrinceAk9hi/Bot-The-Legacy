@@ -583,9 +583,9 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/qg").guildId
-                            ? commands.filter(c => c.name === "setup-serveur")
+                            ? commands.filter(c => ["setup-serveur", "delc"].includes(c.name))
                             : guild.id === require("./config/soulSociety").IDENTITY.guildId
-                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(c.name)) : []
+                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(c.name)) : []
                     }
                 );
 
@@ -606,7 +606,7 @@ client.reloadCommands =
             try {
                 await rest.put(
                     Routes.applicationGuildCommands(client.user.id, soulGuildId),
-                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(command.name)) }
+                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(command.name)) }
                 );
                 guildCount++;
             } catch (error) {
@@ -618,7 +618,7 @@ client.reloadCommands =
         const qgGuildId = require("./config/qg").guildId;
         if (!client.guilds.cache.has(qgGuildId)) {
             try {
-                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => command.name === "setup-serveur") });
+                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["setup-serveur", "delc"].includes(command.name)) });
                 guildCount++;
             } catch (error) {
                 console.error(`❌ Enregistrement de /setup-serveur sur le QG (${qgGuildId}) :`, error.code || error.message);
@@ -2299,7 +2299,11 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
-            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(interaction.commandName)) {
+            if (interaction.customId?.startsWith("delc:")) {
+                await client.commands.get("delc")?.handleComponent(interaction);
+                return;
+            }
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }

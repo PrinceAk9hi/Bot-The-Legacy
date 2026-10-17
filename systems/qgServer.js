@@ -165,6 +165,8 @@ async function ticket(i){
 }
 async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='delc')return require('../commandes/delc').execute(i);
+ if(i.customId?.startsWith('delc:'))return require('../commandes/delc').handleComponent(i);
  if(i.customId?.startsWith('qgs:'))return require('./qgSchoolSetup').handle(i);
  if(await require('./qgSupport').handle(i,saved()))return;
  if(!i.customId?.startsWith('qg:'))return i.isRepliable?.()?i.reply({content:'Cette commande appartient au serveur de la Soul Society. Utilise =aide pour le QG.',flags:MessageFlags.Ephemeral}):undefined;

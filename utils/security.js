@@ -55,6 +55,10 @@ async function blockUnauthorizedSlash(interaction) {
     const autocomplete = interaction.isAutocomplete?.();
     if (!autocomplete && !interaction.isChatInputCommand?.()) return false;
     if (interaction.guildId) {
+        if (interaction.commandName === 'delc') {
+            const allowed = interaction.memberPermissions?.has?.('ManageChannels') || interaction.memberPermissions?.has?.('Administrator');
+            if (allowed) return false;
+        }
         if (interaction.commandName === 'logs') {
             const allowed = hasBypass(interaction) || interaction.memberPermissions?.has?.('Administrator');
             if (allowed) return false;

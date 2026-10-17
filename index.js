@@ -532,6 +532,10 @@ client.reloadCommands =
         const commands =
             loadCommands();
 
+        if (!commands.some(command => command.name === "ia")) {
+            throw new Error("La commande /ia n’a pas été chargée depuis commandes/ia.js.");
+        }
+
         registerCommandSystems();
 
         const rest =
@@ -587,6 +591,22 @@ client.reloadCommands =
                     `❌ Update ${guild.name} :`,
                     error
                 );
+            }
+        }
+
+        // The configured Soul Society guild is authoritative. Register its
+        // commands even if it is missing from the local cache during startup.
+        const soulGuildId = require("./config/soulSociety").IDENTITY.guildId;
+        if (!client.guilds.cache.has(soulGuildId)) {
+            try {
+                await rest.put(
+                    Routes.applicationGuildCommands(client.user.id, soulGuildId),
+                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia"].includes(command.name)) }
+                );
+                guildCount++;
+            } catch (error) {
+                console.error(`❌ Enregistrement des commandes sur Soul Society (${soulGuildId}) :`, error.code || error.message);
+                throw error;
             }
         }
 

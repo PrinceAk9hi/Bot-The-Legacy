@@ -250,6 +250,7 @@ module.exports = {
         registerActionButtons(interaction.client);
         await interaction.deferReply();
         if (interaction.commandPrefix === '=' && !interaction.options.getString('question')?.trim() && !interaction.options.getString('ameliorer')?.trim()) return registerBarePrompt(interaction);
+        if (interaction.commandPrefix === '=') await interaction.editReply('⏳ Je traite ta demande IA…');
         return ask(interaction);
     }
 };

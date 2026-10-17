@@ -152,6 +152,44 @@ async function ask(interaction) {
     }
 }
 
+function registerBarePrompt(interaction) {
+    const client = interaction.client;
+    client.iaBarePromptSessions ||= new Map();
+    if (!client.iaBarePromptRegistered) {
+        client.iaBarePromptRegistered = true;
+        client.on(Events.MessageCreate, async message => {
+            if (message.author.bot || message.author.id !== OWNER_ID || !message.content?.trim()) return;
+            const key = `${message.guildId}:${message.channelId}:${message.author.id}`;
+            const session = client.iaBarePromptSessions.get(key);
+            if (!session || message.guildId !== IDENTITY.guildId || message.content.trim().startsWith('=')) return;
+            clearTimeout(session.timer);
+            client.iaBarePromptSessions.delete(key);
+            const promptInteraction = new Proxy(session.interaction, {
+                get(target, property) {
+                    if (property === 'options') return { getString: name => name === 'question' ? message.content.trim().slice(0, 1800) : null };
+                    return Reflect.get(target, property, target);
+                }
+            });
+            try { await ask(promptInteraction); }
+            catch (error) {
+                console.error('Question =ia :', error.status || error.code || error.name || 'erreur');
+                await session.interaction.editReply('Je n’ai pas pu traiter la demande. Réessaie avec `=ia` suivi de ta question.').catch(() => {});
+            }
+        });
+    }
+    const key = `${interaction.guildId}:${interaction.channelId}:${interaction.user.id}`;
+    const previous = client.iaBarePromptSessions.get(key);
+    if (previous) clearTimeout(previous.timer);
+    const timer = setTimeout(async () => {
+        if (client.iaBarePromptSessions.get(key)?.timer !== timer) return;
+        client.iaBarePromptSessions.delete(key);
+        await interaction.editReply('La demande a expiré. Relance `=ia` pour poser une question.').catch(() => {});
+    }, 5 * 60 * 1000);
+    timer.unref?.();
+    client.iaBarePromptSessions.set(key, { interaction, timer });
+    return interaction.editReply('Je t’écoute : envoie ta question dans ce salon dans les 5 minutes.');
+}
+
 async function confirm(interaction, code, cancel = false, fromButton = false) {
     code = String(code || '').trim().toUpperCase();
     const respond = content => interaction.editReply(fromButton ? { content, embeds: [], components: [] } : content);
@@ -211,6 +249,7 @@ module.exports = {
         if (isImprovement ? !canImproveKnowledge(interaction) : interaction.user.id !== OWNER_ID) throw new PrefixError(isImprovement ? 'Cette action est réservée au staff de gestion des tickets.' : 'Les questions et actions IA restent réservées au propriétaire du bot.');
         registerActionButtons(interaction.client);
         await interaction.deferReply();
+        if (interaction.commandPrefix === '=' && !interaction.options.getString('question')?.trim() && !interaction.options.getString('ameliorer')?.trim()) return registerBarePrompt(interaction);
         return ask(interaction);
     }
 };

@@ -26,6 +26,20 @@ const roleDefs = [
     ['notifServers', '📡・Notifs Serveurs', 0x90CAF9]
 ];
 
+// Incremental additions are kept separate so the update path never reapplies
+// the existing roles' names, permissions, or overwrites.
+const updateRoleDefs = [
+    ['separatorGrade', 'A / Sanctions / Grade', 0x292733, { separator: true, anchor: 'senior' }],
+    ['separatorLevels', 'B / Niveaux', 0x292733, { separator: true }],
+    ['separatorFoundation', 'C / Fondation', 0x292733, { separator: true, anchor: 'creator' }],
+    ['separatorManagement', 'D / Gestion', 0x292733, { separator: true, anchor: 'ticketsManagement' }],
+    ['separatorResponsibility', 'E / Responsabilité', 0x292733, { separator: true, anchor: 'ticketsLead' }],
+    ['familyFriend', 'Amis Famille', 0x71C9CE, { anchor: 'test' }],
+    ['warning1', 'Avertissement 1', 0xE6B450, { anchor: 'test' }],
+    ['warning2', 'Avertissement 2', 0xE67E50, { anchor: 'test' }],
+    ['lastChance', 'Dernière Chance', 0xC94C4C, { anchor: 'test' }]
+];
+
 // All staff roles deliberately have zero Discord permissions. Access is granted
 // through channel overwrites so no managerial role bypasses private spaces.
 const categories = [
@@ -76,6 +90,9 @@ const channels = [
     ['communityGiveaways', '🎁・giveaways-communauté', 'community', T.GuildText],
     ['communityVoice1', '🔊・Vocal 01', 'communityVoice', T.GuildVoice],
     ['communityVoice2', '🔊・Vocal 02', 'communityVoice', T.GuildVoice],
+    ['communityVoice3', '🔊・Vocal 03', 'communityVoice', T.GuildVoice],
+    ['communityVoice4', '🔊・Vocal 04', 'communityVoice', T.GuildVoice],
+    ['communityVoice5', '🔊・Vocal 05', 'communityVoice', T.GuildVoice],
     ['createCommunityVoice', '➕・Créer sa voc', 'communityVoice', T.GuildVoice],
     ['tickets', '🎫・ouvrir-un-ticket', 'support', T.GuildText],
     ['familyApplications', '📋・candidature-famille', 'support', T.GuildText],
@@ -155,7 +172,8 @@ function overwrites(guildId, botId, r, scope, { channelKey } = {}) {
     if (scope === 'welcome') {
         grants = [overwrite(guildId, read)];
     } else if (scope === 'foundation') {
-        grants = specialRoles(['creator', 'globalManager'], r);
+        const canWrite = ['foundationRequests', 'foundationChat', 'foundationAnnouncements', 'foundationReports'].includes(channelKey);
+        grants = specialRoles(['creator', 'globalManager'], r, canWrite ? textWrite : read);
     } else if (scope === 'responsibles') {
         grants = specialRoles([...directions, ...leads], r);
     } else if (scope === 'private') {
@@ -231,6 +249,6 @@ const readOnlyChannels = new Set([
 const familyRankKeys = family;
 
 module.exports = {
-    roleDefs, categories, channels, directions, leads, managers, family, allFamily,
+    roleDefs, updateRoleDefs, categories, channels, directions, leads, managers, family, allFamily,
     readOnlyChannels, familyRankKeys, infoPublish, overwrites, read, textWrite, voiceWrite, botPermissions
 };

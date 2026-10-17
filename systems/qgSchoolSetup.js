@@ -3,6 +3,7 @@ const {
   PermissionFlagsBits: P, StringSelectMenuBuilder
 } = require('discord.js');
 const config = require('../config/qg');
+const path = require('node:path');
 const layout = require('../config/qgSchoolLayout');
 const { read, update } = require('../utils/recruitmentData');
 
@@ -44,7 +45,18 @@ function panelPayload(key) {
   if (['absences', 'rankUp'].includes(key)) return require('./qgSchoolFamily').panel(key);
   if (key === 'levelsInfo') return require('./qgLevels').panel();
   if (['giveawaysInfo', 'communityGiveaways', 'familyGiveaways'].includes(key)) return { embeds: [embed('🎁 Giveaways', 'Les giveaways sont créés par la Gestion Animation.\n\nFormat : `=giveaway creer 1h 1 Récompense`\nDurée : de 1 minute à 30 jours • 1 à 20 gagnants.\n\nLes membres vérifiés participent avec le bouton. Résultats et participation sont conservés par le bot.')], allowedMentions: { parse: [] } };
-  if (key === 'tickets') return { embeds: [embed('🎫 Support de la famille', 'Ouvre un ticket privé pour une question, un problème ou un signalement. Fournis les éléments utiles et ne partage jamais de mot de passe.')], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:ticket').setLabel('Ouvrir un ticket').setEmoji('✉️').setStyle(ButtonStyle.Primary))], allowedMentions: { parse: [] } };
+  if (key === 'foundationReports') return { embeds: [embed('📊 Rapports de la Fondation', 'Salon réservé au Créateur et au Gérant Global.\n\n**Modèle de rapport**\n• Période concernée\n• Gestion ou sujet\n• Actions réalisées et résultats\n• Difficultés ou décisions attendues\n• Prochaines étapes\n\nÉvite d’inclure des informations personnelles qui ne sont pas nécessaires au suivi.')], allowedMentions: { parse: [] } };
+  if (key === 'managementFollowup') return null;
+  if (key === 'tickets') {
+    const banner = embed('🎫 Support du QG', 'Choisis le sujet de ta demande dans le menu ci-dessous. Un salon privé sera créé pour toi et l’équipe compétente.\n\nExplique clairement ta situation et joins les preuves utiles. Ne partage jamais de mot de passe, cookie ou code de connexion.');
+    banner.setImage('attachment://qg-support-banner.gif');
+    return { embeds: [banner], files: [{ attachment: path.join(__dirname, '..', 'assets', 'qg-support-banner.gif'), name: 'qg-support-banner.gif' }], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qg:ticket-type').setPlaceholder('Choisir le sujet du ticket').addOptions(
+      { label: 'Questions / Aide', value: 'questions', description: 'Une question ou besoin d’assistance', emoji: '✉️' },
+      { label: 'Signaler un joueur', value: 'report', description: 'Signaler un comportement et joindre des preuves', emoji: '⚒️' },
+      { label: 'Demande d’animation', value: 'event', description: 'Proposer une animation ou un événement', emoji: '🎉' },
+      { label: 'Partenariat', value: 'partnership', description: 'Présenter une demande de partenariat', emoji: '🤝' }
+    ))], allowedMentions: { parse: [] } };
+  }
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };
   if (key === 'familyGuide') return { embeds: [embed('📚 Guide de la famille', `**Fonctionnement**\nLa famille s’organise autour de la Direction, de quatre gestions indépendantes et des grades familiaux.\n\n**Direction**\nCréateur → Gérant Global → Administrateur. Fondation : Créateur et Gérant Global.\n\n**Gestions**\nTickets, Recrutement, Animation et Réseaux. Chaque équipe est dirigée par son responsable et conserve la confidentialité de ses dossiers.\n\n**Grades**\nMembre Test → Membre Confirmé → Membre Expert → Membre Prestigieux → Membre Senior. Les promotions sont examinées par la Direction et ne sont jamais automatiques.\n\n**Candidatures**\nLe recrutement famille débute dans <#${channelMap().familyApplications}> et se déroule en MP. Une candidature à une gestion se dépose dans <#${channelMap().joinManagement}>.\n\n**Absences**\nDéclare et gère tes dates dans <#${channelMap().absences}>. Le motif reste facultatif.\n\n**Comportement**\nRespecte le règlement, la confidentialité des dossiers et les consignes des salons. Ouvre un ticket pour demander de l’aide ou contester une décision.`)], allowedMentions: { parse: [] } };
   if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Administrateur\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Tickets • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Senior • Membre Prestigieux • Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
@@ -115,23 +127,138 @@ async function install(guild, client) {
       const overwrites = layout.overwrites(guild.id, client.user.id, r, layout.categories.find(x => x[0] === parentKey)[2], { channelKey: key });
       if (!ch) { ch = await guild.channels.create({ name, type, parent: parent.id, permissionOverwrites: overwrites, reason: 'Installation SchoolRP confirmée' }); created.channels++; }
       else if (ch.type !== type) throw new Error(`Le salon ${name} existe déjà avec un type incompatible.`);
+      if (key === 'foundationReports') await ch.permissionOverwrites.set(overwrites, 'Configuration du salon Rapports Fondation');
       chs[key] = ch.id; store(s => { s.schoolChannels ||= {}; s.schoolChannels[key] = ch.id; });
     }
-    for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityGiveaways: 'communityGiveaways', familyGiveaways: 'familyGiveaways' })) {
-      const payload = panelPayload(key); if (!payload) continue;
+    for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityGiveaways: 'communityGiveaways', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
+      let payload = panelPayload(key); if (key === 'managementFollowup') payload = await require('./qgSchoolManagementBoard').buildPanel(guild);
+      if (!payload) continue;
       const channel = await guild.channels.fetch(chs[channelKey]);
       const record = state().schoolPanels?.[key];
       let message = record?.channelId === channel.id ? await channel.messages.fetch(record.messageId).catch(() => null) : null;
       if (!message) message = await channel.send(payload); else await message.edit(payload);
       store(s => { s.schoolPanels ||= {}; s.schoolPanels[key] = { channelId: channel.id, messageId: message.id }; });
     }
-    const overview = { installedAt: Date.now(), guildId: guild.id, version: 1, created };
+    const overview = { installedAt: Date.now(), guildId: guild.id, version: 2, created };
     store(s => { s.schoolSetup = overview; s.schoolAudit ||= []; s.schoolAudit.push({ id: `install-${Date.now()}`, at: Date.now(), type: 'installation', actorId: owner.id, details: overview.created }); });
     return overview;
   } finally { install.running = false; }
 }
 
 function authorized(i) { return i.guildId === config.guildId && (i.user.id === i.guild?.ownerId || i.user.id === config.ownerId); }
+function updatePreview(guild) {
+  const roles = roleMap();
+  const cachedRoles = guild.roles.cache;
+  const newRoles = layout.updateRoleDefs.filter(([key, name]) => !cachedRoles.has(roles[key]) && !cachedRoles.find(role => role.name === name && !role.managed));
+  const channels = guild.channels.cache;
+  const missingVoices = ['communityVoice3', 'communityVoice4', 'communityVoice5'].filter(key => {
+    const def = layout.channels.find(item => item[0] === key);
+    return !channels.has(channelMap()[key]) && !channels.find(channel => channel.parentId === categoryMap().communityVoice && channel.name === def[1]);
+  });
+  return { roles: newRoles.length, voices: missingVoices.length, panels: 3 };
+}
+
+async function updateIncremental(guild, client) {
+  if (guild.id !== config.guildId) throw new Error('Cette mise à jour est réservée au serveur QG configuré.');
+  const me = await guild.members.fetchMe();
+  if (!me.permissions.has(P.ManageRoles) || !me.permissions.has(P.ManageChannels)) throw new Error('Le bot doit avoir Gérer les rôles et Gérer les salons.');
+  if (install.running) throw new Error('Une opération de configuration est déjà en cours.');
+  install.running = true;
+  try {
+    const made = { roles: 0, voices: 0, panels: 0 };
+    const createdRoleIds = new Set();
+    let roleCache = await guild.roles.fetch();
+    for (const [key, name, color, options = {}] of [...layout.updateRoleDefs].reverse()) {
+      const savedId = roleMap()[key];
+      let role = (savedId && roleCache.get(savedId)) || roleCache.find(item => item.name === name && !item.managed);
+      if (!role) {
+        role = await guild.roles.create({ name, color, permissions: [], hoist: false, mentionable: false, reason: 'Ajout ciblé des rôles QG demandé par le propriétaire' });
+        made.roles++;
+        createdRoleIds.add(role.id);
+      }
+      store(data => { data.schoolRoles ||= {}; data.schoolRoles[key] = role.id; });
+    }
+
+    // Place only the newly introduced warning/family roles below the existing grade roles.
+    const currentRoles = await guild.roles.fetch();
+    const currentMap = roleMap();
+    const testGrade = currentRoles.get(currentMap.test) || currentRoles.find(role => role.name === 'Membre Test');
+    const lowerRoles = ['familyFriend', 'warning1', 'warning2', 'lastChance'].map(key => currentMap[key] && currentRoles.get(currentMap[key])).filter(role => role && createdRoleIds.has(role.id));
+    if (lowerRoles.length && !testGrade) throw new Error('Le rôle Membre Test est introuvable ; les nouveaux rôles ne peuvent pas être placés sous les grades sans risque.');
+    if (testGrade && lowerRoles.length) {
+      if (!lowerRoles.every(role => role.editable) || !testGrade.editable) throw new Error('Le rôle du bot doit être au-dessus des grades et des nouveaux rôles de sanction pour les placer correctement.');
+      const positions = lowerRoles.map((role, index) => ({ role: role.id, position: testGrade.position - 1 - index }));
+      if (!positions.every(item => item.position > 0)) throw new Error('Impossible de placer les nouveaux rôles sous Membre Test sans modifier la structure existante. Place d’abord les grades au-dessus des rôles d’accès, puis relance la mise à jour.');
+      await guild.roles.setPositions(positions);
+    }
+
+    // Put new divider roles immediately above their existing section anchors. Existing roles are never renamed or edited.
+    for (const [key, , , options = {}] of layout.updateRoleDefs) {
+      if (!options.separator) continue;
+      if (!createdRoleIds.has(currentMap[key])) continue;
+      const separator = await guild.roles.fetch(currentMap[key]).catch(() => null);
+      const anchorDef = options.anchor && layout.roleDefs.find(item => item[0] === options.anchor);
+      let anchor = options.anchor ? await guild.roles.fetch(currentMap[options.anchor]).catch(() => null) : null;
+      anchor ||= anchorDef && currentRoles.find(role => role.name === anchorDef[1]);
+      if (key === 'separatorLevels') {
+        const levelIds = Object.values(state().levelRoles || {});
+        const levelRoles = (await Promise.all(levelIds.map(id => guild.roles.fetch(id).catch(() => null)))).filter(Boolean);
+        anchor = levelRoles.sort((a, b) => b.position - a.position)[0] || null;
+      }
+      if (separator?.editable && anchor?.editable && separator.id !== anchor.id) {
+        anchor = await guild.roles.fetch(anchor.id).catch(() => null);
+        if (anchor?.editable) await separator.setPosition(anchor.position + 1, { reason: 'Placement du séparateur de section QG' });
+      }
+    }
+
+    const channels = await guild.channels.fetch();
+    let communityCategory = categoryMap().communityVoice && await guild.channels.fetch(categoryMap().communityVoice).catch(() => null);
+    communityCategory ||= channels.find(channel => channel.type === 4 && channel.name === layout.categories.find(item => item[0] === 'communityVoice')?.[1]);
+    if (!communityCategory || communityCategory.type !== 4) throw new Error('La catégorie de vocals communautaires est introuvable. Aucun salon existant n’a été modifié.');
+    for (const key of ['communityVoice3', 'communityVoice4', 'communityVoice5']) {
+      const [, name, , type] = layout.channels.find(item => item[0] === key);
+      let channel = (channelMap()[key] && channels.get(channelMap()[key])) || channels.find(item => item.parentId === communityCategory.id && item.name === name);
+      if (!channel) {
+        channel = await guild.channels.create({ name, type, parent: communityCategory.id, permissionOverwrites: layout.overwrites(guild.id, client.user.id, roleMap(), 'communityVoice', { channelKey: key }), reason: 'Ajout ciblé des vocaux communautaires QG' });
+        made.voices++;
+      }
+      store(data => { data.schoolChannels ||= {}; data.schoolChannels[key] = channel.id; });
+    }
+
+    // Give only the two Foundation roles post access in the reports channel; all other channel settings stay untouched.
+    let reports = channelMap().foundationReports && await guild.channels.fetch(channelMap().foundationReports).catch(() => null);
+    reports ||= channels.find(channel => channel.name === '📊・rapports-fondation' && channel.parentId === categoryMap().foundation);
+    if (reports?.isTextBased?.()) {
+      const ids = roleMap();
+      for (const key of ['creator', 'globalManager']) if (ids[key]) await reports.permissionOverwrites.edit(ids[key], { ViewChannel: true, ReadMessageHistory: true, SendMessages: true });
+    }
+
+    for (const [panelKey, channelKey, title] of [
+      ['tickets', 'tickets', 'Support du QG'],
+      ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
+      ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions']
+    ]) {
+      let channel = channelMap()[channelKey] && await guild.channels.fetch(channelMap()[channelKey]).catch(() => null);
+      if (!channel?.isTextBased?.()) continue;
+      let payload = panelKey === 'managementFollowup' ? await require('./qgSchoolManagementBoard').buildPanel(guild) : panelPayload(panelKey);
+      const record = state().schoolPanels?.[panelKey];
+      let message = record?.channelId === channel.id ? await channel.messages.fetch(record.messageId).catch(() => null) : null;
+      if (!message) {
+        const recent = await channel.messages.fetch({ limit: 50 });
+        message = recent.find(item => item.author.id === client.user.id && item.embeds.some(e => e.title?.includes(title) || (panelKey === 'tickets' && e.title === '🎫 Support de la famille')));
+      }
+      if (message?.author.id !== client.user.id) message = null;
+      message = message ? await message.edit(payload) : await channel.send(payload);
+      store(data => { data.schoolPanels ||= {}; data.schoolPanels[panelKey] = { channelId: channel.id, messageId: message.id }; });
+      made.panels++;
+    }
+
+    store(data => { data.schoolSetup ||= { guildId: guild.id, installedAt: Date.now(), version: 1 }; data.schoolSetup.updatedAt = Date.now(); data.schoolSetup.version = Math.max(2, Number(data.schoolSetup.version || 1)); });
+    audit('mise_a_jour_ciblee', client.user.id, made);
+    return made;
+  } finally { install.running = false; }
+}
+
 async function handle(i) {
   if (!i.customId?.startsWith('qgs:')) return false;
   if (i.guildId !== config.guildId) { await i.reply({ content: 'Action réservée au serveur QG.', flags: MessageFlags.Ephemeral }); return true; }
@@ -146,6 +273,13 @@ async function handle(i) {
     const result = await install(i.guild, i.client);
     await i.editReply({ content: `✅ Structure installée sans supprimer d’éléments existants : ${result.created.roles} rôles, ${result.created.categories} catégories et ${result.created.channels} salons.`, embeds: [], components: [] }); return true;
   }
+  if (i.customId === 'qgs:confirm-update') {
+    if (!authorized(i)) { await i.reply({ content: 'Seul le propriétaire configuré du QG peut lancer la mise à jour.', flags: MessageFlags.Ephemeral }); return true; }
+    await i.deferUpdate();
+    const result = await updateIncremental(i.guild, i.client);
+    await i.editReply({ content: `✅ Mise à jour ciblée terminée : ${result.roles} rôle(s), ${result.voices} vocal(aux) ajouté(s), ${result.panels} panel(s) actualisé(s). Les autres éléments et réglages existants ont été conservés ; seul le salon Rapports Fondation reçoit l’accès d’écriture demandé.`, embeds: [], components: [] }); return true;
+  }
+  if (i.customId === 'qgs:cancel-update') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Mise à jour annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   if (i.customId === 'qgs:cancel-install') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Installation annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   const s = state(), r = s.schoolRoles || {};
   if (i.customId === 'qgs:verify') {
@@ -190,6 +324,11 @@ async function execute(i) {
     const hasPerms = me.permissions.has(P.ManageRoles) && me.permissions.has(P.ManageChannels) && me.permissions.has(P.MoveMembers);
     return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Diagnostic QG SchoolRP', `Serveur cible : ${i.guild.id}\nBot : ${hasPerms ? '✅ Gérer les rôles, Gérer les salons et Déplacer des membres présents' : '❌ Permissions manquantes : Gérer les rôles, Gérer les salons et/ou Déplacer des membres'}\nRôles manquants : ${p.rolesMissing}\nCatégories manquantes : ${p.categoriesMissing}\nSalons manquants : ${p.channelsMissing}\nStockage : ${storage}\nInstallation : ${p.installedAt ? `<t:${Math.floor(p.installedAt / 1000)}:R>` : 'pas encore faite'}`)] });
   }
+  if (action === 'mise-a-jour') {
+    const p = updatePreview(i.guild);
+    const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-update').setLabel('Confirmer la mise à jour').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-update').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
+    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **3** (tickets, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports et actualise uniquement les panels indiqués.`)], components: [row] });
+  }
   if (action === 'apercu') {
     const p = preview(i.guild);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-install').setLabel('Confirmer l’installation').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-install').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
@@ -202,4 +341,4 @@ async function execute(i) {
   }
 }
 
-module.exports = { execute, handle, install, preview, panelPayload, ruleText, authorized };
+module.exports = { execute, handle, install, updateIncremental, updatePreview, preview, panelPayload, ruleText, authorized };

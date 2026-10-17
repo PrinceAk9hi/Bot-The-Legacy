@@ -1,97 +1,12 @@
-const { IDENTITY, CHANNELS } = require("../config/soulSociety");
-
-const fs = require("fs");
-const path = require("path");
-const { EmbedBuilder } = require("discord.js");
-
-const logsPath = path.join(
-    __dirname,
-    "..",
-    "data",
-    "logs.json"
-);
-
-function getConfig() {
-    try {
-        return JSON.parse(
-            fs.readFileSync(
-                logsPath,
-                "utf8"
-            )
-        );
-    } catch {
-        return {};
-    }
+// Compatibility facade: logs continue through the single central router.
+async function sendLog(guild, payload = {}) {
+  const logger = guild?.client?.logs;
+  if (!logger?.emit) return false;
+  return logger.emit(guild, {
+    category: 'moderation', type: 'legacy_log', title: payload.title || 'Journal',
+    description: payload.description, actor: payload.executant?.id,
+    target: payload.cible?.id, fields: payload.fields,
+    source: 'Module historique redirigé vers le journal central'
+  });
 }
-
-async function sendLog(
-    guild,
-    {
-        title,
-        description,
-        executant,
-        cible,
-        fields = []
-    }
-) {
-    const config = getConfig();
-
-    const channelId = guild.id === IDENTITY.guildId
-        ? CHANNELS.logs
-        : config[guild.id];
-
-    if (!channelId) return;
-
-    const channel = guild.channels.cache.get(channelId) ||
-        await guild.channels.fetch(channelId).catch(() => null);
-
-    if (!channel) return;
-
-    const embed =
-        new EmbedBuilder()
-            .setTitle(title)
-            .setTimestamp();
-
-    if (description) {
-        embed.setDescription(
-            description
-        );
-    }
-
-    if (executant) {
-        embed.addFields({
-            name: "👤 Exécutant",
-            value:
-                `<@${executant.id}>\n\`${executant.id}\``,
-            inline: true
-        });
-    }
-
-    if (cible) {
-        embed.addFields({
-            name: "🎯 Cible",
-            value:
-                `<@${cible.id}>\n\`${cible.id}\``,
-            inline: true
-        });
-    }
-
-    if (fields.length > 0) {
-        embed.addFields(fields);
-    }
-
-    try {
-        await channel.send({
-            embeds: [embed]
-        });
-    } catch (error) {
-        console.error(
-            "❌ Impossible d'envoyer le log :",
-            error
-        );
-    }
-}
-
-module.exports = {
-    sendLog
-};
+module.exports = { sendLog };

@@ -757,14 +757,7 @@ module.exports = {
             // LOG INTERNE
             // ==================================================
 
-            const logChannel =
-                await interaction.guild.channels
-                    .fetch(
-                        CHANNELS.derankLogs
-                    )
-                    .catch(
-                        () => null
-                    );
+            const logChannel = interaction.guild.client.logs?.channel?.(interaction.guild, "rank") || await interaction.guild.channels.fetch(CHANNELS.derankLogs).catch(() => null);
 
             if (
                 logChannel?.isTextBased()

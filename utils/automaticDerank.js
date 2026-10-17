@@ -26,8 +26,7 @@ async function automaticDerank(member, reason, key, stillEligible = async () => 
         if (!result.success) {
             console.warn('Derank automatique à vérifier manuellement :', member.id, key);
             try {
-                const c = await member.guild.channels.fetch(CHANNELS.derankLogs);
-                await c?.send({ content: `⚠️ Derank automatique de <@${member.id}> incomplet ou non confirmé. Vérification manuelle nécessaire ; aucune nouvelle tentative automatique.`, allowedMentions: { parse: [] } });
+                await member.guild.client.logs?.emit?.(member.guild, { category:'rank', type:'automatic_derank_error', title:'Derank automatique à vérifier', target:member.id, reason:'Opération incomplète ou résultat non confirmé; aucune nouvelle tentative automatique.', source:'Système de derank automatique', severity:'warning' });
             } catch {}
         }
         return { status };

@@ -55,6 +55,11 @@ async function blockUnauthorizedSlash(interaction) {
     const autocomplete = interaction.isAutocomplete?.();
     if (!autocomplete && !interaction.isChatInputCommand?.()) return false;
     if (interaction.guildId) {
+        if (interaction.commandName === 'logs') {
+            const allowed = hasBypass(interaction) || interaction.memberPermissions?.has?.('Administrator');
+            if (allowed) return false;
+            void interaction.client.logs?.emit?.(interaction.guild, { category:'security', type:'unauthorized_logs_access', title:'Tentative non autorisée d’accès à /logs', actor:interaction.user?.id, channel:interaction.channelId, source:'Contrôle d’accès slash', severity:'warning' }).catch(()=>{});
+        }
         if (interaction.commandName === 'ia') {
             const allowed = hasBypass(interaction) || interaction.memberPermissions?.has?.('Administrator') || require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId));
             if (allowed) return false;

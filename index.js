@@ -139,6 +139,9 @@ const client =
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMembers,
             GatewayIntentBits.GuildVoiceStates,
+            GatewayIntentBits.GuildModeration,
+            GatewayIntentBits.GuildWebhooks,
+            GatewayIntentBits.GuildScheduledEvents,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMessageReactions,
             GatewayIntentBits.MessageContent,
@@ -580,7 +583,7 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/soulSociety").IDENTITY.guildId
-                            ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia"].includes(c.name)) : []
+                            ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(c.name)) : []
                     }
                 );
 
@@ -601,7 +604,7 @@ client.reloadCommands =
             try {
                 await rest.put(
                     Routes.applicationGuildCommands(client.user.id, soulGuildId),
-                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia"].includes(command.name)) }
+                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(command.name)) }
                 );
                 guildCount++;
             } catch (error) {
@@ -2283,7 +2286,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
-            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia"].includes(interaction.commandName)) {
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }

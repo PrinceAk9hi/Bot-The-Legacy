@@ -263,14 +263,7 @@ async function sendMassRankLog({
     results,
     note
 }) {
-    const channel =
-        await guild.channels
-            .fetch(
-                RANK_CONFIG.logChannelId
-            )
-            .catch(
-                () => null
-            );
+    const channel = guild.client.logs?.channel?.(guild, "rank") || await guild.channels.fetch(RANK_CONFIG.logChannelId).catch(() => null);
 
     if (
         !channel?.isTextBased()

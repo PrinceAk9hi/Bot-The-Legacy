@@ -69,6 +69,24 @@ const CONFIG = {
 };
 
 // ======================================================
+async function recruitmentLogChannel(guild) {
+    const logger = guild?.client?.logs;
+    if (!logger?.emit) return null;
+    return {
+        isTextBased: () => true,
+        send: async payload => {
+            const source = payload?.embeds?.[0];
+            const data = source?.toJSON?.() || source?.data || source || {};
+            const sent = await logger.emit(guild, {
+                category: 'recruitment', type: 'recruitment_archive', title: data.title || 'Événement recrutement',
+                description: data.description, fields: data.fields || [], files: payload?.files || [],
+                source: 'Système de recrutement'
+            });
+            if (!sent) throw Error('Journal recrutement indisponible.');
+            return { id: null };
+        }
+    };
+}
 // REFUS / FERMETURE
 // ======================================================
 
@@ -347,9 +365,7 @@ async function logAction(
     description = null
 ) {
     const salon =
-        guild.channels.cache.get(
-            CONFIG.salonLogs
-        );
+        await recruitmentLogChannel(guild) || guild.channels.cache.get(CONFIG.salonLogs);
 
     if (
         !salon?.isTextBased()
@@ -565,9 +581,7 @@ async function logTicketClosure(
     }
 ) {
     const logs =
-        guild.channels.cache.get(
-            CONFIG.salonLogs
-        );
+        await recruitmentLogChannel(guild) || guild.channels.cache.get(CONFIG.salonLogs);
 
     if (
         !logs?.isTextBased()
@@ -1446,9 +1460,7 @@ function registerRecruitmentSystem(
                     );
 
                 const logs =
-                    interaction.guild.channels.cache.get(
-                        CONFIG.salonLogs
-                    );
+                    await recruitmentLogChannel(interaction.guild) || interaction.guild.channels.cache.get(CONFIG.salonLogs);
 
                 if (
                     logs?.isTextBased()

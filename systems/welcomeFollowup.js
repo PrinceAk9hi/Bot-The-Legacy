@@ -40,9 +40,10 @@ function register(client) {
             for (const [actor,p] of Object.entries(profiles)) {
                 if (!complete(p) || read('welcomeFollowup').logs?.[actor]) continue;
                 try {
-                    const c = await channel(client, LOG_CHANNEL);
-                    const message = await c.send(logPayload(actor,p));
-                    update('welcomeFollowup', state => { state.logs ||= {}; state.logs[actor] = {messageId:message.id, at:Date.now()}; });
+                    const guild = client.guilds.cache.get(IDENTITY.guildId);
+                    const sent = await client.logs?.emit?.(guild, { category:'members', type:'welcome_completed', title:'Parcours d’accueil terminé', target:p.discordId || actor, description:'Le membre a terminé le parcours d’accueil. Les informations privées du profil ne sont pas recopiées dans les logs.', source:'Système =bienvenue', dedupeKey:'welcome:'+actor });
+                    if (!sent) throw new Error('Log central non envoyé');
+                    update('welcomeFollowup', state => { state.logs ||= {}; state.logs[actor] = {at:Date.now()}; });
                 } catch { console.warn('⚠️ Log =bienvenue non envoyé ; nouvelle tentative ultérieure.'); break; }
             }
             const saved = read('welcomeFollowup');

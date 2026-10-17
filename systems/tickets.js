@@ -559,21 +559,23 @@ function createCloseConfirmButtons() {
 // GET LOG CHANNEL
 // ======================================================
 
-async function getLogsChannel(
-    guild
-) {
-    return (
-        guild.channels.cache.get(
-            CONFIG.logsChannel
-        ) ||
-        await guild.channels
-            .fetch(
-                CONFIG.logsChannel
-            )
-            .catch(
-                () => null
-            )
-    );
+async function getLogsChannel(guild) {
+    const logger = guild?.client?.logs;
+    if (logger?.emit) return {
+        isTextBased: () => true,
+        send: async payload => {
+            const source = payload?.embeds?.[0];
+            const data = source?.toJSON?.() || source?.data || source || {};
+            const sent = await logger.emit(guild, {
+                category: "tickets", type: "ticket_archive", title: data.title || "Événement ticket",
+                description: data.description, fields: data.fields || [], files: payload?.files || [],
+                source: "Système de tickets", severity: "info"
+            });
+            if (!sent) throw Error("Journal des tickets indisponible ou catégorie désactivée.");
+            return { id: null };
+        }
+    };
+    return guild.channels.cache.get(CONFIG.logsChannel) || await guild.channels.fetch(CONFIG.logsChannel).catch(() => null);
 }
 
 // ======================================================

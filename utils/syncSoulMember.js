@@ -23,9 +23,7 @@ async function syncSoulMember(member, { discordRank = null } = {}) {
     }
     const result = await syncRobloxRank({ discordUserId: member.id, discordRank: rank[0], hasManagement: false });
     if (!result.success) {
-        const channel = member.guild.channels.cache.get(CHANNELS.logs) ||
-            await member.guild.channels.fetch(CHANNELS.logs).catch(() => null);
-        if (channel?.isTextBased()) await channel.send({ content: "⚠️ Synchronisation Roblox de <@" + member.id + "> à terminer : " + (result.error || "échec") + ".", allowedMentions: { parse: [] } }).catch(() => {});
+        await member.guild.client.logs?.emit?.(member.guild, { category:"roblox", type:"roblox_sync_error", title:"Synchronisation Roblox à terminer", target:member.id, reason:result.error||"échec", source:"Synchronisation du membre", severity:"warning" }).catch(()=>{});
     }
     return result;
 }

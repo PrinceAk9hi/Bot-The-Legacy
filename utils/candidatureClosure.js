@@ -30,7 +30,7 @@ async function close(client,guild,ticket,id,{automatic=false,closedById=null}={}
  try{
   const info=await inspect(ticket,client.user.id);if(!info||automatic&&Date.now()<info.closeAt)return false;
   const archive=await transcript(ticket);
-  let channel=await guild.channels.fetch(LOGS).catch(e=>{if(e.code===10003)return null;throw e;});
+  let channel=client.logs?.channel?.(guild,"recruitment"); if(!channel)channel=await guild.channels.fetch(LOGS).catch(e=>{if(e.code===10003)return null;throw e;});
   if(!channel)channel=await guild.channels.fetch('1471556441218224209');
   if(!channel?.isTextBased()||channel.guildId!==guild.id)throw Error('Salon de logs indisponible : ticket conservé.');
   const previous=read('candidatureClosureReceipts')[ticket.id];

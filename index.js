@@ -582,8 +582,10 @@ client.reloadCommands =
                     ),
                     {
                         body:
-                            guild.id === require("./config/soulSociety").IDENTITY.guildId
-                            ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(c.name)) : []
+                            guild.id === require("./config/qg").guildId
+                            ? commands.filter(c => c.name === "setup-serveur")
+                            : guild.id === require("./config/soulSociety").IDENTITY.guildId
+                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs"].includes(c.name)) : []
                     }
                 );
 
@@ -609,6 +611,17 @@ client.reloadCommands =
                 guildCount++;
             } catch (error) {
                 console.error(`❌ Enregistrement des commandes sur Soul Society (${soulGuildId}) :`, error.code || error.message);
+                throw error;
+            }
+        }
+
+        const qgGuildId = require("./config/qg").guildId;
+        if (!client.guilds.cache.has(qgGuildId)) {
+            try {
+                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => command.name === "setup-serveur") });
+                guildCount++;
+            } catch (error) {
+                console.error(`❌ Enregistrement de /setup-serveur sur le QG (${qgGuildId}) :`, error.code || error.message);
                 throw error;
             }
         }

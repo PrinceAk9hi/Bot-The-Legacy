@@ -29,16 +29,17 @@ async function sync(member,state){
  if(target&&!member.roles.cache.has(target))await member.roles.add(target,'Niveau d’activité QG');
  if(remove.length)await member.roles.remove(remove,'Conserver uniquement le meilleur rôle de niveau QG');
  if(milestone&&(p.announcedMilestone||0)<milestone){
-  const channel=await member.guild.channels.fetch(state.channels.levels);
+ const channel=await member.guild.channels.fetch(state.schoolChannels?.levelsInfo||state.channels.levels);
   await channel.send({embeds:[layout.embed('🏆 Nouveau palier',`<@${member.id}> atteint le **niveau ${current}** et reçoit **« I Niveau ${milestone}** !`)],allowedMentions:{parse:[]}});
   update('qgXp',all=>{all[member.id].announcedMilestone=milestone;});
  }
 }
-function eligible(member,state){return member&&!member.user.bot&&member.roles.cache.has(state.roles.member);}
+function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.verified,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(Boolean);return ids.some(id=>member.roles.cache.has(id));}
 async function message(m,state){
  if(m.guildId!==config.guildId||m.author.bot||m.webhookId||!eligible(m.member,state))return;
  const text=m.content.normalize('NFKC').toLowerCase().replace(/https?:\/\/\S+/g,'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
- if(m.content.startsWith('=')||text.length<20||new Set(text.replace(/\s/g,'')).size<8||![state.channels.chat,state.channels.media,state.channels.introductions,state.channels.gaming].includes(m.channelId))return;
+ const eligibleChannels=[state.channels.chat,state.channels.media,state.channels.introductions,state.channels.gaming,state.schoolChannels?.communityChat,state.schoolChannels?.communityMedia].filter(Boolean);
+ if(m.content.startsWith('=')||text.length<20||new Set(text.replace(/\s/g,'')).size<8||!eligibleChannels.includes(m.channelId))return;
  const hash=createHash('sha256').update(text).digest('hex');
  await serial(m.author.id,async()=>{award(m.author.id,'message',Date.now(),hash);await sync(m.member,state);});
 }
@@ -47,8 +48,9 @@ async function voice(guild,state,now=Date.now()){
  try{
   const elapsed=now-voiceAt;voiceAt=now;const previous=new Map(voicePrevious);voicePrevious.clear();const validInterval=elapsed>=110000&&elapsed<=180000;
   const groups=new Map();
+  const voiceParents=[state.categories?.voice,state.schoolCategories?.communityVoice,state.schoolCategories?.familyVoice].filter(Boolean),creators=[state.channels?.createVoice,state.schoolChannels?.createCommunityVoice,state.schoolChannels?.createFamilyVoice].filter(Boolean);
   for(const v of guild.voiceStates.cache.values()){
-   if(!v.channelId||v.channel?.parentId!==state.categories.voice||v.channelId===state.channels.createVoice||v.mute||v.deaf||v.suppress||!eligible(v.member,state))continue;
+   if(!v.channelId||!voiceParents.includes(v.channel?.parentId)||creators.includes(v.channelId)||v.mute||v.deaf||v.suppress||!eligible(v.member,state))continue;
    const group=groups.get(v.channelId)||[];group.push(v.member);groups.set(v.channelId,group);
   }
   for(const [channelId,group] of groups)if(group.length>=2)for(const member of group){voicePrevious.set(member.id,channelId);if(validInterval&&group.filter(m=>previous.get(m.id)===channelId).length>=2&&previous.get(member.id)===channelId)await serial(member.id,async()=>{award(member.id,'voice',now);await sync(member,state);});}

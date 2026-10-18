@@ -10,7 +10,7 @@ const card = (title, text) => new EmbedBuilder().setColor(0xEEEEEE).setTitle(tit
 function panel() {
   return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'))], allowedMentions: { parse: [] } };
 }
-function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox } = {}) {
+function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send } = {}) {
   const busy = new Set();
   const get = id => read('qgServer').schoolEntryVerification?.[id];
   const save = (id, value) => update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });
@@ -65,6 +65,7 @@ function createHandler({ read = data.read, update = data.update, existing = soul
         if (!member.roles.cache.has(roleId)) await member.roles.add(roleId, 'Profil confirmé et règlement QG accepté');
         save(i.user.id, { ...draft, stage: 'accepted', acceptedAt: Date.now(), confirmedAt: draft.confirmedAt || Date.now() });
         await i.editReply({ content: 'Bienvenue au QG ! Ton profil est enregistré et tu as accepté le règlement. Tu es maintenant Membre Communautaire.', embeds: [], components: [], allowedMentions: { parse: [] } });
+        await welcome(member).catch(error => console.warn('Bienvenue QG non publié :', error.code || error.name));
       }
       return true;
     } finally { busy.delete(i.user.id); }

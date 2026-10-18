@@ -107,6 +107,7 @@ async function reaction(reaction,user,add){
 async function memberEvent(member,joined){
  if(member.user.bot)return;
  if(joined)await require('./qgSchoolSeparators').syncMember(member);
+ if(joined){await logTo(member.guild,'logsMembers','Arrivée d’un membre',`Membre : <@${member.id}> (${member.id})\nVérification en attente.`).catch(()=>{});return;}
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;
  const notice=layout.embed(joined?'✦ Bienvenue au QG':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\n\nUn nouvel espace de rencontres, de discussions et de roleplay t’attend. Prends tes repères et trouve ta place parmi nous.\n\n**01 · Vérifie ton profil**\nRends-toi dans <#${school.rules||s.channels.rules}> et clique sur **Commencer ma vérification**.\n\n**02 · Découvre nos règles**\nAprès confirmation de ton profil Roblox, le règlement s’affichera dans un message visible uniquement par toi.\n\n**03 · Rejoins la communauté**\nConfirme l’avoir lu et accepté pour recevoir le rôle **Membre Communautaire**.\n\nHeure d’arrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setColor(0xEEEEEE).setFooter({text:'QG • Fais connaissance, participe et trouve ta place'}).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
  if(joined)notice.setThumbnail(member.user.displayAvatarURL({size:256}));

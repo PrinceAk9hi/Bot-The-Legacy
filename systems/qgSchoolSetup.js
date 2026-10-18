@@ -15,7 +15,7 @@ const roleMap = () => state().schoolRoles || {};
 const categoryMap = () => state().schoolCategories || {};
 const channelMap = () => state().schoolChannels || {};
 const clean = text => String(text ?? '').replace(/@everyone|@here|<@&?\d+>|<#[0-9]+>/g, '[mention]').slice(0, 1800);
-const embed = (title, description) => new EmbedBuilder().setColor(0x161323).setTitle(title).setDescription(description).setFooter({ text: 'Soul Society • QG SchoolRP' });
+const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
 function audit(type, actorId, details = {}) {
   store(s => { s.schoolAudit ||= []; s.schoolAudit.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, at: Date.now(), type, actorId, details }); if (s.schoolAudit.length > 1000) s.schoolAudit.splice(0, s.schoolAudit.length - 1000); });
 }
@@ -42,40 +42,26 @@ const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur impl
 `**Article 19 — Modifications.** La direction peut faire évoluer ce règlement. Les changements importants sont annoncés ; la version affichée indique la date de mise à jour.\n\n`+
 `**Article 20 — Acceptation.** Pour accéder aux espaces communautaires, clique sur le bouton ci-dessous après avoir lu le règlement.`;
 
-function panelPayload(key) {
+function panelPayload(key, guild) {
+  if (key === 'tickets') return require('./qgPanels').tickets();
+  if (key === 'notifications') return require('./qgPanels').notifications();
+  if (key === 'joinManagement') return require('./qgPanels').management(guild);
   if (['communityCommands','familyCommands'].includes(key)) return require('./qgSchoolVoice').panel();
   if (['absences', 'rankUp'].includes(key)) return require('./qgSchoolFamily').panel(key);
   if (key === 'levelsInfo') return require('./qgLevels').panel();
   if (['giveawaysInfo', 'communityGiveaways', 'familyGiveaways'].includes(key)) return { embeds: [embed('🎁 Giveaways', 'Les giveaways sont créés par la Gestion Animation.\n\nFormat : `=giveaway creer 1h 1 Récompense`\nDurée : de 1 minute à 30 jours • 1 à 20 gagnants.\n\nLes membres vérifiés participent avec le bouton. Résultats et participation sont conservés par le bot.')], allowedMentions: { parse: [] } };
   if (key === 'foundationReports') return { embeds: [embed('📊 Rapports de la Fondation', 'Salon réservé au Créateur et au Gérant Global.\n\n**Modèle de rapport**\n• Période concernée\n• Gestion ou sujet\n• Actions réalisées et résultats\n• Difficultés ou décisions attendues\n• Prochaines étapes\n\nÉvite d’inclure des informations personnelles qui ne sont pas nécessaires au suivi.')], allowedMentions: { parse: [] } };
   if (key === 'managementFollowup') return null;
-  if (key === 'tickets') {
-    const banner = embed('🎫 Support du QG', '**Assistance générale** — aide et questions sur le serveur ou le bot.\n\n**Signalement** — signaler un incident ou un membre ; ajoute les éléments utiles.\n\n**Réclamation** — demander le réexamen d’une décision, avec son contexte.\n\n**Contacter la Fondation** — transmettre une demande confidentielle, visible uniquement par toi et la Fondation.\n\nChoisis une catégorie dans le menu. Ne partage jamais de mot de passe, cookie ou code de connexion.');
-    const art = localImage(path.join(__dirname, '..', 'assets', 'qg-support-banner.gif'), 'qg-support-banner.gif');
-    banner.setColor(0xF0F0F0).setImage(art.url);
-    return { embeds: [banner], files: [art.file], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qg:ticket-type').setPlaceholder('Choisir le sujet du ticket').addOptions(
-      { label: 'Questions / Aide', value: 'questions', description: 'Une question ou besoin d’assistance', emoji: '✉️' },
-      { label: 'Signaler un joueur', value: 'report', description: 'Signaler un comportement et joindre des preuves', emoji: '⚒️' },
-      { label: 'Réclamation', value: 'complaint', description: 'Contester une décision de manière confidentielle', emoji: '⚖️' },
-      { label: 'Contacter la Fondation', value: 'foundation', description: 'Demande confidentielle à la Fondation', emoji: '👑' }
-    ))], allowedMentions: { parse: [] } };
-  }
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };
   if (key === 'familyGuide') return { embeds: [embed('📚 Guide de la famille', `**Fonctionnement**\nLa famille s’organise autour de la Direction, de quatre gestions indépendantes et des grades familiaux.\n\n**Direction**\nCréateur → Gérant Global → Administrateur. Fondation : Créateur et Gérant Global.\n\n**Gestions**\nTickets, Recrutement, Animation et Réseaux. Chaque équipe est dirigée par son responsable et conserve la confidentialité de ses dossiers.\n\n**Grades**\nMembre Test → Membre Confirmé → Membre Expert → Membre Prestigieux → Membre Senior. Les promotions sont examinées par la Direction et ne sont jamais automatiques.\n\n**Candidatures**\nLe recrutement famille débute dans <#${channelMap().familyApplications}> et se déroule en MP. Une candidature à une gestion se dépose dans <#${channelMap().joinManagement}>.\n\n**Absences**\nDéclare et gère tes dates dans <#${channelMap().absences}>. Le motif reste facultatif.\n\n**Comportement**\nRespecte le règlement, la confidentialité des dossiers et les consignes des salons. Ouvre un ticket pour demander de l’aide ou contester une décision.`)], allowedMentions: { parse: [] } };
-  if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Administrateur\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Tickets • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Senior • Membre Prestigieux • Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
+  if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Administrateur\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Support • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Senior • Membre Prestigieux • Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
   if (key === 'rules') return require('./qgEntryVerification').panel();
-  if (key === 'notifications') return { embeds: [embed('🔔 Rôles de notifications', 'Choisis les annonces que tu souhaites recevoir. Tu peux modifier ton choix à tout moment.')], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qgs:notifs').setPlaceholder('Choisir les notifications').setMinValues(0).setMaxValues(4).addOptions(
-    { label: 'Annonces', value: 'notifAnnouncements', emoji: '🔔' }, { label: 'Roleplay', value: 'notifRp', emoji: '🎭' }, { label: 'Réseaux', value: 'notifNetworks', emoji: '🌐' }, { label: 'Serveurs', value: 'notifServers', emoji: '📡' }
-  ))] , allowedMentions: { parse: [] } };
   if (key === 'familyApplications') {
     const banner = embed('📋 Candidature — Famille SchoolRP', '**Une famille se construit avec des personnes respectueuses, sincères et motivées.**\n\nAvant de commencer, prépare ton pseudo Roblox et prends quelques minutes pour répondre personnellement aux questions. Une candidature complète et honnête aidera l’équipe à mieux te connaître.\n\n**Comment se déroule le recrutement ?**\nLe questionnaire se fait en messages privés avec le bot, une question à la fois. Tes réponses sont sauvegardées afin que tu puisses avancer sans formulaire Discord. À la fin, ton dossier est transmis à la Gestion Recrutement ; une personne de l’équipe étudiera ta candidature.\n\nClique sur **Déposer ma candidature** pour recevoir la première question en MP. Les messages privés du serveur doivent être ouverts.');
     const art = localImage(path.join(__dirname, '..', 'assets', 'qg-initial.gif'), 'qg-initial.gif');
-    banner.setColor(0xF0F0F0).setImage(art.url);
+    banner.setColor(0xffffff).setImage(art.url);
     return { embeds: [banner], files: [art.file], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:family-apply').setLabel('Déposer ma candidature').setStyle(ButtonStyle.Secondary))], allowedMentions: { parse: [] } };
   }
-  if (key === 'joinManagement') return { embeds: [embed('✦ Rejoindre une gestion', 'Choisis une gestion pour remplir une candidature confidentielle. Tu dois déjà être membre de la famille.')], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qgs:management-apply').setPlaceholder('Choisir une gestion').addOptions(
-    { label: 'Gestion Tickets', value: 'ticketsManagement' }, { label: 'Gestion Recrutement', value: 'recruitmentManagement' }, { label: 'Gestion Animation', value: 'animationManagement' }, { label: 'Gestion Réseaux', value: 'networksManagement' }
-  ))] , allowedMentions: { parse: [] } };
   if (key === 'absences') return { embeds: [embed('📆 Déclarer une absence', 'Les demandes d’absence seront traitées par les responsables. Indique les dates et un motif facultatif dans un ticket auprès de ton responsable.')], allowedMentions: { parse: [] } };
   if (key === 'rankUp') return { embeds: [embed('📈 Demande de promotion', 'Une promotion peut être proposée au responsable concerné. Elle n’est jamais automatique et doit être justifiée. Contacte ton responsable via un ticket.')], allowedMentions: { parse: [] } };
   return null;
@@ -146,8 +132,9 @@ async function install(guild, client) {
       if (key === 'foundationReports') await ch.permissionOverwrites.set(overwrites, 'Configuration du salon Rapports Fondation');
       chs[key] = ch.id; store(s => { s.schoolChannels ||= {}; s.schoolChannels[key] = ch.id; });
     }
+    await require('./qgTicketRouting').ensure(guild);
     for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityCommands: 'communityCommands', familyCommands: 'familyCommands', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
-      let payload = panelPayload(key); if (key === 'managementFollowup') payload = await require('./qgSchoolManagementBoard').buildPanel(guild);
+      let payload = await panelPayload(key, guild); if (key === 'managementFollowup') payload = await require('./qgSchoolManagementBoard').buildPanel(guild);
       if (!payload) continue;
       const channel = await guild.channels.fetch(chs[channelKey]);
       const record = state().schoolPanels?.[key];
@@ -169,7 +156,7 @@ function updatePreview(guild) {
     const def = layout.channels.find(item => item[0] === key);
     return !channels.has(channelMap()[key]) && !channels.find(channel => channel.parentId === categoryMap().communityVoice && channel.name === def[1]);
   });
-  return { roles: 0, voices: missingVoices.length, panels: 5 };
+  return { roles: roleMap().absent ? 0 : 1, voices: missingVoices.length, panels: 17 };
 }
 
 async function updateIncremental(guild, client) {
@@ -180,10 +167,11 @@ async function updateIncremental(guild, client) {
   install.running = true;
   try {
     const made = { roles: 0, voices: 0, panels: 0 };
+    await require('./qgTicketRouting').ensure(guild);
     const channels = await guild.channels.fetch();
     let communityCategory = categoryMap().communityVoice && await guild.channels.fetch(categoryMap().communityVoice).catch(() => null);
     communityCategory ||= channels.find(channel => channel.type === 4 && channel.name === layout.categories.find(item => item[0] === 'communityVoice')?.[1]);
-    if (!communityCategory || communityCategory.type !== 4) throw new Error('La catégorie de vocals communautaires est introuvable. Aucun salon existant n’a été modifié.');
+    if (!communityCategory || communityCategory.type !== 4) throw new Error('La catégorie de vocals communautaires est introuvable. Vérifie la configuration des catégories enregistrées.');
     for (const key of ['communityVoice3', 'communityVoice4', 'communityVoice5']) {
       const [, name, , type] = layout.channels.find(item => item[0] === key);
       let channel = (channelMap()[key] && channels.get(channelMap()[key])) || channels.find(item => item.parentId === communityCategory.id && item.name === name);
@@ -209,11 +197,21 @@ async function updateIncremental(guild, client) {
       ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
       ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions'],
       ['communityCommands', 'communityCommands', 'Mon vocal temporaire'],
-      ['familyCommands', 'familyCommands', 'Mon vocal temporaire']
+      ['familyCommands', 'familyCommands', 'Mon vocal temporaire'],
+      ['notifications','notifications','Tes notifications'],
+      ['joinManagement','joinManagement','Rejoindre une gestion'],
+      ['absences','absences','Signaler une absence'],
+      ['familyGuide','familyGuide','Guide de la famille'],
+      ['familyChart','familyChart','Organigramme'],
+      ['levelsInfo','levelsInfo','Niveaux'],
+      ['rankUp','rankUp','Évolution familiale'],
+      ['help','help','Aide et FAQ'],
+      ['giveawaysInfo','giveawaysInfo','Giveaways'],
+      ['familyGiveaways','familyGiveaways','Giveaways']
     ]) {
       let channel = channelMap()[channelKey] && await guild.channels.fetch(channelMap()[channelKey]).catch(() => null);
       if (!channel?.isTextBased?.()) continue;
-      let payload = panelKey === 'managementFollowup' ? await require('./qgSchoolManagementBoard').buildPanel(guild) : panelPayload(panelKey);
+      let payload = panelKey === 'managementFollowup' ? await require('./qgSchoolManagementBoard').buildPanel(guild) : await panelPayload(panelKey, guild);
       const record = state().schoolPanels?.[panelKey];
       let message = record?.channelId === channel.id ? await channel.messages.fetch(record.messageId).catch(() => null) : null;
       if (!message) {
@@ -237,6 +235,7 @@ async function updateIncremental(guild, client) {
 async function handle(i) {
   if (!i.customId?.startsWith('qgs:')) return false;
   if (i.guildId !== config.guildId) { await i.reply({ content: 'Action réservée au serveur QG.', flags: MessageFlags.Ephemeral }); return true; }
+  if (await require('./qgVerificationHelp').handle(i)) return true;
   if (await require('./qgEntryVerification').handle(i)) return true;
   if (await require('./qgSchoolGiveaways').handle(i)) return true;
   if (await require('./qgSchoolFamily').handle(i)) return true;
@@ -299,7 +298,7 @@ async function execute(i) {
   if (action === 'mise-a-jour') {
     const p = updatePreview(i.guild);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-update').setLabel('Confirmer la mise à jour').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-update').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
-    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour communautaire du QG', `Vocaux manquants à ajouter : **${p.voices}**.\n\n• Accès initial limité au règlement.\n• Accueil et Informations en lecture seule pour les membres.\n• Protections messages et vocaux dans tout le QG ; Direction / Fondation exemptées des filtres.\n• Spam : timeout 15 min, ban 24 h, puis définitif ; antécédents conservés.\n• Médias et suggestions avec fils de discussion.\n• Panel vocal dans les salons commandes.\n• Gestion Tickets renommée Gestion Support.\n• **Suppression du seul salon giveaways communautaire, avec ses messages et annulation de ses tirages actifs.**\n\nLes séparateurs ne sont ni ajoutés, ni renommés, ni repositionnés. Le bot doit pouvoir gérer les rôles, salons, messages, fils et sanctions.`)], components: [row] });
+    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour communautaire du QG', `Vocaux manquants à ajouter : **${p.voices}**.\n\n• Accès initial limité au règlement.\n• Accueil et Informations en lecture seule pour les membres.\n• Protections messages et vocaux dans tout le QG ; Direction / Fondation exemptées des filtres.\n• Spam : timeout 15 min, ban 24 h, puis définitif ; antécédents conservés.\n• Médias et suggestions avec fils de discussion.\n• Panel vocal dans les salons commandes.\n• Rôle Gestion Support conservé.\n• **Suppression du seul salon giveaways communautaire, avec ses messages et annulation de ses tirages actifs.**\n\nNouveautés : tickets en bas du serveur, catégories Gestion Support / Animation, rôle Absent, panneaux blancs et assistance vérification. Les séparateurs ne sont ni ajoutés, ni renommés, ni repositionnés. Le bot doit pouvoir gérer les rôles, salons, messages, fils et sanctions.`)], components: [row] });
   }
   if (action === 'apercu') {
     const p = preview(i.guild);

@@ -53,9 +53,9 @@ test('the regulation fits a single Discord embed description', () => {
   assert.match(setup.ruleText, /Article 20/);
 });
 
-test('persistent panels use stable custom IDs and the four requested management teams', () => {
+test('persistent panels use stable custom IDs and the four requested management teams', async () => {
   for (const key of ['rules', 'notifications', 'familyApplications', 'joinManagement', 'absences', 'rankUp']) assert.ok(setup.panelPayload(key));
-  const management = setup.panelPayload('joinManagement').components[0].components[0];
+  const management = (await setup.panelPayload('joinManagement')).components[0].components[0];
   assert.equal(management.toJSON().options.length, 4);
   assert.deepEqual(management.toJSON().options.map(x => x.value), ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
 });
@@ -76,11 +76,11 @@ test('family application panel attaches the supplied animated GIF and preserves 
 test('QG ticket panel exposes the four requested categories and reattaches its animated banner on edits', () => {
   const payload = setup.panelPayload('tickets');
   const menu = payload.components[0].components[0];
-  assert.deepEqual(menu.toJSON().options.map(option => option.value), ['questions', 'report', 'complaint', 'foundation']);
-  assert.equal(payload.embeds[0].data.color, 0xF0F0F0);
+  assert.deepEqual(menu.toJSON().options.map(option => option.value), ['questions', 'event', 'report', 'foundation']);
+  assert.equal(payload.embeds[0].data.color, 0xffffff);
   assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support-banner.gif');
   assert.equal(payload.files[0].name, 'qg-support-banner.gif');
-  for (const text of ['Assistance générale', 'Signalement', 'Réclamation', 'Contacter la Fondation']) assert.match(payload.embeds[0].data.description, new RegExp(text));
+  for (const text of ['Questions/Aide', 'Signaler un comportement', 'Demander une animation', 'Contacter la Fondation']) assert.match(payload.embeds[0].data.description, new RegExp(text));
 });
 
 test('Foundation ticket permissions deny every non-Foundation server role while keeping applicant access', () => {

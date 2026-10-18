@@ -17,7 +17,7 @@ function locked(key, fn) {
 }
 async function log(guild, title, description) {
   try { const id = state().schoolChannels?.logsModeration; if (!id) return;
-    const ch = await guild.channels.fetch(id); await ch.send({ embeds: [new EmbedBuilder().setColor(0xe6b450).setTitle(title).setDescription(description.slice(0,3500)).setTimestamp()], allowedMentions: {parse:[]} });
+    const ch = await guild.channels.fetch(id); await ch.send({ embeds: [new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description.slice(0,3500)).setTimestamp()], allowedMentions: {parse:[]} });
   } catch (e) { console.error('Journal protection QG indisponible :', e.code || e.name); }
 }
 const bursts = new Map();
@@ -109,7 +109,7 @@ async function apply(guild,client) {
   if(!c.rules||!all.has(c.rules)||!r.community)throw Error('Règlement ou rôle communautaire introuvable.');
   if(!me.permissions.has([P.ManageChannels,P.ManageRoles,P.ManageMessages,P.ModerateMembers,P.BanMembers,P.CreatePublicThreads,P.SendMessagesInThreads]))throw Error('Permissions bot requises : gérer salons/rôles/messages, modérer et bannir, créer et écrire dans les fils.');
   const support=r.ticketsManagement&&await guild.roles.fetch(r.ticketsManagement);
-  if(support&&!support.editable)throw Error('Place le rôle du bot au-dessus de Gestion Tickets / Support.');
+  if(support&&!support.editable)throw Error('Place le rôle du bot au-dessus de Gestion Support / Support.');
   const giveaway=c.communityGiveaways&&all.get(c.communityGiveaways);
   if(giveaway&&(!cats.community||giveaway.parentId!==cats.community))throw Error('Giveaway communautaire déplacé : vérifie son emplacement avant la mise à jour.');
   const privileged=new Set(directionKeys.map(k=>r[k]).filter(Boolean));

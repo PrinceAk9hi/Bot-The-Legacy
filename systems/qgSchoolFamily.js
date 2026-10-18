@@ -6,11 +6,11 @@ const channels = () => read('qgServer').schoolChannels || {};
 const save = fn => update('qgServer', fn);
 const familyKeys = ['test', 'confirmed', 'expert', 'prestigious', 'senior'];
 const familyNames = { test: 'Membre Test', confirmed: 'Membre Confirmé', expert: 'Membre Expert', prestigious: 'Membre Prestigieux', senior: 'Membre Senior' };
-const embed = (title, description) => new EmbedBuilder().setColor(0x211a35).setTitle(title).setDescription(description).setFooter({ text: 'Soul Society • QG' });
+const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
 function family(member) { const r = roles(); return familyKeys.some(k => r[k] && member.roles.cache.has(r[k])); }
 function staff(member) { const r = roles(); return member.id === config.ownerId || member.id === member.guild.ownerId || ['creator', 'globalManager', 'administrator', 'recruitmentLead'].some(k => r[k] && member.roles.cache.has(r[k])); }
 function panel(key) {
-  if (key === 'absences') return { embeds: [embed('📆 Signaler une absence', 'Déclare tes dates d’indisponibilité. Le motif est facultatif et n’est partagé qu’avec la direction.')], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:absence-new').setLabel('Déclarer une absence').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('qgs:absence-view').setLabel('Mes absences').setStyle(ButtonStyle.Secondary))] };
+  if (key === 'absences') return { embeds: [embed('📆 Signaler une absence', '**Besoin de t’absenter ? Préviens-nous simplement.**\n\nIndique ta date de départ et ton retour prévu. Tu peux ajouter un motif et un commentaire, sans obligation de partager des informations personnelles.\n\n**Pendant ton absence**\nLe rôle **Absent** est attribué pour la période déclarée, puis retiré à ton retour. Les responsables reçoivent les dates ; le motif reste privé.\n\n**Tes disponibilités changent ?**\nRetrouve tes absences pour modifier les dates ou annuler ta déclaration.')], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:absence-new').setLabel('Déclarer une absence').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('qgs:absence-view').setLabel('Mes absences').setStyle(ButtonStyle.Secondary))] };
   if (key === 'rankUp') return { embeds: [embed('📈 Évolution familiale', 'Dépose une demande pour le grade suivant. Aucune promotion n’est automatique ; la décision revient à la direction.')], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:rank-start').setLabel('Demander une promotion').setStyle(ButtonStyle.Primary))] };
   return null;
 }
@@ -23,10 +23,11 @@ async function handle(i) {
   }
   if (i.customId === 'qgs:absence-submit') {
     const member = await i.guild.members.fetch(i.user.id); if (!family(member)) throw new Error('Fonction réservée aux membres de la famille.');
-    const parse = value => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim()); if (!m) return NaN; return Date.UTC(+m[3], +m[2] - 1, +m[1]); };
+    const parse = value => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim()); if (!m) return NaN; const ms=Date.UTC(+m[3], +m[2]-1, +m[1]),d=new Date(ms); return d.getUTCFullYear()===+m[3]&&d.getUTCMonth()===+m[2]-1&&d.getUTCDate()===+m[1]?ms:NaN; };
     const start = parse(i.fields.getTextInputValue('start')), end = parse(i.fields.getTextInputValue('end'));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start || start < Date.UTC(2020, 0, 1)) return i.reply({ content: 'Dates invalides. Utilise JJ/MM/AAAA et vérifie que la fin n’est pas avant le début.', flags: MessageFlags.Ephemeral });
     const id = `${Date.now()}-${i.user.id}`;
+    await i.deferReply({flags:MessageFlags.Ephemeral});
     const record = { id, memberId: i.user.id, start, end, reason: i.fields.getTextInputValue('reason').trim().slice(0, 100) || null, comment: i.fields.getTextInputValue('comment').trim().slice(0, 500) || null, status: 'active', createdAt: Date.now() };
     save(s => { s.schoolAbsences ||= {}; s.schoolAbsences[id] = record; s.schoolAudit ||= []; s.schoolAudit.push({ id: `absence-${id}`, at: Date.now(), type: 'absence_declaree', actorId: i.user.id, details: { absenceId: id } }); });
     const target = await i.guild.channels.fetch(channels().managementFollowup).catch(() => null);
@@ -34,7 +35,8 @@ async function handle(i) {
       const r = roles(), mention = [r.creator, r.globalManager, r.recruitmentLead].filter(Boolean).map(id => `<@&${id}>`).join(' ');
       await target.send({ content: mention, embeds: [embed('Absence déclarée', `Membre : <@${i.user.id}>\nPériode : <t:${Math.floor(start / 1000)}:d> → <t:${Math.floor(end / 1000)}:d>\nLe motif est conservé dans le dossier privé.`)], allowedMentions: { roles: [r.creator, r.globalManager, r.recruitmentLead].filter(Boolean), users: [], parse: [] } });
     }
-    return i.reply({ content: '✅ Absence enregistrée. Les responsables ont reçu les dates ; ton motif reste privé.', flags: MessageFlags.Ephemeral });
+    await syncAbsenceRoles(i.guild);
+    return i.editReply({ content: '✅ Absence enregistrée. Les responsables ont reçu les dates ; ton motif reste privé.' });
   }
   if (i.customId === 'qgs:absence-view') {
     expireAbsences();
@@ -54,7 +56,8 @@ async function handle(i) {
     const id = i.customId.split(':')[2], rec = read('qgServer').schoolAbsences?.[id];
     if (!rec || rec.memberId !== i.user.id || rec.status !== 'active') return i.reply({ content: 'Absence introuvable ou déjà terminée.', flags: MessageFlags.Ephemeral });
     rec.status = 'cancelled'; rec.updatedAt = Date.now(); save(s => { s.schoolAbsences[id] = rec; });
-    return i.update({ content: '✅ Absence annulée.', components: [] });
+    await i.deferUpdate();await syncAbsenceRoles(i.guild);
+    return i.editReply({ content: '✅ Absence annulée.', components: [] });
   }
   if (i.customId.startsWith('qgs:absence-edit:')) {
     const id = i.customId.split(':')[2], rec = read('qgServer').schoolAbsences?.[id];
@@ -65,12 +68,13 @@ async function handle(i) {
   if (i.isModalSubmit() && i.customId.startsWith('qgs:absence-update:')) {
     const id = i.customId.split(':')[2], rec = read('qgServer').schoolAbsences?.[id];
     if (!rec || rec.memberId !== i.user.id || rec.status !== 'active') throw new Error('Absence introuvable ou déjà terminée.');
-    const parse = value => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim()); if (!m) return NaN; return Date.UTC(+m[3], +m[2] - 1, +m[1]); };
+    const parse = value => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim()); if (!m) return NaN; const ms=Date.UTC(+m[3], +m[2]-1, +m[1]),d=new Date(ms); return d.getUTCFullYear()===+m[3]&&d.getUTCMonth()===+m[2]-1&&d.getUTCDate()===+m[1]?ms:NaN; };
     const start = parse(i.fields.getTextInputValue('start')), end = parse(i.fields.getTextInputValue('end'));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return i.reply({ content: 'Dates invalides.', flags: MessageFlags.Ephemeral });
     rec.start = start; rec.end = end; rec.reason = i.fields.getTextInputValue('reason').trim().slice(0, 100) || null; rec.comment = i.fields.getTextInputValue('comment').trim().slice(0, 500) || null; rec.updatedAt = Date.now();
     save(s => { s.schoolAbsences[id] = rec; });
-    return i.reply({ content: '✅ Absence mise à jour.', flags: MessageFlags.Ephemeral });
+    await i.deferReply({flags:MessageFlags.Ephemeral});await syncAbsenceRoles(i.guild);
+    return i.editReply({ content: '✅ Absence mise à jour.' });
   }
   if (i.customId === 'qgs:rank-start') {
     const member = await i.guild.members.fetch(i.user.id); if (!family(member)) return i.reply({ content: 'Cette fonction est réservée aux membres de la famille.', flags: MessageFlags.Ephemeral });
@@ -110,4 +114,17 @@ function expireAbsences() {
   const now = new Date(); now.setUTCHours(0, 0, 0, 0); const threshold = now.getTime();
   save(s => { for (const rec of Object.values(s.schoolAbsences || {})) if (rec.status === 'active' && rec.end < threshold) { rec.status = 'ended'; rec.closedAt = Date.now(); } });
 }
-module.exports = { panel, handle, expireAbsences, _test: { family, familyKeys, familyNames } };
+let syncing;
+async function syncAbsenceRoles(guild){
+ if(guild.id!==config.guildId)return;if(syncing)return syncing;
+ syncing=(async()=>{expireAbsences();const data=read('qgServer'),roleId=data.schoolRoles?.absent;if(!roleId)return;
+ const role=await guild.roles.fetch(roleId);if(!role?.editable)throw Error('Le rôle Absent est absent ou trop haut pour le bot.');
+ const records=Object.values(data.schoolAbsences||{}),now=Date.now();
+ const ids=new Set([...records.map(r=>r.memberId),...role.members.keys()]);
+ for(const id of ids){const member=await guild.members.fetch(id).catch(e=>{if(e.code===10007)return null;throw e;});if(!member)continue;
+ const active=records.some(r=>r.memberId===id&&r.status==='active'&&r.start<=now&&r.end+86400000>now);
+ if(active&&!member.roles.cache.has(roleId))await member.roles.add(roleId,'Absence déclarée en cours');
+ if(!active&&member.roles.cache.has(roleId))await member.roles.remove(roleId,'Absence terminée ou annulée');
+ }})();try{await syncing;}finally{syncing=null;}
+}
+module.exports = { panel, handle, expireAbsences, syncAbsenceRoles, _test: { family, familyKeys, familyNames } };

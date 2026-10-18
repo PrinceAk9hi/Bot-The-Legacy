@@ -14,9 +14,9 @@ const state = () => read('qgServer');
 const save = fn => update('qgServer', fn);
 const familyRoleKeys = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
 const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead' };
-const teamLabels = { ticketsManagement: 'Gestion Tickets', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux' };
+const teamLabels = { ticketsManagement: 'Gestion Support', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux' };
 const trim = text => String(text ?? '').slice(0, 1000);
-const embed = (title, description) => new EmbedBuilder().setColor(0x211a35).setTitle(title).setDescription(description).setFooter({ text: 'Soul Society • Candidatures confidentielles' });
+const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
 function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && member.roles.cache.has(r[k])); }
 function verifiedForRecruitment(member, data = state()) {
@@ -109,8 +109,14 @@ async function submitManagement(i, team) {
   await i.editReply({ content: `✅ Ta candidature pour **${teamLabels[team]}** a été transmise au responsable concerné.` });
 }
 
+const decisionQueues = new Map();
 async function decision(i) {
+  const key = i.customId.split(':')[2];
   await i.deferUpdate();
+  const next = (decisionQueues.get(key) || Promise.resolve()).catch(()=>{}).then(()=>decisionInternal(i));
+  decisionQueues.set(key,next);try{return await next;}finally{if(decisionQueues.get(key)===next)decisionQueues.delete(key);}
+}
+async function decisionInternal(i) {
   const parts = i.customId.split(':');
   const isFamily = parts[1] === 'family-decision';
   const memberId = isFamily ? parts[2] : parts[3], action = parts.at(-1), team = isFamily ? null : parts[2];
@@ -121,7 +127,7 @@ async function decision(i) {
   const app = isFamily ? state()[table]?.[memberId] : state()[table]?.[memberId]?.[team];
   if (!app || app.channelId !== i.channelId || !['submitted', 'in_review'].includes(app.status)) return i.followUp({ content: 'Cette candidature a déjà été traitée ou son dossier est introuvable.', flags: MessageFlags.Ephemeral });
   const status = { accept: 'acceptée', refuse: 'refusée', interview: 'entretien demandé', details: 'précisions demandées' }[action];
-  if (!status) return i.reply({ content: 'Action invalide.', flags: MessageFlags.Ephemeral });
+  if (!status) return i.followUp({ content: 'Action invalide.', flags: MessageFlags.Ephemeral });
   if (isFamily && action === 'accept') {
     const candidate = await i.guild.members.fetch(memberId);
     if (!verifiedForRecruitment(candidate)) return i.followUp({ content: 'Ce candidat doit terminer sa vérification et accepter le règlement avant de pouvoir rejoindre la famille.', flags: MessageFlags.Ephemeral });
@@ -132,6 +138,9 @@ async function decision(i) {
   if (!isFamily && action === 'accept') {
     const candidate = await i.guild.members.fetch(memberId);
     if (!roles[team]) throw new Error(`Le rôle ${teamLabels[team]} n’est pas configuré.`);
+    const members = await i.guild.members.fetch();
+    const occupied = [...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(roles[team])&&!m.roles.cache.has(roles[managerFor[team]])).length;
+    if (occupied >= 2 && !candidate.roles.cache.has(roles[team])) return i.followUp({content:'Cette gestion possède déjà ses deux membres (hors responsable). Libère une place avant de valider.',flags:MessageFlags.Ephemeral});
     if (!candidate.roles.cache.has(roles[team])) await candidate.roles.add(roles[team], `Candidature acceptée : ${teamLabels[team]}`);
   }
   app.status = action === 'interview' || action === 'details' ? 'in_review' : action;

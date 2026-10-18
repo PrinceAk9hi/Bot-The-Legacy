@@ -6,9 +6,9 @@ const config = require('../config/qg');
 const VERSION = 2;
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
-const card = (title, text) => new EmbedBuilder().setColor(0xEEEEEE).setTitle(title).setDescription(text).setFooter({ text: 'QG • Accueil de la communauté' });
+const card = (title, text) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(text);
 function panel() {
-  return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'))], allowedMentions: { parse: [] } };
+  return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'),button('qgs:help-open','Besoin d’aide'))], allowedMentions: { parse: [] } };
 }
 function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send } = {}) {
   const busy = new Set();

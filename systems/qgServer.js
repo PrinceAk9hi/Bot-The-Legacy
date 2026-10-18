@@ -73,7 +73,7 @@ async function setup(client,guild){
   const rules=await panel(await get(c.rules),'rules',layout.rules(),client);await rules.react('✅');
   await panel(await get(c.tos),'tos',layout.tos(),client);
   await panel(await get(c.tickets),'tickets',layout.ticket(),client);
-  await panel(await get(c.commands),'commands',{embeds:[layout.embed('Commandes du QG','**Membres**\n`=niveau` : ton niveau et ta progression.\n`=classement` : les dix membres les plus actifs.\n`=aide` : consulter cette aide.\n`=suggestion ton idée` : proposer une amélioration dans le salon suggestions.\n\n**Tickets**\nUtilise le bouton du salon tickets. L’équipe peut prendre en charge ou renommer le ticket. Son auteur et l’équipe peuvent le fermer ; un transcript est conservé.\n\n**Vocaux**\nRejoins « ➕ Crée ton vocal » pour créer ton salon temporaire. Il sera supprimé quand il sera vide.\n\n**Installation**\n`=setupqg` est réservé au propriétaire du serveur et à Aven. Les commandes de gestion de la Soul Society restent réservées à leur serveur.')],allowedMentions},client);
+  await panel(await get(c.commands),'commands',{embeds:[layout.embed('Commandes du QG','**Membres**\n`=niveau` : ton niveau et ta progression.\n`=classement` : les dix membres les plus actifs.\n`=aide` : consulter cette aide.\n`=suggestion ton idée` : proposer une amélioration dans le salon suggestions.\n\n**Tickets**\nUtilise le bouton du salon tickets. L’équipe peut prendre en charge ou renommer le ticket. Son auteur et l’équipe peuvent le fermer ; un transcript est conservé.\n\n**Vocaux**\nRejoins « ➕ Crée ton vocal » pour créer ton salon temporaire. Il sera supprimé quand il sera vide.\n\n**Installation**\n`=setupqg` est réservé au propriétaire du serveur et à Aven. Les commandes de gestion du QG sont réservées aux personnes autorisées.')],allowedMentions},client);
   await panel(await get(c.levels),'levels',require('./qgLevels').panel(),client);
   await panel(await get(c.supportApply),'supportApply',require('./qgSupport').panel(),client);
   await panel(await get(c.supportInfo),'supportInfo',{embeds:[layout.embed('Besoin d’aide ?',`**Demande privée** : ouvre un ticket dans <#${c.tickets}>.\n**Aide vocale** : rejoins <#${c.waiting}> et attends un membre de l’équipe.\n**Rejoindre le support** : dépose une candidature dans <#${c.supportApply}>.\n\nNe communique jamais de mot de passe ni de token.`)],allowedMentions},client);
@@ -109,7 +109,7 @@ async function memberEvent(member,joined){
  if(joined)await require('./qgSchoolSeparators').syncMember(member);
  if(joined){await logTo(member.guild,'logsMembers','Arrivée d’un membre',`Membre : <@${member.id}> (${member.id})\nVérification en attente.`).catch(()=>{});return;}
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;
- const notice=layout.embed(joined?'✦ Bienvenue au QG':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\n\nUn nouvel espace de rencontres, de discussions et de roleplay t’attend. Prends tes repères et trouve ta place parmi nous.\n\n**01 · Vérifie ton profil**\nRends-toi dans <#${school.rules||s.channels.rules}> et clique sur **Commencer ma vérification**.\n\n**02 · Découvre nos règles**\nAprès confirmation de ton profil Roblox, le règlement s’affichera dans un message visible uniquement par toi.\n\n**03 · Rejoins la communauté**\nConfirme l’avoir lu et accepté pour recevoir le rôle **Membre Communautaire**.\n\nHeure d’arrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setColor(0xEEEEEE).setFooter({text:'QG • Fais connaissance, participe et trouve ta place'}).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
+ const notice=layout.embed(joined?'✦ Bienvenue au QG':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\n\nUn nouvel espace de rencontres, de discussions et de roleplay t’attend. Prends tes repères et trouve ta place parmi nous.\n\n**01 · Vérifie ton profil**\nRends-toi dans <#${school.rules||s.channels.rules}> et clique sur **Commencer ma vérification**.\n\n**02 · Découvre nos règles**\nAprès confirmation de ton profil Roblox, le règlement s’affichera dans un message visible uniquement par toi.\n\n**03 · Rejoins la communauté**\nConfirme l’avoir lu et accepté pour recevoir le rôle **Membre Communautaire**.\n\nHeure d’arrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setColor(0xffffff).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
  if(joined)notice.setThumbnail(member.user.displayAvatarURL({size:256}));
  await ch.send({content:joined?`<@${member.id}>`:undefined,embeds:[notice],allowedMentions:{parse:[],users:joined?[member.id]:[]}});
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
@@ -155,7 +155,7 @@ async function transcript(channel){
   before=batch.last().id;
  }throw Error('Archive trop longue. Le ticket est conservé.');
 }
-const ticketTypes={questions:{label:'Assistance générale',prefix:'aide',description:'Pose ta question ou décris le problème rencontré. Indique les étapes déjà tentées.'},report:{label:'Signalement',prefix:'signalement',description:'Décris l’incident avec son contexte, la date et l’heure approximatives, les pseudos Roblox et RP concernés, et joins une preuve utile.'},complaint:{label:'Réclamation',prefix:'reclamation',description:'Explique la décision que tu souhaites contester, le contexte et les éléments que la Fondation doit examiner.'},foundation:{label:'Contacter la Fondation',prefix:'fondation',description:'Décris ta demande confidentielle. Seul le demandeur et les rôles Fondation (Créateur et Gérant Global) peuvent consulter ce ticket.'},event:{label:'Demande d’animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
+const ticketTypes={questions:{label:'Questions/Aide',prefix:'aide',description:'Pose ta question ou décris le problème rencontré. Indique les étapes déjà tentées.'},report:{label:'Signaler un comportement',prefix:'signalement',description:'Décris l’incident avec son contexte, la date et l’heure approximatives, les pseudos Roblox et RP concernés, et joins une preuve utile.'},complaint:{label:'Réclamation',prefix:'reclamation',description:'Explique la décision que tu souhaites contester, le contexte et les éléments que la Fondation doit examiner.'},foundation:{label:'Contacter la Fondation',prefix:'fondation',description:'Décris ta demande confidentielle. Seul le demandeur et les rôles Fondation (Créateur et Gérant Global) peuvent consulter ce ticket.'},event:{label:'Demander une animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
 function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={},allRoleIds=[]){
  const foundationKeys=['creator','globalManager'];
  const allowedFoundationIds=new Set(foundationKeys.map(k=>schoolRoles[k]).filter(Boolean));
@@ -166,14 +166,15 @@ function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={}
  if(overwrites.length>100)throw Error('Trop de rôles pour verrouiller ce ticket Fondation avec les limites de permissions Discord.');
  return overwrites;
 }
+function ticketStaff(member,type){const roles=saved().schoolRoles||{};return member.id===config.ownerId||member.id===member.guild.ownerId||require('./qgTicketRouting').team(type).some(k=>roles[k]&&member.roles.cache.has(roles[k]));}
 async function ticket(i,type='questions'){
  const s=saved(),member=await i.guild.members.fetch(i.user.id),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.community&&member.roles.cache.has(schoolRoles.community);
  if(!ticketTypes[type])throw Error('Type de ticket invalide. Choisis un sujet dans le panneau.');
  if(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
  if(ch){store(x=>{x.tickets||={};x.tickets[ch.id]||={ownerId:i.user.id,type,createdAt:Date.now()};});return i.editReply(`Tu as déjà un ticket de ce type : <#${ch.id}>`);}
- const parent=s.schoolCategories?.support||s.categories.help;
- const overwrites=ticketOverwrites(i.guildId,i.user.id,i.client.user.id,type,schoolRoles,s.roles,[...i.guild.roles.cache.keys()]);
+ const parent=s.schoolCategories?.ticketInbox;if(!parent)throw Error('Le staff doit lancer /setup-serveur mise-a-jour pour préparer les tickets.');
+ const overwrites=require('./qgTicketRouting').overwrites(i.guild,i.user.id,type);
  ch=await i.guild.channels.create({name:`${ticketTypes[type].prefix}-${i.user.username}`.replace(/[^a-z0-9-]/gi,'-').slice(0,90),type:T.GuildText,parent,topic:buildQGTicketTopic(i.user.id,type),
  permissionOverwrites:overwrites});
  store(x=>{x.tickets||={};x.tickets[ch.id]={ownerId:i.user.id,type,createdAt:Date.now()};});
@@ -188,12 +189,11 @@ async function interaction(i){
  if(i.customId?.startsWith('delc:'))return require('../commandes/delc').handleComponent(i);
  if(i.customId?.startsWith('qgs:'))return require('./qgSchoolSetup').handle(i);
  if(await require('./qgSupport').handle(i,saved()))return;
- if(!i.customId?.startsWith('qg:'))return i.isRepliable?.()?i.reply({content:'Cette commande appartient au serveur de la Soul Society. Utilise =aide pour le QG.',flags:MessageFlags.Ephemeral}):undefined;
+ if(!i.customId?.startsWith('qg:'))return i.isRepliable?.()?i.reply({content:'Cette commande n’est pas disponible ici. Utilise =aide pour consulter les fonctions du QG.',flags:MessageFlags.Ephemeral}):undefined;
  const action=i.customId.split(':')[1];
  if(action==='rename'){
   const member=await i.guild.members.fetch(i.user.id),ticketData=saved().tickets?.[i.channelId];
-  const foundationAllowed=ticketData?.type==='foundation'&&(member.id===i.guild.ownerId||member.id===config.ownerId||['creator','globalManager'].some(k=>saved().schoolRoles?.[k]&&member.roles.cache.has(saved().schoolRoles[k])));
-  if(!ticketData||!(ticketData.type==='foundation'?foundationAllowed:staff(member)))throw Error('Action réservée à l’équipe autorisée dans ce ticket.');
+  if(!ticketData||!ticketStaff(member,ticketData.type))throw Error('Action réservée à l’équipe autorisée dans ce ticket.');
   const {ModalBuilder,TextInputBuilder,TextInputStyle}=require('discord.js');
   return i.showModal(new ModalBuilder().setCustomId('qg:rename-save').setTitle('Renommer le ticket').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('Nouveau nom').setStyle(TextInputStyle.Short).setMaxLength(80).setRequired(true))));
  }
@@ -203,10 +203,7 @@ async function interaction(i){
   if(action==='ticket-type')return ticket(i,i.values?.[0]);
   const t=saved().tickets?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
   if(!t||parseQGTicketTopic(i.channel.topic)?.ownerId!==t.ownerId)throw Error('Ticket introuvable.');
-  const schoolRoles=saved().schoolRoles||{};
-  const foundationStaff=t.type==='foundation'&&(member.id===i.guild.ownerId||member.id===config.ownerId||['creator','globalManager'].some(k=>schoolRoles[k]&&member.roles.cache.has(schoolRoles[k])));
-  if(t.type==='foundation'&&!foundationStaff&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Ce ticket est réservé à la Fondation et à son demandeur.');
-  if(t.type!=='foundation'&&!staff(member)&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Action réservée à l’équipe.');
+  if(!ticketStaff(member,t.type)&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Action réservée à l’équipe autorisée dans ce ticket.');
   if(action==='claim'){
    if(t.claimedBy&&t.claimedBy!==i.user.id)throw Error('Ce ticket est déjà pris en charge.');
    store(s=>{s.tickets[i.channelId].claimedBy=i.user.id;});await i.channel.send({embeds:[layout.embed('Ticket pris en charge',`<@${i.user.id}> s’occupe de ta demande.`)],allowedMentions});return i.editReply('✅ Ticket pris en charge.');
@@ -236,6 +233,7 @@ async function voice(oldState,newState){
 async function message(m){
  if(m.author.bot)return;
  if(await require('./qgCommunityPolicy').message(m))return;
+ if(await require('./qgTicketAssistant').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
@@ -258,7 +256,7 @@ function register(client){
  client.once(Events.ClientReady,()=>{const guild=client.guilds.cache.get(config.guildId);if(guild){require('./qgSchoolManagementBoard').refresh(guild).catch(e=>console.error('Initialisation suivi gestions :',e.code||e.message));require('./qgSchoolSeparators').syncGuild(guild).catch(e=>console.error('Synchronisation initiale des séparateurs :',e.code||e.message));}});
  const report=(e)=>console.error('QG :',e.code||e.message);
  const guarded=(fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(report);
- // Route only QG events here: old Soul Society handlers must never moderate QG members.
+ // Route only QG events here: handlers belonging to other servers must never moderate QG members.
  const emit=client.emit;
  client.emit=function(event,...args){
   const first=args[0],guildId=first?.guildId||first?.guild?.id||first?.message?.guildId||args[1]?.guildId||args[1]?.guild?.id;
@@ -278,6 +276,9 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  setInterval(()=>guarded(require('./qgPanels').refreshManagement,guild),60000).unref();
+  await require('./qgSchoolFamily').syncAbsenceRoles(guild).catch(e=>console.error('Rôle Absent :',e.code||e.name));
+  setInterval(()=>guarded(require('./qgSchoolFamily').syncAbsenceRoles,guild),60000).unref();
   await require('./qgCommunityPolicy').expireBans(guild);
   setInterval(()=>guarded(require('./qgCommunityPolicy').expireBans,guild),60000).unref();
   // Structure changes are explicit and confirmed with /setup-serveur; startup only restores existing state.

@@ -5,7 +5,7 @@ const { read, update } = require('../utils/recruitmentData');
 
 const store = fn => update('qgServer', fn);
 const groups = [
-  { key: 'tickets', label: '🎫 Gestion Tickets', lead: 'ticketsLead', team: 'ticketsManagement' },
+  { key: 'tickets', label: '🎫 Gestion Support', lead: 'ticketsLead', team: 'ticketsManagement' },
   { key: 'recruitment', label: '📋 Gestion Recrutement', lead: 'recruitmentLead', team: 'recruitmentManagement' },
   { key: 'animation', label: '🎉 Gestion Animation', lead: 'animationLead', team: 'animationManagement' },
   { key: 'networks', label: '🌐 Gestion Réseaux', lead: 'networksLead', team: 'networksManagement' },
@@ -56,12 +56,12 @@ async function buildPanel(guild) {
     return { name: `${group.label} · ${count} titulaire(s)`, value: `${leadLines}\n${teamLines}${extra}`.slice(0, 1024), count };
   }).sort((a, b) => b.count - a.count);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x161323)
+  const embed = new EmbedBuilder().setFooter({text:'Fondateur - QG'})
+    .setColor(0xffffff)
     .setTitle('📊 Classement et suivi des gestions')
-    .setDescription('Effectifs actuels par gestion, responsables et date de prise de fonction connue.')
+    .setDescription('Effectifs actuels par gestion, responsables et date de prise de fonction connue.\n\n* Pour les personnes déjà présentes avant le suivi, la date indique le début du suivi : Discord ne fournit pas la date historique exacte.')
     .addFields(rows.map(({ name, value }, index) => ({ name: `${['🥇', '🥈', '🥉', '✦'][index]} ${name}`, value })))
-    .setFooter({ text: '* Pour les personnes déjà en poste avant l’activation du suivi, la date affichée marque le début du suivi ; Discord ne fournit pas leur date historique exacte.' })
+
     .setTimestamp();
   return { embeds: [embed], allowedMentions: { parse: [] } };
 }

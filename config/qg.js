@@ -1,4 +1,4 @@
-// Serveur QG uniquement. Aucun identifiant de la Soul Society n'est réutilisé.
+// Configuration propre au serveur QG.
 module.exports = {
  guildId: '1558167237200973967',
  invite: 'UEhuBsJdG',

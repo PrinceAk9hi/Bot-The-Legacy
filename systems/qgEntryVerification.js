@@ -8,7 +8,7 @@ const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
 const card = (title, text) => new EmbedBuilder().setColor(0xEEEEEE).setTitle(title).setDescription(text).setFooter({ text: 'QG • Accueil de la communauté' });
 function panel() {
-  return { embeds: [card('Bienvenue au QG', '**1 · Vérifie ton profil**\nRenseigne ton pseudo Roblox, ton nom Discord et la raison de ta venue, puis confirme le profil retrouvé.\n\n**2 · Lis le règlement**\nIl sera affiché dans un message visible uniquement par toi.\n\n**3 · Rejoins la communauté**\nConfirme avoir lu et accepté le règlement pour recevoir le rôle Membre Communautaire.\n\nUne liaison déjà enregistrée peut être réutilisée. Aucun mot de passe ni cookie ne te sera demandé.')], components: [row(button('qgs:verify', 'Commencer ma vérification'))], allowedMentions: { parse: [] } };
+  return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'))], allowedMentions: { parse: [] } };
 }
 function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox } = {}) {
   const busy = new Set();

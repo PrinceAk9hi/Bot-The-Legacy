@@ -29,6 +29,12 @@ const roleDefs = [
 // Incremental additions are kept separate so the update path never reapplies
 // the existing roles' names, permissions, or overwrites.
 const updateRoleDefs = [
+    ['dividerFoundation', '♛・FONDATION', 0x292733, { separator: true, groupDivider: true, anchor: 'creator' }],
+    ['dividerDirection', '✦・DIRECTION', 0x292733, { separator: true, groupDivider: true, anchor: 'administrator' }],
+    ['dividerResponsibles', '✦・RESPONSABLES', 0x292733, { separator: true, groupDivider: true, anchor: 'ticketsLead' }],
+    ['dividerManagement', '✦・GESTIONS', 0x292733, { separator: true, groupDivider: true, anchor: 'ticketsManagement' }],
+    ['dividerFamily', '✦・FAMILLE', 0x292733, { separator: true, groupDivider: true, anchor: 'senior' }],
+    ['dividerCommunity', '✦・COMMUNAUTÉ', 0x292733, { separator: true, groupDivider: true, anchor: 'community' }],
     ['separatorGrade', 'A / Sanctions / Grade', 0x292733, { separator: true, anchor: 'senior' }],
     ['separatorLevels', 'B / Niveaux', 0x292733, { separator: true }],
     ['separatorFoundation', 'C / Fondation', 0x292733, { separator: true, anchor: 'creator' }],
@@ -247,8 +253,10 @@ const readOnlyChannels = new Set([
     'candidateReception', 'candidateTracking', 'logsMembers', 'logsVoice', 'logsModeration', 'logsTickets', 'logsBot'
 ]);
 const familyRankKeys = family;
+const dividerRoleDefs = updateRoleDefs.filter(([, , , options]) => options?.groupDivider);
+const installRoleDefs = [...roleDefs, ...dividerRoleDefs];
 
 module.exports = {
-    roleDefs, updateRoleDefs, categories, channels, directions, leads, managers, family, allFamily,
+    roleDefs, updateRoleDefs, dividerRoleDefs, installRoleDefs, categories, channels, directions, leads, managers, family, allFamily,
     readOnlyChannels, familyRankKeys, infoPublish, overwrites, read, textWrite, voiceWrite, botPermissions
 };

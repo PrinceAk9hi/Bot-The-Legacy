@@ -4,6 +4,7 @@ const {
 } = require('discord.js');
 const config = require('../config/qg');
 const path = require('node:path');
+const { localImage } = require('../utils/discordPanelImage');
 const layout = require('../config/qgSchoolLayout');
 const { read, update } = require('../utils/recruitmentData');
 
@@ -48,13 +49,14 @@ function panelPayload(key) {
   if (key === 'foundationReports') return { embeds: [embed('📊 Rapports de la Fondation', 'Salon réservé au Créateur et au Gérant Global.\n\n**Modèle de rapport**\n• Période concernée\n• Gestion ou sujet\n• Actions réalisées et résultats\n• Difficultés ou décisions attendues\n• Prochaines étapes\n\nÉvite d’inclure des informations personnelles qui ne sont pas nécessaires au suivi.')], allowedMentions: { parse: [] } };
   if (key === 'managementFollowup') return null;
   if (key === 'tickets') {
-    const banner = embed('🎫 Support du QG', 'Choisis le sujet de ta demande dans le menu ci-dessous. Un salon privé sera créé pour toi et l’équipe compétente.\n\nExplique clairement ta situation et joins les preuves utiles. Ne partage jamais de mot de passe, cookie ou code de connexion.');
-    banner.setImage('attachment://qg-support-banner.gif');
-    return { embeds: [banner], files: [{ attachment: path.join(__dirname, '..', 'assets', 'qg-support-banner.gif'), name: 'qg-support-banner.gif' }], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qg:ticket-type').setPlaceholder('Choisir le sujet du ticket').addOptions(
+    const banner = embed('🎫 Support du QG', '**Assistance générale** — aide et questions sur le serveur ou le bot.\n\n**Signalement** — signaler un incident ou un membre ; ajoute les éléments utiles.\n\n**Réclamation** — demander le réexamen d’une décision, avec son contexte.\n\n**Contacter la Fondation** — transmettre une demande confidentielle, visible uniquement par toi et la Fondation.\n\nChoisis une catégorie dans le menu. Ne partage jamais de mot de passe, cookie ou code de connexion.');
+    const art = localImage(path.join(__dirname, '..', 'assets', 'qg-support-banner.gif'), 'qg-support-banner.gif');
+    banner.setColor(0xF0F0F0).setImage(art.url);
+    return { embeds: [banner], files: [art.file], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qg:ticket-type').setPlaceholder('Choisir le sujet du ticket').addOptions(
       { label: 'Questions / Aide', value: 'questions', description: 'Une question ou besoin d’assistance', emoji: '✉️' },
       { label: 'Signaler un joueur', value: 'report', description: 'Signaler un comportement et joindre des preuves', emoji: '⚒️' },
-      { label: 'Demande d’animation', value: 'event', description: 'Proposer une animation ou un événement', emoji: '🎉' },
-      { label: 'Partenariat', value: 'partnership', description: 'Présenter une demande de partenariat', emoji: '🤝' }
+      { label: 'Réclamation', value: 'complaint', description: 'Contester une décision de manière confidentielle', emoji: '⚖️' },
+      { label: 'Contacter la Fondation', value: 'foundation', description: 'Demande confidentielle à la Fondation', emoji: '♛' }
     ))], allowedMentions: { parse: [] } };
   }
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };
@@ -64,7 +66,12 @@ function panelPayload(key) {
   if (key === 'notifications') return { embeds: [embed('🔔 Rôles de notifications', 'Choisis les annonces que tu souhaites recevoir. Tu peux modifier ton choix à tout moment.')], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qgs:notifs').setPlaceholder('Choisir les notifications').setMinValues(0).setMaxValues(4).addOptions(
     { label: 'Annonces', value: 'notifAnnouncements', emoji: '🔔' }, { label: 'Roleplay', value: 'notifRp', emoji: '🎭' }, { label: 'Réseaux', value: 'notifNetworks', emoji: '🌐' }, { label: 'Serveurs', value: 'notifServers', emoji: '📡' }
   ))] , allowedMentions: { parse: [] } };
-  if (key === 'familyApplications') return { embeds: [embed('📋 Rejoindre la famille', 'La candidature famille se déroule en conversation privée avec le bot. Clique pour commencer. Une décision est toujours prise par l’équipe.')], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:family-apply').setLabel('Commencer ma candidature').setStyle(ButtonStyle.Primary))], allowedMentions: { parse: [] } };
+  if (key === 'familyApplications') {
+    const banner = embed('📋 Candidature — Famille SchoolRP', '**Une famille se construit avec des personnes respectueuses, sincères et motivées.**\n\nAvant de commencer, prépare ton pseudo Roblox et prends quelques minutes pour répondre personnellement aux questions. Une candidature complète et honnête aidera l’équipe à mieux te connaître.\n\n**Comment se déroule le recrutement ?**\nLe questionnaire se fait en messages privés avec le bot, une question à la fois. Tes réponses sont sauvegardées afin que tu puisses avancer sans formulaire Discord. À la fin, ton dossier est transmis à la Gestion Recrutement ; une personne de l’équipe étudiera ta candidature.\n\nClique sur **Déposer ma candidature** pour recevoir la première question en MP. Les messages privés du serveur doivent être ouverts.');
+    const art = localImage(path.join(__dirname, '..', 'assets', 'qg-initial.gif'), 'qg-initial.gif');
+    banner.setColor(0xF0F0F0).setImage(art.url);
+    return { embeds: [banner], files: [art.file], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:family-apply').setLabel('Déposer ma candidature').setStyle(ButtonStyle.Secondary))], allowedMentions: { parse: [] } };
+  }
   if (key === 'joinManagement') return { embeds: [embed('✦ Rejoindre une gestion', 'Choisis une gestion pour remplir une candidature confidentielle. Tu dois déjà être membre de la famille.')], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qgs:management-apply').setPlaceholder('Choisir une gestion').addOptions(
     { label: 'Gestion Tickets', value: 'ticketsManagement' }, { label: 'Gestion Recrutement', value: 'recruitmentManagement' }, { label: 'Gestion Animation', value: 'animationManagement' }, { label: 'Gestion Réseaux', value: 'networksManagement' }
   ))] , allowedMentions: { parse: [] } };
@@ -77,7 +84,7 @@ function preview(guild) {
   const s = state(), roles = roleMap(), cats = categoryMap(), channels = channelMap();
   const categoryIds = Object.fromEntries(layout.categories.map(([key, name]) => [key, guild.channels.cache.has(cats[key]) ? cats[key] : guild.channels.cache.find(c => c.type === 4 && c.name === name)?.id]));
   return {
-    rolesMissing: layout.roleDefs.filter(([k]) => !guild.roles.cache.has(roles[k]) && !guild.roles.cache.find(r => r.name === layout.roleDefs.find(x => x[0] === k)[1])).length,
+    rolesMissing: layout.installRoleDefs.filter(([k]) => !guild.roles.cache.has(roles[k]) && !guild.roles.cache.find(r => r.name === layout.installRoleDefs.find(x => x[0] === k)[1])).length,
     categoriesMissing: layout.categories.filter(([k, name]) => !categoryIds[k]).length,
     channelsMissing: layout.channels.filter(([k, name, parent]) => !guild.channels.cache.has(channels[k]) && !guild.channels.cache.find(c => c.parentId === categoryIds[parent] && c.name === name)).length,
     installedAt: s.schoolSetup?.installedAt || null
@@ -94,12 +101,20 @@ async function install(guild, client) {
   try {
     const r = {}, cats = {}, chs = {}, created = { roles: 0, categories: 0, channels: 0 };
     // Only exact saved IDs or exact names are reused; no existing element is deleted or moved.
-    for (const [key, name, color] of [...layout.roleDefs].reverse()) {
+    for (const [key, name, color, options = {}] of [...layout.installRoleDefs].reverse()) {
       const savedId = roleMap()[key];
       let role = (savedId && await guild.roles.fetch(savedId).catch(() => null)) || guild.roles.cache.find(x => x.name === name && !x.managed);
-      if (!role) { role = await guild.roles.create({ name, color, permissions: [], hoist: true, mentionable: false, reason: 'Installation SchoolRP confirmée par le propriétaire du QG' }); created.roles++; }
-      else if (role.permissions.has(P.Administrator)) throw new Error(`Le rôle « ${role.name} » a Administrator. Retire cette permission manuellement avant de continuer afin que les accès privés restent réellement privés.`);
+      if (!role) { role = await guild.roles.create({ name, color, permissions: [], hoist: !options.separator, mentionable: false, reason: 'Installation SchoolRP confirmée par le propriétaire du QG' }); created.roles++; }
+      else if (role.permissions.has(P.Administrator) && !options.separator) throw new Error(`Le rôle « ${role.name} » a Administrator. Retire cette permission manuellement avant de continuer afin que les accès privés restent réellement privés.`);
+      if (options.separator && role.editable) await role.edit({ permissions: [], hoist: false, mentionable: false }, { reason: 'Les rôles séparateurs ne portent aucune permission.' });
       r[key] = role.id; store(s => { s.schoolRoles ||= {}; s.schoolRoles[key] = role.id; });
+    }
+    const installedRoles = await guild.roles.fetch();
+    for (const [key, , , options = {}] of layout.dividerRoleDefs) {
+      const separator = await guild.roles.fetch(r[key]);
+      const anchorDef = layout.roleDefs.find(item => item[0] === options.anchor);
+      const anchor = await guild.roles.fetch(r[options.anchor]).catch(() => null) || installedRoles.find(role => role.name === anchorDef?.[1]);
+      if (separator?.editable && anchor?.editable) await separator.setPosition(anchor.position + 1, { reason: 'Placement du séparateur de section QG' });
     }
     const owner = await guild.fetchOwner();
     await owner.roles.add(r.creator, 'Créateur de la famille SchoolRP');
@@ -139,6 +154,7 @@ async function install(guild, client) {
       if (!message) message = await channel.send(payload); else await message.edit(payload);
       store(s => { s.schoolPanels ||= {}; s.schoolPanels[key] = { channelId: channel.id, messageId: message.id }; });
     }
+    created.separatorSync = await require('./qgSchoolSeparators').syncGuild(guild);
     const overview = { installedAt: Date.now(), guildId: guild.id, version: 2, created };
     store(s => { s.schoolSetup = overview; s.schoolAudit ||= []; s.schoolAudit.push({ id: `install-${Date.now()}`, at: Date.now(), type: 'installation', actorId: owner.id, details: overview.created }); });
     return overview;
@@ -155,7 +171,7 @@ function updatePreview(guild) {
     const def = layout.channels.find(item => item[0] === key);
     return !channels.has(channelMap()[key]) && !channels.find(channel => channel.parentId === categoryMap().communityVoice && channel.name === def[1]);
   });
-  return { roles: newRoles.length, voices: missingVoices.length, panels: 3 };
+  return { roles: newRoles.length, voices: missingVoices.length, panels: 4 };
 }
 
 async function updateIncremental(guild, client) {
@@ -165,7 +181,7 @@ async function updateIncremental(guild, client) {
   if (install.running) throw new Error('Une opération de configuration est déjà en cours.');
   install.running = true;
   try {
-    const made = { roles: 0, voices: 0, panels: 0 };
+    const made = { roles: 0, voices: 0, panels: 0, separatorsAdded: 0, separatorsRemoved: 0 };
     const createdRoleIds = new Set();
     let roleCache = await guild.roles.fetch();
     for (const [key, name, color, options = {}] of [...layout.updateRoleDefs].reverse()) {
@@ -235,6 +251,7 @@ async function updateIncremental(guild, client) {
 
     for (const [panelKey, channelKey, title] of [
       ['tickets', 'tickets', 'Support du QG'],
+      ['familyApplications', 'familyApplications', 'Candidature — Famille SchoolRP'],
       ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
       ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions']
     ]) {
@@ -252,6 +269,10 @@ async function updateIncremental(guild, client) {
       store(data => { data.schoolPanels ||= {}; data.schoolPanels[panelKey] = { channelId: channel.id, messageId: message.id }; });
       made.panels++;
     }
+
+    const sync = await require('./qgSchoolSeparators').syncGuild(guild);
+    made.separatorsAdded = sync.added;
+    made.separatorsRemoved = sync.removed;
 
     store(data => { data.schoolSetup ||= { guildId: guild.id, installedAt: Date.now(), version: 1 }; data.schoolSetup.updatedAt = Date.now(); data.schoolSetup.version = Math.max(2, Number(data.schoolSetup.version || 1)); });
     audit('mise_a_jour_ciblee', client.user.id, made);
@@ -277,7 +298,7 @@ async function handle(i) {
     if (!authorized(i)) { await i.reply({ content: 'Seul le propriétaire configuré du QG peut lancer la mise à jour.', flags: MessageFlags.Ephemeral }); return true; }
     await i.deferUpdate();
     const result = await updateIncremental(i.guild, i.client);
-    await i.editReply({ content: `✅ Mise à jour ciblée terminée : ${result.roles} rôle(s), ${result.voices} vocal(aux) ajouté(s), ${result.panels} panel(s) actualisé(s). Les autres éléments et réglages existants ont été conservés ; seul le salon Rapports Fondation reçoit l’accès d’écriture demandé.`, embeds: [], components: [] }); return true;
+    await i.editReply({ content: `✅ Mise à jour ciblée terminée : ${result.roles} rôle(s), ${result.voices} vocal(aux) ajouté(s), ${result.panels} panel(s) actualisé(s). Séparateurs recalculés : ${result.separatorsAdded} ajout(s), ${result.separatorsRemoved} retrait(s). Les autres éléments et réglages existants ont été conservés ; seul le salon Rapports Fondation reçoit l’accès d’écriture demandé.`, embeds: [], components: [] }); return true;
   }
   if (i.customId === 'qgs:cancel-update') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Mise à jour annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   if (i.customId === 'qgs:cancel-install') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Installation annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
@@ -324,10 +345,16 @@ async function execute(i) {
     const hasPerms = me.permissions.has(P.ManageRoles) && me.permissions.has(P.ManageChannels) && me.permissions.has(P.MoveMembers);
     return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Diagnostic QG SchoolRP', `Serveur cible : ${i.guild.id}\nBot : ${hasPerms ? '✅ Gérer les rôles, Gérer les salons et Déplacer des membres présents' : '❌ Permissions manquantes : Gérer les rôles, Gérer les salons et/ou Déplacer des membres'}\nRôles manquants : ${p.rolesMissing}\nCatégories manquantes : ${p.categoriesMissing}\nSalons manquants : ${p.channelsMissing}\nStockage : ${storage}\nInstallation : ${p.installedAt ? `<t:${Math.floor(p.installedAt / 1000)}:R>` : 'pas encore faite'}`)] });
   }
+  if (action === 'synchroniser-separateurs') {
+    await i.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await require('./qgSchoolSeparators').syncGuild(i.guild);
+    audit('separateurs_synchronises', i.user.id, result);
+    return i.editReply(`✅ Séparateurs recalculés pour **${result.members} membres**. Ajouts : ${result.added} • Retraits : ${result.removed}.`);
+  }
   if (action === 'mise-a-jour') {
     const p = updatePreview(i.guild);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-update').setLabel('Confirmer la mise à jour').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-update').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
-    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **3** (tickets, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports et actualise uniquement les panels indiqués.`)], components: [row] });
+    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **4** (tickets, candidature famille, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports, actualise ces panels et synchronise les séparateurs.`)], components: [row] });
   }
   if (action === 'apercu') {
     const p = preview(i.guild);

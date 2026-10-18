@@ -13,6 +13,17 @@ test('QG SchoolRP declares every family role without Discord Administrator', () 
   assert.ok(layout.roleDefs.every(([, name, color]) => name && Number.isInteger(color)));
 });
 
+test('the six group dividers are least-privilege, unique install roles', () => {
+  assert.equal(layout.dividerRoleDefs.length, 6);
+  assert.equal(layout.installRoleDefs.length, 29);
+  assert.deepEqual(layout.dividerRoleDefs.map(([key, name]) => [key, name]), [
+    ['dividerFoundation', '♛・FONDATION'], ['dividerDirection', '✦・DIRECTION'],
+    ['dividerResponsibles', '✦・RESPONSABLES'], ['dividerManagement', '✦・GESTIONS'],
+    ['dividerFamily', '✦・FAMILLE'], ['dividerCommunity', '✦・COMMUNAUTÉ']
+  ]);
+  assert.equal(new Set(layout.installRoleDefs.map(([key]) => key)).size, layout.installRoleDefs.length);
+});
+
 test('categories and channels follow the requested ordered plan without duplicates', () => {
   assert.equal(layout.categories.length, 15);
   assert.equal(layout.categories[0][1], '01 — ♛・BUREAU');
@@ -49,6 +60,47 @@ test('persistent panels use stable custom IDs and the four requested management 
   assert.deepEqual(management.toJSON().options.map(x => x.value), ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
 });
 
+test('family application panel attaches the supplied animated GIF and preserves the MP questionnaire button', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const payload = setup.panelPayload('familyApplications');
+  const image = payload.embeds[0].data.image.url;
+  assert.equal(image, 'attachment://qg-initial.gif');
+  assert.equal(payload.files[0].name, 'qg-initial.gif');
+  assert.ok(payload.files[0] instanceof require('discord.js').AttachmentBuilder);
+  const bytes = fs.readFileSync(path.join(__dirname, '..', 'assets', 'qg-initial.gif'));
+  assert.equal(bytes.subarray(0, 6).toString(), 'GIF89a');
+  assert.equal(payload.components[0].components[0].data.custom_id, 'qgs:family-apply');
+  assert.equal(payload.components[0].components[0].data.label, 'Déposer ma candidature');
+});
+
+test('QG ticket panel exposes the four requested categories and reattaches its animated banner on edits', () => {
+  const payload = setup.panelPayload('tickets');
+  const menu = payload.components[0].components[0];
+  assert.deepEqual(menu.toJSON().options.map(option => option.value), ['questions', 'report', 'complaint', 'foundation']);
+  assert.equal(payload.embeds[0].data.color, 0xF0F0F0);
+  assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support-banner.gif');
+  assert.equal(payload.files[0].name, 'qg-support-banner.gif');
+  for (const text of ['Assistance générale', 'Signalement', 'Réclamation', 'Contacter la Fondation']) assert.match(payload.embeds[0].data.description, new RegExp(text));
+});
+
+test('Foundation ticket permissions deny every non-Foundation server role while keeping applicant access', () => {
+  const { ticketOverwrites } = require('../systems/qgServer')._test;
+  const roles = { creator: '10', globalManager: '11', administrator: '12', ticketsManagement: '13' };
+  const overwrites = ticketOverwrites('1', '20', '30', 'foundation', roles, {}, ['1','10','11','12','13','14']);
+  assert.ok(overwrites.find(overwrite => overwrite.id === '20').allow.includes(require('discord.js').PermissionFlagsBits.ViewChannel));
+  for (const id of ['12','13','14']) assert.ok(overwrites.find(overwrite => overwrite.id === id).deny.includes(require('discord.js').PermissionFlagsBits.ViewChannel));
+  assert.deepEqual(overwrites.filter(overwrite => ['10','11'].includes(overwrite.id)).map(overwrite => overwrite.id), ['10','11']);
+});
+
+test('separator reconciliation keeps a group separator while any matching role remains', () => {
+  const separators = require('../systems/qgSchoolSeparators');
+  const roleIds = { dividerFamily: '100', test: '200', senior: '201', dividerManagement: '101', ticketsManagement: '202' };
+  const member = roles => ({ roles: { cache: new Map(roles.map(id => [id, { id }])) } });
+  assert.deepEqual(separators.desiredSeparatorIds(member(['200','201']), roleIds), ['100']);
+  assert.deepEqual(separators.desiredSeparatorIds(member(['200','202']), roleIds), ['101','100']);
+  assert.deepEqual(separators.desiredSeparatorIds(member(['200']), roleIds), ['100']);
+});
+
 test('family rank progression is ordered from test to senior', () => {
   assert.deepEqual(family._test.familyKeys, ['test', 'confirmed', 'expert', 'prestigious', 'senior']);
 });
@@ -68,4 +120,11 @@ test('giveaway durations are parsed as fixed time units', () => {
 test('news command parses French categories, text, optional image and opt-in notification', () => {
   assert.deepEqual(news.parse('=actualite réseaux | Tournoi | Inscriptions ouvertes | https://example.org/image.png | ping'), { category: 'reseaux', title: 'Tournoi', description: 'Inscriptions ouvertes', image: 'https://example.org/image.png', notify: true });
   assert.equal(news.parse('=actualite school | Titre'), null);
+});
+
+test('direct-image validation distinguishes a GIF file from a web page containing one', () => {
+  const { directImage } = require('../utils/discordPanelImage');
+  assert.equal(directImage('https://cdn.example.org/animation.gif'), 'https://cdn.example.org/animation.gif');
+  assert.throws(() => directImage('https://example.org/page-with-gif'), /URL directe/);
+  assert.throws(() => directImage('http://cdn.example.org/animation.gif'), /HTTPS/);
 });

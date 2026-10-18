@@ -106,6 +106,7 @@ async function reaction(reaction,user,add){
 }
 async function memberEvent(member,joined){
  if(member.user.bot)return;
+ await require('./qgSchoolSeparators').syncMember(member);
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;
  const notice=layout.embed(joined?'Bienvenue au QG !':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\nArrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>\nLis le règlement dans <#${school.rules||s.channels.rules}> puis utilise le bouton d’acceptation pour accéder aux espaces autorisés.`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
  if(joined)notice.setThumbnail(member.user.displayAvatarURL({size:256}));
@@ -113,6 +114,7 @@ async function memberEvent(member,joined){
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
+ await require('./qgSchoolSeparators').syncMember(newMember);
  const changes=[];
  if(oldMember.nickname!==newMember.nickname)changes.push(`Surnom : **${oldMember.nickname||'aucun'}** → **${newMember.nickname||'aucun'}**`);
  if(oldMember.user.username!==newMember.user.username)changes.push(`Nom Discord : **${oldMember.user.username}** → **${newMember.user.username}**`);
@@ -152,24 +154,33 @@ async function transcript(channel){
   before=batch.last().id;
  }throw Error('Archive trop longue. Le ticket est conservé.');
 }
+const ticketTypes={questions:{label:'Assistance générale',prefix:'aide',description:'Pose ta question ou décris le problème rencontré. Indique les étapes déjà tentées.'},report:{label:'Signalement',prefix:'signalement',description:'Décris l’incident avec son contexte, la date et l’heure approximatives, les pseudos Roblox et RP concernés, et joins une preuve utile.'},complaint:{label:'Réclamation',prefix:'reclamation',description:'Explique la décision que tu souhaites contester, le contexte et les éléments que la Fondation doit examiner.'},foundation:{label:'Contacter la Fondation',prefix:'fondation',description:'Décris ta demande confidentielle. Seul le demandeur et les rôles Fondation (Créateur et Gérant Global) peuvent consulter ce ticket.'},event:{label:'Demande d’animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
+function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={},allRoleIds=[]){
+ const foundationKeys=['creator','globalManager'];
+ const allowedFoundationIds=new Set(foundationKeys.map(k=>schoolRoles[k]).filter(Boolean));
+ const deniedRoleIds=type==='foundation'?allRoleIds.filter(id=>id!==guildId&&!allowedFoundationIds.has(id)):[];
+ const staffKeys={event:['animationLead','animationManagement'],partnership:['networksLead','networksManagement']}[type]||['ticketsLead','ticketsManagement'];
+ const assignedKeys=type==='foundation'?foundationKeys:(schoolRoles.creator?['creator','globalManager','administrator',...staffKeys]:layout.staffKeys);
+ const overwrites=[{id:guildId,deny:[P.ViewChannel]},...deniedRoleIds.map(id=>({id,deny:[P.ViewChannel]})),{id:userId,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.AttachFiles]},{id:botId,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.AttachFiles,P.ManageChannels]},...assignedKeys.map(k=>({id:schoolRoles[k]||fallbackRoles[k],allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory]})).filter(x=>x.id)];
+ if(overwrites.length>100)throw Error('Trop de rôles pour verrouiller ce ticket Fondation avec les limites de permissions Discord.');
+ return overwrites;
+}
 async function ticket(i,type='questions'){
  const s=saved(),member=await i.guild.members.fetch(i.user.id),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.verified&&member.roles.cache.has(schoolRoles.verified);
- const ticketTypes={questions:{label:'Questions / Aide',prefix:'aide',description:'Explique ta question ou le problème rencontré. Indique ce que tu as déjà essayé.'},report:{label:'Signalement d’un joueur',prefix:'signalement',description:'Indique le contexte, la date et l’heure approximatives, le pseudo Roblox et le pseudo RP du joueur. Joins une capture ou un enregistrement : une preuve est nécessaire.'},event:{label:'Demande d’animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
  if(!ticketTypes[type])throw Error('Type de ticket invalide. Choisis un sujet dans le panneau.');
  if(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
  if(ch){store(x=>{x.tickets||={};x.tickets[ch.id]||={ownerId:i.user.id,type,createdAt:Date.now()};});return i.editReply(`Tu as déjà un ticket de ce type : <#${ch.id}>`);}
  const parent=s.schoolCategories?.support||s.categories.help;
- const typeStaff={event:['animationLead','animationManagement'],partnership:['networksLead','networksManagement']}[type]||['ticketsLead','ticketsManagement'];
- const ticketStaffKeys=schoolRoles.creator?['creator','globalManager','administrator',...typeStaff]:layout.staffKeys;
+ const overwrites=ticketOverwrites(i.guildId,i.user.id,i.client.user.id,type,schoolRoles,s.roles,[...i.guild.roles.cache.keys()]);
  ch=await i.guild.channels.create({name:`${ticketTypes[type].prefix}-${i.user.username}`.replace(/[^a-z0-9-]/gi,'-').slice(0,90),type:T.GuildText,parent,topic:buildQGTicketTopic(i.user.id,type),
- permissionOverwrites:[{id:i.guildId,deny:[P.ViewChannel]},{id:i.user.id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.AttachFiles]},{id:i.client.user.id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.AttachFiles,P.ManageChannels]},...ticketStaffKeys.map(k=>({id:schoolRoles[k]||s.roles[k],allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory]})).filter(x=>x.id)]});
+ permissionOverwrites:overwrites});
  store(x=>{x.tickets||={};x.tickets[ch.id]={ownerId:i.user.id,type,createdAt:Date.now()};});
  await ch.send({content:`<@${i.user.id}>`,embeds:[layout.embed(`Ticket privé · ${ticketTypes[type].label}`,`${ticketTypes[type].description}\n\nLe ticket est accessible à toi et à l’équipe concernée. Il sera archivé à sa fermeture.`)],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:claim').setLabel('Prendre en charge').setStyle(ButtonStyle.Primary),new ButtonBuilder().setCustomId('qg:rename').setLabel('Renommer').setStyle(ButtonStyle.Secondary),new ButtonBuilder().setCustomId('qg:close').setLabel('Fermer').setStyle(ButtonStyle.Danger))],allowedMentions:{users:[i.user.id],parse:[]}});
  await log(i.guild,'Ticket ouvert',`Type : ${ticketTypes[type].label}\nAuteur : <@${i.user.id}> • <#${ch.id}>`);return i.editReply(`✅ Ton ticket ${ticketTypes[type].label.toLowerCase()} : <#${ch.id}>`);
 }
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
-function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
+function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='delc')return require('../commandes/delc').execute(i);
@@ -179,7 +190,9 @@ async function interaction(i){
  if(!i.customId?.startsWith('qg:'))return i.isRepliable?.()?i.reply({content:'Cette commande appartient au serveur de la Soul Society. Utilise =aide pour le QG.',flags:MessageFlags.Ephemeral}):undefined;
  const action=i.customId.split(':')[1];
  if(action==='rename'){
-  const member=await i.guild.members.fetch(i.user.id);if(!staff(member)||!saved().tickets?.[i.channelId])throw Error('Action réservée à l’équipe dans un ticket.');
+  const member=await i.guild.members.fetch(i.user.id),ticketData=saved().tickets?.[i.channelId];
+  const foundationAllowed=ticketData?.type==='foundation'&&(member.id===i.guild.ownerId||member.id===config.ownerId||['creator','globalManager'].some(k=>saved().schoolRoles?.[k]&&member.roles.cache.has(saved().schoolRoles[k])));
+  if(!ticketData||!(ticketData.type==='foundation'?foundationAllowed:staff(member)))throw Error('Action réservée à l’équipe autorisée dans ce ticket.');
   const {ModalBuilder,TextInputBuilder,TextInputStyle}=require('discord.js');
   return i.showModal(new ModalBuilder().setCustomId('qg:rename-save').setTitle('Renommer le ticket').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('Nouveau nom').setStyle(TextInputStyle.Short).setMaxLength(80).setRequired(true))));
  }
@@ -189,7 +202,9 @@ async function interaction(i){
   if(action==='ticket-type')return ticket(i,i.values?.[0]);
   const t=saved().tickets?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
   if(!t||parseQGTicketTopic(i.channel.topic)?.ownerId!==t.ownerId)throw Error('Ticket introuvable.');
-  if(!staff(member)&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Action réservée à l’équipe.');
+  const foundationStaff=t.type==='foundation'&&(member.id===i.guild.ownerId||member.id===config.ownerId||['creator','globalManager'].some(k=>schoolRoles[k]&&member.roles.cache.has(schoolRoles[k])));
+  if(t.type==='foundation'&&!foundationStaff&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Ce ticket est réservé à la Fondation et à son demandeur.');
+  if(t.type!=='foundation'&&!staff(member)&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Action réservée à l’équipe.');
   if(action==='claim'){
    if(t.claimedBy&&t.claimedBy!==i.user.id)throw Error('Ce ticket est déjà pris en charge.');
    store(s=>{s.tickets[i.channelId].claimedBy=i.user.id;});await i.channel.send({embeds:[layout.embed('Ticket pris en charge',`<@${i.user.id}> s’occupe de ta demande.`)],allowedMentions});return i.editReply('✅ Ticket pris en charge.');
@@ -237,7 +252,7 @@ async function message(m){
 }
 function register(client){
  if(client.qgSystem)return;client.qgSystem=true;
- client.once(Events.ClientReady,()=>{const guild=client.guilds.cache.get(config.guildId);if(guild)require('./qgSchoolManagementBoard').refresh(guild).catch(e=>console.error('Initialisation suivi gestions :',e.code||e.message));});
+ client.once(Events.ClientReady,()=>{const guild=client.guilds.cache.get(config.guildId);if(guild){require('./qgSchoolManagementBoard').refresh(guild).catch(e=>console.error('Initialisation suivi gestions :',e.code||e.message));require('./qgSchoolSeparators').syncGuild(guild).catch(e=>console.error('Synchronisation initiale des séparateurs :',e.code||e.message));}});
  const report=(e)=>console.error('QG :',e.code||e.message);
  const guarded=(fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(report);
  // Route only QG events here: old Soul Society handlers must never moderate QG members.
@@ -280,4 +295,4 @@ function register(client){
  }));
  // GuildCreate does not mutate the QG; the owner runs the preview/install command explicitly.
 }
-module.exports=register;module.exports.setup=(client,guild)=>require('./qgSchoolSetup').install(guild,client);module.exports._test={reaction,transcript,staff,stats,message,voice,interaction};
+module.exports=register;module.exports.setup=(client,guild)=>require('./qgSchoolSetup').install(guild,client);module.exports._test={reaction,transcript,staff,stats,message,voice,interaction,ticketTypes,ticketOverwrites,parseQGTicketTopic};

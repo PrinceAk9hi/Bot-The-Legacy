@@ -56,7 +56,7 @@ function panelPayload(key) {
       { label: 'Questions / Aide', value: 'questions', description: 'Une question ou besoin d’assistance', emoji: '✉️' },
       { label: 'Signaler un joueur', value: 'report', description: 'Signaler un comportement et joindre des preuves', emoji: '⚒️' },
       { label: 'Réclamation', value: 'complaint', description: 'Contester une décision de manière confidentielle', emoji: '⚖️' },
-      { label: 'Contacter la Fondation', value: 'foundation', description: 'Demande confidentielle à la Fondation', emoji: '♛' }
+      { label: 'Contacter la Fondation', value: 'foundation', description: 'Demande confidentielle à la Fondation', emoji: '👑' }
     ))], allowedMentions: { parse: [] } };
   }
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };

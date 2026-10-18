@@ -88,7 +88,7 @@ let lastCountRefresh=0;
 async function stats(guild,force=false){
  checkGuild(guild);const s=saved();if(!s.roles?.member||!s.channels?.memberCount||!force&&Date.now()-lastCountRefresh<600000)return;
  let after,count=0;
- for(;;){const members=await guild.members.list({limit:1000,...(after?{after}:{})});count+=members.filter(m=>!m.user.bot&&m.roles.cache.has(s.roles.member)).size;if(members.size<1000)break;after=members.lastKey();}
+ for(;;){const members=await guild.members.list({limit:1000,...(after?{after}:{})});count+=members.filter(m=>!m.user.bot&&m.roles.cache.has(s.schoolRoles?.community||s.roles.member)).size;if(members.size<1000)break;after=members.lastKey();}
  const channel=await guild.channels.fetch(s.channels.memberCount);const name=`📊・Membres : ${count} • ${config.statSuffix}`;
  if(channel&&channel.name!==name)await channel.setName(name);lastCountRefresh=Date.now();
 }
@@ -106,9 +106,9 @@ async function reaction(reaction,user,add){
 }
 async function memberEvent(member,joined){
  if(member.user.bot)return;
- await require('./qgSchoolSeparators').syncMember(member);
+ if(joined)await require('./qgSchoolSeparators').syncMember(member);
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;
- const notice=layout.embed(joined?'Bienvenue au QG !':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\nArrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>\nLis le règlement dans <#${school.rules||s.channels.rules}> puis utilise le bouton d’acceptation pour accéder aux espaces autorisés.`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
+ const notice=layout.embed(joined?'✦ Bienvenue au QG':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\n\nUn nouvel espace de rencontres, de discussions et de roleplay t’attend. Prends tes repères et trouve ta place parmi nous.\n\n**01 · Vérifie ton profil**\nRends-toi dans <#${school.rules||s.channels.rules}> et clique sur **Commencer ma vérification**.\n\n**02 · Découvre nos règles**\nAprès confirmation de ton profil Roblox, le règlement s’affichera dans un message visible uniquement par toi.\n\n**03 · Rejoins la communauté**\nConfirme l’avoir lu et accepté pour recevoir le rôle **Membre Communautaire**.\n\nHeure d’arrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setColor(0xEEEEEE).setFooter({text:'QG • Fais connaissance, participe et trouve ta place'}).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
  if(joined)notice.setThumbnail(member.user.displayAvatarURL({size:256}));
  await ch.send({content:joined?`<@${member.id}>`:undefined,embeds:[notice],allowedMentions:{parse:[],users:joined?[member.id]:[]}});
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
@@ -166,7 +166,7 @@ function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={}
  return overwrites;
 }
 async function ticket(i,type='questions'){
- const s=saved(),member=await i.guild.members.fetch(i.user.id),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.verified&&member.roles.cache.has(schoolRoles.verified);
+ const s=saved(),member=await i.guild.members.fetch(i.user.id),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.community&&member.roles.cache.has(schoolRoles.community);
  if(!ticketTypes[type])throw Error('Type de ticket invalide. Choisis un sujet dans le panneau.');
  if(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
@@ -202,6 +202,7 @@ async function interaction(i){
   if(action==='ticket-type')return ticket(i,i.values?.[0]);
   const t=saved().tickets?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
   if(!t||parseQGTicketTopic(i.channel.topic)?.ownerId!==t.ownerId)throw Error('Ticket introuvable.');
+  const schoolRoles=saved().schoolRoles||{};
   const foundationStaff=t.type==='foundation'&&(member.id===i.guild.ownerId||member.id===config.ownerId||['creator','globalManager'].some(k=>schoolRoles[k]&&member.roles.cache.has(schoolRoles[k])));
   if(t.type==='foundation'&&!foundationStaff&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Ce ticket est réservé à la Fondation et à son demandeur.');
   if(t.type!=='foundation'&&!staff(member)&&!(action==='close'&&t.ownerId===i.user.id))throw Error('Action réservée à l’équipe.');
@@ -221,7 +222,7 @@ async function voice(oldState,newState){
  if(await require('./qgSchoolVoice').voice(oldState,newState,newState.client))return;
  const s=saved(),member=newState.member;if(!member||member.user.bot)return;
  if(newState.channelId===s.channels?.createVoice&&oldState.channelId!==newState.channelId)await serial('voice:'+member.id,async()=>{
-  const fresh=await newState.guild.members.fetch(member.id);if(fresh.voice.channelId!==s.channels.createVoice||!fresh.roles.cache.has(s.roles.member)&&!staff(fresh))return;
+  const fresh=await newState.guild.members.fetch(member.id);if(fresh.voice.channelId!==s.channels.createVoice||!fresh.roles.cache.has(s.schoolRoles?.community||s.roles.member)&&!staff(fresh))return;
   const existing=Object.entries(saved().temporaryVoices||{}).find(([,r])=>r.ownerId===member.id);
   let ch=existing?await newState.guild.channels.fetch(existing[0]).catch(e=>{if(e.code===10003)return null;throw e;}):null;
   if(!ch){ch=await newState.guild.channels.create({name:`🔊・Vocal de ${member.displayName}`.slice(0,95),type:T.GuildVoice,parent:s.categories.voice,permissionOverwrites:layout.overwrites(newState.guild.id,newState.client.user.id,s.roles,'voice')});store(x=>{x.temporaryVoices||={};x.temporaryVoices[ch.id]={ownerId:member.id};});}
@@ -243,7 +244,7 @@ async function message(m){
  }
  if(['=aide','=help'].includes(m.content.trim()))return m.reply({content:`Lis <#${saved().channels?.commands}> pour les fonctions du QG.`,allowedMentions});
  if(m.content.startsWith('=suggestion ')){
-  const s=saved(),familyAccess=s.schoolRoles?.verified&&m.member.roles.cache.has(s.schoolRoles.verified);
+  const s=saved(),familyAccess=s.schoolRoles?.community&&m.member.roles.cache.has(s.schoolRoles.community);
   if(!m.member.roles.cache.has(s.roles?.member)&&!familyAccess&&!staff(m.member))return;
   const text=m.content.slice(12).trim().slice(0,3500);if(!text)return;
   const ch=await m.guild.channels.fetch(s.schoolChannels?.communitySuggestions||s.channels.suggestions),sent=await ch.send({embeds:[layout.embed('Suggestion',text).setAuthor({name:m.author.username})],allowedMentions});await sent.react('👍');await sent.react('👎');return m.reply({content:`✅ Suggestion publiée : ${sent.url}`,allowedMentions});

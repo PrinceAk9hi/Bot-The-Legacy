@@ -62,7 +62,7 @@ function panelPayload(key) {
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };
   if (key === 'familyGuide') return { embeds: [embed('📚 Guide de la famille', `**Fonctionnement**\nLa famille s’organise autour de la Direction, de quatre gestions indépendantes et des grades familiaux.\n\n**Direction**\nCréateur → Gérant Global → Administrateur. Fondation : Créateur et Gérant Global.\n\n**Gestions**\nTickets, Recrutement, Animation et Réseaux. Chaque équipe est dirigée par son responsable et conserve la confidentialité de ses dossiers.\n\n**Grades**\nMembre Test → Membre Confirmé → Membre Expert → Membre Prestigieux → Membre Senior. Les promotions sont examinées par la Direction et ne sont jamais automatiques.\n\n**Candidatures**\nLe recrutement famille débute dans <#${channelMap().familyApplications}> et se déroule en MP. Une candidature à une gestion se dépose dans <#${channelMap().joinManagement}>.\n\n**Absences**\nDéclare et gère tes dates dans <#${channelMap().absences}>. Le motif reste facultatif.\n\n**Comportement**\nRespecte le règlement, la confidentialité des dossiers et les consignes des salons. Ouvre un ticket pour demander de l’aide ou contester une décision.`)], allowedMentions: { parse: [] } };
   if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Administrateur\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Tickets • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Senior • Membre Prestigieux • Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
-  if (key === 'rules') return { embeds: [embed('📜 Règlement de la famille', ruleText)], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:verify').setLabel("J'ai lu et j'accepte le règlement").setEmoji('✅').setStyle(ButtonStyle.Success))], allowedMentions: { parse: [] } };
+  if (key === 'rules') return require('./qgEntryVerification').panel();
   if (key === 'notifications') return { embeds: [embed('🔔 Rôles de notifications', 'Choisis les annonces que tu souhaites recevoir. Tu peux modifier ton choix à tout moment.')], components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId('qgs:notifs').setPlaceholder('Choisir les notifications').setMinValues(0).setMaxValues(4).addOptions(
     { label: 'Annonces', value: 'notifAnnouncements', emoji: '🔔' }, { label: 'Roleplay', value: 'notifRp', emoji: '🎭' }, { label: 'Réseaux', value: 'notifNetworks', emoji: '🌐' }, { label: 'Serveurs', value: 'notifServers', emoji: '📡' }
   ))] , allowedMentions: { parse: [] } };
@@ -171,7 +171,7 @@ function updatePreview(guild) {
     const def = layout.channels.find(item => item[0] === key);
     return !channels.has(channelMap()[key]) && !channels.find(channel => channel.parentId === categoryMap().communityVoice && channel.name === def[1]);
   });
-  return { roles: newRoles.length, voices: missingVoices.length, panels: 4 };
+  return { roles: newRoles.length, voices: missingVoices.length, panels: 5 };
 }
 
 async function updateIncremental(guild, client) {
@@ -250,6 +250,7 @@ async function updateIncremental(guild, client) {
     }
 
     for (const [panelKey, channelKey, title] of [
+      ['rules', 'rules', 'Bienvenue au QG'],
       ['tickets', 'tickets', 'Support du QG'],
       ['familyApplications', 'familyApplications', 'Candidature — Famille SchoolRP'],
       ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
@@ -262,7 +263,7 @@ async function updateIncremental(guild, client) {
       let message = record?.channelId === channel.id ? await channel.messages.fetch(record.messageId).catch(() => null) : null;
       if (!message) {
         const recent = await channel.messages.fetch({ limit: 50 });
-        message = recent.find(item => item.author.id === client.user.id && item.embeds.some(e => e.title?.includes(title) || (panelKey === 'tickets' && e.title === '🎫 Support de la famille')));
+        message = recent.find(item => item.author.id === client.user.id && item.embeds.some(e => e.title?.includes(title) || (panelKey === 'tickets' && e.title === '🎫 Support de la famille') || (panelKey === 'rules' && e.title === '📜 Règlement de la famille')));
       }
       if (message?.author.id !== client.user.id) message = null;
       message = message ? await message.edit(payload) : await channel.send(payload);
@@ -283,6 +284,7 @@ async function updateIncremental(guild, client) {
 async function handle(i) {
   if (!i.customId?.startsWith('qgs:')) return false;
   if (i.guildId !== config.guildId) { await i.reply({ content: 'Action réservée au serveur QG.', flags: MessageFlags.Ephemeral }); return true; }
+  if (await require('./qgEntryVerification').handle(i)) return true;
   if (await require('./qgSchoolGiveaways').handle(i)) return true;
   if (await require('./qgSchoolFamily').handle(i)) return true;
   if (await require('./qgSchoolApplications').handle(i)) return true;
@@ -303,20 +305,10 @@ async function handle(i) {
   if (i.customId === 'qgs:cancel-update') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Mise à jour annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   if (i.customId === 'qgs:cancel-install') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Installation annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   const s = state(), r = s.schoolRoles || {};
-  if (i.customId === 'qgs:verify') {
-    await i.deferReply({ flags: MessageFlags.Ephemeral });
-    const member = await i.guild.members.fetch(i.user.id);
-    const legacyMemberRole = state().roles?.member;
-    if (!r.verified || !r.community || !legacyMemberRole) throw new Error('Rôles de vérification incomplets. Relance /setup-serveur reparer.');
-    if ([r.verified, r.community, legacyMemberRole].every(id => member.roles.cache.has(id))) return i.editReply('Tu as déjà accepté le règlement.');
-    await member.roles.add([r.verified, r.community, legacyMemberRole], 'Acceptation du règlement QG SchoolRP');
-    audit('reglement_accepte', i.user.id, { version: 1 });
-    return i.editReply('✅ Règlement accepté. Les espaces autorisés sont maintenant accessibles.');
-  }
   if (i.customId === 'qgs:notifs') {
     await i.deferReply({ flags: MessageFlags.Ephemeral });
     const member = await i.guild.members.fetch(i.user.id);
-    if (!member.roles.cache.has(r.verified)) return i.editReply('Accepte d’abord le règlement.');
+    if (!member.roles.cache.has(r.community)) return i.editReply('Accepte d’abord le règlement.');
     const keys = ['notifAnnouncements', 'notifRp', 'notifNetworks', 'notifServers'];
     const wanted = new Set(i.values);
     for (const key of keys) if (r[key]) wanted.has(key) ? await member.roles.add(r[key]) : await member.roles.remove(r[key]);
@@ -354,7 +346,7 @@ async function execute(i) {
   if (action === 'mise-a-jour') {
     const p = updatePreview(i.guild);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-update').setLabel('Confirmer la mise à jour').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-update').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
-    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **4** (tickets, candidature famille, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports, actualise ces panels et synchronise les séparateurs.`)], components: [row] });
+    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **5** (vérification, tickets, candidature famille, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports, actualise ces panels et synchronise les séparateurs.`)], components: [row] });
   }
   if (action === 'apercu') {
     const p = preview(i.guild);

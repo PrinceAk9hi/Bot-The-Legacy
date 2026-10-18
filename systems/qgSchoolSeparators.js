@@ -4,8 +4,8 @@ const config = require('../config/qg');
 const layout = require('../config/qgSchoolLayout');
 
 const groups = {
-  dividerFoundation: ['creator', 'globalManager'],
-  dividerDirection: ['administrator'],
+  dividerFoundation: ['creator'],
+  dividerDirection: ['globalManager', 'administrator'],
   dividerResponsibles: layout.leads,
   dividerManagement: layout.managers,
   dividerFamily: layout.family,

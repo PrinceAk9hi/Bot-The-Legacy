@@ -28,13 +28,13 @@ async function grant(member, profile) {
     update('entryVerification', data => { data[member.id] = confirmed; });
     return confirmed;
 }
-function modal(profile = {}) {
+function modal(profile = {}, options = {}) {
     const input = (id, title, value, max, paragraph = false) => {
         const f = new TextInputBuilder().setCustomId(id).setLabel(title).setStyle(paragraph ? TextInputStyle.Paragraph : TextInputStyle.Short).setRequired(true).setMaxLength(max);
         if (value) f.setValue(String(value).slice(0, max));
         return row(f);
     };
-    return new ModalBuilder().setCustomId('entry_submit').setTitle('Vérification • La Soul Society').addComponents(
+    return new ModalBuilder().setCustomId(options.customId || 'entry_submit').setTitle(options.title || 'Vérification • La Soul Society').addComponents(
         input('roblox', 'Pseudo Roblox, sans @', profile.robloxName, 20),
         input('discord', 'Nom Discord, sans @', profile.discordName, 32),
         input('reason', 'Pourquoi souhaites-tu rejoindre le serveur ?', profile.reason, 1000, true));
@@ -171,4 +171,4 @@ function register(client) {
     if (client.isReady()) start(); else client.once(Events.ClientReady, start);
 }
 module.exports = register;
-Object.assign(module.exports, { existing, grant, panel, findRoblox, ROLES });
+Object.assign(module.exports, { existing, grant, panel, findRoblox, modal, ROLES });

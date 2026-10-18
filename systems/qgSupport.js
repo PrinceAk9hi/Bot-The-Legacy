@@ -9,7 +9,7 @@ async function handle(i,state){
  if(i.guildId!==config.guildId)return false;
  const member=await i.guild.members.fetch(i.user.id);
  if(action==='apply'){
-  if(!member.roles.cache.has(state.roles.member))throw Error('Accepte le règlement avant de candidater.');
+  if(!member.roles.cache.has(state.schoolRoles?.community||state.roles.member))throw Error('Accepte le règlement avant de candidater.');
   if(read('qgSupportApplications')[i.user.id]?.status==='pending')throw Error('Ta candidature est déjà en cours.');
   const modal=new ModalBuilder().setCustomId('qg:apply-send').setTitle('Candidature au support QG');
   fields.forEach(([id,label])=>modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Paragraph).setRequired(true).setMinLength(20).setMaxLength(850))));
@@ -20,7 +20,7 @@ async function handle(i,state){
  if(pending.has(target))throw Error('Une action est déjà en cours.');pending.add(target);
  try{
   if(action==='apply-send'){
-   if(!member.roles.cache.has(state.roles.member))throw Error('Rôle Membre requis.');
+   if(!member.roles.cache.has(state.schoolRoles?.community||state.roles.member))throw Error('Rôle Membre requis.');
    if(['pending','sending'].includes(read('qgSupportApplications')[target]?.status))throw Error('Une candidature est déjà enregistrée.');
    const answers=Object.fromEntries(fields.map(([id])=>[id,i.fields.getTextInputValue(id).trim()]));
    if(Object.values(answers).some(x=>x.length<20||x.length>850))throw Error('Chaque réponse doit contenir entre 20 et 850 caractères.');

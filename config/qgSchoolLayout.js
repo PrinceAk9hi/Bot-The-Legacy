@@ -30,7 +30,7 @@ const roleDefs = [
 // the existing roles' names, permissions, or overwrites.
 const updateRoleDefs = [
     ['dividerFoundation', '♛・FONDATION', 0x292733, { separator: true, groupDivider: true, anchor: 'creator' }],
-    ['dividerDirection', '✦・DIRECTION', 0x292733, { separator: true, groupDivider: true, anchor: 'administrator' }],
+    ['dividerDirection', '✦・DIRECTION', 0x292733, { separator: true, groupDivider: true, anchor: 'globalManager' }],
     ['dividerResponsibles', '✦・RESPONSABLES', 0x292733, { separator: true, groupDivider: true, anchor: 'ticketsLead' }],
     ['dividerManagement', '✦・GESTIONS', 0x292733, { separator: true, groupDivider: true, anchor: 'ticketsManagement' }],
     ['dividerFamily', '✦・FAMILLE', 0x292733, { separator: true, groupDivider: true, anchor: 'senior' }],

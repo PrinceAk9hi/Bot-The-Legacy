@@ -15,7 +15,7 @@ async function voice(oldState,newState,client){
  for(const [entry,kind,scope] of kinds){
   if(newState.channelId!==channels[entry]||oldState.channelId===newState.channelId)continue;
   if(kind==='family'&&!isFamily(member))return true;
-  if(kind==='community'&&!member.roles.cache.has(roles.verified)&&!member.roles.cache.has(s.roles?.member))return true;
+  if(kind==='community'&&!member.roles.cache.has(roles.community)&&!member.roles.cache.has(s.roles?.member))return true;
   const current=Object.entries(s.schoolTemporaryVoices||{}).find(([,rec])=>rec.ownerId===member.id&&rec.kind===kind);
   let room=current?await newState.guild.channels.fetch(current[0]).catch(()=>null):null;
   if(!room){

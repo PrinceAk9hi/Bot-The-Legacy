@@ -16,7 +16,7 @@ test('QG: profile confirmation grants no role; private rules acceptance grants o
   const token = f.state.schoolEntryVerification.user.token;
   await handle(f.i(`qgs:entry-confirm:${token}`));
   assert.deepEqual(f.added, []);
-  assert.match(f.state.lastPayload.embeds[0].data.description, /Article 20/);
+  assert.match(f.state.lastPayload.embeds[0].data.description, /Confirmes-tu avoir bien lu et accepté/);
   handle = createHandler(f.deps);
   await handle(f.i(`qgs:entry-accept:${token}`));
   assert.deepEqual(f.added, ['community']);

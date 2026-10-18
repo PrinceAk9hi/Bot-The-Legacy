@@ -7,7 +7,7 @@ module.exports = {
     .addSubcommand(s => s.setName('apercu').setDescription('Voir les rôles, catégories et salons manquants avant installation'))
     .addSubcommand(s => s.setName('installer').setDescription('Préparer l’installation idempotente avec confirmation'))
     .addSubcommand(s => s.setName('reparer').setDescription('Préparer la réparation des éléments manquants avec confirmation'))
-    .addSubcommand(s => s.setName('mise-a-jour').setDescription('Ajouter les nouveaux rôles, vocaux et panneaux sans réappliquer les réglages existants'))
+    .addSubcommand(s => s.setName('mise-a-jour').setDescription('Actualiser les panneaux et compléter les vocaux sans modifier les rôles'))
     .addSubcommand(s => s.setName('synchroniser-separateurs').setDescription('Recalculer les rôles séparateurs des membres existants'))
     .addSubcommand(s => s.setName('diagnostic').setDescription('Vérifier les permissions et l’état de la structure')),
   async execute(interaction) { return school.execute(interaction); }

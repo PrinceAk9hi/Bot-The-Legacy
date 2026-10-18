@@ -47,13 +47,13 @@ async function syncGuild(guild) {
   if (guild.id !== config.guildId) throw new Error('Synchronisation réservée au serveur QG configuré.');
   const roles = schoolRoles();
   const missing = Object.keys(groups).filter(key => !roles[key] || !guild.roles.cache.has(roles[key]));
-  if (missing.length) throw new Error(`Rôles séparateurs manquants : ${missing.join(', ')}. Lance d’abord /setup-serveur mise-a-jour.`);
+  if (missing.length) throw new Error(`Rôles séparateurs manquants : ${missing.join(', ')}. La mise à jour ne recrée plus les rôles ; vérifie la configuration des séparateurs.`);
   const me = await guild.members.fetchMe();
   if (!me.permissions.has(P.ManageRoles)) throw new Error('Le bot doit avoir Gérer les rôles.');
   for (const key of Object.keys(groups)) {
     const role = await guild.roles.fetch(roles[key]);
     if (!role || !role.editable) throw new Error(`Le rôle ${key} n’est pas modifiable. Place le rôle du bot au-dessus des séparateurs.`);
-    if (role.permissions.bitfield !== 0n) await role.setPermissions([], 'Les séparateurs ne doivent posséder aucune permission.');
+    if (role.permissions.bitfield !== 0n) throw new Error(`Le séparateur ${role.name} possède des permissions : corrige-les avant de le synchroniser.`);
   }
   const members = await guild.members.fetch();
   let added = 0, removed = 0, processed = 0;

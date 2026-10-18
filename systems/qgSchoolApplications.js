@@ -19,11 +19,21 @@ const trim = text => String(text ?? '').slice(0, 1000);
 const embed = (title, description) => new EmbedBuilder().setColor(0x211a35).setTitle(title).setDescription(description).setFooter({ text: 'Soul Society • Candidatures confidentielles' });
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
 function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && member.roles.cache.has(r[k])); }
+function verifiedForRecruitment(member, data = state()) {
+  const verification = data.schoolEntryVerification?.[member.id];
+  const roleId = data.schoolRoles?.community;
+  return Boolean(member.guild.id === config.guildId && !member.pending && roleId && member.roles.cache.has(roleId) && verification?.stage === 'accepted' && verification.acceptedAt && verification.confirmedAt && verification.robloxId);
+}
+function verificationRequired() {
+  const channelId = state().schoolChannels?.rules;
+  return `Termine d’abord ta vérification${channelId ? ` dans <#${channelId}>` : ' dans le salon règlement'} : confirme ton profil Roblox, puis la lecture du règlement. Tu pourras ensuite déposer ta candidature famille.`;
+}
 
 async function beginFamilyRecruitment(i) {
   await i.deferReply({ flags: MessageFlags.Ephemeral });
   if (i.guildId !== config.guildId) return i.editReply('Action disponible uniquement sur le QG.');
   const server = await i.client.guilds.fetch(config.guildId), member = await server.members.fetch(i.user.id);
+  if (!verifiedForRecruitment(member)) return i.editReply(verificationRequired());
   if (inFamily(member)) return i.editReply('Tu fais déjà partie de la famille. Utilise le panel des gestions pour rejoindre une équipe.');
   const active = state().schoolFamilyRecruitment || {};
   if (active[i.user.id] && ['in_progress', 'submitted', 'in_review'].includes(active[i.user.id].status)) return i.editReply('Tu as déjà une candidature active. Vérifie tes MP ou le suivi fourni par l’équipe.');
@@ -38,6 +48,8 @@ async function beginFamilyRecruitment(i) {
 async function submitFamily(memberId, app, client) {
   const { roles, channels, categories } = ids();
   const guild = await client.guilds.fetch(config.guildId);
+  const candidate = await guild.members.fetch(memberId);
+  if (!verifiedForRecruitment(candidate)) throw new Error(verificationRequired());
   const targetRole = roles.recruitmentManagement, lead = roles.recruitmentLead;
   if (!targetRole || !channels.candidateReception) throw new Error('L’installation des salons de candidature est incomplète.');
   const user = await client.users.fetch(memberId);
@@ -112,6 +124,7 @@ async function decision(i) {
   if (!status) return i.reply({ content: 'Action invalide.', flags: MessageFlags.Ephemeral });
   if (isFamily && action === 'accept') {
     const candidate = await i.guild.members.fetch(memberId);
+    if (!verifiedForRecruitment(candidate)) return i.followUp({ content: 'Ce candidat doit terminer sa vérification et accepter le règlement avant de pouvoir rejoindre la famille.', flags: MessageFlags.Ephemeral });
     if (inFamily(candidate)) return i.followUp({ content: 'Cette personne possède déjà un grade familial ; vérifie son dossier avant de valider.', flags: MessageFlags.Ephemeral });
     if (!roles.test) throw new Error('Le rôle Membre Test n’est pas configuré.');
     await candidate.roles.add(roles.test, 'Candidature famille acceptée');
@@ -142,6 +155,9 @@ async function directMessage(message) {
   if (!app || app.status !== 'in_progress') return false;
   const text = message.content.trim();
   if (text.toLowerCase() === 'annuler') { save(s => { s.schoolFamilyRecruitment[message.author.id].status = 'cancelled'; s.schoolFamilyRecruitment[message.author.id].updatedAt = Date.now(); }); await message.reply('Candidature annulée. Tu pourras recommencer depuis le panel.'); return true; }
+  const guild = await message.client.guilds.fetch(config.guildId);
+  const member = await guild.members.fetch(message.author.id).catch(() => null);
+  if (!member || !verifiedForRecruitment(member)) { await message.reply(verificationRequired()); return true; }
   if (!text && !message.attachments.size) return message.reply('Envoie une réponse écrite pour continuer.');
   app.answers[app.step] = (text || '[Pièce jointe fournie]').slice(0, 1500);
   app.step++;
@@ -155,4 +171,4 @@ async function directMessage(message) {
   return true;
 }
 
-module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, _test: { inFamily, managerFor } };
+module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, _test: { inFamily, managerFor, verifiedForRecruitment } };

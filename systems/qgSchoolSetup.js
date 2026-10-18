@@ -20,15 +20,15 @@ function audit(type, actorId, details = {}) {
   store(s => { s.schoolAudit ||= []; s.schoolAudit.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, at: Date.now(), type, actorId, details }); if (s.schoolAudit.length > 1000) s.schoolAudit.splice(0, s.schoolAudit.length - 1000); });
 }
 
-const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur implique le respect des règles ci-dessous, de Discord et de Roblox. Version 1 • 17 octobre 2026.\n\n`+
+const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur implique le respect des règles ci-dessous, de Discord et de Roblox. Version 2 • 18 octobre 2026.\n\n`+
 `**Article 1 — Respect.** Chacun s’adresse aux autres avec dignité. Les insultes répétées, humiliations, provocations malveillantes et comportements hostiles sont interdits.\n\n`+
 `**Article 2 — Harcèlement et discriminations.** Menaces, harcèlement, discriminations, propos haineux et incitation à la violence sont interdits, y compris en messages privés lorsqu’ils sont liés à la communauté.\n\n`+
 `**Article 3 — Comportement général.** Évite les règlements de comptes publics. Les désaccords se traitent calmement dans le bon espace ou avec l’équipe.\n\n`+
-`**Article 4 — Spam et publicité.** Spam, flood, mentions abusives, arnaques, invitations et publicités sans autorisation sont interdits, en public comme en démarchage privé.\n\n`+
+`**Article 4 — Spam et publicité.** Spam, flood, arnaques, invitations Discord et mentions everyone/here sont interdits aux membres. Anti-spam : timeout 15 minutes, puis ban 24 heures, puis définitif. Les antécédents sont conservés ; Direction et Fondation sont exemptées de l’automatisation.\n\n`+
 `**Article 5 — Contenus interdits.** Aucun contenu sexuel explicite, choquant, illégal, violent graphique ou lien malveillant. Respecte les règles des plateformes.\n\n`+
 `**Article 6 — Confidentialité.** Ne diffuse pas de données personnelles, conversations privées, identifiants ou contenus privés sans accord. L’usurpation d’identité est interdite.\n\n`+
 `**Article 7 — Salons textuels.** Utilise chaque salon selon son thème et respecte ses consignes. Les contenus hors sujet peuvent être déplacés ou retirés par l’équipe.\n\n`+
-`**Article 8 — Salons vocaux.** Nuisances sonores volontaires, harcèlement vocal, soundboard abusive et perturbations répétées sont interdits. Respecte les personnes présentes.\n\n`+
+`**Article 8 — Salons vocaux.** Nuisances sonores et harcèlement interdits. Chat vocal, soundboard, sons externes, voix prioritaire et définition de statut désactivés pour les membres. Respecte les personnes présentes.\n\n`+
 `**Article 9 — SchoolRP et roleplay.** Respecte le règlement officiel de SchoolRP et des expériences Roblox concernées. Le présent règlement Discord ne remplace pas celui du jeu. Exploitation de bugs et pratiques interdites par la plateforme proscrites.\n\n`+
 `**Article 10 — Hiérarchie.** Respecte les périmètres de responsabilité et les décisions prises par les personnes habilitées. Aucun responsable ne doit abuser de sa position.\n\n`+
 `**Article 11 — Recrutement.** Les candidatures doivent être sincères. Fausses informations, manipulation et candidatures répétées pour contourner une décision sont interdites.\n\n`+
@@ -43,6 +43,7 @@ const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur impl
 `**Article 20 — Acceptation.** Pour accéder aux espaces communautaires, clique sur le bouton ci-dessous après avoir lu le règlement.`;
 
 function panelPayload(key) {
+  if (['communityCommands','familyCommands'].includes(key)) return require('./qgSchoolVoice').panel();
   if (['absences', 'rankUp'].includes(key)) return require('./qgSchoolFamily').panel(key);
   if (key === 'levelsInfo') return require('./qgLevels').panel();
   if (['giveawaysInfo', 'communityGiveaways', 'familyGiveaways'].includes(key)) return { embeds: [embed('🎁 Giveaways', 'Les giveaways sont créés par la Gestion Animation.\n\nFormat : `=giveaway creer 1h 1 Récompense`\nDurée : de 1 minute à 30 jours • 1 à 20 gagnants.\n\nLes membres vérifiés participent avec le bouton. Résultats et participation sont conservés par le bot.')], allowedMentions: { parse: [] } };
@@ -145,7 +146,7 @@ async function install(guild, client) {
       if (key === 'foundationReports') await ch.permissionOverwrites.set(overwrites, 'Configuration du salon Rapports Fondation');
       chs[key] = ch.id; store(s => { s.schoolChannels ||= {}; s.schoolChannels[key] = ch.id; });
     }
-    for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityGiveaways: 'communityGiveaways', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
+    for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityCommands: 'communityCommands', familyCommands: 'familyCommands', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
       let payload = panelPayload(key); if (key === 'managementFollowup') payload = await require('./qgSchoolManagementBoard').buildPanel(guild);
       if (!payload) continue;
       const channel = await guild.channels.fetch(chs[channelKey]);
@@ -206,7 +207,9 @@ async function updateIncremental(guild, client) {
       ['tickets', 'tickets', 'Support du QG'],
       ['familyApplications', 'familyApplications', 'Candidature — Famille SchoolRP'],
       ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
-      ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions']
+      ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions'],
+      ['communityCommands', 'communityCommands', 'Mon vocal temporaire'],
+      ['familyCommands', 'familyCommands', 'Mon vocal temporaire']
     ]) {
       let channel = channelMap()[channelKey] && await guild.channels.fetch(channelMap()[channelKey]).catch(() => null);
       if (!channel?.isTextBased?.()) continue;
@@ -225,6 +228,7 @@ async function updateIncremental(guild, client) {
 
 
     store(data => { data.schoolSetup ||= { guildId: guild.id, installedAt: Date.now(), version: 1 }; data.schoolSetup.updatedAt = Date.now(); data.schoolSetup.version = Math.max(2, Number(data.schoolSetup.version || 1)); });
+    made.policy = await require('./qgCommunityPolicy').apply(guild, client);
     audit('mise_a_jour_ciblee', client.user.id, made);
     return made;
   } finally { install.running = false; }
@@ -249,7 +253,7 @@ async function handle(i) {
     if (!authorized(i)) { await i.reply({ content: 'Seul le propriétaire configuré du QG peut lancer la mise à jour.', flags: MessageFlags.Ephemeral }); return true; }
     await i.deferUpdate();
     const result = await updateIncremental(i.guild, i.client);
-    await i.editReply({ content: `✅ Mise à jour ciblée terminée : ${result.roles} rôle(s), ${result.voices} vocal(aux) ajouté(s), ${result.panels} panel(s) actualisé(s). Les rôles existants sont conservés sans ajout ni modification. Les autres éléments et réglages existants ont été conservés ; seul le salon Rapports Fondation reçoit l’accès d’écriture demandé.`, embeds: [], components: [] }); return true;
+    await i.editReply({ content: `✅ Mise à jour terminée : ${result.voices} vocal(aux) ajouté(s), ${result.panels} panel(s) actualisé(s). Permissions communautaires appliquées, anti-spam activé, Gestion Support renommée et giveaway communautaire supprimé. Aucun séparateur ajouté ou modifié.`, embeds: [], components: [] }); return true;
   }
   if (i.customId === 'qgs:cancel-update') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Mise à jour annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
   if (i.customId === 'qgs:cancel-install') { if (!authorized(i)) { await i.reply({ content: 'Action réservée au propriétaire du QG.', flags: MessageFlags.Ephemeral }); return true; } await i.update({ content: 'Installation annulée. Aucun changement effectué.', embeds: [], components: [] }); return true; }
@@ -295,7 +299,7 @@ async function execute(i) {
   if (action === 'mise-a-jour') {
     const p = updatePreview(i.guild);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:confirm-update').setLabel('Confirmer la mise à jour').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('qgs:cancel-update').setLabel('Annuler').setStyle(ButtonStyle.Secondary));
-    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour ciblée du QG', `Éléments manquants à ajouter : **${p.roles} rôle(s)** et **${p.voices} vocal(aux)**.\nPanels concernés : **5** (vérification, tickets, candidature famille, rapports Fondation, suivi des gestions).\n\nCette opération ne réinstalle pas la structure, ne renomme pas tes salons et ne réapplique pas les permissions générales. Elle ajoute le droit d’écriture demandé pour la Fondation dans son salon de rapports, actualise ces panels. Aucun rôle ne sera ajouté, modifié ou repositionné.`)], components: [row] });
+    return i.reply({ flags: MessageFlags.Ephemeral, embeds: [embed('Mise à jour communautaire du QG', `Vocaux manquants à ajouter : **${p.voices}**.\n\n• Accès initial limité au règlement.\n• Accueil et Informations en lecture seule pour les membres.\n• Protections messages et vocaux dans tout le QG ; Direction / Fondation exemptées des filtres.\n• Spam : timeout 15 min, ban 24 h, puis définitif ; antécédents conservés.\n• Médias et suggestions avec fils de discussion.\n• Panel vocal dans les salons commandes.\n• Gestion Tickets renommée Gestion Support.\n• **Suppression du seul salon giveaways communautaire, avec ses messages et annulation de ses tirages actifs.**\n\nLes séparateurs ne sont ni ajoutés, ni renommés, ni repositionnés. Le bot doit pouvoir gérer les rôles, salons, messages, fils et sanctions.`)], components: [row] });
   }
   if (action === 'apercu') {
     const p = preview(i.guild);

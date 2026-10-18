@@ -1,30 +1,33 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, PermissionFlagsBits: P, MessageFlags, ChannelType, EmbedBuilder } = require('discord.js');
+const { PermissionFlagsBits: P, MessageFlags, ChannelType } = require('discord.js');
 const { read, update } = require('../utils/recruitmentData');
 const config = require('../config/qg');
 const layout = require('../config/qgSchoolLayout');
 const save = fn => update('qgServer', fn);
 const state = () => read('qgServer');
 const familyKeys = ['senior','prestigious','expert','confirmed','test','ticketsLead','recruitmentLead','animationLead','networksLead','ticketsManagement','recruitmentManagement','animationManagement','networksManagement'];
-const accessRoles = (r,kind) => kind==='family' ? ['creator','globalManager','administrator',...familyKeys].map(k=>r[k]).filter(Boolean) : ['verified','community','creator','globalManager','administrator',...familyKeys].map(k=>r[k]).filter(Boolean);
+const accessRoles = (r,kind) => kind==='family' ? ['creator','globalManager','administrator',...familyKeys].map(k=>r[k]).filter(Boolean) : ['community','creator','globalManager','administrator',...familyKeys].map(k=>r[k]).filter(Boolean);
 const isFamily = member => { const r=state().schoolRoles||{};return ['creator','globalManager','administrator',...familyKeys].some(k=>r[k]&&member.roles.cache.has(r[k])); };
-const allowedMentions={parse:[]};
 async function voice(oldState,newState,client){
  const s=state(),channels=s.schoolChannels||{},roles=s.schoolRoles||{},member=newState.member;
  if(newState.guild.id!==config.guildId||!member||member.user.bot)return false;
  const kinds=[['createCommunityVoice','community','communityVoice'],['createFamilyVoice','family','familyVoice']];
  for(const [entry,kind,scope] of kinds){
   if(newState.channelId!==channels[entry]||oldState.channelId===newState.channelId)continue;
+  const live=await newState.guild.members.fetch(member.id);if(live.voice.channelId!==channels[entry])return true;
   if(kind==='family'&&!isFamily(member))return true;
-  if(kind==='community'&&!member.roles.cache.has(roles.community)&&!member.roles.cache.has(s.roles?.member))return true;
+  if(kind==='community'&&!member.roles.cache.has(roles.community)&&!require('./qgCommunityPolicy').exempt(member,s))return true;
   const current=Object.entries(s.schoolTemporaryVoices||{}).find(([,rec])=>rec.ownerId===member.id&&rec.kind===kind);
-  let room=current?await newState.guild.channels.fetch(current[0]).catch(()=>null):null;
+  let room=current?await newState.guild.channels.fetch(current[0]).catch(e=>{if(e.code===10003)return null;throw e;}):null;
   if(!room){
+   if(Date.now()-(s.schoolVoiceCreation?.[member.id]||0)<30000){await live.voice.disconnect('Patiente 30 secondes entre deux créations de vocal.');return true;}
    const parentId=(s.schoolCategories||{})[kind==='family'?'familyVoice':'communityVoice'];if(!parentId)throw new Error('Installe d’abord la structure SchoolRP.');
    const overwrites=layout.overwrites(newState.guild.id,client.user.id,roles,scope,{channelKey:'temporaryVoice'});
-   overwrites.push({id:member.id,allow:[P.ViewChannel,P.Connect,P.Speak,P.UseVAD,P.ManageChannels,P.MoveMembers]});
+   const denied=require('./qgCommunityPolicy').voiceDenied.map(k=>P[k]);
+   for(const item of overwrites)if(item.id!==client.user.id){item.allow=(item.allow||[]).filter(bit=>!denied.includes(bit));item.deny=[...(item.deny||[]),...denied];}
+   overwrites.push({id:member.id,allow:[P.ViewChannel,P.Connect,P.Speak,P.UseVAD],deny:denied});
    room=await newState.guild.channels.create({name:`🔊・Vocal de ${member.displayName}`.slice(0,95),type:ChannelType.GuildVoice,parent:parentId,permissionOverwrites:overwrites,reason:'Création d’un vocal temporaire SchoolRP'});
-   save(x=>{x.schoolTemporaryVoices||={};x.schoolTemporaryVoices[room.id]={ownerId:member.id,kind,createdAt:Date.now(),locked:false};});
-   if(room.isTextBased())await room.send({content:`<@${member.id}>`,embeds:[new EmbedBuilder().setColor(0x211a35).setTitle('Contrôles du vocal').setDescription('Gère ton salon avec les boutons ci-dessous.').setFooter({text:'Soul Society • Vocaux temporaires'})],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:temp:rename').setLabel('Renommer').setStyle(ButtonStyle.Secondary),new ButtonBuilder().setCustomId('qgs:temp:limit').setLabel('Places').setStyle(ButtonStyle.Secondary),new ButtonBuilder().setCustomId('qgs:temp:lock').setLabel('Verrouiller / ouvrir').setStyle(ButtonStyle.Primary),new ButtonBuilder().setCustomId('qgs:temp:allow').setLabel('Autoriser un membre').setStyle(ButtonStyle.Success))],allowedMentions});
+   save(x=>{x.schoolTemporaryVoices||={};x.schoolTemporaryVoices[room.id]={ownerId:member.id,kind,createdAt:Date.now(),locked:false};x.schoolVoiceCreation||={};x.schoolVoiceCreation[member.id]=Date.now();});
+   // Controls are available in the commands channel, outside the disabled voice chat.
   }
   const fresh=await newState.guild.members.fetch(member.id);await fresh.voice.setChannel(room,'Création d’un vocal temporaire');return true;
  }
@@ -32,39 +35,16 @@ async function voice(oldState,newState,client){
  if(rec){const room=oldState.guild.channels.cache.get(oldState.channelId);if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}}
  return false;
 }
-function authorized(member,rec){const r=state().schoolRoles||{};return member.id===rec.ownerId||member.id===member.guild.ownerId||member.id===config.ownerId||['creator','globalManager','administrator'].some(k=>r[k]&&member.roles.cache.has(r[k]));}
 async function handle(i){
+ if(await require('./qgVoiceControls').handle(i))return true;
  if(!i.customId?.startsWith('qgs:temp:'))return false;
- const rec=state().schoolTemporaryVoices?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
- if(!rec||!authorized(member,rec))return i.reply({content:'Action réservée au propriétaire du vocal et à la Direction.',flags:MessageFlags.Ephemeral});
- const action=i.customId.split(':')[2];
- if(action==='rename'||action==='limit'||action==='allow'){
-  const modal=new ModalBuilder().setCustomId(`qgs:temp-modal:${action}`).setTitle(action==='rename'?'Renommer le vocal':action==='limit'?'Limiter les places':'Autoriser un membre');
-  modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('value').setLabel(action==='rename'?'Nouveau nom':action==='limit'?'Limite (0 = illimitée)':'ID Discord du membre').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(action==='rename'?90:32)));
-  return i.showModal(modal);
- }
- if(action==='lock'){
-  await i.deferReply({flags:MessageFlags.Ephemeral});const next=!rec.locked,room=i.channel;
-  for(const id of accessRoles(state().schoolRoles||{},rec.kind))if(id!==rec.ownerId)await room.permissionOverwrites.edit(id,{Connect:!next});
-  rec.locked=next;save(s=>{s.schoolTemporaryVoices[i.channelId]=rec;});return i.editReply(next?'🔒 Vocal verrouillé.':'🔓 Vocal ouvert.');
- }
- return false;
+ await i.reply({content:'Utilise le nouveau panneau « Mon vocal temporaire » dans le salon commandes.',flags:MessageFlags.Ephemeral});return true;
+
 }
 async function modal(i){
  if(!i.customId?.startsWith('qgs:temp-modal:'))return false;
- const action=i.customId.split(':')[2],rec=state().schoolTemporaryVoices?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
- if(!rec||!authorized(member,rec))return i.reply({content:'Vocal introuvable ou action non autorisée.',flags:MessageFlags.Ephemeral});
- await i.deferReply({flags:MessageFlags.Ephemeral});const value=i.fields.getTextInputValue('value').trim();
- if(action==='rename'){
-  const name=value.replace(/[\r\n]/g,' ').trim().slice(0,95);if(!name)return i.editReply('Nom invalide.');await i.channel.setName(name);return i.editReply('✅ Vocal renommé.');
- }
- if(action==='limit'){
-  const limit=Number(value);if(!Number.isInteger(limit)||limit<0||limit>99)return i.editReply('Indique une limite de 0 à 99.');await i.channel.setUserLimit(limit);return i.editReply(`✅ Limite définie : ${limit||'illimitée'}.`);
- }
- if(action==='allow'){
-  if(!/^\d{17,20}$/.test(value))return i.editReply('ID Discord invalide.');const target=await i.guild.members.fetch(value).catch(()=>null);if(!target)return i.editReply('Membre introuvable.');await i.channel.permissionOverwrites.edit(value,{ViewChannel:true,Connect:true});return i.editReply(`✅ ${target.user.username} peut rejoindre ce vocal.`);
- }
- return false;
+ await i.reply({content:'Ce formulaire a expiré. Utilise le panneau vocal du salon commandes.',flags:MessageFlags.Ephemeral});return true;
+
 }
-function clean(guild){const s=state();for(const [id] of Object.entries(s.schoolTemporaryVoices||{})){const room=guild.channels.cache.get(id);if(!room||room.members.size===0){if(room)room.delete('Nettoyage des vocaux temporaires après redémarrage').catch(()=>{});save(x=>{delete x.schoolTemporaryVoices[id];});}}}
-module.exports={voice,handle,modal,clean,_test:{accessRoles,isFamily}};
+async function clean(guild){const s=state();for(const [id] of Object.entries(s.schoolTemporaryVoices||{})){const room=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});if(!room||room.members.size===0){if(room)await room.delete('Nettoyage des vocaux temporaires après redémarrage');save(x=>{delete x.schoolTemporaryVoices[id];});}}}
+module.exports={voice,handle,modal,clean,panel:require('./qgVoiceControls').panel,_test:{accessRoles,isFamily}};

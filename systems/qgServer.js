@@ -220,7 +220,7 @@ async function interaction(i){
  });
 }
 async function voice(oldState,newState){
- if(await require('./qgSchoolVoice').voice(oldState,newState,newState.client))return;
+ if(await serial('school-voice:'+newState.id,()=>require('./qgSchoolVoice').voice(oldState,newState,newState.client)))return;
  const s=saved(),member=newState.member;if(!member||member.user.bot)return;
  if(newState.channelId===s.channels?.createVoice&&oldState.channelId!==newState.channelId)await serial('voice:'+member.id,async()=>{
   const fresh=await newState.guild.members.fetch(member.id);if(fresh.voice.channelId!==s.channels.createVoice||!fresh.roles.cache.has(s.schoolRoles?.community||s.roles.member)&&!staff(fresh))return;
@@ -235,6 +235,7 @@ async function voice(oldState,newState){
 }
 async function message(m){
  if(m.author.bot)return;
+ if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
@@ -248,7 +249,7 @@ async function message(m){
   const s=saved(),familyAccess=s.schoolRoles?.community&&m.member.roles.cache.has(s.schoolRoles.community);
   if(!m.member.roles.cache.has(s.roles?.member)&&!familyAccess&&!staff(m.member))return;
   const text=m.content.slice(12).trim().slice(0,3500);if(!text)return;
-  const ch=await m.guild.channels.fetch(s.schoolChannels?.communitySuggestions||s.channels.suggestions),sent=await ch.send({embeds:[layout.embed('Suggestion',text).setAuthor({name:m.author.username})],allowedMentions});await sent.react('👍');await sent.react('👎');return m.reply({content:`✅ Suggestion publiée : ${sent.url}`,allowedMentions});
+  const ch=await m.guild.channels.fetch(s.schoolChannels?.communitySuggestions||s.channels.suggestions),sent=await ch.send({embeds:[layout.embed('Suggestion',text).setAuthor({name:m.author.username})],allowedMentions});await sent.react('👍');await sent.react('👎');if(s.schoolCommunityPolicy?.enabled){const thread=await sent.startThread({name:'Discussion de la suggestion',autoArchiveDuration:1440});const role=s.schoolRoles?.ticketsManagement;if(role)await thread.send({content:`<@&${role}> Nouvelle suggestion : ${sent.url}`,allowedMentions:{parse:[],roles:[role]}});}return m.reply({content:`✅ Suggestion publiée : ${sent.url}`,allowedMentions});
  }
  if([saved().channels?.suggestions,saved().schoolChannels?.communitySuggestions].includes(m.channelId)&&!m.content.startsWith('=')){await m.react('👍');await m.react('👎');}
 }
@@ -264,11 +265,11 @@ function register(client){
   if(guildId!==config.guildId)return emit.call(this,event,...args);
   if(event===Events.MessageCreate){guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred?first.editReply(p):first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
-  if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,()=>reaction(first,args[1],event===Events.MessageReactionAdd)));return true;}
+  if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
   if(event===Events.VoiceStateUpdate){require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
-  if(event===Events.MessageUpdate){guarded(messageChange,args[0],args[1],'edit');return true;}
+  if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(messageChange,first,null,'delete');return true;}
   if(event===Events.MessageBulkDelete){guarded(messageChange,first.first(),first,'bulk');return true;}
   if(event===Events.PresenceUpdate)return true;
@@ -277,13 +278,15 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  await require('./qgCommunityPolicy').expireBans(guild);
+  setInterval(()=>guarded(require('./qgCommunityPolicy').expireBans,guild),60000).unref();
   // Structure changes are explicit and confirmed with /setup-serveur; startup only restores existing state.
   require('./qgSchoolFamily').expireAbsences();
   setInterval(()=>guarded(require('./qgSchoolFamily').expireAbsences),3600000).unref();
   await require('./qgSchoolGiveaways').resume(client,guild);
   setInterval(()=>guarded(require('./qgLevels').voice,guild,saved()),120000).unref();
   const s=saved();
-  require('./qgSchoolVoice').clean(guild);
+  await require('./qgSchoolVoice').clean(guild);
   if(!s.schoolSetup){
    const rulesChannel=await guild.channels.fetch(s.channels.rules),rulesMessage=await rulesChannel.messages.fetch(s.panels.rules);
    const accept=rulesMessage.reactions.cache.find(r=>r.emoji.name==='✅');

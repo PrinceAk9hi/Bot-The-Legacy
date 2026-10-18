@@ -8,7 +8,7 @@ const roleDefs = [
     ['recruitmentLead', '📋・Responsable Recrutement', 0x81C784],
     ['animationLead', '🎉・Responsable Animation', 0xFFB74D],
     ['networksLead', '🌐・Responsable Réseaux', 0x4DD0E1],
-    ['ticketsManagement', '🎫・Gestion Tickets', 0x42A5F5],
+    ['ticketsManagement', '🎫・Gestion Support', 0x42A5F5],
     ['recruitmentManagement', '📋・Gestion Recrutement', 0x66BB6A],
     ['animationManagement', '🎉・Gestion Animation', 0xFFA726],
     ['networksManagement', '🌐・Gestion Réseaux', 0x26C6DA],
@@ -93,7 +93,6 @@ const channels = [
     ['communityMedia', '📸・médias', 'community', T.GuildText],
     ['communityCommands', '🤖・commandes', 'community', T.GuildText],
     ['communitySuggestions', '💡・suggestions', 'community', T.GuildText],
-    ['communityGiveaways', '🎁・giveaways-communauté', 'community', T.GuildText],
     ['communityVoice1', '🔊・Vocal 01', 'communityVoice', T.GuildVoice],
     ['communityVoice2', '🔊・Vocal 02', 'communityVoice', T.GuildVoice],
     ['communityVoice3', '🔊・Vocal 03', 'communityVoice', T.GuildVoice],
@@ -144,7 +143,7 @@ const leads = ['ticketsLead', 'recruitmentLead', 'animationLead', 'networksLead'
 const managers = ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement'];
 const family = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
 const allFamily = [...family, ...leads, ...managers];
-const communityRead = ['verified', 'community', ...directions, ...leads, ...managers, ...family];
+const communityRead = ['community', ...directions, ...leads, ...managers, ...family];
 const infoPublish = {
     networkNews: ['networksLead', 'networksManagement'],
     recruitmentNews: ['recruitmentLead', 'recruitmentManagement'],
@@ -176,7 +175,7 @@ function overwrites(guildId, botId, r, scope, { channelKey } = {}) {
     const bot = overwrite(botId, botPermissions);
     let grants = [];
     if (scope === 'welcome') {
-        grants = [overwrite(guildId, read)];
+        grants = [...(channelKey === 'rules' ? [overwrite(guildId, read)] : []), ...specialRoles(communityRead, r)];
     } else if (scope === 'foundation') {
         const canWrite = ['foundationRequests', 'foundationChat', 'foundationAnnouncements', 'foundationReports'].includes(channelKey);
         grants = specialRoles(['creator', 'globalManager'], r, canWrite ? textWrite : read);
@@ -241,9 +240,29 @@ function overwrites(guildId, botId, r, scope, { channelKey } = {}) {
         networkVoice: [...directions, 'networksLead', 'networksManagement']
     };
     if (voiceScopes[channelKey]) grants = specialRoles(voiceScopes[channelKey], r, voiceWrite);
-    const publicWelcome = scope === 'welcome';
+    const publicWelcome = scope === 'welcome' && channelKey === 'rules';
     const denied = publicWelcome ? null : overwrite(guildId, [], [P.ViewChannel]);
-    return [...(denied ? [denied] : []), bot, ...grants];
+    const combined = new Map();
+    const isVoice = ['communityVoice','familyVoice'].includes(scope) || channels.some(x=>x[0]===channelKey&&x[3]===T.GuildVoice);
+    const readOnly = ['welcome','information'].includes(scope);
+    const voiceDeny = [P.SendMessages,P.ReadMessageHistory,P.SendMessagesInThreads,P.CreatePublicThreads,P.CreatePrivateThreads,P.AddReactions,P.UseSoundboard,P.UseExternalSounds,P.PrioritySpeaker,P.SetVoiceChannelStatus];
+    const readDeny = [P.SendMessages,P.SendMessagesInThreads,P.CreatePublicThreads,P.CreatePrivateThreads,P.AddReactions,P.UseApplicationCommands];
+    for(const item of [...(denied?[denied]:[]),bot,...grants]) {
+        if(r.verified && item.id===r.verified)continue;
+        const entry=combined.get(item.id)||{id:item.id,allow:[],deny:[]};
+        entry.allow=[...new Set([...entry.allow,...(item.allow||[])])];entry.deny=[...new Set([...entry.deny,...(item.deny||[])])];combined.set(item.id,entry);
+    }
+    if(!combined.has(guildId))combined.set(guildId,{id:guildId,allow:[],deny:[P.ViewChannel]});
+    for(const entry of combined.values()) {
+        if(entry.id===botId)continue;
+        const privileged=directions.some(k=>r[k]===entry.id);
+        const restrictions=[...(!privileged?[P.MentionEveryone,...(readOnly?readDeny:[])]:[]),...(isVoice?voiceDeny:[])];
+        entry.allow=entry.allow.filter(bit=>!restrictions.includes(bit));entry.deny=[...new Set([...entry.deny,...restrictions])];
+        if(readOnly&&privileged)entry.allow=[...new Set([...entry.allow,...textWrite,P.UseApplicationCommands])];
+        if(['communityCommands','familyCommands'].includes(channelKey)&&entry.id!==guildId){entry.allow=[...new Set([...entry.allow,...textWrite,P.UseApplicationCommands])];}
+        entry.deny=entry.deny.filter(bit=>!entry.allow.includes(bit));
+    }
+    return [...combined.values()];
 }
 
 const readOnlyChannels = new Set([

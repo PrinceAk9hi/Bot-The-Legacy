@@ -3,7 +3,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags
 const data = require('../utils/recruitmentData');
 const soul = require('./entryVerification');
 const config = require('../config/qg');
-const VERSION = 1;
+const VERSION = 2;
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
 const card = (title, text) => new EmbedBuilder().setColor(0xEEEEEE).setTitle(title).setDescription(text).setFooter({ text: 'QG • Accueil de la communauté' });

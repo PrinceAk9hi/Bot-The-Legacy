@@ -184,6 +184,9 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(i.isChatInputCommand?.()&&i.commandName==='cd')return require('./qgRecruitmentControl').execute(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='user')return require('./qgUserPanel').execute(i);
+ if(i.customId?.startsWith('qgu:'))return require('./qgUserPanel').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='ia')return require('./qgAiControlPanel').execute(i);
  if(i.customId?.startsWith('qgai:'))return require('./qgAiControlPanel').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
@@ -265,6 +268,7 @@ function register(client){
  client.emit=function(event,...args){
   const first=args[0],guildId=first?.guildId||first?.guild?.id||first?.message?.guildId||args[1]?.guildId||args[1]?.guild?.id;
   if(guildId!==config.guildId)return emit.call(this,event,...args);
+  if(event===Events.ChannelCreate)guarded(require('./qgRpStatus').reconcile,first.guild);
   if(event===Events.MessageCreate){guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred?first.editReply(p):first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
@@ -280,6 +284,10 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  await guarded(require('./qgRecruitmentControl').refresh,guild);
+  await guarded(require('./qgRpStatus').ensureRole,guild,'prison');
+  await guarded(require('./qgRpStatus').reconcile,guild);
+  setInterval(()=>guarded(require('./qgRpStatus').reconcile,guild),60000).unref();
   const pruneAI=()=>require('../utils/qgAiStore').transact(()=>{});
   await guarded(pruneAI);setInterval(()=>guarded(pruneAI),3600000).unref();
   setInterval(()=>guarded(require('./qgPanels').refreshManagement,guild),60000).unref();

@@ -6,6 +6,7 @@ const stop = new Set('qui que quoi comment pourquoi est sont les des une dans po
 const words = text => [...new Set(normalize(text).match(/[a-z0-9]+/g) || [])].filter(w => w.length > 2 && !stop.has(w));
 function intent(text, previous = 'general') {
   const q = normalize(text);
+  if (/(?:\+?18|\+?13)\s*(?:ans)?|\bage\b|majeur|mineur|\btag\b|activite|c.est quoi.*qg/.test(q)) return 'rules';
   if (/(bot|developpeur|maintenance)/.test(q) && /(qui|gere|occupe|responsable|prenom|cree|createur)/.test(q)) return 'bot-owner';
   if (/(combien|effectif|nombre)/.test(q) && /(membre|sommes|famille|serveur)/.test(q)) return 'members';
   if (/(dirige|direction|fondateur|gerant)/.test(q)) return 'direction';

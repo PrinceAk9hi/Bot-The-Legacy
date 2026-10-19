@@ -186,6 +186,8 @@ function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|r
 async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='delc')return require('../commandes/delc').execute(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='sync')return require('../commandes/sync').execute(i);
+ if(i.customId?.startsWith('sync:'))return require('../commandes/sync').handleComponent(i);
  if(i.customId?.startsWith('delc:'))return require('../commandes/delc').handleComponent(i);
  if(i.customId?.startsWith('qgs:'))return require('./qgSchoolSetup').handle(i);
  if(await require('./qgSupport').handle(i,saved()))return;

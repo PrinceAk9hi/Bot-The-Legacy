@@ -184,6 +184,8 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(i.isChatInputCommand?.()&&i.commandName==='ia')return require('./qgAiControlPanel').execute(i);
+ if(i.customId?.startsWith('qgai:'))return require('./qgAiControlPanel').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='delc')return require('../commandes/delc').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='sync')return require('../commandes/sync').execute(i);
@@ -278,6 +280,8 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  const pruneAI=()=>require('../utils/qgAiStore').transact(()=>{});
+  await guarded(pruneAI);setInterval(()=>guarded(pruneAI),3600000).unref();
   setInterval(()=>guarded(require('./qgPanels').refreshManagement,guild),60000).unref();
   await require('./qgSchoolFamily').syncAbsenceRoles(guild).catch(e=>console.error('Rôle Absent :',e.code||e.name));
   setInterval(()=>guarded(require('./qgSchoolFamily').syncAbsenceRoles,guild),60000).unref();

@@ -583,7 +583,7 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/qg").guildId
-                            ? commands.filter(c => ["setup-serveur", "delc", "sync"].includes(c.name))
+                            ? commands.filter(c => ["setup-serveur", "delc", "sync", "ia"].includes(c.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c)
                             : guild.id === require("./config/soulSociety").IDENTITY.guildId
                                 ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(c.name)) : []
                     }
@@ -618,7 +618,7 @@ client.reloadCommands =
         const qgGuildId = require("./config/qg").guildId;
         if (!client.guilds.cache.has(qgGuildId)) {
             try {
-                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["setup-serveur", "delc", "sync"].includes(command.name)) });
+                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["setup-serveur", "delc", "sync", "ia"].includes(command.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c) });
                 guildCount++;
             } catch (error) {
                 console.error(`❌ Enregistrement de /setup-serveur sur le QG (${qgGuildId}) :`, error.code || error.message);

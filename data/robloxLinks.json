@@ -63,10 +63,10 @@
         "linkedAt": 1787321675602,
         "updatedAt": 1787321675602,
         "lastSync": {
-            "status": "success",
-            "rank": null,
-            "timestamp": 1787323325278,
-            "error": null
+            "status": "failed",
+            "rank": 6,
+            "timestamp": 1789676314719,
+            "error": "ROBLOX_GROUP_ID doit être 925445053 pour Soul Society."
         }
     },
     "672477367066820671": {

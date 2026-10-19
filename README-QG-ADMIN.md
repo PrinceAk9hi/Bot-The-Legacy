@@ -79,3 +79,6 @@ Le démarrage existant enregistre `/cd` et le schéma `/user membre` pour le QG.
 Les tests automatisés utilisent des doublures Discord et des fichiers temporaires. Ils ne prouvent pas le rendu réel, les permissions installées ni la persistance Railway. Aucun appel IA payant ni action sur le serveur réel n'a été exécuté pour ces tests.
 
 Résultat exécuté : npm test — 115 tests réussis, 0 échec. Vérifications de syntaxe réussies pour index.js, qgServer.js, qgUserPanel.js et qgRpStatus.js.
+
+## Nouvelle présentation /user
+Trois onglets Profil, Vocal, Gestion, composants Discord V2 et signature Fondateur - QG. Modules ajoutés : systems/qgUserView.js et systems/qgUserVoice.js. Bring déplace la cible vers le vocal du gestionnaire ; Back revient au vocal précédent enregistré pour cette session ; déplacement et déconnexion demandent confirmation. Les permissions MoveMembers, ViewChannel et Connect sont contrôlées. Les boutons anciens de verrouillage de pseudo, convocation, validation du test et sanctions générales ne sont pas ajoutés : ces fonctions ne sont pas implémentées dans ce panneau QG. La suite de tests et le rendu Discord n'ont pas été réexécutés pour cette refonte visuelle ; le résultat 115 tests ci-dessus concerne la version précédente.

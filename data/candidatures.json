@@ -1,1 +1,46 @@
-{}
+{
+    "547192186547077130": {
+        "userId": "547192186547077130",
+        "ticketId": "1550250061030621406",
+        "date": 1789678866712,
+        "formVersion": 3,
+        "answers": {
+            "question1": "Test",
+            "question2": "Test",
+            "question3": "Test",
+            "question4": "Test",
+            "question5": "Test",
+            "question6": "Test",
+            "question7": "Test",
+            "question8": "Test",
+            "question9": "Test",
+            "question10": "Test",
+            "question11": "Test",
+            "question12": "Test"
+        },
+        "durations": {
+            "question1": 4932,
+            "question2": 2868,
+            "question3": 1731,
+            "question4": 1740,
+            "question5": 1317,
+            "question6": 1366,
+            "question7": 1327,
+            "question8": 1248,
+            "question9": 4275,
+            "question10": 1197,
+            "question11": 2274,
+            "question12": 4421
+        },
+        "totalDuration": 35016,
+        "ddsStatus": "pending",
+        "ddsResult": null,
+        "decision": "accepted",
+        "closeAt": null,
+        "ticketClosedAt": null,
+        "ticketClosedBy": null,
+        "reviewChannelId": "1550247801437290607",
+        "reviewMessageId": "1550250262478725213",
+        "ddsRequesterId": "547192186547077130"
+    }
+}

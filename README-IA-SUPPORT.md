@@ -26,6 +26,10 @@ Exécuter `npm test` avec Node.js 22.12 ou supérieur. Les tests couvrent les qu
 
 Une réponse connue ou déductible est donnée sans mention. Si une donnée indispensable manque, l’IA pose une question courte. Une lacune de la base est un indicateur interne pour enrichir la base, jamais un déclencheur seul. La mention staff intervient pour une décision individuelle/administrative, une action réservée à l’équipe, un incident de sécurité ou conflit grave, un problème technique qui persiste après les vérifications, ou une indisponibilité du fournisseur IA. La première escalade met le ticket en attente de l’équipe et coupe les notifications identiques suivantes.
 
+## Actions vocales avec `=ia`
+
+`=ia` est réservé au propriétaire du bot. Les demandes vocales simples et identifiées sont exécutées immédiatement, sans bouton de confirmation et sans quota propre à la commande. L’utilisateur et le bot doivent toutefois avoir les permissions Discord requises (`Mute Members` ou `Move Members`). Les actions disponibles sont le mute vocal, la déconnexion et le déplacement d’un membre indiqué par ID/mention, ainsi que le mute/débranchement de tous les membres présents dans un vocal identifié. Le déplacement d’un groupe demande un vocal source et une destination précise. Exemples : `=ia mute 123456789012345678`, `=ia deco tout le monde de la voc`, `=ia mouve 123456789012345678 dans <#ID_VOCAL>`. Une cible ou un salon ambigu ne déclenche aucune action ; l’IA demande une précision. Les bots et comptes protégés ne sont pas affectés par une action de groupe. Les quotas/rate limits propres à `=ia` ont été retirés ; les limites techniques de Discord et du fournisseur restent applicables.
+
 Le bot possède déjà l’intent Discord `MessageContent` et `OPENAI_API_KEY` est déjà utilisé par le projet. Aucun paquet npm supplémentaire n’est nécessaire. Les messages retenus comme contexte sont stockés dans le dossier `data` persistant du bot et envoyés à l’API OpenAI pour générer la réponse.
 
 ## Base de connaissances embarquée

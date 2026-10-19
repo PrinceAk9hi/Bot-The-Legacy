@@ -20,12 +20,7 @@ function applications(actor,target){
  for(const [team,app] of Object.entries(s.schoolManagementApplications?.[target.id]||{}))if(a.isDirection(actor)||a.has(actor,[team,a.teams[team]].filter(Boolean)))out.push({type:teamNames[team]||'Gestion',...app});
  return out;
 }
-function profile(actor,member,id){
- const s=a.state(),status=rp.status(member.id),apps=applications(actor,member);
- const e=embed('Profil administratif • QG',`**${clean(member.displayName)}** • ${clean(member.user.username)}\nIdentifiant : \`${member.id}\`\nCompte créé : ${time(member.user.createdTimestamp)}\nArrivée au QG : ${time(member.joinedTimestamp)}\n\n**Grade** : ${heldNames(member,ranks)}\n**Gestions** : ${heldNames(member,Object.keys(a.teams))}\n**Responsabilités** : ${heldNames(member,Object.values(a.teams))}\n**Restrictions et statuts** : ${Object.entries(status).map(([k,v])=>`${labels[k]||k} (${v.state})`).join(', ')||'Aucun statut suivi'}\n**Candidatures accessibles** : ${apps.map(x=>x.type+' : '+x.status).join(', ')||'aucune / accès limité'}\n\nLes actions concernent uniquement ce membre. Les modifications demandent confirmation.`).setThumbnail(member.user.displayAvatarURL());
- const menu=new Menu().setCustomId('qgu:select:'+id).setPlaceholder('Choisir une action').addOptions(Object.entries(labels).map(([value,label])=>({value,label})));
- return {embeds:[e],components:[new Row().addComponents(menu)],allowedMentions:{parse:[]}};
-}
+function profile(actor,member,id){return require('./qgUserView').render(actor,member,id);}
 function fingerprint(member){return createHash('sha256').update(JSON.stringify({roles:[...member.roles.cache.keys()].sort(),rp:rp.status(member.id)})).digest('hex');}
 function session(i,id){const s=a.state().schoolUserSessions?.[id];if(!s||s.actorId!==i.user.id||s.guildId!==i.guildId||s.expiresAt<Date.now())throw Error('Panel expiré ou réservé à son auteur. Relance /user.');return s;}
 async function details(i,id){const s=session(i,id),actor=await a.actor(i),member=await i.guild.members.fetch({user:s.targetId,force:true});return{s,actor,member};}
@@ -112,7 +107,10 @@ async function execute(i){await i.deferReply({flags:F.Ephemeral});try{
  return i.editReply(profile(actor,member,id));
  }catch(e){return i.editReply({content:e.code?'Membre introuvable ou permissions insuffisantes.':clean(e.message),allowedMentions:{parse:[]}});}}
 async function handle(i){try{
- const [,op,id,choice]=i.customId.split(':'),{actor,member}=await details(i,id);
+ let [,op,id,choice]=i.customId.split(':'); const {actor,member}=await details(i,id);
+ if(op==='tab'){if(!['profile','voice','management'].includes(choice))throw Error('Onglet invalide.');return await i.update(require('./qgUserView').render(actor,member,id,choice));}
+ if(['voice','voiceconfirm','voicecancel'].includes(op)){await i.deferReply({flags:F.Ephemeral});if(op==='voicecancel'){a.save(s=>{delete s.schoolUserSessions[id].voicePending;});return i.editReply('Action annulée.');}return await require('./qgUserVoice').handle(i,id,op==='voiceconfirm'?'confirm':choice,details,op==='voiceconfirm'?choice:null);}
+ if(op==='action'){i.values=[choice];op='select';}
  if(op==='select'&&['prison','handcuffs','dog'].includes(i.values[0])){if(!a.can(actor,i.values[0]))throw Error('Action non autorisée.');return i.showModal(modal(id,i.values[0],labels[i.values[0]]));}
  if(op==='demote'){plan(actor,member,'demote',i.values[0],'confirmation à venir');return i.showModal(modal(id,'demote.'+i.values[0],'Motif de rétrogradation'));}
  await i.deferReply({flags:F.Ephemeral});

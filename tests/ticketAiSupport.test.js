@@ -4,6 +4,8 @@ const { decide, immediateHumanReason, hasRecentNotice } = require('../utils/tick
 const { accessibleCommands, findRelevantCommands } = require('../utils/ticketAiCommands');
 const { discordTurns, compactHistory } = require('../utils/ticketAiHistory');
 const { search } = require('../utils/ticketAiKnowledge');
+const { ChannelType } = require('discord.js');
+const { memberIds, parseVoiceAction } = require('../utils/iaVoiceActions');
 
 test('1: question générale sur une commande, sans escalade', () => {
     assert.equal(decide({ answer: 'Utilise la commande indiquée dans l’aide.', knowledgeGap: true }, { text: 'Comment utiliser une commande slash ?' }).action, 'answer');
@@ -50,4 +52,32 @@ test('la base retrouve le profil à partir de « changer mes infos »', () => {
 test('historique long : messages récents et résumé des anciens', () => {
     const result = compactHistory(Array.from({ length: 30 }, (_, index) => ({ role: 'user', content: `Message ${index}` })), '', 24);
     assert.equal(result.messages.length, 24); assert.match(result.summary, /Message 0/);
+});
+
+const voiceA = { id: '111111111111111111', name: 'Vocal A', type: ChannelType.GuildVoice, members: new Map() };
+const voiceB = { id: '222222222222222222', name: 'Vocal B', type: ChannelType.GuildVoice, members: new Map() };
+const guild = { channels: { cache: new Map([[voiceA.id, voiceA], [voiceB.id, voiceB]]) } };
+test('action vocale ciblée : mute un seul membre explicitement identifié', () => {
+    const action = parseVoiceAction('mute 333333333333333333', guild, { voice: { channel: voiceA } });
+    assert.equal(action.type, 'mute');
+    assert.deepEqual(action.targetIds, ['333333333333333333']);
+});
+test('action vocale de groupe : déconnexion limitée au vocal du demandeur', () => {
+    const action = parseVoiceAction('déco tout le monde de la voc', guild, { voice: { channel: voiceA } });
+    assert.equal(action.type, 'disconnect');
+    assert.equal(action.source.id, voiceA.id);
+    assert.equal(action.all, true);
+});
+test('action de groupe : déplacement avec source et destination nommées', () => {
+    const action = parseVoiceAction('mouve tout le monde de Vocal A vers Vocal B', guild, { voice: { channel: null } });
+    assert.equal(action.type, 'move');
+    assert.equal(action.source.id, voiceA.id);
+    assert.equal(action.destination.id, voiceB.id);
+});
+test('un vocal mentionné n’est pas confondu avec un ID de membre', () => {
+    assert.deepEqual(memberIds('mouve tout le monde dans <#222222222222222222>'), []);
+});
+test('un déplacement de groupe sans vocal source identifié est refusé', () => {
+    const action = parseVoiceAction('mouve tout le monde dans <#222222222222222222>', guild, { voice: { channel: null } });
+    assert.equal(action.error, 'source');
 });

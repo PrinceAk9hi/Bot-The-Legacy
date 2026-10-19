@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "warnings": {
+    "1080943923691782154:731937390456995901": {
+      "guildId": "1080943923691782154",
+      "userId": "731937390456995901",
+      "username": "5myf",
+      "startedAt": 1789676123126,
+      "firstWarningSent": false,
+      "halfReminderSent": false,
+      "sanctionApplied": false,
+      "createdAt": 1789676123126
+    }
+  }
+}

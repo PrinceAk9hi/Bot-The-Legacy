@@ -2,23 +2,23 @@
     "version": 3,
     "initialized": true,
     "trackingStartedAt": 1786658400000,
-    "legacyGlobal": {
+    "soulGlobal": {
         "messages": 4352,
         "voiceMinutes": 92782
     },
     "members": {
         "547192186547077130": {
             "discordId": "547192186547077130",
-            "username": "ak9hi",
-            "displayName": "Ak9hi",
-            "messages": 2504,
-            "voiceSeconds": 330831,
+            "username": "avxntador",
+            "displayName": "Aven",
+            "messages": 2511,
+            "voiceSeconds": 333899,
             "firstSeenAt": 1787342108936,
-            "lastMessageAt": 1787359765867,
-            "lastVoiceAt": 1787342940701,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030153,
-            "legacySourceKey": "ak9hi"
+            "lastMessageAt": 1789679384192,
+            "lastVoiceAt": 1789679642903,
+            "soulImported": true,
+            "soulImportedAt": 1787359030153,
+            "soulSourceKey": "ak9hi"
         },
         "1408963750504960194": {
             "discordId": "1408963750504960194",
@@ -43,15 +43,15 @@
         "947878139923673130": {
             "discordId": "947878139923673130",
             "username": "esta_10",
-            "displayName": "ESTA",
-            "messages": 890,
+            "displayName": "Esta",
+            "messages": 892,
             "voiceSeconds": 376473,
             "firstSeenAt": 1787342108941,
-            "lastMessageAt": null,
+            "lastMessageAt": 1789677616398,
             "lastVoiceAt": 1787345737436,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030163,
-            "legacySourceKey": "esta"
+            "soulImported": true,
+            "soulImportedAt": 1787359030163,
+            "soulSourceKey": "esta"
         },
         "845774132451868682": {
             "discordId": "845774132451868682",
@@ -66,15 +66,15 @@
         "815269907633143881": {
             "discordId": "815269907633143881",
             "username": "fuck_.you",
-            "displayName": "Dark Meg ⛓️‍💥🖤🩸",
-            "messages": 1158,
-            "voiceSeconds": 2566903,
+            "displayName": "Meg",
+            "messages": 1160,
+            "voiceSeconds": 2571391,
             "firstSeenAt": 1787342108942,
-            "lastMessageAt": 1787359093479,
+            "lastMessageAt": 1789677053806,
             "lastVoiceAt": 1787358020090,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030159,
-            "legacySourceKey": "dark_meg"
+            "soulImported": true,
+            "soulImportedAt": 1787359030159,
+            "soulSourceKey": "dark_meg"
         },
         "1191761183909351579": {
             "discordId": "1191761183909351579",
@@ -85,9 +85,9 @@
             "firstSeenAt": 1787342122192,
             "lastMessageAt": null,
             "lastVoiceAt": 1787358020089,
-            "legacyImported": true,
-            "legacySourceKey": "shinra",
-            "legacyImportedAt": 1787359030169
+            "soulImported": true,
+            "soulSourceKey": "shinra",
+            "soulImportedAt": 1787359030169
         },
         "883087428016046150": {
             "discordId": "883087428016046150",
@@ -98,9 +98,9 @@
             "firstSeenAt": 1787342182188,
             "lastMessageAt": 1787359112765,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacySourceKey": "asnate",
-            "legacyImportedAt": 1787359030164
+            "soulImported": true,
+            "soulSourceKey": "asnate",
+            "soulImportedAt": 1787359030164
         },
         "672477367066820671": {
             "discordId": "672477367066820671",
@@ -111,9 +111,9 @@
             "firstSeenAt": 1787343710085,
             "lastMessageAt": null,
             "lastVoiceAt": 1787358020093,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030155,
-            "legacySourceKey": "mme_mika"
+            "soulImported": true,
+            "soulImportedAt": 1787359030155,
+            "soulSourceKey": "mme_mika"
         },
         "1078733029205364766": {
             "discordId": "1078733029205364766",
@@ -124,9 +124,9 @@
             "firstSeenAt": 1787343710088,
             "lastMessageAt": null,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030159,
-            "legacySourceKey": "zone"
+            "soulImported": true,
+            "soulImportedAt": 1787359030159,
+            "soulSourceKey": "zone"
         },
         "1144303281926057995": {
             "discordId": "1144303281926057995",
@@ -137,9 +137,9 @@
             "firstSeenAt": 1787343710092,
             "lastMessageAt": null,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030168,
-            "legacySourceKey": "ems"
+            "soulImported": true,
+            "soulImportedAt": 1787359030168,
+            "soulSourceKey": "ems"
         },
         "1382838157199802518": {
             "discordId": "1382838157199802518",
@@ -150,9 +150,9 @@
             "firstSeenAt": 1787343710097,
             "lastMessageAt": null,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030172,
-            "legacySourceKey": "mirage"
+            "soulImported": true,
+            "soulImportedAt": 1787359030172,
+            "soulSourceKey": "mirage"
         },
         "1435693752323805234": {
             "discordId": "1435693752323805234",
@@ -163,9 +163,9 @@
             "firstSeenAt": 1787343710097,
             "lastMessageAt": null,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacyImportedAt": 1787359030173,
-            "legacySourceKey": "pascal"
+            "soulImported": true,
+            "soulImportedAt": 1787359030173,
+            "soulSourceKey": "pascal"
         },
         "805418697497772062": {
             "discordId": "805418697497772062",
@@ -176,8 +176,8 @@
             "firstSeenAt": 1787344427970,
             "lastMessageAt": null,
             "lastVoiceAt": 1787346012454,
-            "legacyImported": false,
-            "legacySourceKey": null
+            "soulImported": false,
+            "soulSourceKey": null
         },
         "1354396902673748089": {
             "discordId": "1354396902673748089",
@@ -188,9 +188,9 @@
             "firstSeenAt": 1787345516645,
             "lastMessageAt": 1787346506019,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacySourceKey": "esteban",
-            "legacyImportedAt": 1787359030166
+            "soulImported": true,
+            "soulSourceKey": "esteban",
+            "soulImportedAt": 1787359030166
         },
         "1105511636955054171": {
             "discordId": "1105511636955054171",
@@ -201,27 +201,290 @@
             "firstSeenAt": 1787359030170,
             "lastMessageAt": null,
             "lastVoiceAt": null,
-            "legacyImported": true,
-            "legacySourceKey": "zouzou",
-            "legacyImportedAt": 1787359030170
+            "soulImported": true,
+            "soulSourceKey": "zouzou",
+            "soulImportedAt": 1787359030170
+        },
+        "1532489468055916564": {
+            "discordId": "1532489468055916564",
+            "username": "93sontleslocaux",
+            "displayName": "Speech (@sxcllheur)",
+            "messages": 2,
+            "voiceSeconds": 4377,
+            "firstSeenAt": 1789675757629,
+            "lastMessageAt": 1789677905608,
+            "lastVoiceAt": 1789677607857,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1527675450195972217": {
+            "discordId": "1527675450195972217",
+            "username": "3hq1.",
+            "displayName": "77",
+            "messages": 0,
+            "voiceSeconds": 403,
+            "firstSeenAt": 1789675757630,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789677717835,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1475850370214526987": {
+            "discordId": "1475850370214526987",
+            "username": "l.msa_",
+            "displayName": "˚₊‧୨୧ 𝐦𝐢𝐬𝐚 ୨୧‧₊˚",
+            "messages": 0,
+            "voiceSeconds": 4481,
+            "firstSeenAt": 1789675757632,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789679584452,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1469057172548616335": {
+            "discordId": "1469057172548616335",
+            "username": "fotini08080",
+            "displayName": "Mme Larbi",
+            "messages": 0,
+            "voiceSeconds": 2259,
+            "firstSeenAt": 1789675757633,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789678021342,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1376211193433428069": {
+            "discordId": "1376211193433428069",
+            "username": "ferocement",
+            "displayName": "malach",
+            "messages": 1,
+            "voiceSeconds": 4488,
+            "firstSeenAt": 1789675757635,
+            "lastMessageAt": 1789675900666,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1247868650698969119": {
+            "discordId": "1247868650698969119",
+            "username": "usserromane",
+            "displayName": "romane",
+            "messages": 0,
+            "voiceSeconds": 4488,
+            "firstSeenAt": 1789675757636,
+            "lastMessageAt": null,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1217728350886432841": {
+            "discordId": "1217728350886432841",
+            "username": "larbi9292",
+            "displayName": "Mr Larbi",
+            "messages": 1,
+            "voiceSeconds": 2256,
+            "firstSeenAt": 1789675757637,
+            "lastMessageAt": 1789676489430,
+            "lastVoiceAt": 1789678018802,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1179456381967937567": {
+            "discordId": "1179456381967937567",
+            "username": "rrip_kaido1",
+            "displayName": "Hiyuki",
+            "messages": 0,
+            "voiceSeconds": 4488,
+            "firstSeenAt": 1789675757639,
+            "lastMessageAt": null,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1126935819786141856": {
+            "discordId": "1126935819786141856",
+            "username": "halloweenvibe",
+            "displayName": "Ren",
+            "messages": 0,
+            "voiceSeconds": 3017,
+            "firstSeenAt": 1789675757640,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789678804986,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "765635348062666783": {
+            "discordId": "765635348062666783",
+            "username": "flixybus",
+            "displayName": "Zafeel",
+            "messages": 0,
+            "voiceSeconds": 4488,
+            "firstSeenAt": 1789675757643,
+            "lastMessageAt": null,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1022535859968430201": {
+            "discordId": "1022535859968430201",
+            "username": "beyondthesesthoughts",
+            "displayName": "Takumi Fujiwara",
+            "messages": 1,
+            "voiceSeconds": 1378,
+            "firstSeenAt": 1789676074567,
+            "lastMessageAt": 1789676074567,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "917881204034916422": {
+            "discordId": "917881204034916422",
+            "username": "uv3d",
+            "displayName": "Zel",
+            "messages": 0,
+            "voiceSeconds": 14,
+            "firstSeenAt": 1789676258025,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789676272962,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1323507074885488755": {
+            "discordId": "1323507074885488755",
+            "username": "lilititiphaine",
+            "displayName": "Lilou",
+            "messages": 1,
+            "voiceSeconds": 144,
+            "firstSeenAt": 1789676564266,
+            "lastMessageAt": 1789677035043,
+            "lastVoiceAt": 1789676709923,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "467366387149701131": {
+            "discordId": "467366387149701131",
+            "username": "yanourse",
+            "displayName": "ㄚ卂几",
+            "messages": 1,
+            "voiceSeconds": 0,
+            "firstSeenAt": 1789677063818,
+            "lastMessageAt": 1789677063818,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "957735260668448939": {
+            "discordId": "957735260668448939",
+            "username": "etm8004",
+            "displayName": "𝑴𝒊𝒛𝒂 ⚜️",
+            "messages": 0,
+            "voiceSeconds": 291,
+            "firstSeenAt": 1789677283553,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789677577214,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1537591757909393408": {
+            "discordId": "1537591757909393408",
+            "username": "ary_1888",
+            "displayName": "𝒜𝓇𝓎🐚",
+            "messages": 0,
+            "voiceSeconds": 1903,
+            "firstSeenAt": 1789678347687,
+            "lastMessageAt": null,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1047239044104458311": {
+            "discordId": "1047239044104458311",
+            "username": "azkrq",
+            "displayName": "Tpl_KETUR (@Navigastoliete2)",
+            "messages": 0,
+            "voiceSeconds": 795,
+            "firstSeenAt": 1789679478265,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789679597969,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "712702609190027320": {
+            "discordId": "712702609190027320",
+            "username": "malory125",
+            "displayName": "GHOST (@MALORY125)",
+            "messages": 0,
+            "voiceSeconds": 245,
+            "firstSeenAt": 1789679501219,
+            "lastMessageAt": null,
+            "lastVoiceAt": 1789679747337,
+            "soulImported": false,
+            "soulSourceKey": null
+        },
+        "1473979125063614505": {
+            "discordId": "1473979125063614505",
+            "username": "4le02",
+            "displayName": "Fire",
+            "messages": 2,
+            "voiceSeconds": 0,
+            "firstSeenAt": 1789679715065,
+            "lastMessageAt": 1789679727186,
+            "lastVoiceAt": null,
+            "soulImported": false,
+            "soulSourceKey": null
         }
     },
-    "pendingLegacyMembers": [],
+    "pendingSoulMembers": [],
     "voiceSessions": {
-        "1191761183909351579": {
-            "guildId": "1458391729936793736",
-            "channelId": "1540489991438868521",
-            "startedAt": 1787359780412
+        "1537591757909393408": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
+        },
+        "1532489468055916564": {
+            "guildId": "1080943923691782154",
+            "channelId": "1504727901881241641",
+            "startedAt": 1789680276885
+        },
+        "1376211193433428069": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
+        },
+        "1247868650698969119": {
+            "guildId": "1080943923691782154",
+            "channelId": "1545907730332786788",
+            "startedAt": 1789680276885
+        },
+        "1179456381967937567": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
         },
         "815269907633143881": {
-            "guildId": "1458391729936793736",
-            "channelId": "1507135977431367750",
-            "startedAt": 1787359780412
+            "guildId": "1080943923691782154",
+            "channelId": "1471547157290029279",
+            "startedAt": 1789680276885
         },
-        "672477367066820671": {
-            "guildId": "1458391729936793736",
-            "channelId": "1540489991438868521",
-            "startedAt": 1787359780412
+        "765635348062666783": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
+        },
+        "1022535859968430201": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
+        },
+        "1475850370214526987": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
+        },
+        "1047239044104458311": {
+            "guildId": "1080943923691782154",
+            "channelId": "1468699316603588783",
+            "startedAt": 1789680276885
         }
     },
     "panel": {

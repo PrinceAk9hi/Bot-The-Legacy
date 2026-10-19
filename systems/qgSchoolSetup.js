@@ -43,7 +43,7 @@ const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur impl
 `**Article 20 — Acceptation.** Pour accéder aux espaces communautaires, clique sur le bouton ci-dessous après avoir lu le règlement.`;
 
 function panelPayload(key, guild) {
-  if (key === 'tickets') return require('./qgPanels').tickets();
+  if (key === 'tickets') return require('./qgPanels').tickets(guild);
   if (key === 'notifications') return require('./qgPanels').notifications();
   if (key === 'joinManagement') return require('./qgPanels').management(guild);
   if (['communityCommands','familyCommands'].includes(key)) return require('./qgSchoolVoice').panel();

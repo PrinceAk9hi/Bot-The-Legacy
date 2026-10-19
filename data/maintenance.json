@@ -1,0 +1,53 @@
+{
+    "version": 1,
+    "services": {
+        "bot": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "tempvoice": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "recrutement": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "stats": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "roblox": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "admin": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        },
+        "fun": {
+            "status": "operationnel",
+            "reason": null,
+            "since": null,
+            "by": null
+        }
+    },
+    "panel": {
+        "guildId": null,
+        "channelId": "1541093908128338081",
+        "messageId": null
+    },
+    "updatedAt": 1789675964371
+}

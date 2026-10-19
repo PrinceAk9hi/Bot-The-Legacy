@@ -115,6 +115,7 @@ async function memberEvent(member,joined){
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
+ await require('./qgSupportWorkspace').boost(oldMember,newMember).catch(e=>console.error('Boost QG :',e.code||e.name));
  await require('./qgSchoolSeparators').syncMember(newMember);
  const changes=[];
  if(oldMember.nickname!==newMember.nickname)changes.push(`Surnom : **${oldMember.nickname||'aucun'}** → **${newMember.nickname||'aucun'}**`);
@@ -184,6 +185,15 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(i.isChatInputCommand?.()&&i.commandName==='sp')return require('./qgSanctionPanel').execute(i);
+ if(i.customId?.startsWith('qgsp:'))return require('./qgSanctionPanel').handle(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='support'){
+  await require('./qgSupportWorkspace').authorize(i);
+  const sub=i.options.getSubcommand();
+  if(['suivi','installer'].includes(sub))return require('./qgSupportWorkspace').execute(i);
+  if(sub==='fermer')return i.reply({content:'Archiver puis fermer ce ticket ? Cette action supprime son salon après archivage.',components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:close').setLabel('Confirmer la fermeture').setStyle(ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
+  i.customId='qg:'+({prendre:'claim',renommer:'rename'}[sub]);
+ }
  if(i.isChatInputCommand?.()&&i.commandName==='cd')return require('./qgRecruitmentControl').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='user')return require('./qgUserPanel').execute(i);
  if(i.customId?.startsWith('qgu:'))return require('./qgUserPanel').handle(i);
@@ -273,7 +283,7 @@ function register(client){
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred?first.editReply(p):first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
-  if(event===Events.VoiceStateUpdate){require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
+  if(event===Events.VoiceStateUpdate){guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(messageChange,first,null,'delete');return true;}
@@ -284,6 +294,9 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  require('./qgMemberMetrics').start(guild);
+  setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
+  await guarded(require('./qgSupportWorkspace').install,guild);
   await guarded(require('./qgRecruitmentControl').refresh,guild);
   await guarded(require('./qgRpStatus').ensureRole,guild,'prison');
   await guarded(require('./qgRpStatus').reconcile,guild);

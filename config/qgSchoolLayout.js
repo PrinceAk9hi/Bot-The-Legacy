@@ -7,10 +7,12 @@ const roleDefs = [
     ['ticketsLead', '🎫・Responsable Tickets', 0x64B5F6],
     ['recruitmentLead', '📋・Responsable Recrutement', 0x81C784],
     ['animationLead', '🎉・Responsable Animation', 0xFFB74D],
+    ['rpLead', '🎭・Responsable RP', 0xFFFFFF],
     ['networksLead', '🌐・Responsable Réseaux', 0x4DD0E1],
     ['ticketsManagement', '🎫・Gestion Support', 0x42A5F5],
     ['recruitmentManagement', '📋・Gestion Recrutement', 0x66BB6A],
     ['animationManagement', '🎉・Gestion Animation', 0xFFA726],
+    ['rpManagement', '🎭・Gestion RP', 0xFFFFFF],
     ['networksManagement', '🌐・Gestion Réseaux', 0x26C6DA],
     ['senior', 'Membre Senior', 0xD8AA3D],
     ['prestigious', 'Membre Prestigieux', 0xAF8BE8],
@@ -139,8 +141,8 @@ const channels = [
 ];
 
 const directions = ['creator', 'globalManager', 'administrator'];
-const leads = ['ticketsLead', 'recruitmentLead', 'animationLead', 'networksLead'];
-const managers = ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement'];
+const leads = ['ticketsLead', 'recruitmentLead', 'animationLead', 'networksLead', 'rpLead'];
+const managers = ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement', 'rpManagement'];
 const family = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
 const allFamily = [...family, ...leads, ...managers];
 const communityRead = ['community', ...directions, ...leads, ...managers, ...family];

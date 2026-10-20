@@ -2,6 +2,8 @@ const {PermissionFlagsBits:P,MessageFlags:F,ActionRowBuilder:Row,ButtonBuilder:B
 const {randomUUID}=require('node:crypto');
 const a=require('../utils/qgAdmin'),config=require('../config/qg'),separators=require('./qgSchoolSeparators'),{embed}=require('./qgPanels');
 const pending=new Map();
+const permissions=require('../utils/qgPermissionMigration');
+let migrating=false;
 const snapshot=ch=>[...ch.permissionOverwrites.cache.values()].map(o=>({id:o.id,type:o.type,allow:o.allow.bitfield,deny:o.deny.bitfield}));
 const signature=entries=>JSON.stringify(entries.map(o=>[o.id,o.type,String(o.allow),String(o.deny)]).sort((x,y)=>x[0].localeCompare(y[0])));
 function converted(ch){
@@ -63,6 +65,9 @@ async function confirm(i){
  const id=i.customId.split(':')[2],p=pending.get(id);
  if(!p||p.actor!==i.user.id||p.expires<Date.now())return i.reply({content:'Prévisualisation expirée ou réservée à son auteur.',flags:F.Ephemeral});
  pending.delete(id);await i.deferUpdate();await authorized(i);
+ if(migrating)throw Error('Une migration est déjà en cours.');
+ migrating=true;
+ try{
  const current=await plan(i.guild);
  const fingerprint=list=>JSON.stringify(list.map(x=>[x.id,x.before,signature(x.after)]).sort((x,y)=>x[0].localeCompare(y[0])));
  if(fingerprint(current)!==fingerprint(p.changes))throw Error('Les permissions ont changé. Relance /sync separateurs.');
@@ -74,19 +79,23 @@ async function confirm(i){
    // Une modification de catégorie peut déjà avoir propagé ses droits à ses enfants.
    if(signature(snapshot(ch))===signature(item.after)){count++;continue;}
    if(signature(snapshot(ch))!==item.before)throw Error('permissions modifiées');
-   await ch.permissionOverwrites.set(item.after,'Migration des accès communs vers les séparateurs QG');count++;
-  }catch(e){failures.push(`${item.name} : ${e.code||e.message}`);}
+   await permissions.apply(ch,item.after,'Migration des accès communs vers les séparateurs QG');count++;
+  }catch(e){failures.push(`${item.name} : ${permissions.detail(e)}`);}
  }
- a.save(s=>{s.schoolSeparatorPermissions={enabled:true,at:Date.now(),actor:i.user.id};});
- return i.editReply({embeds:[embed('Migration des permissions',`${count}/${current.length} éléments convertis.\nExceptions privées conservées.\n${failures.slice(0,15).join('\n')}`)],components:[],allowedMentions:{parse:[]}});
+ a.save(s=>{s.schoolSeparatorPermissions={enabled:failures.length===0,at:Date.now(),actor:i.user.id};});
+ return i.editReply({embeds:[embed('Migration des permissions',`${count}/${current.length} éléments convertis.\nExceptions privées conservées.\n${failures.length?'Suivi automatique désactivé tant que la migration échoue.\n':''}${failures.slice(0,8).join('\n').slice(0,3400)}`)],components:[],allowedMentions:{parse:[]}});
+ }finally{migrating=false;}
 }
 async function refresh(ch){
- if(ch?.guild?.id!==config.guildId||!ch.permissionOverwrites||!a.state().schoolSeparatorPermissions?.enabled)return;
+ if(migrating||ch?.guild?.id!==config.guildId||!ch.permissionOverwrites||!a.state().schoolSeparatorPermissions?.enabled)return;
  return a.serial('separator-acl:'+ch.id,async()=>{
   ch=await ch.guild.channels.fetch({channel:ch.id,force:true}).catch(e=>{if(e.code===10003)return null;throw e;});
   if(!ch)return;
   const after=converted(ch);
-  if(signature(snapshot(ch))!==signature(after))await ch.permissionOverwrites.set(after,'Maintien des permissions par séparateurs QG');
+  if(signature(snapshot(ch))!==signature(after)){
+   try{await permissions.apply(ch,after,'Maintien des permissions par séparateurs QG');}
+   catch(e){a.save(s=>{if(s.schoolSeparatorPermissions)s.schoolSeparatorPermissions.enabled=false;});throw Error(permissions.detail(e));}
+  }
  });
 }
 module.exports={execute,confirm,refresh,associate};

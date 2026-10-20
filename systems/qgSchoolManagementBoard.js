@@ -5,6 +5,7 @@ const { read, update } = require('../utils/recruitmentData');
 
 const store = fn => update('qgServer', fn);
 const groups = [
+  {key:'rp',label:'🎭 Gestion RP',lead:'rpLead',team:'rpManagement'},
   { key: 'tickets', label: '🎫 Gestion Support', lead: 'ticketsLead', team: 'ticketsManagement' },
   { key: 'recruitment', label: '📋 Gestion Recrutement', lead: 'recruitmentLead', team: 'recruitmentManagement' },
   { key: 'animation', label: '🎉 Gestion Animation', lead: 'animationLead', team: 'animationManagement' },
@@ -60,7 +61,7 @@ async function buildPanel(guild) {
     .setColor(0xffffff)
     .setTitle('📊 Classement et suivi des gestions')
     .setDescription('Effectifs actuels par gestion, responsables et date de prise de fonction connue.\n\n* Pour les personnes déjà présentes avant le suivi, la date indique le début du suivi : Discord ne fournit pas la date historique exacte.')
-    .addFields(rows.map(({ name, value }, index) => ({ name: `${['🥇', '🥈', '🥉', '✦'][index]} ${name}`, value })))
+    .addFields(rows.map(({ name, value }, index) => ({ name: `${['🥇', '🥈', '🥉', '✦'][index]||'✦'} ${name}`, value })))
 
     .setTimestamp();
   return { embeds: [embed], allowedMentions: { parse: [] } };

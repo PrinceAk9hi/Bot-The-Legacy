@@ -140,6 +140,7 @@ async function decision(i,actor,app,action){
  await target.roles.remove(remove,'Décision de recrutement QG');
  app.status=accepted?(oral?'accept':'waiting_interview'):'refuse';app.updatedAt=Date.now();app.updatedBy=actor.id;if(oral)app.interviewFinishedAt=Date.now();put(app);
  if(oral)await tick(i.guild);
+ if(oral&&accepted)require('./qgCommunityUpgrade').recruited(await i.guild.members.fetch({user:target.id,force:true}));
  await a.audit(i.guild,{action:'recruitment.'+action,actorId:actor.id,targetId:target.id,before,after:app.status});
  const dm=await target.send({embeds:[embed('Ta candidature au QG',accepted?(oral?'Ton entretien est accepté. Tu rejoins la famille au grade Membre Test.':`Ta candidature écrite est acceptée. Tu es en attente d’entretien. Indique tes disponibilités dans <#${channels().interviewAvailability}>.`):'Ta candidature a été refusée par l’équipe de recrutement.')],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
  await refresh(i.guild,app);

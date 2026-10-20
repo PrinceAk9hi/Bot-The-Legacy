@@ -16,6 +16,7 @@ async function send(member) {
     if (!channel?.isTextBased()) throw Error('Salon d’arrivées QG indisponible.');
     const embed = new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle('✦ Bienvenue dans la communauté du QG')
       .setDescription(`Bienvenue <@${member.id}> !\n\nTa vérification est terminée : tu fais désormais partie de notre communauté.\n\n**Prends tes repères**\nDécouvre les salons, présente-toi et fais connaissance avec les membres. Discussions, rencontres et roleplay t’attendent.\n\n**Envie de rejoindre la famille ?**\n${state.schoolChannels?.familyApplications ? `Dépose ta candidature dans <#${state.schoolChannels.familyApplications}>.` : 'Retrouve le panel de candidature famille dans l’espace Support.'}\n\nNous sommes heureux de t’accueillir parmi nous !`)
+      .addFields({name:'Invité par',value:require('./qgInvites').description(member.id)},{name:'Invitation / lien personnalisé',value:require('./qgInvites').linkDescription(member.id)})
       .setThumbnail(member.user.displayAvatarURL({ size: 256 })).setTimestamp();
     const card = await require('../utils/qgArrivalCard').render(member);
     embed.setImage('attachment://bienvenue-qg.png');

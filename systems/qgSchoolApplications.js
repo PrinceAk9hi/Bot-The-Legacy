@@ -13,12 +13,12 @@ const familyQuestions = [
 const state = () => read('qgServer');
 const save = fn => update('qgServer', fn);
 const familyRoleKeys = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
-const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead' };
-const teamLabels = { ticketsManagement: 'Gestion Support', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux' };
+const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead' };
+const teamLabels = { ticketsManagement: 'Gestion Support', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux', rpManagement: 'Gestion RP' };
 const trim = text => String(text ?? '').slice(0, 1000);
 const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
-function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && member.roles.cache.has(r[k])); }
+function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && r[k] !== '1561157108307861574' && member.roles.cache.has(r[k])); }
 function verifiedForRecruitment(member, data = state()) {
   const verification = data.schoolEntryVerification?.[member.id];
   const roleId = data.schoolRoles?.community;
@@ -56,34 +56,35 @@ async function submitFamily(memberId, app, client) {
 }
 
 async function beginManagementApplication(i) {
-  const member = await i.guild.members.fetch(i.user.id);
+  const member = await i.guild.members.fetch({user:i.user.id,force:true});
   if (!inFamily(member)) return i.reply({ content: 'Cette candidature est réservée aux membres de la famille.', flags: MessageFlags.Ephemeral });
   const team = i.values?.[0];
   if (!managerFor[team]) return i.reply({ content: 'Gestion inconnue.', flags: MessageFlags.Ephemeral });
   const active = state().schoolManagementApplications || {};
   if (active[i.user.id]?.[team] && ['submitted', 'in_review'].includes(active[i.user.id][team].status)) return i.reply({ content: `Tu as déjà une candidature active pour ${teamLabels[team]}.`, flags: MessageFlags.Ephemeral });
-  const modal = new ModalBuilder().setCustomId(`qgs:management-modal:${team}`).setTitle(`Candidature • ${teamLabels[team]}`);
+  const modal = new ModalBuilder().setCustomId(`qgs:management-modal:${team}`).setTitle(`Candidature ${teamLabels[team]}`.slice(0,45));
   const fields = [['motivation', 'Tes motivations'], ['experience', 'Ton expérience'], ['availability', 'Tes disponibilités'], ['skills', 'Tes compétences'], ['contribution', 'Ta contribution envisagée']];
   modal.addComponents(...fields.map(([id, label]) => new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId(id).setLabel(label).setStyle(TextInputStyle.Paragraph).setMaxLength(800).setRequired(true))));
   await i.showModal(modal);
 }
 
 async function submitManagement(i, team) {
-  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  if(!i.deferred)await i.deferReply({ flags: MessageFlags.Ephemeral });
   const guild = await i.client.guilds.fetch(config.guildId), applicant = await guild.members.fetch(i.user.id), { roles, channels, categories } = ids();
   if (!inFamily(applicant)) throw new Error('Tu ne fais pas partie de la famille.');
   if (!managerFor[team]) throw new Error('Gestion invalide.');
   const existing = state().schoolManagementApplications?.[i.user.id]?.[team];
   if (existing && ['submitted', 'in_review'].includes(existing.status)) throw new Error('Tu as déjà une candidature active pour cette gestion.');
   const lead = roles[managerFor[team]], managementRole = roles[team];
+  if(!lead||!managementRole)throw Error('Cette gestion doit être configurée par la direction avec /setup-serveur actualiser-qg.');
   const ch = await guild.channels.create({ name: `candidature-${team.replace('Management', '')}-${i.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 90), type: 0, parent: categories.managementPlus, topic: `qgs-management-application:${team}:${i.user.id}`,
     permissionOverwrites: [{ id: guild.id, deny: [P.ViewChannel] }, { id: i.client.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.EmbedLinks, P.ManageChannels] }, { id: i.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }, ...[roles.creator, roles.globalManager, lead, managementRole].filter(Boolean).map(id => ({ id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }))] });
   const labels = { motivation: 'Motivation', experience: 'Expérience', availability: 'Disponibilités', skills: 'Compétences', contribution: 'Contribution envisagée' };
-  const description = Object.entries(labels).map(([id, label]) => `**${label}**\n${trim(i.fields.getTextInputValue(id))}`).join('\n\n');
+  const fields = Object.entries(labels).map(([id, label]) => ({ name:label,value:trim(i.fields.getTextInputValue(id))||'Non renseigné' }));
   const row = new ActionRowBuilder().addComponents(...[
     ['accept', 'Accepter', ButtonStyle.Success], ['refuse', 'Refuser', ButtonStyle.Danger], ['interview', 'Entretien', ButtonStyle.Primary], ['details', 'Précisions', ButtonStyle.Secondary]
   ].map(([action, label, style]) => new ButtonBuilder().setCustomId(`qgs:management-decision:${team}:${i.user.id}:${action}`).setLabel(label).setStyle(style)));
-  await ch.send({ embeds: [embed(`Candidature • ${teamLabels[team]}`, `Candidat : <@${i.user.id}>\n${description}`)], components: [row], allowedMentions: { parse: [], users: [i.user.id] } });
+  await ch.send({ embeds: [embed(`Candidature • ${teamLabels[team]}`, `Candidat : <@${i.user.id}>`).addFields(fields)], components: [row], allowedMentions: { parse: [], users: [i.user.id] } });
   save(s => { s.schoolManagementApplications ||= {}; s.schoolManagementApplications[i.user.id] ||= {}; s.schoolManagementApplications[i.user.id][team] = { applicantId: i.user.id, team, status: 'submitted', channelId: ch.id, createdAt: Date.now() }; });
   await i.editReply({ content: `✅ Ta candidature pour **${teamLabels[team]}** a été transmise au responsable concerné.` });
 }
@@ -101,7 +102,7 @@ async function decisionInternal(i) {
   const memberId = isFamily ? parts[2] : parts[3], action = parts.at(-1), team = isFamily ? null : parts[2];
   const { roles } = ids(), reviewer = await i.guild.members.fetch(i.user.id);
   const leadKey = isFamily ? 'recruitmentLead' : managerFor[team];
-  if (i.user.id !== config.ownerId && i.user.id !== i.guild.ownerId && !reviewer.roles.cache.has(roles[leadKey]) && !reviewer.roles.cache.has(roles[isFamily ? 'recruitmentManagement' : team])) return i.followUp({ content: 'Seule la gestion concernée peut traiter cette candidature.', flags: MessageFlags.Ephemeral });
+  if (!require('../utils/qgAdmin').isDirection(reviewer) && !reviewer.roles.cache.has(roles[leadKey]) && !reviewer.roles.cache.has(roles[isFamily ? 'recruitmentManagement' : team])) return i.followUp({ content: 'Seule la gestion concernée peut traiter cette candidature.', flags: MessageFlags.Ephemeral });
   const table = isFamily ? 'schoolFamilyRecruitment' : 'schoolManagementApplications';
   const app = isFamily ? state()[table]?.[memberId] : state()[table]?.[memberId]?.[team];
   if (!app || app.channelId !== i.channelId || !['submitted', 'in_review'].includes(app.status)) return i.followUp({ content: 'Cette candidature a déjà été traitée ou son dossier est introuvable.', flags: MessageFlags.Ephemeral });
@@ -117,6 +118,8 @@ async function decisionInternal(i) {
   if (!isFamily && action === 'accept') {
     const candidate = await i.guild.members.fetch(memberId);
     if (!roles[team]) throw new Error(`Le rôle ${teamLabels[team]} n’est pas configuré.`);
+    if(!inFamily(candidate))throw Error('Ce candidat ne fait plus partie de la famille.');
+    require('../utils/qgAdmin').hierarchy(reviewer,candidate,await i.guild.members.fetchMe(),[await i.guild.roles.fetch(roles[team])]);
     const members = await i.guild.members.fetch();
     const occupied = [...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(roles[team])&&!m.roles.cache.has(roles[managerFor[team]])).length;
     if (occupied >= 2 && !candidate.roles.cache.has(roles[team])) return i.followUp({content:'Cette gestion possède déjà ses deux membres (hors responsable). Libère une place avant de valider.',flags:MessageFlags.Ephemeral});
@@ -132,7 +135,7 @@ async function decisionInternal(i) {
 
 async function handle(i) {
  if (i.customId?.startsWith('qgs:family-decision:')) return require('./qgInterviews').legacy(i);
-  if (i.isModalSubmit() && i.customId.startsWith('qgs:management-modal:')) return submitManagement(i, i.customId.split(':')[2]);
+  if (i.isModalSubmit() && i.customId.startsWith('qgs:management-modal:')) {await i.deferReply({flags:MessageFlags.Ephemeral});return require('../utils/qgAdmin').serial('qg-management-apply:'+i.user.id,()=>submitManagement(i,i.customId.split(':')[2]));}
   if (i.isButton() && (i.customId.startsWith('qgs:management-decision:') || i.customId.startsWith('qgs:family-decision:'))) return decision(i);
   if (!i.isModalSubmit() && !i.isButton()) return false;
   return false;

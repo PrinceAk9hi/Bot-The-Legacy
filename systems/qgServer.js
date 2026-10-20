@@ -115,6 +115,7 @@ async function memberEvent(member,joined){
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
+ require('./qgCommunityUpgrade').memberChanged(oldMember,newMember);
  await require('./qgUserTools').enforce(oldMember,newMember).catch(e=>console.error('Verrou pseudo QG :',e.code||e.name));
  await require('./qgSupportWorkspace').boost(oldMember,newMember).catch(e=>console.error('Boost QG :',e.code||e.name));
  await require('./qgSchoolSeparators').syncMember(newMember);
@@ -186,6 +187,9 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(i.customId?.startsWith('botpanel:'))return i.client.botPanel.handle(i);
+ if(i.customId?.startsWith('ownerDM:'))return require('./botOwnerTools').handle(i);
+ if(i.isChatInputCommand?.()&&['mp','mpall'].includes(i.commandName))return require('./botOwnerTools').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='entretien')return require('./qgInterviews').execute(i);
  if(i.customId?.startsWith('qgr:'))return require('./qgInterviews').handle(i);
  if(i.isChatInputCommand?.()&&['config','réunion'].includes(i.commandName))return require('./qgMeetings').execute(i);
@@ -255,6 +259,7 @@ async function voice(oldState,newState){
  });
 }
 async function message(m){
+ if(await require('./botOwnerTools').message(m))return;
  if(m.author.bot)return;
  require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
@@ -304,7 +309,8 @@ function register(client){
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
-  const meetingTick=async()=>{await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
+  require('./qgLevels').migrate();
+  const meetingTick=async()=>{await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

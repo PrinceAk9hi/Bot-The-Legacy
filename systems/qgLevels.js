@@ -1,15 +1,18 @@
 const {createHash}=require('node:crypto');
 const {read,update}=require('../utils/recruitmentData');
 const config=require('../config/qg'),layout=require('../config/qgLayout');
-const level=xp=>Math.floor(Math.sqrt(Math.max(0,xp)/100));
-const threshold=n=>100*n*n;
+const level=xp=>Math.floor(Math.sqrt(Math.max(0,xp)/25));
+const threshold=n=>25*n*n;
+function migrate(){update('qgXp',all=>{for(const p of Object.values(all)){if(p&&typeof p.xp==='number'&&p.progressionVersion!==2){p.xp=p.xp/4;p.progressionVersion=2;}}});}
+
 const day=now=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
 const locks=new Map();let voiceAt=0,voiceBusy=false;const voicePrevious=new Map();
 const serial=(id,fn)=>{const next=(locks.get(id)||Promise.resolve()).catch(()=>{}).then(fn);locks.set(id,next);next.finally(()=>{if(locks.get(id)===next)locks.delete(id);}).catch(()=>{});return next;};
 function award(id,source,now,hash){
  let gained=0;
  update('qgXp',all=>{
-  const p=all[id]||={xp:0,day:day(now),messageDaily:0,voiceDaily:0,recent:[]};
+  const p=all[id]||={xp:0,day:day(now),messageDaily:0,voiceDaily:0,recent:[],progressionVersion:2};
+  if(p.progressionVersion!==2){p.xp=p.xp/4;p.progressionVersion=2;}
   if(p.day!==day(now)){p.day=day(now);p.messageDaily=0;p.voiceDaily=0;}
   if(source==='message'){
    if(now-(p.lastMessage||0)<90000||p.recent.some(x=>x.hash===hash&&now-x.at<3600000))return;
@@ -24,22 +27,23 @@ function award(id,source,now,hash){
 }
 async function sync(member,state){
  const p=read('qgXp')[member.id];if(!p)return;
- const current=level(p.xp),milestone=layout.levelMilestones.filter(n=>n<=current).pop(),ids=state.levelRoles||{},target=milestone?ids[milestone]:null;
+ const current=level(p.xp),milestone=[5,10,20,35,50,75,100].filter(n=>n<=current).pop(),ids=state.levelRoles||{},target=milestone?ids[milestone]:null;
+ if(milestone&&(!target||!member.guild.roles.cache.has(target)))return;
  const remove=Object.values(ids).filter(id=>id!==target&&member.roles.cache.has(id));
  if(target&&!member.roles.cache.has(target))await member.roles.add(target,'Niveau d’activité QG');
  if(remove.length)await member.roles.remove(remove,'Conserver uniquement le meilleur rôle de niveau QG');
  if(milestone&&(p.announcedMilestone||0)<milestone){
- const channel=await member.guild.channels.fetch(state.schoolChannels?.levelsInfo||state.channels.levels);
-  await channel.send({embeds:[layout.embed('🏆 Nouveau palier',`<@${member.id}> atteint le **niveau ${current}** et reçoit **« I Niveau ${milestone}** !`)],allowedMentions:{parse:[]}});
+ const channel=await member.guild.channels.fetch(state.schoolChannels?.levelsInfo||state.channels?.levels);
+  await channel.send({embeds:[layout.embed('🏆 Nouveau palier',`<@${member.id}> atteint le **niveau ${current}** et reçoit <@&${target}> !`)],allowedMentions:{parse:[]}});
   update('qgXp',all=>{all[member.id].announcedMilestone=milestone;});
  }
 }
-function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.verified,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(Boolean);return ids.some(id=>member.roles.cache.has(id));}
+function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(id=>id&&id!=='1561157108307861574');return ids.some(id=>member.roles.cache.has(id));}
 async function message(m,state){
  if(m.guildId!==config.guildId||m.author.bot||m.webhookId||!eligible(m.member,state))return;
  const text=m.content.normalize('NFKC').toLowerCase().replace(/https?:\/\/\S+/g,'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
- const eligibleChannels=[state.channels.chat,state.channels.media,state.channels.introductions,state.channels.gaming,state.schoolChannels?.communityChat,state.schoolChannels?.communityMedia].filter(Boolean);
- if(m.content.startsWith('=')||text.length<20||new Set(text.replace(/\s/g,'')).size<8||!eligibleChannels.includes(m.channelId))return;
+ const eligibleChannels=[state.channels?.chat,state.channels?.media,state.channels?.introductions,state.channels?.gaming,state.schoolChannels?.communityChat,state.schoolChannels?.communityMedia,state.schoolChannels?.familyChat,state.schoolChannels?.familyMedia].filter(Boolean);
+ if(m.content.startsWith('=')||text.length<20||text.split(' ').filter(w=>/[\p{L}\p{N}]/u.test(w)).length<4||new Set(text.replace(/\s/g,'')).size<8||!eligibleChannels.includes(m.channelId))return;
  const hash=createHash('sha256').update(text).digest('hex');
  await serial(m.author.id,async()=>{award(m.author.id,'message',Date.now(),hash);await sync(m.member,state);});
 }
@@ -70,5 +74,5 @@ async function command(m,state){
  await m.reply({embeds:[layout.embed('🏆 Classement QG',rows.join('\n')||'Le classement attend ses premiers participants.')],allowedMentions:{parse:[]}});return true;
 }
 const panel=()=>({embeds:[layout.embed('🏆 Progression et niveaux',
-'Les niveaux récompensent une participation régulière, sans donner de permissions de modération.\n\n**Messages** : 10 XP, au maximum une fois toutes les 90 secondes, dans le chat, les médias, les présentations ou la recherche de joueurs. Réponses de 20 caractères minimum ; commandes, liens seuls et répétitions ne rapportent rien. Plafond : **300 XP par jour**.\n\n**Vocal** : 5 XP toutes les 2 minutes dans les vocaux communautaires, avec au moins deux membres vérifiés non muets et non assourdis. Pas d’XP en attente aide, dans le créateur de vocal, en solo ou pendant une interruption du bot. Plafond : **300 XP par jour**.\n\n**Progression** : atteindre le niveau N nécessite **100 × N² XP** au total. Niveau 10 : 10 000 XP ; niveau 25 : 62 500 XP ; niveau 50 : 250 000 XP. Même avec le maximum quotidien, le niveau 50 demande au moins **417 jours**.\n\nRôles aux niveaux **5, 10, 15, 20, 30, 40 et 50** : seul ton meilleur palier est conservé.\n\n`=niveau` ou `=niveau @membre` • `=classement`\nRemise à zéro des plafonds à minuit, heure de Paris.')],allowedMentions:{parse:[]}});
-module.exports={resetVoice:id=>voicePrevious.delete(id),message,voice,command,panel,level,threshold,award};
+'Les niveaux récompensent une participation régulière, sans donner de permissions de modération.\n\n**Messages** : 10 XP, au maximum une fois toutes les 90 secondes, dans le chat, les médias, les présentations ou la recherche de joueurs. Réponses de 20 caractères et 4 mots minimum ; commandes, liens seuls et répétitions ne rapportent rien. Plafond : **300 XP par jour**.\n\n**Vocal** : 5 XP toutes les 2 minutes dans les vocaux communautaires, avec au moins deux membres vérifiés non muets et non assourdis. Pas d’XP en attente aide, dans le créateur de vocal, en solo ou pendant une interruption du bot. Plafond : **300 XP par jour**.\n\n**Progression** : atteindre le niveau N nécessite **25 × N² XP** au total. Le premier niveau demande 25 XP : environ 10 minutes de vocal éligible, après observation initiale, ou 3 messages éligibles. Chaque niveau demande ensuite plus d’activité. Niveau 10 : 2 500 XP ; niveau 50 : 62 500 XP ; niveau 100 : 250 000 XP.\n\nRôles aux niveaux **5, 10, 20, 35, 50, 75 et 100** : seul ton meilleur palier est conservé.\n\n`=niveau` ou `=niveau @membre` • `=classement`\nRemise à zéro des plafonds à minuit, heure de Paris.')],allowedMentions:{parse:[]}});
+module.exports={migrate,resetVoice:id=>voicePrevious.delete(id),message,voice,command,panel,level,threshold,award};

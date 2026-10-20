@@ -48,5 +48,5 @@ function overwrites(guildId,botId,r,kind){
  const staff=staffKeys.map(k=>({id:r[k],allow:write}));
  return [everyone,{id:botId,allow:[...write,P.ManageChannels,P.ManageRoles,P.ManageMessages]},...staff,...(kind!=='staff'&&kind!=='welcome'?[{id:r.member,allow:kind==='stats'?read:write,...(kind==='stats'?{deny:[P.Connect]}:{})}]:[])];
 }
-const levelMilestones=[5,10,15,20,30,40,50];
+const levelMilestones=[5,10,20,35,50,75,100];
 module.exports={levelMilestones,roles,staffKeys,categories,channels,embed,rules,tos,ticket,overwrites};

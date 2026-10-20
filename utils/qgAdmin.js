@@ -6,7 +6,7 @@ const clean=require('./qgAiKnowledge').clean;
 const state=()=>read('qgServer');
 const save=fn=>update('qgServer',fn);
 const direction=['creator','globalManager','administrator'];
-const teams={ticketsManagement:'ticketsLead',recruitmentManagement:'recruitmentLead',animationManagement:'animationLead',networksManagement:'networksLead'};
+const teams={ticketsManagement:'ticketsLead',recruitmentManagement:'recruitmentLead',animationManagement:'animationLead',networksManagement:'networksLead',rpManagement:'rpLead'};
 function has(member,keys){const r=state().schoolRoles||{};return keys.some(k=>r[k]&&member.roles.cache.has(r[k]));}
 function isDirection(member){return member.guild.id===config.guildId&&(member.id===member.guild.ownerId||member.id===config.ownerId||has(member,direction));}
 function can(member,action,team){

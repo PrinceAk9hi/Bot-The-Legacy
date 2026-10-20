@@ -20,7 +20,7 @@ function panel() {
 function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send } = {}) {
   const busy = new Set();
   const get = id => read('qgServer').schoolEntryVerification?.[id];
-  const save = (id, value) => update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });
+  const save = (id, value) => {update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });require('./qgCommunityUpgrade').recordVerification(id,value);};
   const rules = token => ({ content: null, embeds: [card('Confirmation de lecture du règlement', 'Confirmes-tu avoir bien lu et accepté le règlement affiché dans ce salon ?\n\nEn cliquant sur le bouton ci-dessous, tu t’engages à le respecter et tu recevras le rôle **Membre Communautaire**.')], components: [row(button(`qgs:entry-accept:${token}`, "J’ai lu et j’accepte le règlement"))], allowedMentions: { parse: [] } });
   return async function handle(i) {
     const id = i.customId || '';

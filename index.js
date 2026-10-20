@@ -583,9 +583,9 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/qg").guildId
-                            ? commands.filter(c => ["setup-serveur", "delc", "sync", "ia", "cd", "user", "support", "sp", "config", "réunion", "notesmp", "entretien"].includes(c.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'entretien' ? require('./systems/qgInterviews').data.toJSON() : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c)
+                            ? commands.filter(c => ["setup-serveur", "delc", "sync", "ia", "cd", "user", "support", "sp", "config", "réunion", "notesmp", "entretien", "mp", "mpall"].includes(c.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'entretien' ? require('./systems/qgInterviews').data.toJSON() : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c)
                             : guild.id === require("./config/soulSociety").IDENTITY.guildId
-                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(c.name)) : []
+                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(c.name)) : []
                     }
                 );
 
@@ -606,7 +606,7 @@ client.reloadCommands =
             try {
                 await rest.put(
                     Routes.applicationGuildCommands(client.user.id, soulGuildId),
-                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(command.name)) }
+                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(command.name)) }
                 );
                 guildCount++;
             } catch (error) {
@@ -618,7 +618,7 @@ client.reloadCommands =
         const qgGuildId = require("./config/qg").guildId;
         if (!client.guilds.cache.has(qgGuildId)) {
             try {
-                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["setup-serveur", "delc", "sync", "ia", "cd", "user", "support", "sp", "config", "réunion", "notesmp", "entretien"].includes(command.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'entretien' ? require('./systems/qgInterviews').data.toJSON() : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c) });
+                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["setup-serveur", "delc", "sync", "ia", "cd", "user", "support", "sp", "config", "réunion", "notesmp", "entretien", "mp", "mpall"].includes(command.name)).map(c => c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'entretien' ? require('./systems/qgInterviews').data.toJSON() : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c) });
                 guildCount++;
             } catch (error) {
                 console.error(`❌ Enregistrement de /setup-serveur sur le QG (${qgGuildId}) :`, error.code || error.message);
@@ -2299,11 +2299,13 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
+            if (interaction.customId?.startsWith('ownerDM:')) return await require('./systems/botOwnerTools').handle(interaction);
+            if (interaction.isChatInputCommand() && ['mp','mpall'].includes(interaction.commandName)) return await require('./systems/botOwnerTools').execute(interaction);
             if (interaction.customId?.startsWith("delc:")) {
                 await client.commands.get("delc")?.handleComponent(interaction);
                 return;
             }
-            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc"].includes(interaction.commandName)) {
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }
@@ -3666,6 +3668,7 @@ if (
     );
 }
 
+require("./systems/botOwnerTools").register(client);
 require("./systems/qgServer")(client);
 
 client.login(

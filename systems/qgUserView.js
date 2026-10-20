@@ -30,6 +30,8 @@ function render(actor,member,id,tab='profile'){
   .addSeparatorComponents(new SeparatorBuilder())
   .addActionRowComponents(row(button('derank','Derank',S.Danger,!can('derank')),button('rankup','Rankup',S.Secondary,!can('rankup')),button('demote','Rétrograder',S.Secondary,!can('demote')),button('prison','Prison',S.Danger,!can('prison')||!!state.prison),button('release','Libérer',S.Success,!can('release')||!state.prison)))
   .addActionRowComponents(row(button('management','🛡️ Gestions et responsables'),button('applications','📋 Candidatures'),button('stats','📊 Historique et statistiques')));
+  box.addActionRowComponents(row(new Button().setCustomId(`qgu:tool:${id}:convocation`).setLabel('📨 Convoquer').setStyle(S.Secondary).setDisabled(!a.isDirection(actor)&&!a.has(actor,['recruitmentLead','recruitmentManagement'])),button('validate','✅ Valider le test',S.Success,!can('rankup')||!member.roles.cache.has(a.state().schoolRoles?.test)),button('sanctions','🛡️ Sanctions',S.Danger,!can('prison'))))
+  .addActionRowComponents(row(...[['locknick','🔒 Lock pseudo'],['unlocknick','🔓 Unlock pseudo']].map(([action,label])=>new Button().setCustomId(`qgu:tool:${id}:${action}`).setLabel(label).setStyle(S.Secondary).setDisabled(!a.isDirection(actor)))));
  }
  box.addTextDisplayComponents(text('-# Fondateur - QG • Panel privé, réservé à son auteur.'));
  return{flags:F.IsComponentsV2,components:[box],allowedMentions:{parse:[]}};

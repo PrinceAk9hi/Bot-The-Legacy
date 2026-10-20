@@ -115,6 +115,7 @@ async function memberEvent(member,joined){
  await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
+ await require('./qgUserTools').enforce(oldMember,newMember).catch(e=>console.error('Verrou pseudo QG :',e.code||e.name));
  await require('./qgSupportWorkspace').boost(oldMember,newMember).catch(e=>console.error('Boost QG :',e.code||e.name));
  await require('./qgSchoolSeparators').syncMember(newMember);
  const changes=[];
@@ -185,6 +186,10 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(i.isChatInputCommand?.()&&['config','réunion'].includes(i.commandName))return require('./qgMeetings').execute(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='notesmp')return require('./qgMeetingDelivery').execute(i);
+ if(i.customId?.startsWith('qgm:'))return require('./qgMeetings').handle(i);
+ if(i.customId?.startsWith('qgsd:'))return require('./qgSupportDashboard').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='sp')return require('./qgSanctionPanel').execute(i);
  if(i.customId?.startsWith('qgsp:'))return require('./qgSanctionPanel').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='support'){
@@ -249,6 +254,7 @@ async function voice(oldState,newState){
 }
 async function message(m){
  if(m.author.bot)return;
+ require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgTicketAssistant').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
@@ -280,9 +286,9 @@ function register(client){
   if(guildId!==config.guildId)return emit.call(this,event,...args);
   if(event===Events.ChannelCreate)guarded(require('./qgRpStatus').reconcile,first.guild);
   if(event===Events.MessageCreate){guarded(message,first);return true;}
-  if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred?first.editReply(p):first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
+  if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
-  if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
+  if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd)require('./qgInvites').joined(first);guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
   if(event===Events.VoiceStateUpdate){guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
@@ -294,6 +300,10 @@ function register(client){
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
+  await guarded(require('./qgInvites').start,guild);
+  const meetingTick=async()=>{await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
+  await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
+  setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
   await guarded(require('./qgSupportWorkspace').install,guild);

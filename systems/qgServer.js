@@ -286,7 +286,8 @@ function register(client){
  client.emit=function(event,...args){
   const first=args[0],guildId=first?.guildId||first?.guild?.id||first?.message?.guildId||args[1]?.guildId||args[1]?.guild?.id;
   if(guildId!==config.guildId)return emit.call(this,event,...args);
-  if(event===Events.ChannelCreate)guarded(require('./qgRpStatus').reconcile,first.guild);
+  if(event===Events.ChannelCreate){guarded(require('./qgRpStatus').reconcile,first.guild);guarded(require('./qgSeparatorPermissions').refresh,first);}
+  if(event===Events.ChannelUpdate)guarded(require('./qgSeparatorPermissions').refresh,args[1]);
   if(event===Events.MessageCreate){guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}

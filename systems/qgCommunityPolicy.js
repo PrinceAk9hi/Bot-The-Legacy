@@ -69,10 +69,35 @@ function hasMedia(m) {
     /https:\/\/(?:(?:www\.)?(?:tenor\.com|giphy\.com)\/\S+|\S+\.(?:gif|png|jpe?g|webp|mp4|webm)(?:\?\S*)?)/i.test(m.content||'');
 }
 const invitePattern=/(?:discord\s*\.\s*gg|discord(?:app)?\s*\.\s*com\s*\/\s*invite)\s*\/\s*[\w-]+/i;
+async function newcomerAttempt(guild,userId,content,reference){
+ if(guild.id!==config.guildId)return false;
+ const normalized=String(content||'').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'');
+ const domains=state().schoolCommunityPolicy?.blockedDomains||[];
+ const blockedLink=[...normalized.matchAll(/https?:\/\/[^\s<>]+/gi)].some(([url])=>{
+  try{const host=new URL(url).hostname.toLowerCase();return domains.some(d=>host===d||host.endsWith('.'+d));}catch{return false;}
+ });
+ const reason=/@(?:everyone|here)\b/i.test(normalized)?'tentative de mention générale':invitePattern.test(normalized)?'publication d’une invitation Discord':blockedLink?'lien figurant dans la liste de domaines interdits':null;
+ if(!reason)return false;
+ return locked('newcomer:'+userId,async()=>{
+  const member=await guild.members.fetch({user:userId,force:true}).catch(e=>{if(e.code===10007)return null;throw e;});
+  if(!member||exempt(member)||!member.joinedTimestamp||Date.now()-member.joinedTimestamp>=86400000)return false;
+  const previous=state().schoolNewcomerIncidents?.[userId];
+  if(previous?.joinedAt===member.joinedTimestamp&&['pending','kicked','review'].includes(previous.status))return true;
+  const rec={joinedAt:member.joinedTimestamp,at:Date.now(),reference,reason,status:'pending'};
+  save(s=>{s.schoolNewcomerIncidents||={};s.schoolNewcomerIncidents[userId]=rec;});
+  rec.dmSent=await member.send({embeds:[new EmbedBuilder().setColor(0xffffff).setTitle('Avertissement • QG').setDescription(`Motif détecté pendant tes premières 24 heures sur le serveur : ${reason}. Cette infraction entraîne ton exclusion du QG.`).setFooter({text:'Fondateur - QG'})],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
+  try{if(!member.kickable)throw Error('hierarchy');await member.kick(`Protection nouveaux membres : ${reason}`);rec.status='kicked';}
+  catch(e){rec.status='review';rec.errorCode=String(e.code||e.message).slice(0,80);}
+  save(s=>{s.schoolNewcomerIncidents[userId]=rec;});
+  await log(guild,'Protection des premières 24 heures',`Membre : ${userId}\nMotif : ${reason}\nRésultat : ${rec.status==='kicked'?'exclusion effectuée':'exclusion non confirmée, intervention du staff nécessaire'}\nAvertissement MP : ${rec.dmSent?'envoyé':'non remis'}\nRéférence : ${reference}`);
+  return true;
+ });
+}
 async function remove(m) { try {await m.delete();} catch(e){if(e.code!==10008)await log(m.guild,'Message non supprimé',`Salon : ${m.channelId}\nMessage : ${m.id}\nCode : ${e.code||e.name}`);} }
 async function thread(m,title) { return m.hasThread ? m.thread : m.startThread({name:title.slice(0,95),autoArchiveDuration:1440,reason:'Discussion communautaire QG'}); }
 async function message(m,edited=false) {
   if(m.guildId!==config.guildId||m.author?.bot||!m.author)return false;
+  if(await newcomerAttempt(m.guild,m.author.id,m.content,m.id)){await remove(m);return true;}
   const s=state(); if(!s.schoolCommunityPolicy?.enabled)return false;
   const member=m.member||await m.guild.members.fetch(m.author.id); const privileged=exempt(member,s);
   if(!privileged) {
@@ -144,4 +169,4 @@ async function apply(guild,client) {
     x.schoolCommunityPolicy={enabled:true,version:1,updatedAt:Date.now()};});
   return {channels:all.size};
 }
-module.exports={apply,message,reaction,expireBans,exempt,voiceDenied,readDenied,_test:{spam,hasMedia,invitePattern,sanction,bursts}};
+module.exports={apply,message,reaction,expireBans,exempt,newcomerAttempt,voiceDenied,readDenied,_test:{spam,hasMedia,invitePattern,sanction,bursts}};

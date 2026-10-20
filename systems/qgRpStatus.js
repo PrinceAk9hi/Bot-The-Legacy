@@ -26,7 +26,7 @@ async function restore(member,rec){
    const ch=await member.guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});
    if(ch){
     const now=snap(ch,member.id),allow=BigInt(now.allow),deny=BigInt(now.deny),ba=BigInt(before.allow),bd=BigInt(before.deny),patch={};
-    for(const key of restrictions){const bit=P[key];if(!bit)continue;
+    for(const key of (rec.restrictions||restrictions)){const bit=P[key];if(!bit)continue;
      // Preserve restrictions already present before prison, and later edits that differ from our denial.
      if((bd&bit)!==0n)continue;
      if((deny&bit)!==0n&&(allow&bit)===0n)patch[key]=(ba&bit)!==0n?true:null;
@@ -42,25 +42,25 @@ async function restore(member,rec){
  rec.conflicts=conflicts;
  if(errors.length)throw Error(`Libération partielle : ${errors.length} salon(s) à restaurer. Relance Libérer ; le suivi est conservé.`);
 }
-async function apply(member,kind,actor,reason,minutes=0){
+async function apply(member,kind,actor,reason,minutes=0,jail=null){
  if(!names[kind])throw Error('Statut inconnu.');if(status(member.id)[kind])throw Error('Ce statut est déjà actif.');
  if(kind==='prison'&&member.permissions.has(P.Administrator))throw Error('Discord ne permet pas de restreindre un administrateur par permissions de salons.');
  const bot=await member.guild.members.fetchMe();a.hierarchy(actor,member,bot);
  let list=[];
  if(kind==='prison'){
-  list=await channels(member.guild);
+  list=(await channels(member.guild)).filter(ch=>!jail||![jail.categoryId,jail.channelId].includes(ch.id));
   for(const ch of list)if(!ch.permissionsFor(bot)?.has([P.ViewChannel,P.ManageRoles])||!ch.permissionOverwrites.cache.has(member.id)&&ch.permissionOverwrites.cache.size>=100)throw Error('Le bot ne peut pas sécuriser tous les salons. Vérifie ses permissions et les limites des dérogations.');
   if(member.voice?.channelId&&!member.voice.channel.permissionsFor(bot)?.has(P.MoveMembers))throw Error('Le bot doit pouvoir déconnecter le membre du vocal.');
  }
  const role=await ensureRole(member.guild,kind);a.hierarchy(actor,member,bot,[role]);
  if(member.roles.cache.has(role.id))throw Error('Ce rôle est déjà présent sans dossier associé. Retire-le manuellement avant une nouvelle attribution.');
- const rec={roleId:role.id,reason,actorId:actor.id,createdAt:Date.now(),expiresAt:minutes?Date.now()+minutes*60000:null,state:'applying',channels:{}};
+ const rec={roleId:role.id,reason,actorId:actor.id,createdAt:Date.now(),expiresAt:minutes?Date.now()+minutes*60000:null,state:'applying',channels:{},jail,restrictions:jail?['ViewChannel','Connect']:restrictions};
  if(kind==='prison')for(const ch of list)rec.channels[ch.id]=snap(ch,member.id);
  persist(member.id,kind,rec);
  try{
   await member.roles.add(role.id,'Statut QG : '+reason.slice(0,350));
   if(kind==='prison'){
-   const patch=Object.fromEntries(restrictions.filter(k=>P[k]).map(k=>[k,false]));
+   const patch=Object.fromEntries((rec.restrictions||restrictions).filter(k=>P[k]).map(k=>[k,false]));
    for(const ch of list)await ch.permissionOverwrites.edit(member.id,patch,{reason:'Prison Discord QG : écriture et vocal bloqués'});
    if(member.voice?.channelId)await member.voice.disconnect('Prison Discord QG');
   }
@@ -74,6 +74,7 @@ async function apply(member,kind,actor,reason,minutes=0){
 async function release(member,kind){
  const rec=status(member.id)[kind];if(!rec)throw Error('Ce statut n’est pas actif.');
  rec.state='releasing';persist(member.id,kind,rec);if(kind==='prison')await restore(member,rec);
+ if(rec.jail){const ch=await member.guild.channels.fetch(rec.jail.channelId).catch(e=>{if(e.code===10003)return null;throw e;});if(ch)await ch.permissionOverwrites.delete(member.id,'Fin du jail');}
  await member.roles.remove(rec.roleId,'Fin du statut QG');persist(member.id,kind,null);return rec;
 }
 async function reconcile(guild){
@@ -87,10 +88,10 @@ async function reconcile(guild){
    if(rec.state!=='active'||rec.expiresAt&&rec.expiresAt<=Date.now()){
     await release(member,kind);await a.audit(guild,{action:'rp.expire.'+kind,actorId:guild.client.user.id,targetId:id,before:{status:kind},after:{status:'libéré'},reason:'Expiration ou reprise après interruption'});return;
    }
-   if(kind==='prison')for(const ch of await channels(guild))if(!rec.channels[ch.id]||rec.pendingChannels?.includes(ch.id)){
+   if(kind==='prison')for(const ch of await channels(guild))if((!rec.jail||![rec.jail.categoryId,rec.jail.channelId].includes(ch.id))&&(!rec.channels[ch.id]||rec.pendingChannels?.includes(ch.id))){
     rec.channels[ch.id] ||= snap(ch,id);
     rec.pendingChannels = [...new Set([...(rec.pendingChannels||[]),ch.id])];persist(id,kind,rec);
-    await ch.permissionOverwrites.edit(id,Object.fromEntries(restrictions.filter(k=>P[k]).map(k=>[k,false])),{reason:'Prison Discord : protection du nouveau salon'});
+    await ch.permissionOverwrites.edit(id,Object.fromEntries((rec.restrictions||restrictions).filter(k=>P[k]).map(k=>[k,false])),{reason:'Prison Discord : protection du nouveau salon'});
     rec.pendingChannels=rec.pendingChannels.filter(value=>value!==ch.id);persist(id,kind,rec);
    }
   }).catch(async()=>{await a.audit(guild,{action:'rp.reconcile.failed',actorId:guild.client.user.id,targetId:id,result:'failed',reason:'Restriction ou restauration incomplète ; nouvelle tentative au prochain passage.'});});

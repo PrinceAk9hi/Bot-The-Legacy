@@ -15,7 +15,7 @@ function view(actor,target,id){
  const metrics=require('./qgMemberMetrics').total(target.id),history=(a.state().schoolSanctions||[]).filter(s=>s.targetId===target.id);
  const duration=metrics?`${Math.floor(metrics.milliseconds/3600000)} h ${Math.floor(metrics.milliseconds/60000)%60} min (suivi depuis ${timestamp(metrics.measuredSince)})`:'Pas encore mesuré';
  const description=`**Membre :** <@${target.id}>\n**Identifiant :** \`${target.id}\`\n**Compte créé :** ${timestamp(target.user.createdTimestamp)}\n**Arrivée :** ${timestamp(target.joinedTimestamp)}\n**Vocal actuel :** ${target.voice.channelId?`<#${target.voice.channelId}>`:'Non connecté'}\n**Temps de présence vocale mesuré :** ${duration}\n**Invité par :** Non déterminé — aucune attribution fiable enregistrée.\n\n**Restrictions**\nPrison : ${rp.status(target.id).prison?'active':'inactive'}\nTimeout : ${target.communicationDisabledUntilTimestamp>Date.now()?timestamp(target.communicationDisabledUntilTimestamp):'aucun'}\n\n**Dernières sanctions conservées**\n${history.slice(-5).reverse().map(s=>`${timestamp(s.at)} • ${labels[s.action]} • ${s.result} • <@${s.actorId}>\n${clean(s.reason).slice(0,140)}`).join('\n')||'Aucune sanction enregistrée par /sp.'}`;
- return{embeds:[embed('Fiche joueur • '+clean(target.displayName).slice(0,80),description).setThumbnail(target.user.displayAvatarURL())],components:[new Row().addComponents(...Object.entries(labels).map(([action,label])=>new Button().setCustomId(`qgsp:choose:${id}:${action}`).setLabel(label).setStyle(action==='ban'?S.Danger:S.Secondary).setDisabled(!permitted(actor,action)||['tempjail','ban'].includes(action)))),new Row().addComponents(new Button().setCustomId(`qgsp:refresh:${id}`).setLabel('Actualiser').setStyle(S.Primary))],allowedMentions:{parse:[]}};
+ return{embeds:[embed('Fiche joueur • '+clean(target.displayName).slice(0,80),description).setThumbnail(target.user.displayAvatarURL())],components:[new Row().addComponents(...Object.entries(labels).map(([action,label])=>new Button().setCustomId(`qgsp:choose:${id}:${action}`).setLabel(label).setStyle(action==='ban'?S.Danger:S.Secondary).setDisabled(!permitted(actor,action)))),new Row().addComponents(new Button().setCustomId(`qgsp:refresh:${id}`).setLabel('Actualiser').setStyle(S.Primary))],allowedMentions:{parse:[]}};
 }
 async function execute(i){await i.deferReply({flags:F.Ephemeral});try{
  if(i.guildId!==config.guildId)throw Error('Commande réservée au QG.');const actor=await i.guild.members.fetch({user:i.user.id,force:true});if(!permitted(actor))throw Error('Accès réservé à la Gestion Support.');
@@ -24,7 +24,7 @@ async function execute(i){await i.deferReply({flags:F.Ephemeral});try{
  }catch(e){return i.editReply(e.code?'Membre indisponible ou accès insuffisant.':e.message);}}
 async function check(i,ctx,action){
  if(!permitted(ctx.actor,action))throw Error('Action non autorisée.');
- if(!labels[action]||['tempjail','ban'].includes(action))throw Error('Cette action attend la définition de tempjail et des responsables autorisés à bannir.');
+ if(!labels[action])throw Error('Action inconnue.');
  const bot=await i.guild.members.fetchMe();a.hierarchy(ctx.actor,ctx.target,bot);
  if(action==='tempmute'&&(!ctx.target.moderatable||!bot.permissions.has(P.ModerateMembers)))throw Error('Ce membre ne peut pas être mis en timeout par le bot.');
  if(action==='ban'&&(!ctx.target.bannable||!bot.permissions.has(P.BanMembers)))throw Error('Ce membre ne peut pas être banni par le bot.');
@@ -53,6 +53,7 @@ async function handle(i){try{
   const entry={id:randomUUID(),at:Date.now(),targetId:fresh.target.id,actorId:fresh.actor.id,...pending,result:'pending'};delete entry.nonce;
   a.save(s=>{s.schoolSanctions||=[];s.schoolSanctions.push(entry);s.schoolSanctions=s.schoolSanctions.slice(-5000);});
   let error=null;try{
+   if(pending.action==='tempjail')await require('./qgJail').apply(fresh.target,fresh.actor,pending.reason,pending.minutes);
    if(pending.action==='tempprison')await rp.apply(fresh.target,'prison',fresh.actor,pending.reason,pending.minutes);
    if(pending.action==='tempmute')await fresh.target.timeout(pending.minutes*60000,pending.reason);
    if(pending.action==='ban')await fresh.target.ban({reason:pending.reason,deleteMessageSeconds:0});

@@ -32,13 +32,23 @@ async function authorized(i){
  if(!bot.permissions.has([P.ManageRoles,P.ManageChannels]))throw Error('Le bot doit gérer les rôles et les salons.');
 }
 async function plan(guild){
- await guild.roles.fetch();const all=await guild.channels.fetch(),result=[];
+ await separators.resolveExisting(guild);const all=await guild.channels.fetch(),result=[];
  for(const ch of all.values()){
   if(!ch?.permissionOverwrites||ch.isThread())continue;
   const before=snapshot(ch),after=converted(ch);
   if(signature(before)!==signature(after))result.push({id:ch.id,name:ch.name,before:signature(before),after});
  }
  return result;
+}
+async function associate(i){
+ await i.deferReply({flags:F.Ephemeral});await authorized(i);
+ const key=i.options.getString('section',true),selected=i.options.getRole('role',true);
+ if(!separators.groups[key])throw Error('Section inconnue.');
+ const role=await i.guild.roles.fetch(selected.id),r=a.state().schoolRoles||{};
+ if(!role||role.managed||role.id===i.guild.id||!role.editable||role.permissions.bitfield!==0n)throw Error('Choisis un séparateur existant sans permissions globales, placé sous le bot. Ses permissions de salon sont conservées.');
+ if(Object.entries(r).some(([k,id])=>id===role.id&&((k.startsWith('divider')&&k!==key)||(!k.startsWith('divider')&&!k.startsWith('separator')))))throw Error('Ce rôle est déjà associé à une autre section ou à une fonction métier.');
+ a.save(s=>{s.schoolRoles||={};s.schoolRoles[key]=role.id;});
+ return i.editReply({embeds:[embed('Séparateur existant associé',`**${separators.labels[key]}** utilise désormais <@&${role.id}>.\nAucun rôle créé, renommé ou supprimé.\nRelance \`/sync separateurs\` pour prévisualiser puis appliquer les accès.`)],allowedMentions:{parse:[]}});
 }
 async function execute(i){
  await i.deferReply({flags:F.Ephemeral});await authorized(i);
@@ -76,4 +86,4 @@ async function refresh(ch){
   if(signature(snapshot(ch))!==signature(after))await ch.permissionOverwrites.set(after,'Maintien des permissions par séparateurs QG');
  });
 }
-module.exports={execute,confirm,refresh};
+module.exports={execute,confirm,refresh,associate};

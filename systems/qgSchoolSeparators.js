@@ -1,5 +1,5 @@
 const { PermissionFlagsBits: P } = require('discord.js');
-const { read } = require('../utils/recruitmentData');
+const { read, update } = require('../utils/recruitmentData');
 const config = require('../config/qg');
 const layout = require('../config/qgSchoolLayout');
 
@@ -19,6 +19,38 @@ const serial = (key, fn) => {
   return next;
 };
 const schoolRoles = () => read('qgServer').schoolRoles || {};
+const labels={dividerFoundation:'Fondation',dividerDirection:'Direction',dividerResponsibles:'Responsables',dividerManagement:'Gestions',dividerFamily:'Famille',dividerCommunity:'Communauté'};
+const aliases={dividerFoundation:['separatorFoundation'],dividerResponsibles:['separatorResponsibility'],dividerManagement:['separatorManagement']};
+const names={dividerFoundation:['fondation'],dividerDirection:['direction'],dividerResponsibles:['responsables','responsabilite','responsabilites'],dividerManagement:['gestion','gestions'],dividerFamily:['famille'],dividerCommunity:['communaute','communautaire']};
+function normalize(name){
+ return String(name).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+  .replace(/^[a-z]\s*\/\s*/,'').replace(/[^a-z]/g,'');
+}
+async function resolveExisting(guild,{fetch=true}={}){
+ if(guild.id!==config.guildId)throw Error('Serveur incorrect.');
+ if(fetch)await guild.roles.fetch();
+ const roles={...schoolRoles()},used=new Set(),reserved=new Set(Object.values(groups).flat().map(k=>roles[k]).filter(Boolean));
+ const changes={},missing=[];
+ for(const key of Object.keys(groups)){
+  let role=guild.roles.cache.get(roles[key]);
+  if(!role){
+   const candidates=new Map();
+   for(const alias of aliases[key]||[]){
+    const r=guild.roles.cache.get(roles[alias]);if(r)candidates.set(r.id,r);
+   }
+   for(const r of guild.roles.cache.values())if(names[key].includes(normalize(r.name)))candidates.set(r.id,r);
+   const valid=[...candidates.values()].filter(r=>!r.managed&&r.id!==guild.id&&!reserved.has(r.id)&&!used.has(r.id));
+   if(valid.length>1)throw Error(`Plusieurs séparateurs ${labels[key]} existent : ${valid.map(r=>`${r.name} (${r.id})`).join(', ')}. Choisis le bon avec /sync associer-separateur.`);
+   role=valid[0];
+  }
+  if(!role){missing.push(labels[key]);continue;}
+  if(role.managed||role.id===guild.id||reserved.has(role.id)||used.has(role.id))throw Error(`Association invalide pour ${labels[key]}. Utilise /sync associer-separateur avec son rôle séparateur existant.`);
+  used.add(role.id);
+  if(roles[key]!==role.id){roles[key]=role.id;changes[key]=role.id;}
+ }
+ if(Object.keys(changes).length)update('qgServer',s=>{s.schoolRoles||={};Object.assign(s.schoolRoles,changes);});
+ return {roles,missing};
+}
 
 function desiredSeparatorIds(member, roles = schoolRoles()) {
   const held = member.roles.cache;
@@ -29,7 +61,8 @@ function desiredSeparatorIds(member, roles = schoolRoles()) {
 async function syncMember(member) {
   if (!member || member.user?.bot || member.guild.id !== config.guildId) return { added: 0, removed: 0 };
   return serial(member.id, async () => {
-    const roles = schoolRoles();
+    let roles = schoolRoles();
+    if(Object.keys(groups).some(k=>!roles[k]||!member.guild.roles.cache.has(roles[k])))roles=(await resolveExisting(member.guild,{fetch:false})).roles;
     const wanted = new Set(desiredSeparatorIds(member, roles));
     const separatorIds = Object.keys(groups).map(key => roles[key]).filter(Boolean);
     const current = new Set(separatorIds.filter(id => member.roles.cache.has(id)));
@@ -45,9 +78,8 @@ async function syncMember(member) {
 
 async function syncGuild(guild) {
   if (guild.id !== config.guildId) throw new Error('Synchronisation réservée au serveur QG configuré.');
-  const roles = schoolRoles();
-  const missing = Object.keys(groups).filter(key => !roles[key] || !guild.roles.cache.has(roles[key]));
-  if (missing.length) throw new Error(`Rôles séparateurs manquants : ${missing.join(', ')}. La mise à jour ne recrée plus les rôles ; vérifie la configuration des séparateurs.`);
+  const {roles,missing}=await resolveExisting(guild);
+  if (missing.length) throw new Error(`Séparateurs existants à associer : ${missing.join(', ')}. Utilise /sync associer-separateur pour sélectionner tes rôles actuels. Aucun rôle ne sera créé.`);
   const me = await guild.members.fetchMe();
   if (!me.permissions.has(P.ManageRoles)) throw new Error('Le bot doit avoir Gérer les rôles.');
   for (const key of Object.keys(groups)) {
@@ -65,4 +97,4 @@ async function syncGuild(guild) {
   return { members: processed, added, removed };
 }
 
-module.exports = { groups, desiredSeparatorIds, syncMember, syncGuild };
+module.exports = { groups, labels, resolveExisting, desiredSeparatorIds, syncMember, syncGuild };

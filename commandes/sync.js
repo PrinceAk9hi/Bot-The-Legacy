@@ -30,11 +30,15 @@ module.exports = {
   data: new SlashCommandBuilder().setName('sync').setDescription('Copier les permissions entre une catégorie et ses salons')
     .setDMPermission(false).setDefaultMemberPermissions(P.ManageChannels | P.ManageRoles)
     .addSubcommand(s=>s.setName('separateurs').setDescription('Migrer les accès communs vers les rôles séparateurs'))
+    .addSubcommand(s=>s.setName('associer-separateur').setDescription('Associer un rôle séparateur déjà existant')
+      .addStringOption(o=>o.setName('section').setDescription('Section du séparateur').setRequired(true).addChoices(...Object.entries(require('../systems/qgSchoolSeparators').labels).map(([value,name])=>({name,value}))))
+      .addRoleOption(o=>o.setName('role').setDescription('Rôle séparateur actuel à utiliser').setRequired(true)))
     .addSubcommand(s=>s.setName('categorie-vers-salons').setDescription('Appliquer les permissions de la catégorie à tous ses salons')
       .addChannelOption(o=>o.setName('categorie').setDescription('Catégorie source').addChannelTypes(ChannelType.GuildCategory).setRequired(true)))
     .addSubcommand(s=>s.setName('salon-vers-categorie').setDescription('Copier les permissions d’un salon vers sa catégorie')
       .addChannelOption(o=>o.setName('salon').setDescription('Salon source dans la catégorie à modifier').addChannelTypes(ChannelType.GuildText,ChannelType.GuildVoice,ChannelType.GuildAnnouncement,ChannelType.GuildStageVoice,ChannelType.GuildForum,ChannelType.GuildMedia).setRequired(true))),
   async execute(i) {
+    if(i.options.getSubcommand()==='associer-separateur')return require('../systems/qgSeparatorPermissions').associate(i);
     if(i.options.getSubcommand()==='separateurs')return require('../systems/qgSeparatorPermissions').execute(i);
     await i.deferReply({flags:MessageFlags.Ephemeral});
     try {

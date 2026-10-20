@@ -36,46 +36,23 @@ async function beginFamilyRecruitment(i) {
   if (!verifiedForRecruitment(member)) return i.editReply(verificationRequired());
   if (inFamily(member)) return i.editReply('Tu fais déjà partie de la famille. Utilise le panel des gestions pour rejoindre une équipe.');
   const active = state().schoolFamilyRecruitment || {};
-  if (active[i.user.id] && ['in_progress', 'submitted', 'in_review'].includes(active[i.user.id].status)) return i.editReply('Tu as déjà une candidature active. Vérifie tes MP ou le suivi fourni par l’équipe.');
+  if (active[i.user.id] && ['in_progress', 'submitted', 'in_review', 'waiting_interview'].includes(active[i.user.id].status)) return i.editReply('Tu as déjà une candidature active. Vérifie tes MP ou le suivi fourni par l’équipe.');
   if (!require('./qgRecruitmentControl').status().open) return i.editReply(require('./qgRecruitmentControl').CLOSED);
   const dm = await i.user.createDM().catch(() => null);
   if (!dm) return i.editReply('Je ne peux pas t’envoyer de MP. Active les messages privés du serveur et réessaie.');
   if (!require('./qgRecruitmentControl').status().open) return i.editReply(require('./qgRecruitmentControl').CLOSED);
-  const app = { applicantId: i.user.id, status: 'in_progress', step: 0, answers: [], createdAt: Date.now(), guildId: i.guildId };
+  const app = { applicantId: i.user.id, status: 'in_progress', step: 0, answers: [], answerDurations: [], questionStartedAt: Date.now(), createdAt: Date.now(), guildId: i.guildId };
   save(s => { s.schoolFamilyRecruitment ||= {}; s.schoolFamilyRecruitment[i.user.id] = app; });
   await dm.send({ embeds: [embed('Candidature famille • 1/10', require('../config/qgFamily').conditions + '\n\n' + familyQuestions[0] + '\n\nRéponds directement à ce message. Écris `annuler` pour arrêter la candidature.')] });
   return i.editReply('📩 Je t’ai envoyé la première question en message privé.');
 }
 
 async function submitFamily(memberId, app, client) {
-  const { roles, channels, categories } = ids();
-  const guild = await client.guilds.fetch(config.guildId);
-  const candidate = await guild.members.fetch(memberId);
-  if (!verifiedForRecruitment(candidate)) throw new Error(verificationRequired());
-  const targetRole = roles.recruitmentManagement, lead = roles.recruitmentLead;
-  if (!targetRole || !channels.candidateReception) throw new Error('L’installation des salons de candidature est incomplète.');
-  const user = await client.users.fetch(memberId);
-  const ch = await guild.channels.create({
-    name: `candidature-famille-${user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 90),
-    type: 0, parent: categories.managementPlus, topic: `qgs-family-application:${memberId}`,
-    permissionOverwrites: [
-      { id: guild.id, deny: [P.ViewChannel] }, { id: client.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.EmbedLinks, P.ManageChannels] },
-      { id: memberId, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] },
-      { id: targetRole, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] },
-      ...(lead ? [{ id: lead, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }] : [])
-    ]
-  });
-  const body = familyQuestions.map((q, n) => `**${n + 1}. ${q}**\n${trim(app.answers[n]) || '—'}`).join('\n\n');
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`qgs:family-decision:${memberId}:accept`).setLabel('Accepter').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`qgs:family-decision:${memberId}:refuse`).setLabel('Refuser').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`qgs:family-decision:${memberId}:interview`).setLabel('Entretien').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`qgs:family-decision:${memberId}:details`).setLabel('Précisions').setStyle(ButtonStyle.Secondary)
-  );
-  await ch.send({ embeds: [embed('Nouvelle candidature famille', `Candidate : <@${memberId}>\n${body}`)], components: [row], allowedMentions: { parse: [], users: [memberId] } });
-  app.status = 'submitted'; app.channelId = ch.id; app.submittedAt = Date.now();
-  save(s => { s.schoolFamilyRecruitment[memberId] = app; });
-  await user.send('✅ Ta candidature a été transmise à la Gestion Recrutement. Une décision sera communiquée ici.').catch(() => {});
+ const guild = await client.guilds.fetch(config.guildId);
+ const candidate = await guild.members.fetch(memberId);
+ if (!verifiedForRecruitment(candidate)) throw new Error(verificationRequired());
+ await require('./qgInterviews').submitApplication(guild, app);
+ await candidate.send('Ta candidature a été transmise à la Gestion Recrutement. La décision écrite précède l’entretien oral.').catch(() => {});
 }
 
 async function beginManagementApplication(i) {
@@ -154,6 +131,7 @@ async function decisionInternal(i) {
 }
 
 async function handle(i) {
+ if (i.customId?.startsWith('qgs:family-decision:')) return require('./qgInterviews').legacy(i);
   if (i.isModalSubmit() && i.customId.startsWith('qgs:management-modal:')) return submitManagement(i, i.customId.split(':')[2]);
   if (i.isButton() && (i.customId.startsWith('qgs:management-decision:') || i.customId.startsWith('qgs:family-decision:'))) return decision(i);
   if (!i.isModalSubmit() && !i.isButton()) return false;
@@ -171,6 +149,9 @@ async function directMessage(message) {
   if (!member || !verifiedForRecruitment(member)) { await message.reply(verificationRequired()); return true; }
   if (!text && !message.attachments.size) return message.reply('Envoie une réponse écrite pour continuer.');
   app.answers[app.step] = (text || '[Pièce jointe fournie]').slice(0, 1500);
+  app.answerDurations ||= [];
+  app.answerDurations[app.step] = app.questionStartedAt ? Math.max(0, Date.now() - app.questionStartedAt) : null;
+  app.questionStartedAt = Date.now();
   app.step++;
   if (app.step >= familyQuestions.length) {
     app.status = 'submitted';

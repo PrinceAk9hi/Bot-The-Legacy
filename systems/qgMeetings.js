@@ -67,15 +67,41 @@ async function eventAndAccess(guild,r){
    }catch(error){save(r.id,p=>{p.status='event_uncertain';});throw error;}
   }
  }
- await channel.permissionOverwrites.edit(familyRole,{ViewChannel:true}, {reason:'Accès familial à la réunion QG'});
+ if(Date.now()<r.start&&!Object.values(a.state().schoolMeetings||{}).some(x=>x.openedAt&&!x.closedAt&&x.status!=='cancelled'&&Date.now()<x.start+x.duration*60000)){
+  for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+   const ch=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});
+   if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Accès réservé à l’heure programmée de réunion'});
+  }
+ }
+ return r;
+}
+async function openMeeting(guild,r){
+ if(Date.now()<r.start||r.status==='cancelled')return r;
+ const channel=await guild.channels.fetch(voiceId);
+ await channel.permissionOverwrites.edit(familyRole,{ViewChannel:true}, {reason:'Ouverture programmée de la réunion QG'});
  let discussion=a.state().schoolChannels?.meetingChat&&await guild.channels.fetch(a.state().schoolChannels.meetingChat).catch(()=>null);
  if(!discussion){await guild.channels.fetch();discussion=guild.channels.cache.find(c=>c.type===CT.GuildText&&c.parentId===channel.parentId&&c.name==='🖋️・discu-réunion');}
  if(!discussion){const roles=a.state().schoolRoles||{};discussion=await guild.channels.create({name:'🖋️・discu-réunion',type:CT.GuildText,parent:channel.parentId||undefined,permissionOverwrites:[{id:guild.id,deny:[P.ViewChannel]},{id:familyRole,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory]},{id:guild.client.user.id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory]},...['creator','globalManager','administrator'].map(k=>roles[k]).filter(Boolean).map(id=>({id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory]}))],reason:'Discussion des réunions QG'});}
  a.save(s=>{s.schoolChannels||={};s.schoolChannels.meetingChat=discussion.id;});
- return save(r.id,p=>{p.accessReady=true;});
+ await discussion.permissionOverwrites.edit(familyRole,{ViewChannel:true,SendMessages:true,ReadMessageHistory:true},{reason:'Ouverture programmée de la discussion de réunion'});
+ r=save(r.id,p=>{p.accessReady=true;p.openedAt||=Date.now();});
+ if(!r.announcementId){
+  const ch=await guild.channels.fetch('1561157213160996866'),marker=`Réunion ${r.id}`;
+  let message;
+  if(r.announcementPending){
+   const recent=await ch.messages.fetch({limit:100});
+   message=recent.find(m=>m.author.id===guild.client.user.id&&m.embeds.some(e=>e.footer?.text?.includes(marker)));
+   if(!message)throw Error('Annonce de réunion incertaine : vérification manuelle nécessaire dans le salon d’annonces.');
+  }else{
+   save(r.id,p=>{p.announcementPending=true;});
+   message=await ch.send({embeds:[embed('📅 La réunion du QG commence',`**${clean(r.name)}**\n${clean(r.description||'')}\nRejoignez <#${voiceId}>. Discussion : <#${discussion.id}>.\nDurée prévue : ${r.duration} minutes.`).setFooter({text:`Fondateur - QG • ${marker}`})],allowedMentions:{parse:[]}});
+  }
+  r=save(r.id,p=>{p.announcementId=message.id;p.announcementPending=false;});
+ }
+ return r;
 }
 async function prepare(guild,r){
- if(r.status!=='waiting'||!r.accessReady||Date.now()<r.prepareAt)return r;
+ if(r.status!=='waiting'||!r.eventId||Date.now()<r.prepareAt)return r;
  const members=await guild.members.fetch(),panel=require('./qgUserPanel');
  const roster=[...members.values()].filter(m=>!m.user.bot&&require('./qgWeeklyReport').family(m)).map(m=>{let grade;try{grade=panel.rank(m)||'aucun grade';}catch{grade='grades multiples';}return{id:m.id,grade};});
  return save(r.id,p=>{p.roster=roster;p.status='draft';});
@@ -133,7 +159,33 @@ async function handle(i){
   return i.editReply(render(r));
  });
 }
-async function tick(guild){for(const r of Object.values(a.state().schoolMeetings||{}))if(r.status==='waiting'&&Date.now()>=r.prepareAt)await a.serial('meeting:'+r.id,async()=>{
+async function tick(guild){
+ for(const snapshot of Object.values(a.state().schoolMeetings||{})){
+  if(!snapshot.eventId||snapshot.status==='cancelled')continue;
+  await a.serial('meeting:'+snapshot.id,async()=>{
+   const r=get(snapshot.id);
+   if(r.start>Date.now()&&r.accessReady&&!r.openedAt){
+    const active=Object.values(a.state().schoolMeetings||{}).some(x=>x.openedAt&&x.status!=='cancelled'&&x.start+x.duration*60000>Date.now());
+    if(!active){
+     for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+      const ch=await guild.channels.fetch(id).catch(()=>null);
+      if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Attente de l’heure programmée'});
+     }
+     save(r.id,p=>{p.accessReady=false;});
+    }
+   }
+   if(Date.now()>=r.start&&Date.now()<r.start+r.duration*60000&&!r.announcementId)await openMeeting(guild,r);
+   if(r.openedAt&&!r.closedAt&&Date.now()>=r.start+r.duration*60000){
+    const otherActive=Object.values(a.state().schoolMeetings||{}).some(x=>x.id!==r.id&&x.openedAt&&!x.closedAt&&x.status!=='cancelled'&&Date.now()<x.start+x.duration*60000);
+    if(!otherActive)for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+     const ch=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});
+     if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Fin du créneau de réunion'});
+    }
+    save(r.id,p=>{p.closedAt=Date.now();});
+   }
+  });
+ }
+ for(const r of Object.values(a.state().schoolMeetings||{}))if(r.status==='waiting'&&Date.now()>=r.prepareAt)await a.serial('meeting:'+r.id,async()=>{
  const prepared=await prepare(guild,get(r.id));if(prepared.status==='draft'){
   const ch=await require('./qgWeeklyReport').destination(guild);
   await ch.send({embeds:[embed('Préparation de réunion ouverte',`**${prepared.name}**\nUtilise \`/réunion reunion:${prepared.id}\` pour préparer les notes et les décisions.\nRien ne sera appliqué avant \`/notesmp\`.`)],allowedMentions:{parse:[]}});

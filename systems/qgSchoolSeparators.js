@@ -4,7 +4,7 @@ const config = require('../config/qg');
 const layout = require('../config/qgSchoolLayout');
 
 const groups = {
-  dividerFoundation: ['creator'],
+  // Le rôle Directeur / Fondateur conserve ses accès directs, sans séparateur.
   dividerDirection: ['globalManager', 'administrator'],
   dividerResponsibles: layout.leads,
   dividerManagement: layout.managers,
@@ -19,9 +19,9 @@ const serial = (key, fn) => {
   return next;
 };
 const schoolRoles = () => read('qgServer').schoolRoles || {};
-const labels={dividerFoundation:'Fondation',dividerDirection:'Direction',dividerResponsibles:'Responsables',dividerManagement:'Gestions',dividerFamily:'Famille',dividerCommunity:'Communauté'};
-const aliases={dividerFoundation:['separatorFoundation'],dividerResponsibles:['separatorResponsibility'],dividerManagement:['separatorManagement']};
-const names={dividerFoundation:['fondation'],dividerDirection:['direction'],dividerResponsibles:['responsables','responsabilite','responsabilites'],dividerManagement:['gestion','gestions'],dividerFamily:['famille'],dividerCommunity:['communaute','communautaire']};
+const labels={dividerDirection:'Direction',dividerResponsibles:'Responsables',dividerManagement:'Gestions',dividerFamily:'Famille',dividerCommunity:'Communauté'};
+const aliases={dividerResponsibles:['separatorResponsibility'],dividerManagement:['separatorManagement']};
+const names={dividerDirection:['direction'],dividerResponsibles:['responsables','responsabilite','responsabilites'],dividerManagement:['gestion','gestions'],dividerFamily:['famille'],dividerCommunity:['communaute','communautaire']};
 function normalize(name){
  return String(name).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
   .replace(/^[a-z]\s*\/\s*/,'').replace(/[^a-z]/g,'');
@@ -29,7 +29,7 @@ function normalize(name){
 async function resolveExisting(guild,{fetch=true}={}){
  if(guild.id!==config.guildId)throw Error('Serveur incorrect.');
  if(fetch)await guild.roles.fetch();
- const roles={...schoolRoles()},used=new Set(),reserved=new Set(Object.values(groups).flat().map(k=>roles[k]).filter(Boolean));
+ const roles={...schoolRoles()},used=new Set(),reserved=new Set(['creator',...Object.values(groups).flat()].map(k=>roles[k]).filter(Boolean));
  const changes={},missing=[];
  for(const key of Object.keys(groups)){
   let role=guild.roles.cache.get(roles[key]);

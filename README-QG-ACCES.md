@@ -24,9 +24,11 @@ Les incidents sont enregistrés dans `schoolNewcomerIncidents`, sans recopier le
 
 Utiliser `/sync separateurs`, examiner la prévisualisation, puis confirmer.
 
-Les identifiants des séparateurs sont d’abord vérifiés après actualisation des rôles Discord. Si une référence est absente ou supprimée, le bot recherche les rôles existants correspondant à Fondation, Direction, Responsables, Gestions, Famille et Communauté, en ignorant les décorations usuelles. Les anciennes références de séparateurs sont également prises en compte. Un résultat unique est enregistré dans la configuration, sans création ni renommage.
+Les identifiants des séparateurs sont d’abord vérifiés après actualisation des rôles Discord. Si une référence est absente ou supprimée, le bot recherche les rôles existants correspondant à Direction, Responsables, Gestions, Famille et Communauté, en ignorant les décorations usuelles. Les anciennes références de séparateurs sont également prises en compte. Un résultat unique est enregistré dans la configuration, sans création ni renommage.
 
-Pour un nom personnalisé non reconnu ou plusieurs correspondances, utiliser `/sync associer-separateur section:Fondation role:@votre-séparateur`, puis relancer `/sync separateurs`. L’association est réservée à la direction ; le rôle doit être un séparateur sans permissions globales, modifiable par le bot et non affecté à une autre fonction. Les permissions de salon du rôle restent intactes.
+Pour un nom personnalisé non reconnu ou plusieurs correspondances, utiliser `/sync associer-separateur section:Famille role:@votre-séparateur`, puis relancer `/sync separateurs`. L’association est réservée à la direction ; le rôle doit être un séparateur sans permissions globales, modifiable par le bot et non affecté à une autre fonction. Les permissions de salon du rôle restent intactes.
+
+Le rôle Directeur / Fondateur conserve ses permissions directes : aucun séparateur Fondation n’est recherché, exigé, attribué ou proposé à l’association. Les anciennes références éventuelles restent conservées dans le stockage, sans être utilisées par la migration. Les séparateurs Direction des Gérant Global / Administrateur et des autres groupes restent en place.
 
 La commande synchronise d’abord les membres, puis remplace les entrées de permissions identiques de chaque groupe par son séparateur correspondant. Aucun rôle n’est créé ou supprimé.
 

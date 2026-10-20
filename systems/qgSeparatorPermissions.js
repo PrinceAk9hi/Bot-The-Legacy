@@ -32,7 +32,9 @@ async function authorized(i){
  if(!bot.permissions.has([P.ManageRoles,P.ManageChannels]))throw Error('Le bot doit gérer les rôles et les salons.');
 }
 async function plan(guild){
- await separators.resolveExisting(guild);const all=await guild.channels.fetch(),result=[];
+ const {missing}=await separators.resolveExisting(guild);
+ if(missing.length)throw Error(`Séparateurs existants à associer : ${missing.join(', ')}. Utilise /sync associer-separateur. Le Fondateur conserve ses droits directs et ne nécessite aucun séparateur.`);
+ const all=await guild.channels.fetch(),result=[];
  for(const ch of all.values()){
   if(!ch?.permissionOverwrites||ch.isThread())continue;
   const before=snapshot(ch),after=converted(ch);
@@ -43,6 +45,7 @@ async function plan(guild){
 async function associate(i){
  await i.deferReply({flags:F.Ephemeral});await authorized(i);
  const key=i.options.getString('section',true),selected=i.options.getRole('role',true);
+ if(key==='dividerFoundation')throw Error('Le rôle Directeur / Fondateur conserve ses permissions directes. Aucune association Fondation n’est nécessaire ; relance /sync separateurs.');
  if(!separators.groups[key])throw Error('Section inconnue.');
  const role=await i.guild.roles.fetch(selected.id),r=a.state().schoolRoles||{};
  if(!role||role.managed||role.id===i.guild.id||!role.editable||role.permissions.bitfield!==0n)throw Error('Choisis un séparateur existant sans permissions globales, placé sous le bot. Ses permissions de salon sont conservées.');

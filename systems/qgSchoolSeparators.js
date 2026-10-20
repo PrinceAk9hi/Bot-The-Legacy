@@ -97,7 +97,7 @@ async function syncGuild(guild) {
     if (!role || !role.editable) throw new Error(`Le rôle ${key} n’est pas modifiable. Place le rôle du bot au-dessus des séparateurs.`);
     if (role.permissions.bitfield !== 0n) throw new Error(`Le séparateur ${role.name} possède des permissions : corrige-les avant de le synchroniser.`);
   }
-  const members = await guild.members.fetch();
+  const members = await require('../utils/qgMembers')(guild);
   let added = 0, removed = 0, processed = 0;
   for (const member of members.values()) {
     if (member.user.bot) continue;

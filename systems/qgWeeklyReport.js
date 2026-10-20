@@ -2,7 +2,7 @@ const a=require('../utils/qgAdmin'),metrics=require('./qgMemberMetrics'),{embed}
 const {parseParis}=require('../utils/convocationTime');
 const family=member=>member.roles.cache.has('1561363081018474626')||require('./qgSchoolFamily')._test.family(member);
 async function rows(guild,end=Date.now(),previous=false){
- const members=await guild.members.fetch();return[...members.values()].filter(m=>!m.user.bot&&family(m)).sort((a,b)=>a.displayName.localeCompare(b.displayName)).map(m=>{
+ const members=await require('../utils/qgMembers')(guild);return[...members.values()].filter(m=>!m.user.bot&&family(m)).sort((a,b)=>a.displayName.localeCompare(b.displayName)).map(m=>{
   const activity=metrics.week(m.id,end,previous),rank=metrics.lastRankup(m.id);
   let grade;try{grade=require('./qgUserPanel').rank(m)||'aucun grade enregistré';}catch{grade='grades multiples à corriger';}
   return{ id:m.id,name:m.displayName,voiceMs:activity.voiceMs,messages:activity.messages,lastRankup:rank,grade };

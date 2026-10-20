@@ -120,7 +120,7 @@ async function decisionInternal(i) {
     if (!roles[team]) throw new Error(`Le rôle ${teamLabels[team]} n’est pas configuré.`);
     if(!inFamily(candidate))throw Error('Ce candidat ne fait plus partie de la famille.');
     require('../utils/qgAdmin').hierarchy(reviewer,candidate,await i.guild.members.fetchMe(),[await i.guild.roles.fetch(roles[team])]);
-    const members = await i.guild.members.fetch();
+    const members = await require('../utils/qgMembers')(i.guild);
     const occupied = [...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(roles[team])&&!m.roles.cache.has(roles[managerFor[team]])).length;
     if (occupied >= 2 && !candidate.roles.cache.has(roles[team])) return i.followUp({content:'Cette gestion possède déjà ses deux membres (hors responsable). Libère une place avant de valider.',flags:MessageFlags.Ephemeral});
     if (!candidate.roles.cache.has(roles[team])) await candidate.roles.add(roles[team], `Candidature acceptée : ${teamLabels[team]}`);

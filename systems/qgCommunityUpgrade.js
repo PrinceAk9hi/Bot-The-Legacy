@@ -60,7 +60,7 @@ async function deliver(guild,key,channelId,payload,privateOnly=false){
 async function roster(guild){
  const id=a.state().schoolChannels?.familyRoster;if(!id)return;
  const ch=await guild.channels.fetch(id);if(!ch?.isTextBased())return;
- const members=await guild.members.fetch(),r=a.state().schoolRoles||{};
+ const members=await require('../utils/qgMembers')(guild),r=a.state().schoolRoles||{};
  const list=[...members.values()].filter(m=>!m.user.bot&&family(m)).sort((x,y)=>{
   const rank=m=>familyKeys.reduce((n,k,j)=>m.roles.cache.has(r[k])?j:n,-1);return rank(y)-rank(x)||x.displayName.localeCompare(y.displayName,'fr');
  });

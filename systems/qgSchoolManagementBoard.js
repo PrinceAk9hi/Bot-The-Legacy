@@ -21,7 +21,7 @@ function displayDate(record) {
 
 async function buildPanel(guild) {
   if (guild.id !== config.guildId) throw new Error('Le tableau des gestions est réservé au QG.');
-  await guild.members.fetch();
+  await require('../utils/qgMembers')(guild);
   const roles = state().schoolRoles || {};
   const now = Date.now();
   store(s => {

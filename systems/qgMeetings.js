@@ -102,7 +102,7 @@ async function openMeeting(guild,r){
 }
 async function prepare(guild,r){
  if(r.status!=='waiting'||!r.eventId||Date.now()<r.prepareAt)return r;
- const members=await guild.members.fetch(),panel=require('./qgUserPanel');
+ const members=await require('../utils/qgMembers')(guild),panel=require('./qgUserPanel');
  const roster=[...members.values()].filter(m=>!m.user.bot&&require('./qgWeeklyReport').family(m)).map(m=>{let grade;try{grade=panel.rank(m)||'aucun grade';}catch{grade='grades multiples';}return{id:m.id,grade};});
  return save(r.id,p=>{p.roster=roster;p.status='draft';});
 }

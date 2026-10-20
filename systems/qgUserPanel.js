@@ -75,7 +75,7 @@ async function confirm(i,id,nonce){return a.serial('member:'+session(i,id).targe
   a.hierarchy(actor,member,bot,separatorRoles);
  }
  if(checked.action==='management'&&checked.add.length){
-  const team=checked.choice.split('.')[1],lead=roles()[a.teams[team]];const members=await i.guild.members.fetch();
+  const team=checked.choice.split('.')[1],lead=roles()[a.teams[team]];const members=await require('../utils/qgMembers')(i.guild);
   if(!member.roles.cache.has(lead)&&[...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(checked.add[0])&&!m.roles.cache.has(lead)).length>=2)throw Error('Cette gestion compte déjà deux membres hors responsable.');
  }
  if(checked.kind&&['release','unhandcuffs','undog'].includes(p.action)){const rec=rp.status(member.id)[checked.kind];if(rec)a.hierarchy(actor,member,bot,[await i.guild.roles.fetch(rec.roleId)]);}

@@ -143,6 +143,7 @@ const client =
             GatewayIntentBits.GuildWebhooks,
             GatewayIntentBits.GuildScheduledEvents,
             GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.DirectMessages,
             GatewayIntentBits.GuildMessageReactions,
             GatewayIntentBits.MessageContent,
             GatewayIntentBits.GuildPresences

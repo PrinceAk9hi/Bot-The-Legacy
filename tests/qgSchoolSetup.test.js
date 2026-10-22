@@ -8,14 +8,14 @@ const giveaways = require('../systems/qgSchoolGiveaways');
 const news = require('../systems/qgSchoolNews');
 
 test('QG SchoolRP declares every family role without Discord Administrator', () => {
-  assert.equal(layout.roleDefs.length, 23);
-  assert.equal(new Set(layout.roleDefs.map(([key]) => key)).size, 23);
+  assert.equal(layout.roleDefs.length, 25);
+  assert.equal(new Set(layout.roleDefs.map(([key]) => key)).size, 25);
   assert.ok(layout.roleDefs.every(([, name, color]) => name && Number.isInteger(color)));
 });
 
 test('the six group dividers are least-privilege, unique install roles', () => {
   assert.equal(layout.dividerRoleDefs.length, 6);
-  assert.equal(layout.installRoleDefs.length, 29);
+  assert.equal(layout.installRoleDefs.length, 31);
   assert.deepEqual(layout.dividerRoleDefs.map(([key, name]) => [key, name]), [
     ['dividerFoundation', '♛・FONDATION'], ['dividerDirection', '✦・DIRECTION'],
     ['dividerResponsibles', '✦・RESPONSABLES'], ['dividerManagement', '✦・GESTIONS'],
@@ -53,11 +53,11 @@ test('the regulation fits a single Discord embed description', () => {
   assert.match(setup.ruleText, /Article 20/);
 });
 
-test('persistent panels use stable custom IDs and the four requested management teams', async () => {
+test('persistent panels use stable custom IDs and the five configured management teams', async () => {
   for (const key of ['rules', 'notifications', 'familyApplications', 'joinManagement', 'absences', 'rankUp']) assert.ok(setup.panelPayload(key));
   const management = (await setup.panelPayload('joinManagement')).components[0].components[0];
-  assert.equal(management.toJSON().options.length, 4);
-  assert.deepEqual(management.toJSON().options.map(x => x.value), ['ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
+  assert.equal(management.toJSON().options.length, 5);
+  assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
 });
 
 test('family application panel attaches the supplied animated GIF and preserves the MP questionnaire button', () => {

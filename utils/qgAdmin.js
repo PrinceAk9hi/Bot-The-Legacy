@@ -35,7 +35,7 @@ async function audit(guild,{action,actorId,targetId,before,after,reason,result='
   const key=action.startsWith('cd')?'logsBot':/rank|management|responsibility/.test(action)?'logsMembers':'logsModeration';
   const id=state().schoolChannels?.[key];if(!id)throw Error('missing_destination');
   const ch=await guild.channels.fetch(id);if(!ch?.isTextBased()||ch.guildId!==config.guildId)throw Error('invalid_destination');
-  await ch.send({embeds:[require('../systems/qgPanels').embed('Administration QG • '+action,`Auteur : <@${actorId}>\n${targetId?`Membre : <@${targetId}>\n`:''}Date : <t:${Math.floor(e.at/1000)}:f>\nRésultat : ${result}\nAvant : ${clean(JSON.stringify(before)).slice(0,900)}\nAprès : ${clean(JSON.stringify(after)).slice(0,900)}\nMotif : ${e.reason||'Non indiqué'}`)],allowedMentions:{parse:[]}});return true;
+  await ch.send({embeds:[require('../systems/qgPanels').embed((/rankup/.test(action)?'<a:statusonline:1562837067782950924> ':/derank|demote/.test(action)?'<a:statusoffline:1562836899226324992> ':'')+'Administration QG • '+action,`Auteur : <@${actorId}>\n${targetId?`Membre : <@${targetId}>\n`:''}Date : <t:${Math.floor(e.at/1000)}:f>\nRésultat : ${result}\nAvant : ${clean(JSON.stringify(before)).slice(0,900)}\nAprès : ${clean(JSON.stringify(after)).slice(0,900)}\nMotif : ${e.reason||'Non indiqué'}`)],allowedMentions:{parse:[]}});return true;
  }catch{save(s=>{const item=s.schoolAdminHistory.find(x=>x.id===e.id);if(item)item.logDelivery='failed';});return false;}
 }
 const locks=new Map();

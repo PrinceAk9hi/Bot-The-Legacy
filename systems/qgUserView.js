@@ -4,7 +4,7 @@ const clean=require('../utils/qgAiKnowledge').clean;
 const stamp=value=>value?`<t:${Math.floor(value/1000)}:f>`:'Non disponible';
 const text=value=>new TextDisplayBuilder().setContent(value);
 function render(actor,member,id,tab='profile'){
- const button=(action,label,style=S.Secondary,disabled=false)=>new Button().setCustomId(`qgu:action:${id}:${action}`).setLabel(label).setStyle(style).setDisabled(disabled);
+ const button=(action,label,style=S.Secondary,disabled=false)=>{const b=new Button().setCustomId(`qgu:action:${id}:${action}`).setLabel(label).setStyle(style).setDisabled(disabled);if(['rankup','derank','demote'].includes(action))b.setEmoji({id:action==='rankup'?'1562837067782950924':'1562836899226324992',name:action==='rankup'?'statusonline':'statusoffline',animated:true});return b;};
  const row=(...buttons)=>new Row().addComponents(...buttons);
  const can=action=>a.can(actor,action);
  const state=rp.status(member.id);

@@ -28,15 +28,21 @@ function award(id,source,now,hash){
 async function sync(member,state){
  const p=read('qgXp')[member.id];if(!p)return;
  const current=level(p.xp),milestone=[5,10,20,35,50,75,100].filter(n=>n<=current).pop(),ids=state.levelRoles||{},target=milestone?ids[milestone]:null;
- if(milestone&&(!target||!member.guild.roles.cache.has(target)))return;
- const remove=Object.values(ids).filter(id=>id!==target&&member.roles.cache.has(id));
- if(target&&!member.roles.cache.has(target))await member.roles.add(target,'Niveau d’activité QG');
- if(remove.length)await member.roles.remove(remove,'Conserver uniquement le meilleur rôle de niveau QG');
- if(milestone&&(p.announcedMilestone||0)<milestone){
- const channel=await member.guild.channels.fetch(state.schoolChannels?.levelsInfo||state.channels?.levels);
-  await channel.send({embeds:[layout.embed('🏆 Nouveau palier',`<@${member.id}> atteint le **niveau ${current}** et reçoit <@&${target}> !`)],allowedMentions:{parse:[]}});
-  update('qgXp',all=>{all[member.id].announcedMilestone=milestone;});
+ const validTarget=target&&member.guild.roles.cache.has(target);
+ if(!milestone||validTarget){
+  const remove=Object.values(ids).filter(id=>id!==target&&member.roles.cache.has(id));
+  if(validTarget&&!member.roles.cache.has(target))await member.roles.add(target,'Niveau d’activité QG');
+  if(remove.length)await member.roles.remove(remove,'Conserver uniquement le meilleur rôle de niveau QG');
  }
+ if(current>(p.announcedLevel??p.announcedMilestone??0)){
+  const channel=await member.guild.channels.fetch('1561157193951084646');
+  if(!channel?.isTextBased()||channel.guildId!==config.guildId)return;
+  // Claim before delivery: a process interruption must not flood the channel on restart.
+  update('qgXp',all=>{all[member.id].announcedLevel=current;all[member.id].levelDelivery='pending';});
+  try{await channel.send({embeds:[layout.embed('🏆 Nouveau niveau',`<@${member.id}> atteint le **niveau ${current}** !${validTarget?' Son rôle de niveau : <@&'+target+'>.':''}`)],allowedMentions:{parse:[]}});update('qgXp',all=>{all[member.id].levelDelivery='sent';});}
+  catch(error){update('qgXp',all=>{all[member.id].levelDelivery='failed';});throw error;}
+ }
+
 }
 function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(id=>id&&id!=='1561157108307861574');return ids.some(id=>member.roles.cache.has(id));}
 async function message(m,state){

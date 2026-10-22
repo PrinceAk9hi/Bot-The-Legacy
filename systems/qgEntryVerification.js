@@ -1,9 +1,13 @@
 const { randomUUID } = require('node:crypto');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, escapeMarkdown, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, escapeMarkdown, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 const data = require('../utils/recruitmentData');
 const soul = require('./entryVerification');
 const config = require('../config/qg');
-const VERSION = 2;
+const VERSION = 3;
+const AGE_ROLES={'18':'1562838566487326781','13':'1562838771538468956'};
+const NOTIFICATIONS=['notifAnnouncements','notifRp','notifNetworks','notifServers'];
+const agePanel=token=>({embeds:[card('Ta tranche d’âge sur Roblox','Quelle est ta tranche d’âge sur Roblox ?')],components:[row(...['18','13'].map(age=>button('qgs:entry-age:'+token+':'+age,'Tranche d’âge +'+age+' sur Roblox')))],allowedMentions:{parse:[]}});
+const notificationPanel=token=>({embeds:[card('Tes notifications','Choisis les notifications que tu souhaites recevoir, ou continue sans notification.')],components:[row(new StringSelectMenuBuilder().setCustomId('qgs:entry-notifs:'+token).setPlaceholder('Choisir mes notifications').setMinValues(0).setMaxValues(4).addOptions(NOTIFICATIONS.map((value,n)=>({value,label:['Annonces','Roleplay','Réseaux','Serveur'][n]})))),row(button('qgs:entry-no-notifs:'+token,'Continuer sans notification'))],allowedMentions:{parse:[]}});
 const membership=require('../utils/qgVerificationMembership');
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
@@ -52,9 +56,9 @@ function createHandler({ read = data.read, update = data.update, existing = soul
           return true;
         }
         await i.deferReply({ flags: MessageFlags.Ephemeral });
-        const draft = { joinedAt, confirmedAt:profile.confirmedAt, robloxId: profile.robloxId, robloxName: profile.robloxName, discordName: profile.discordName || i.user.username, token: randomUUID(), stage: 'rules', expires: Date.now() + 30 * 60000, version: VERSION };
+        const draft = { joinedAt, confirmedAt:profile.confirmedAt, robloxId: profile.robloxId, robloxName: profile.robloxName, discordName: profile.discordName || i.user.username, token: randomUUID(), stage: 'age', expires: Date.now() + 30 * 60000, version: VERSION };
         save(i.user.id, draft);
-        await i.editReply(rules(draft.token));
+        await i.editReply(agePanel(draft.token));
         return true;
       }
       const draft = get(i.user.id);
@@ -66,17 +70,33 @@ function createHandler({ read = data.read, update = data.update, existing = soul
       await i.deferUpdate();
       if (id.startsWith('qgs:entry-confirm:')) {
         if (draft.stage !== 'profile') throw Error('Profil déjà confirmé. Reprends depuis le panel.');
-        save(i.user.id, { ...draft, stage: 'rules', confirmedAt: Date.now(), version: VERSION });
-        await i.editReply(rules(draft.token)); return true;
+        save(i.user.id, { ...draft, stage: 'age', confirmedAt: Date.now(), version: VERSION });
+        await i.editReply(agePanel(draft.token)); return true;
+      }
+      if(id.startsWith('qgs:entry-age:')){
+        const age=id.split(':')[3];if(draft.stage!=='age'||!AGE_ROLES[age])throw Error('Étape de tranche d’âge invalide.');
+        save(i.user.id,{...draft,ageBracket:age,stage:'notifications'});await i.editReply(notificationPanel(draft.token));return true;
+      }
+      if(id.startsWith('qgs:entry-notifs:')||id.startsWith('qgs:entry-no-notifs:')){
+        const selected=id.startsWith('qgs:entry-no-notifs:')?[]:i.values;
+        if(draft.stage!=='notifications'||!Array.isArray(selected)||selected.some(k=>!NOTIFICATIONS.includes(k)))throw Error('Choix de notifications invalide.');
+        save(i.user.id,{...draft,notificationKeys:[...new Set(selected)],stage:'rules'});await i.editReply(rules(draft.token));return true;
       }
       if (id.startsWith('qgs:entry-accept:')) {
-        if (draft.stage !== 'rules' || draft.version !== VERSION) throw Error('Vérifie ton profil puis lis la version actuelle du règlement.');
+        if (draft.stage !== 'rules' || draft.version !== VERSION || !AGE_ROLES[draft.ageBracket] || !Array.isArray(draft.notificationKeys)) throw Error('Vérifie ton profil puis lis la version actuelle du règlement.');
         const member = await i.guild.members.fetch({ user: i.user.id, force: true });
         if(!membership.current(draft,member))throw Error('Tu as rejoint le serveur de nouveau. Recommence la vérification depuis le règlement.');
         if (member.pending) throw Error('Termine d’abord les contrôles d’accueil natifs de Discord.');
         const roleId = read('qgServer').schoolRoles?.community;
         const role = roleId && await i.guild.roles.fetch(roleId);
         if (!role?.editable) throw Error('Le rôle Membre Communautaire est absent ou trop haut pour le bot. Préviens la direction.');
+        const configured=read('qgServer').schoolRoles||{};
+        const desired=[AGE_ROLES[draft.ageBracket],...draft.notificationKeys.map(k=>configured[k])];
+        if(desired.some(id=>!id))throw Error('Une notification sélectionnée n’est pas configurée. Préviens la direction.');
+        const optionalIds=[...Object.values(AGE_ROLES),...NOTIFICATIONS.map(k=>configured[k]).filter(Boolean)];
+        for(const id of new Set([...desired,...optionalIds.filter(id=>member.roles.cache.has(id))])){const role=await i.guild.roles.fetch(id);if(!role?.editable)throw Error('Un rôle de tranche d’âge ou de notification est absent ou trop haut. Préviens la direction.');}
+        for(const id of desired)if(!member.roles.cache.has(id))await member.roles.add(id,'Préférences de vérification QG');
+        for(const id of optionalIds)if(!desired.includes(id)&&member.roles.cache.has(id))await member.roles.remove(id,'Préférences de vérification QG');
         if(draft.discordName!==member.displayName){
           if(!member.manageable)throw Error('Le bot ne peut pas modifier ton nom sur le serveur. Préviens la direction.');
           await member.setNickname(draft.discordName,'Nom choisi lors de la vérification QG');

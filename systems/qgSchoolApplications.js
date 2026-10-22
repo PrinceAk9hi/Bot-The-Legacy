@@ -43,7 +43,7 @@ async function beginFamilyRecruitment(i) {
   if (!dm) return i.editReply('Je ne peux pas t’envoyer de MP. Active les messages privés du serveur et réessaie.');
   if (!require('./qgRecruitmentControl').status().open) return i.editReply(require('./qgRecruitmentControl').CLOSED);
   const app = { applicantId: i.user.id, status: 'in_progress', step: 0, answers: [], answerDurations: [], questionStartedAt: Date.now(), createdAt: Date.now(), guildId: i.guildId };
-  save(s => { s.schoolFamilyRecruitment ||= {}; s.schoolFamilyRecruitment[i.user.id] = app; });
+  save(s => { s.schoolFamilyRecruitment ||= {}; const previous=s.schoolFamilyRecruitment[i.user.id]; if(previous){s.schoolFamilyRecruitmentArchive||={};s.schoolFamilyRecruitmentArchive[i.user.id+':'+previous.createdAt]=previous;} s.schoolFamilyRecruitment[i.user.id] = app; });
   await dm.send({ embeds: [embed('Candidature famille • 1/10', require('../config/qgFamily').conditions + '\n\n' + familyQuestions[0] + '\n\nRéponds directement à ce message. Écris `annuler` pour arrêter la candidature.')] });
   return i.editReply('📩 Je t’ai envoyé la première question en message privé.');
 }

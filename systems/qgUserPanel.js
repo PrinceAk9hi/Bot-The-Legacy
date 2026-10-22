@@ -7,7 +7,7 @@ const clean=require('../utils/qgAiKnowledge').clean;
 const ranks=['test','confirmed','expert','prestigious','senior'];
 const rankNames=['Membre Test','Membre Confirmé','Membre Expert','Membre Prestigieux','Membre Senior'];
 const teamNames={ticketsManagement:'Gestion Support',recruitmentManagement:'Gestion Recrutement',animationManagement:'Gestion Animation',networksManagement:'Gestion Réseaux',rpManagement:'Gestion RP'};
-const labels={rankup:'📈 Rankup',derank:'📉 Derank',demote:'⬇️ Rétrograder',prison:'🔒 Prison',release:'🔓 Libérer de prison',handcuffs:'⛓️ Menotter',unhandcuffs:'🔗 Déménotter',dog:'🐕 Chien RP',undog:'🐾 Libérer du statut chien',management:'🛡️ Gestion',stats:'📊 Statistiques',applications:'📋 Candidatures'};
+const labels={rankup:require('../utils/qgModuleUi').up+' Rankup',derank:require('../utils/qgModuleUi').down+' Derank',demote:require('../utils/qgModuleUi').down+' Rétrograder',prison:'🔒 Prison',release:'🔓 Libérer de prison',handcuffs:'⛓️ Menotter',unhandcuffs:'🔗 Déménotter',dog:'🐕 Chien RP',undog:'🐾 Libérer du statut chien',management:'🛡️ Gestion',stats:'📊 Statistiques',applications:'📋 Candidatures'};
 const data=new SlashCommandBuilder().setName('user').setDescription('Administrer un membre du QG').setDMPermission(false).addUserOption(o=>o.setName('membre').setDescription('Membre concerné').setRequired(true));
 const roles=()=>a.state().schoolRoles||{};
 function rank(member){const r=roles(),held=ranks.filter(k=>r[k]&&member.roles.cache.has(r[k]));if(held.length>1)throw Error('Plusieurs grades familiaux détectés : corrige les rôles avant de poursuivre.');return held[0]||null;}

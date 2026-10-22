@@ -212,6 +212,12 @@ async function interaction(i){
   if(sub==='fermer')return i.reply({content:'Archiver puis fermer ce ticket ? Cette action supprime son salon après archivage.',components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:close').setLabel('Confirmer la fermeture').setStyle(ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
   i.customId='qg:'+({prendre:'claim',renommer:'rename'}[sub]);
  }
+ if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
+ if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
+ if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);
+ if(i.customId?.startsWith('qgf:'))return require('./qgFamilyAdmin').handle(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='animation')return require('./qgAnimations').execute(i);
+ if(i.customId?.startsWith('qga:'))return require('./qgAnimations').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='cd')return require('./qgRecruitmentControl').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='user')return require('./qgUserPanel').execute(i);
  if(i.customId?.startsWith('qgu:'))return require('./qgUserPanel').handle(i);
@@ -317,7 +323,7 @@ function register(client){
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
   require('./qgLevels').migrate();
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

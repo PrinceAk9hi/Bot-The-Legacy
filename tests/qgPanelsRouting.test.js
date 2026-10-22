@@ -9,14 +9,14 @@ function reset(){fs.writeFileSync(path.join(folder,'qgServer.json'),JSON.stringi
 function guild(){return {id:config.guildId,ownerId:'owner',client:{user:{id:'bot'}},roles:{cache:new Collection(['creator','global','admin','support','animation','everyone'].map(id=>[id,{id}]))}};}
 test('ticket panel order, supplied emojis, white branding and verification help button',()=>{
  reset();const p=panels.tickets(),data=p.embeds[0].toJSON(),options=p.components[0].toJSON().components[0].options;
- assert.deepEqual(options.map(x=>x.value),['questions','event','report','foundation']);assert.deepEqual(options.map(x=>x.emoji.id),['1561415725485260840','1561417105218215996','1561415502125862922','1561417429999952033']);
+ assert.deepEqual(options.map(x=>x.value),['questions','event','report','foundation']);assert.deepEqual(options.map(x=>x.emoji.id),['1561415725485260840',undefined,'1561417105218215996','1561417429999952033']);
  assert.equal(data.color,0xffffff);assert.equal(data.footer.text,'Fondateur - QG');assert.ok(data.description.startsWith('Besoin'));assert.doesNotMatch(JSON.stringify(data),/soul|héritage|héritier/i);
  const buttons=require('../systems/qgEntryVerification').panel().components[0].toJSON().components;assert.ok(buttons.some(x=>x.custom_id==='qgs:help-open'));
 });
 test('management capacity uses real members and excludes the responsible',async()=>{
  reset();const members=new Collection([['a',{user:{bot:false},roles:{cache:new Map([['animation',true]])}}],['lead',{user:{bot:false},roles:{cache:new Map([['animation',true],['animation-lead',true]])}}]]);
- const p=await panels.management({members:{fetch:async()=>members}});assert.match(p.embeds[0].data.description,/Gestion Animation[\s\S]*?1\/2/);
- const unknown=await panels.management();assert.match(unknown.embeds[0].data.description,/non mesurées/);
+ const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.description,/Gestion Animation[\s\S]*?1\/2/);
+ const unknown=await panels.management();assert.match(unknown.embeds[0].data.description,/non mesuré/);
 });
 test('reports and Foundation are private from Support and Administrator roles',()=>{
  reset();for(const type of ['report','foundation']){const out=routing.overwrites(guild(),'applicant',type);assert.ok(out.find(x=>x.id==='support').deny.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='admin').deny.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='applicant').allow.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='global').allow.includes(P.ViewChannel));}

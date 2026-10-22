@@ -40,7 +40,7 @@ test('/cd status reports actual pending/in-progress counts and rejects ordinary 
  await cd.execute({...interaction(m),options:{getSubcommand:()=> 'statut'},deferReply:async()=>{},editReply:async p=>{out=p;}});assert.match(out.embeds[0].data.description,/Questionnaires en cours : \*\*1\*\*/);assert.match(out.embeds[0].data.description,/Dossiers à traiter : \*\*1\*\*/);assert.equal(a.can(m.target,'cd'),false);
 });
 test('closed recruitment blocks a fresh applicant, ongoing MP questionnaire remains usable',async()=>{
- const m=mock();a.save(s=>{s.schoolRecruitmentControl={open:false};s.schoolRoles.community='community';s.schoolEntryVerification={new:{stage:'accepted',acceptedAt:1,confirmedAt:1,robloxId:'roblox'}};});m.guild.roles.cache.set('community',role('community',1));const candidate=m.member('new',['community']);const responses=[];
+ const m=mock();a.save(s=>{s.schoolRecruitmentControl={open:false};s.schoolRoles.community='community';s.schoolEntryVerification={new:{stage:'accepted',acceptedAt:Date.now(),confirmedAt:Date.now(),robloxId:'123456'}};});m.guild.roles.cache.set('community',role('community',1));const candidate=m.member('new',['community']);const responses=[];
  await require('../systems/qgSchoolApplications').beginFamilyRecruitment({guildId:m.guild.id,user:{id:'new'},client:{guilds:{fetch:async()=>m.guild}},deferReply:async()=>{},editReply:async p=>responses.push(p)});assert.equal(responses[0],cd.CLOSED);
  a.save(s=>{s.schoolFamilyRecruitment={new:{status:'in_progress',step:0,answers:[],guildId:m.guild.id}};});
  await require('../systems/qgSchoolApplications').directMessage({guildId:null,author:{id:'new',bot:false},content:'PseudoRoblox',reply:async()=>{},client:{guilds:{fetch:async()=>m.guild}}});assert.equal(a.state().schoolFamilyRecruitment.new.step,1);
@@ -83,7 +83,7 @@ test('management additions synchronize separators; only direction can appoint le
 });
 test('private applications are filtered by team; statistics do not invent vocal time',async()=>{
  const m=mock(),support=m.member('support-staff',['support']);a.save(s=>{s.schoolFamilyRecruitment={target:{status:'submitted',createdAt:1}};s.schoolManagementApplications={target:{animationManagement:{status:'submitted'},ticketsManagement:{status:'submitted'}}};});assert.equal(panel.applications(support,m.target).length,1);assert.equal(panel.applications(m.actor,m.target).length,3);
- session(m,panel.plan(m.actor,m.target,'rankup'));const out=await panel.stats(interaction(m),'session');assert.match(out.embeds[0].data.description,/non mesurés/);
+ session(m,panel.plan(m.actor,m.target,'rankup'));const out=await panel.stats(interaction(m),'session');assert.match(out.embeds[0].data.description,/non mesuré/);
 });
 test('Discord role failures are logged and do not claim success',async()=>{
  const m=mock();m.target.roles.add=async()=>{throw Object.assign(Error('denied'),{code:50013});};const p=panel.plan(m.actor,m.target,'rankup');await assert.rejects(()=>panel.confirm(interaction(m),'session',session(m,p)));assert.equal(a.state().schoolAdminHistory.at(-1).result,'failed');assert.ok(m.target.roles.cache.has('confirmed'));

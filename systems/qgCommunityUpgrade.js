@@ -29,7 +29,7 @@ async function discover(guild){
 }
 function recordVerification(id,value){
  if(value.stage!=='accepted'||!value.acceptedAt||a.state().schoolVerificationHistory?.[id+':'+value.acceptedAt])return;
- a.save(s=>{s.schoolVerificationHistory||={};const key=id+':'+value.acceptedAt;s.schoolVerificationHistory[key]||={userId:id,acceptedAt:value.acceptedAt,confirmedAt:value.confirmedAt,robloxId:value.robloxId,robloxName:value.robloxName,discordName:value.discordName,version:value.version};});
+ a.save(s=>{s.schoolVerificationHistory||={};const key=id+':'+value.acceptedAt;s.schoolVerificationHistory[key]||={userId:id,acceptedAt:value.acceptedAt,confirmedAt:value.confirmedAt,robloxId:value.robloxId,robloxName:value.robloxName,discordName:value.discordName,version:value.version,ageBracket:value.ageBracket,notificationKeys:value.notificationKeys};});
 }
 function recruited(member){
  if(member.guild.id!==config.guildId||member.user.bot||!family(member))return;

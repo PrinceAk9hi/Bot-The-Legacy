@@ -41,7 +41,7 @@ async function execute(i){
     }
     r=meetings.get(id);if(r.results[item.id]?.status!=='done')return;
     const delivery=r.deliveries[item.id];if(delivery&&delivery.status!=='failed')return;
-    const note=r.notes[item.id],decisionText=decision?`\n\n**Décision : ${decision.label}**${decision.reason?'\n'+decision.reason:''}`:'';
+    const note=r.notes[item.id],decisionText=decision?`\n\n**Décision : ${decision.action==='rankup'?require('../utils/qgModuleUi').up:['derank','demote'].includes(decision.action)?require('../utils/qgModuleUi').down:''} ${decision.label}**${decision.reason?'\n'+decision.reason:''}`:'';
     meetings.save(id,p=>{p.deliveries[item.id]={status:'pending',at:Date.now()};});
     try{
      const user=await i.client.users.fetch(item.id);

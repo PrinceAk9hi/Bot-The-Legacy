@@ -106,6 +106,11 @@ async function reaction(reaction,user,add){
 }
 async function memberEvent(member,joined){
  if(member.user.bot)return;
+ const membership=require('../utils/qgVerificationMembership'),previous=saved().schoolEntryVerification?.[member.id];
+ if(!joined||previous&&!membership.current(previous,member)){
+  membership.invalidate(member,{read,update},!joined);
+  await require('./qgProfileCatchup').endMembership(member);
+ }
  if(joined)await require('./qgSchoolSeparators').syncMember(member);
  if(joined){await logTo(member.guild,'logsMembers','Arrivée d’un membre',`Membre : <@${member.id}> (${member.id})\nVérification en attente.`).catch(()=>{});return;}
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;

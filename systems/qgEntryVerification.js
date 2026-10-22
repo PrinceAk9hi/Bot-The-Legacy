@@ -4,6 +4,7 @@ const data = require('../utils/recruitmentData');
 const soul = require('./entryVerification');
 const config = require('../config/qg');
 const VERSION = 2;
+const membership=require('../utils/qgVerificationMembership');
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
 const card = (title, text) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(text);
@@ -17,10 +18,10 @@ function profileModal(profile={}){
 function panel() {
   return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'),button('qgs:help-open','Besoin d’aide'))], allowedMentions: { parse: [] } };
 }
-function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send } = {}) {
+function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send, recordVerification = require('./qgCommunityUpgrade').recordVerification, syncMember = require('./qgSchoolSeparators').syncMember } = {}) {
   const busy = new Set();
   const get = id => read('qgServer').schoolEntryVerification?.[id];
-  const save = (id, value) => {update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });require('./qgCommunityUpgrade').recordVerification(id,value);};
+  const save = (id, value) => {update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });recordVerification(id,value);};
   const rules = token => ({ content: null, embeds: [card('Confirmation de lecture du règlement', 'Confirmes-tu avoir bien lu et accepté le règlement affiché dans ce salon ?\n\nEn cliquant sur le bouton ci-dessous, tu t’engages à le respecter et tu recevras le rôle **Membre Communautaire**.')], components: [row(button(`qgs:entry-accept:${token}`, "J’ai lu et j’accepte le règlement"))], allowedMentions: { parse: [] } });
   return async function handle(i) {
     const id = i.customId || '';
@@ -28,13 +29,17 @@ function createHandler({ read = data.read, update = data.update, existing = soul
     if (busy.has(i.user.id)) { await i.reply({ content: 'Une étape est déjà en cours. Réessaie dans un instant.', flags: MessageFlags.Ephemeral }); return true; }
     busy.add(i.user.id);
     try {
+      const sessionMember=await i.guild.members.fetch({user:i.user.id,force:true});
+      const previous=get(i.user.id);
+      if(previous&&!membership.current(previous,sessionMember))membership.invalidate(sessionMember,{read,update});
+      const joinedAt=sessionMember.joinedTimestamp||0;
       if (id === 'qgs:entry-form') {
         await i.deferReply({ flags: MessageFlags.Ephemeral });
         const name = i.fields.getTextInputValue('roblox').trim(), discordName = i.fields.getTextInputValue('discord').trim();
         if(await require('./qgCommunityPolicy').newcomerAttempt(i.guild,i.user.id,`${name}\n${discordName}`,i.id))throw Error('Vérification interrompue : tentative interdite pendant les premières 24 heures.');
         if (!/^[A-Za-z0-9_]{3,20}$/.test(name) || !discordName || discordName.length>32 || /[@\r\n\u0000-\u001f]/.test(discordName)) throw Error('Indique un pseudo Roblox valide et un nom de serveur de 1 à 32 caractères, sans @ ni retour à la ligne.');
         const profile = await findRoblox(name);
-        const draft = { ...profile, discordName, token: randomUUID(), stage: 'profile', expires: Date.now() + 30 * 60000 };
+        const draft = { ...profile, discordName, joinedAt, createdAt:Date.now(), token: randomUUID(), stage: 'profile', expires: Date.now() + 30 * 60000 };
         save(i.user.id, draft);
         await i.editReply({ embeds: [card('Est-ce bien ton profil Roblox ?', `**${escapeMarkdown(profile.displayName || profile.robloxName)}**\nPseudo : **${escapeMarkdown(profile.robloxName)}**\n[Ouvrir le profil Roblox](https://www.roblox.com/users/${profile.robloxId}/profile)\n\nConfirme uniquement si ce profil est le tien. Cette étape repose sur ta déclaration.`)], components: [row(button(`qgs:entry-confirm:${draft.token}`, 'Oui, c’est mon profil'), button(`qgs:entry-retry:${draft.token}`, 'Corriger le pseudo'))], allowedMentions: { parse: [] } });
         return true;
@@ -47,7 +52,7 @@ function createHandler({ read = data.read, update = data.update, existing = soul
           return true;
         }
         await i.deferReply({ flags: MessageFlags.Ephemeral });
-        const draft = { robloxId: profile.robloxId, robloxName: profile.robloxName, discordName: profile.discordName || i.user.username, token: randomUUID(), stage: 'rules', expires: Date.now() + 30 * 60000, version: VERSION };
+        const draft = { joinedAt, confirmedAt:profile.confirmedAt, robloxId: profile.robloxId, robloxName: profile.robloxName, discordName: profile.discordName || i.user.username, token: randomUUID(), stage: 'rules', expires: Date.now() + 30 * 60000, version: VERSION };
         save(i.user.id, draft);
         await i.editReply(rules(draft.token));
         return true;
@@ -67,6 +72,7 @@ function createHandler({ read = data.read, update = data.update, existing = soul
       if (id.startsWith('qgs:entry-accept:')) {
         if (draft.stage !== 'rules' || draft.version !== VERSION) throw Error('Vérifie ton profil puis lis la version actuelle du règlement.');
         const member = await i.guild.members.fetch({ user: i.user.id, force: true });
+        if(!membership.current(draft,member))throw Error('Tu as rejoint le serveur de nouveau. Recommence la vérification depuis le règlement.');
         if (member.pending) throw Error('Termine d’abord les contrôles d’accueil natifs de Discord.');
         const roleId = read('qgServer').schoolRoles?.community;
         const role = roleId && await i.guild.roles.fetch(roleId);
@@ -76,7 +82,7 @@ function createHandler({ read = data.read, update = data.update, existing = soul
           await member.setNickname(draft.discordName,'Nom choisi lors de la vérification QG');
         }
         if (!member.roles.cache.has(roleId)) await member.roles.add(roleId, 'Profil confirmé et règlement QG accepté');
-        await require('./qgSchoolSeparators').syncMember(await i.guild.members.fetch({user:i.user.id,force:true}));
+        await syncMember(await i.guild.members.fetch({user:i.user.id,force:true}));
         save(i.user.id, { ...draft, stage: 'accepted', acceptedAt: Date.now(), confirmedAt: draft.confirmedAt || Date.now() });
         await i.editReply({ content: 'Bienvenue au QG ! Ton profil est enregistré et tu as accepté le règlement. Tu es maintenant Membre Communautaire.', embeds: [], components: [], allowedMentions: { parse: [] } });
         await welcome(member).catch(error => console.warn('Bienvenue QG non publié :', error.code || error.name));

@@ -23,7 +23,7 @@ function verifiedForRecruitment(member, data = state()) {
   if(require('./qgProfileCatchup').active(member.id))return false;
   const verification = data.schoolEntryVerification?.[member.id];
   const roleId = data.schoolRoles?.community;
-  return Boolean(member.guild.id === config.guildId && !member.pending && roleId && member.roles.cache.has(roleId) && verification?.stage === 'accepted' && verification.acceptedAt && verification.confirmedAt && verification.robloxId);
+  return Boolean(member.guild.id === config.guildId && !member.pending && roleId && member.roles.cache.has(roleId) && require('../utils/qgVerificationMembership').current(verification,member) && verification?.stage === 'accepted' && verification.acceptedAt && verification.confirmedAt && verification.robloxId);
 }
 function verificationRequired() {
   const channelId = state().schoolChannels?.rules;

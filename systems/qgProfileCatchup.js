@@ -55,6 +55,7 @@ async function tick(guild){
    const members=await require('../utils/qgMembers')(guild),s=a.state(),roles=s.schoolRoles||{},candidates=[];
    for(const m of members.values()){
     const p=s.schoolEntryVerification?.[m.id];
+    if(p&&!require('../utils/qgVerificationMembership').current(p,m))continue;
     const accepted=p?.acceptedAt||[roles.community,roles.verified,s.roles?.member].filter(Boolean).some(id=>m.roles.cache.has(id));
     if(!m.user.bot&&m.id!==guild.ownerId&&!m.permissions.has(P.Administrator)&&accepted&&!completeProfile(p))candidates.push([m.id,{status:'pending',createdAt:Date.now(),previousProfile:p||null,channels:{}}]);
    }
@@ -68,6 +69,7 @@ async function tick(guild){
     const current=get(id);if(current.status==='complete')return;
     const m=await guild.members.fetch({user:id,force:true}).catch(e=>{if(e.code===10007)return null;throw e;});
     if(!m){current.nextTry=Date.now()+3600000;put(id,current);return;}
+    if(m.joinedTimestamp>current.createdAt){await restore(m,current);current.status='complete';current.endReason='membership-ended';delete current.draft;put(id,current);return;}
     // Administrator et le propriétaire contournent les interdictions Discord.
     if(m.id===guild.ownerId||m.permissions.has(P.Administrator)){current.error='Accès administrateur : restriction impossible avec les dérogations Discord.';current.nextTry=Date.now()+3600000;put(id,current);return;}
     if(current.status==='restoring'){await finish(m,current);return;}
@@ -91,7 +93,7 @@ async function finish(member,rec){
  await member.roles.add(role,'Rétablissement des accès après complément du profil QG');
  await require('./qgSchoolSeparators').syncMember(await member.guild.members.fetch(member.id));
  await restore(member,rec);
- const profile={...rec.draft,stage:'accepted',acceptedAt:rec.previousProfile?.acceptedAt||rec.createdAt,acceptanceSource:rec.previousProfile?.acceptedAt?'previous-record':'legacy-role-observed',confirmedAt:rec.confirmedAt,updatedAt:Date.now(),version:rec.previousProfile?.version||2};
+ const profile={...rec.draft,joinedAt:member.joinedTimestamp||0,stage:'accepted',acceptedAt:rec.previousProfile?.acceptedAt||rec.createdAt,acceptanceSource:rec.previousProfile?.acceptedAt?'previous-record':'legacy-role-observed',confirmedAt:rec.confirmedAt,updatedAt:Date.now(),version:rec.previousProfile?.version||2};
  a.save(s=>{s.schoolEntryVerification||={};s.schoolEntryVerification[member.id]=profile;});
  require('./qgCommunityUpgrade').recordVerification(member.id,profile);
  rec.status='complete';rec.completedAt=Date.now();delete rec.error;delete rec.draft;put(member.id,rec);
@@ -100,6 +102,10 @@ async function handle(i){
  const id=i.customId||'';if(!id.startsWith('qgp:')&&!(id==='qgs:verify'&&active(i.user.id)))return false;
  if(i.guildId&&i.guildId!==config.guildId)return false;
  const rec=get(i.user.id);
+ if(rec&&rec.status!=='complete'){
+  const guild=await i.client.guilds.fetch(config.guildId),member=await guild.members.fetch({user:i.user.id,force:true});
+  if(member.joinedTimestamp>rec.createdAt){await endMembership(member);await i.reply({content:'Tu as rejoint le serveur de nouveau. Recommence la vérification complète depuis le salon règlement.',flags:F.Ephemeral});return true;}
+ }
  if(!rec||rec.status==='complete'){await i.reply({content:'Ton profil ne nécessite pas de complément.',flags:F.Ephemeral});return true;}
  try{
   if(id==='qgp:open'||id==='qgs:verify'){
@@ -135,4 +141,10 @@ async function created(ch){
   await ch.permissionOverwrites.edit(id,{ViewChannel:false,Connect:false},{reason:'Profil QG en attente : protection du nouveau salon'});
  });
 }
-module.exports={tick,handle,active,created};
+async function endMembership(member){
+ return a.serial('profile-catchup:'+member.id,async()=>{
+  const rec=get(member.id);if(!rec||rec.status==='complete')return;
+  await restore(member,rec);rec.status='complete';rec.endedAt=Date.now();rec.endReason='membership-ended';delete rec.draft;put(member.id,rec);
+ });
+}
+module.exports={tick,handle,active,created,endMembership};

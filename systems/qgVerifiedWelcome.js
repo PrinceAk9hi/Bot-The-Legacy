@@ -8,7 +8,7 @@ async function send(member) {
   busy.add(member.id);
   try {
     const state = read('qgServer');
-    if (state.schoolEntryVerification?.[member.id]?.stage !== 'accepted') return;
+    if (state.schoolEntryVerification?.[member.id]?.stage !== 'accepted'||!require('../utils/qgVerificationMembership').current(state.schoolEntryVerification[member.id],member)) return;
     const joinedAt = member.joinedTimestamp || 0;
     if (state.schoolWelcome?.[member.id]?.joinedAt === joinedAt) return;
     const channelId = state.schoolChannels?.arrivals || state.channels?.arrivals || seeds.channels.arrivals;

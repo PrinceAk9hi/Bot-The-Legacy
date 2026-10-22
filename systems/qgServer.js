@@ -187,6 +187,8 @@ async function ticket(i,type='questions'){
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
+ if(await require('./qgProfileCatchup').handle(i))return;
+ if(require('./qgProfileCatchup').active(i.user.id)&&!i.customId?.startsWith('qgs:help'))return i.reply({content:'Complète ton profil depuis le bouton du MP ou du règlement pour retrouver tes accès.',flags:MessageFlags.Ephemeral});
  if(i.customId?.startsWith('botpanel:'))return i.client.botPanel.handle(i);
  if(i.customId?.startsWith('ownerDM:'))return require('./botOwnerTools').handle(i);
  if(i.isChatInputCommand?.()&&['mp','mpall'].includes(i.commandName))return require('./botOwnerTools').execute(i);
@@ -291,7 +293,7 @@ function register(client){
  client.emit=function(event,...args){
   const first=args[0],guildId=first?.guildId||first?.guild?.id||first?.message?.guildId||args[1]?.guildId||args[1]?.guild?.id;
   if(guildId!==config.guildId)return emit.call(this,event,...args);
-  if(event===Events.ChannelCreate){guarded(require('./qgCategoryNames').created,first);guarded(require('./qgRpStatus').reconcile,first.guild);guarded(require('./qgSeparatorPermissions').refresh,first);}
+  if(event===Events.ChannelCreate){guarded(require('./qgProfileCatchup').created,first);guarded(require('./qgCategoryNames').created,first);guarded(require('./qgRpStatus').reconcile,first.guild);guarded(require('./qgSeparatorPermissions').refresh,first);}
   if(event===Events.ChannelUpdate)guarded(require('./qgSeparatorPermissions').refresh,args[1]);
   if(event===Events.MessageCreate){guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
@@ -310,7 +312,7 @@ function register(client){
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
   require('./qgLevels').migrate();
-  const meetingTick=async()=>{await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

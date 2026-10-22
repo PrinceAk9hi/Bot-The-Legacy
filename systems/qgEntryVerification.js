@@ -85,4 +85,4 @@ function createHandler({ read = data.read, update = data.update, existing = soul
     } finally { busy.delete(i.user.id); }
   };
 }
-module.exports = { panel, createHandler, handle: createHandler() };
+module.exports = { panel, profileModal, createHandler, handle: createHandler() };

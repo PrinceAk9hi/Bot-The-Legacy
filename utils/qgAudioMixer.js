@@ -5,6 +5,7 @@ function decode(file,loop=false){if(!fs.existsSync(file))throw Error('Fichier au
 function take(s){const b=s.stream.read(FRAME);if(b)return b;if(s.ended&&s.stream.readableLength)return s.stream.read(Math.min(FRAME,s.stream.readableLength));return null;}
 class Mixer extends Readable{
  constructor(file,options){super({highWaterMark:FRAME*10});this.options=options;this.music=decode(file,true);this.gain=options.normal;this.ramp=null;this.announcement=null;this.timer=null;this.demand=false;this.pumping=false;this.on('error',()=>{});this.watch(this.music);}
+ cancelAnnouncement(){const ann=this.announcement;if(!ann)return;this.announcement=null;this.ramp=null;ann.source.stream.destroy();ann.source.process.kill();const e=Error('Annonce remplacée');e.code='ANNOUNCEMENT_REPLACED';ann.reject(e);}
  fade(target,ms,done){this.ramp={from:this.gain,to:target,frames:Math.max(1,Math.round(ms/20)),step:0,done};}
  announce(file){if(this.destroyed)throw Error('Lecture arrêtée');if(this.announcement)throw Error('Une annonce est déjà en cours.');const source=decode(file);this.watch(source);return new Promise((resolve,reject)=>{this.announcement={source,resolve,reject,speaking:false,started:false};});}
  // Discord already clocks playback at 20 ms. Produce buffered PCM on demand,

@@ -217,7 +217,7 @@ async function interaction(i){
  if(i.customId?.startsWith('qgc:'))return require('./qgConferences').handle(i);
  if(i.customId?.startsWith('qgd:')){const d=require('./qgDiscipline');return i.customId.startsWith('qgd:edit:')?d.editHandle(i):i.customId.startsWith('qgd:revise:')?d.revise(i):d.handle(i);}
  if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentHub').action(i,require('./qgRecruitmentLive').handle,'voice');
- if(i.customId?.startsWith('qgv:'))return require('./qgVoiceReception').handle(i);
+ if(i.customId?.startsWith('qgv:'))return require('./qgRecruitmentHub').action(i,require('./qgVoiceReception').handle,'audio');
  if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
  if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);

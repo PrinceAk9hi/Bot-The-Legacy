@@ -28,9 +28,13 @@ function summary(app){
  for(let n=0;n<Math.min(3,app.answers?.length||0);n++)result.addFields({name:`Question ${n+1}`,value:clean(app.answers[n]||'Sans réponse').slice(0,800)});
  return result;
 }
-function panel(){return {embeds:[embed('🎓 Espace recruteur • QG',
- '**1 · Candidature écrite en MP**\nLe candidat répond aux questions une par une. Le dossier arrive dans le salon des candidatures.\n**Accepter** attribue Attente entretien. **Refuser** attribue Membre refusé. **DDS** sollicite la Fondation sur les sanctions. **Ouvrir un ticket** crée un échange privé avec le candidat.\n\n**2 · Entretien oral**\nRejoins un bureau d’entretien. **Déplacer vers soi** sélectionne un candidat dans le vocal d’attente. **Attente** le renvoie dans ce vocal. **Voir candidature** ouvre ses réponses en privé. Le guide **Questions** sera complété dès réception des consignes.\n\n**3 · Décision et compte-rendu**\nAprès l’oral, **Accepter** attribue Membre Test ; **Refuser** attribue Membre refusé. Les deux retirent Attente entretien. **CR** transmet le compte-rendu avec la durée vocale mesurée et un accès sécurisé à la candidature.\n\nLes décisions demandent confirmation. Aucun parcours de commande bienvenue n’est lancé.')],
- components:[row(button('qgr:choose:oralaccept','Accepter',B.Success),button('qgr:choose:oralrefuse','Refuser',B.Danger),button('qgr:choose:wait','Attente')),row(button('qgr:choose:bring','Déplacer vers soi',B.Primary),button('qgr:choose:cr','CR'),button('qgr:choose:view','Voir candidature'),button('qgr:questions','Questions'))],allowedMentions:{parse:[]}};}
+function panel(){const card=embed('ESPACE RECRUTEUR · QG','**Chaque candidature mérite un suivi clair et une décision expliquée.**\nRetrouve ici les outils de préparation, d’entretien et de compte rendu.').setColor(0xffffff).addFields(
+ {name:'01 · Examiner le dossier',value:'Consulte la candidature écrite. Depuis son dossier, **Accepter** attribue Attente entretien ; **Refuser** attribue Membre refusé. **DDS** sollicite la Fondation. **Ouvrir un ticket** crée un échange privé.'},
+ {name:'02 · Préparer l’entretien',value:'Rejoins un bureau, puis utilise **Déplacer vers soi** pour choisir un candidat en attente. **Questions** ouvre le guide et **Voir candidature** affiche les réponses en privé.'},
+ {name:'03 · Décider et transmettre',value:'Après l’oral, **Accepter** attribue Membre Test et **Refuser** attribue Membre refusé. Les deux retirent Attente entretien. Une confirmation est demandée.'},
+ {name:'Compte rendu',value:'Renseigne le bilan avec **Compte rendu**. Le rapport conserve la durée vocale mesurée et un accès sécurisé au dossier.',inline:true},
+ {name:'Confidentialité',value:'Vérifie le candidat sélectionné. Les dossiers et les rapports restent réservés aux personnes habilitées.',inline:true});return {embeds:[card],
+ components:[row(button('qgr:choose:oralaccept','Accepter',B.Success),button('qgr:choose:oralrefuse','Refuser',B.Danger),button('qgr:choose:wait','Attente')),row(button('qgr:choose:bring','Déplacer vers soi',B.Primary),button('qgr:choose:cr','Compte rendu'),button('qgr:choose:view','Voir candidature'),button('qgr:questions','Questions'))],allowedMentions:{parse:[]}};}
 function overwrites(guild,extra=[]){
  return [{id:guild.id,deny:[P.ViewChannel]},{id:guild.client.user.id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.EmbedLinks,P.AttachFiles,P.Connect,P.MoveMembers]},
  ...[...new Set(staffKeys.map(k=>roles()[k]).filter(Boolean))].map(id=>({id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.Connect,P.Speak,P.MoveMembers]})),...extra];
@@ -52,7 +56,7 @@ async function install(guild){
   const specs=[['interviewPanel','🖥️・panel-entretien',C.GuildText],['candidateReception','📋・cd-en-attente',C.GuildText],['recruitmentChat','🖋️・discu-recrutement',C.GuildText],['interviewAvailability','🔎・disponibilités',C.GuildText],['interviewWaiting','🪑・attente-entretien',C.GuildVoice],...Array.from({length:5},(_,n)=>['interview'+(n+1),`🔐・Bureau Entretien ${String(n+1).padStart(2,'0')}`,C.GuildVoice])];
   for(const [key,name,type] of specs){
    let ch=guild.channels.cache.get(channels()[key]);
-   if(ch&&ch.type!==type)throw Error(`Type de salon incompatible : ${key}`);
+   if(ch&&ch.type!==type&&!(key==='interviewPanel'&&[C.GuildVoice,C.GuildAnnouncement].includes(ch.type)))throw Error(`Type de salon incompatible : ${key}`);
    if(!ch){const matches=guild.channels.cache.filter(c=>c.parentId===category.id&&c.name===name&&c.type===type);if(matches.size>1)throw Error(`Salons en double : ${name}`);ch=matches.first();}
    const access=['interviewAvailability','interviewWaiting'].includes(key)?[{id:roles().interviewWaiting,allow:[P.ViewChannel,P.ReadMessageHistory,P.SendMessages,P.Connect,P.Speak]}]:[];
    // Les bureaux sont visibles aux candidats en attente, mais seul un recruteur peut les y déplacer.

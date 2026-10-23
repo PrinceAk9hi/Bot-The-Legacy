@@ -212,6 +212,8 @@ async function interaction(i){
   if(sub==='fermer')return i.reply({content:'Archiver puis fermer ce ticket ? Cette action supprime son salon après archivage.',components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:close').setLabel('Confirmer la fermeture').setStyle(ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
   i.customId='qg:'+({prendre:'claim',renommer:'rename'}[sub]);
  }
+ if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
+ if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
  if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);
@@ -283,7 +285,7 @@ async function message(m){
  await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){
   if(m.author.id!==config.ownerId&&m.author.id!==m.guild.ownerId)return;
-  return m.reply({content:'Pour installer la nouvelle structure SchoolRP en sécurité, utilise `/setup-serveur apercu` puis confirme le bouton. `=setupqg` est conservée comme alias historique mais ne lance plus l’installation automatique.',allowedMentions});
+  return m.reply({content:'Pour installer la nouvelle structure SchoolRP en sécurité, utilise `/maj` puis « Installer les éléments manquants » puis confirme le bouton. `=setupqg` est conservée comme alias historique mais ne lance plus l’installation automatique.',allowedMentions});
  }
  if(['=aide','=help'].includes(m.content.trim()))return m.reply({content:`Lis <#${saved().channels?.commands}> pour les fonctions du QG.`,allowedMentions});
  if(m.content.startsWith('=suggestion ')){

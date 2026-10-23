@@ -320,7 +320,7 @@ function register(client){
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd)require('./qgInvites').joined(first);guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
-  if(event===Events.VoiceStateUpdate){guarded(require('./qgConferences').voice,...args);guarded(require('./qgVoiceReception').tick,first.guild);guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
+  if(event===Events.VoiceStateUpdate){guarded(require('./qgConferences').voice,...args);guarded(require('./qgVoiceReception').voice,...args);guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(messageChange,first,null,'delete');return true;}
@@ -334,9 +334,11 @@ function register(client){
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
   require('./qgLevels').migrate();
+  await guarded(require('./qgVoiceReception').tick,guild);
+  setInterval(()=>guarded(require('./qgVoiceReception').tick,guild),2000).unref();
   try{require('../utils/qgDurability').assertDurable();await require('./qgConferences').recover(guild);await require('./qgRecruitmentLive').recover(guild);await require('./qgDiscipline').recover(guild);
    setInterval(()=>guarded(require('./qgConferences').tick,guild),10000).unref();
-   setInterval(()=>guarded(require('./qgVoiceReception').tick,guild),2000).unref();
+
    setInterval(()=>guarded(require('./qgDiscipline').tick,guild),60000).unref();
    setInterval(()=>guarded(async()=>{await require('./qgRecruitmentHub').install(guild);}),15000).unref();
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());

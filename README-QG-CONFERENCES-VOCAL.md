@@ -26,7 +26,7 @@ Dossier : `assets/audio/qg/`.
 
 Les quatre MP3 ont été copiés sans transformation depuis les pièces jointes locales, dont les noms n'ont pas le suffixe `(1)`. Les empreintes SHA256 sont vérifiées par les tests.
 
-**Déposer ta musique sous `assets/audio/qg/ambiance.mp3`.** Aucun fond musical n'est fourni ou inventé. Sans ce fichier, l'activation explique ce qui manque. Pour remplacer la musique : déposer la nouvelle version, déployer puis `/accueil-vocal reconnecter`. Le dossier des assets appartient au code déployé, pas au volume des données.
+**Déposer ta musique sous `assets/audio/qg/ambiance.mp3`.** Aucun fond musical n'est fourni ou inventé. Sans ce fichier, le bot peut rejoindre le vocal ; seule la lecture est bloquée, avec une explication dans le statut. Pour remplacer la musique : déposer la nouvelle version, déployer puis `/accueil-vocal reconnecter`. Le dossier des assets appartient au code déployé, pas au volume des données.
 
 Le bot utilise le vocal **1562136834396651560**. Un seul lecteur diffuse un flux PCM stéréo 48 kHz combinant les deux décodeurs FFmpeg. Le décodeur musical boucle indépendamment et ne redémarre pas lors des annonces. Un limiteur borne les échantillons pour éviter la saturation.
 
@@ -104,3 +104,6 @@ Le panel permanent réunit désormais Recrutement, Entretiens et vocaux, et Accu
 Après déploiement, /maj → Tout actualiser réutilise le panel d’entretien enregistré et retire uniquement les deux anciens tableaux pilotage/audio identifiés comme appartenant au bot. Les candidatures et historiques restent conservés. Les anciennes réponses éphémères peuvent être fermées manuellement.
 
 La direction qui se déclare disponible depuis un bureau est comptée dans les recruteurs disponibles. Les mutations de statut affichent une confirmation explicite ; terminer un entretien inexistant renvoie une explication.
+
+## Correctif connexion à l’arrivée
+La connexion se déclenche pour tout humain entrant dans 1562136834396651560, indépendamment du statut candidat et des fichiers audio. Les bots sont ignorés. La musique et les annonces restent destinées aux candidats en attente. Le module de connexion possède sa propre reprise périodique ; un échec du démarrage des conférences ne la supprime plus. Les fichiers audio sont vérifiés seulement avant la lecture. Les anciennes configurations désactivées par défaut sont migrées en mode automatique, sauf désactivation explicite conservée dans le journal administratif.

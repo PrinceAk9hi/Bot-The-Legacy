@@ -198,7 +198,8 @@ async function interaction(i){
  if(i.customId?.startsWith('ownerDM:'))return require('./botOwnerTools').handle(i);
  if(i.isChatInputCommand?.()&&['mp','mpall'].includes(i.commandName))return require('./botOwnerTools').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='entretien')return require('./qgInterviews').execute(i);
- if(i.customId?.startsWith('qgr:'))return require('./qgInterviews').handle(i);
+ if(i.customId?.startsWith('qgh:'))return require('./qgRecruitmentHub').handle(i);
+ if(i.customId?.startsWith('qgr:')){const hub=require('./qgRecruitmentHub');return hub.tokenFrom(i)?hub.action(i,require('./qgInterviews').handle,'recruit'):require('./qgInterviews').handle(i);}
  if(i.isChatInputCommand?.()&&['config','réunion'].includes(i.commandName))return require('./qgMeetings').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='notesmp')return require('./qgMeetingDelivery').execute(i);
  if(i.customId?.startsWith('qgm:'))return require('./qgMeetings').handle(i);
@@ -215,7 +216,7 @@ async function interaction(i){
  if(i.isChatInputCommand?.()&&['conference','sc','accueil-vocal'].includes(i.commandName)){require('../utils/qgDurability').assertDurable();return require('./'+({conference:'qgConferences',sc:'qgDiscipline','accueil-vocal':'qgVoiceReception'})[i.commandName]).execute(i);}
  if(i.customId?.startsWith('qgc:'))return require('./qgConferences').handle(i);
  if(i.customId?.startsWith('qgd:')){const d=require('./qgDiscipline');return i.customId.startsWith('qgd:edit:')?d.editHandle(i):i.customId.startsWith('qgd:revise:')?d.revise(i):d.handle(i);}
- if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentLive').handle(i);
+ if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentHub').action(i,require('./qgRecruitmentLive').handle,'voice');
  if(i.customId?.startsWith('qgv:'))return require('./qgVoiceReception').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
  if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
@@ -337,7 +338,7 @@ function register(client){
    setInterval(()=>guarded(require('./qgConferences').tick,guild),10000).unref();
    setInterval(()=>guarded(require('./qgVoiceReception').tick,guild),2000).unref();
    setInterval(()=>guarded(require('./qgDiscipline').tick,guild),60000).unref();
-   setInterval(()=>guarded(async()=>{await require('./qgRecruitmentLive').install(guild);await require('./qgVoiceReception').monitor(guild);}),15000).unref();
+   setInterval(()=>guarded(async()=>{await require('./qgRecruitmentHub').install(guild);}),15000).unref();
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 

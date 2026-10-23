@@ -65,11 +65,7 @@ async function install(guild){
    else await ch.edit({parent:category.id,permissionOverwrites:overwrites(guild,access),reason:'Installation explicite de l’espace recruteur'});
    a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});
   }
-  const ch=await guild.channels.fetch(channels().interviewPanel),saved=a.state().schoolInterviewPanel;
-  let message=saved?.channelId===ch.id?await ch.messages.fetch(saved.messageId).catch(e=>{if(e.code===10008)return null;throw e;}):null;
-  if(!message){const recent=await ch.messages.fetch({limit:100});message=recent.find(m=>m.author.id===guild.client.user.id&&m.components.some(r=>r.components.some(c=>c.customId==='qgr:choose:oralaccept')));}
-  if(message)await message.edit(panel());else message=await ch.send(panel());
-  a.save(s=>{s.schoolInterviewPanel={channelId:ch.id,messageId:message.id};});
+  const ch=await require('./qgRecruitmentHub').install(guild);
   // Reprend les candidatures écrites actives, sans toucher aux admissions déjà décidées.
   for(const app of Object.values(a.state().schoolFamilyRecruitment||{})){
    if(['submitted','in_review'].includes(app.status)&&(!app.caseId||!app.messageId))await submitApplication(guild,app);
@@ -83,7 +79,7 @@ async function execute(i){
   if(!a.isDirection(actor))throw Error('Installation réservée à la direction.');
   const ch=await install(i.guild);return i.editReply(`Espace recruteur actualisé : <#${ch.id}>. Aucun ancien salon ni historique supprimé.`);
  }
- return i.editReply(panel());
+ return require('./qgRecruitmentHub').open(i,'recruit');
 }
 function attachment(app){
  const questions=app.questions||require('./qgSchoolApplications').familyQuestions;
@@ -266,4 +262,4 @@ async function legacy(i){
  await authorize(i);
  return i.reply({content:'Ce bouton appartient à l’ancien parcours. Utilise /entretien installer puis le nouveau dossier ; aucune admission directe n’est exécutée.',flags:F.Ephemeral});
 }
-module.exports={data,execute,handle,install,submitApplication,tick,legacy};
+module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy};

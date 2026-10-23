@@ -96,3 +96,11 @@ Modifiés : `index.js`, `systems/qgServer.js`, `qgMaintenance.js`, `qgInterviews
 `npm test` exécute la suite existante et les nouveaux scénarios : présence cumulée et reconnexion, exemptions, absences, redémarrage, sanctions exclusives, escalade, idempotence, confirmation, contestation, annulation, confidentialité, conférences, file d'attente, bureaux, volumes, fichiers manquants, empreintes et décodage des quatre MP3, mixage réel avec une piste WAV de test, rampes et arrêt des décodeurs.
 
 La connexion Discord réelle, le rendu audio entendu par les candidats, les permissions du serveur et le montage du volume Railway nécessitent une recette après déploiement. Aucun succès en production n'est supposé à partir des tests locaux.
+
+## Mise à jour : panel recruteur unifié
+
+Le panel permanent réunit désormais Recrutement, Entretiens et vocaux, et Accueil audio. Les rubriques s’ouvrent dans un espace privé lié au recruteur ; les clics suivants mettent à jour ce même message. Les confirmations et formulaires existants sont conservés. /entretien panel ouvre également cet espace.
+
+Après déploiement, /maj → Tout actualiser réutilise le panel d’entretien enregistré et retire uniquement les deux anciens tableaux pilotage/audio identifiés comme appartenant au bot. Les candidatures et historiques restent conservés. Les anciennes réponses éphémères peuvent être fermées manuellement.
+
+La direction qui se déclare disponible depuis un bureau est comptée dans les recruteurs disponibles. Les mutations de statut affichent une confirmation explicite ; terminer un entretien inexistant renvoie une explication.

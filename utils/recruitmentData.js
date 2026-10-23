@@ -39,4 +39,4 @@ async function ensurePanel(client, channelId, key, payload) {
     return message;
 }
 function setDataDirectory(next) { directory = next; }
-module.exports = { read, update, ensurePanel, setDataDirectory };
+module.exports = { read, update, ensurePanel, setDataDirectory, getDataDirectory: () => directory };

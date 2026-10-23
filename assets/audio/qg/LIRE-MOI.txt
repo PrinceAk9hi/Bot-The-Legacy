@@ -1,0 +1,4 @@
+Place ta musique ici sous le nom ambiance.mp3.
+Les quatre annonces Jessica fournies sont déjà intégrées.
+Après déploiement : /accueil-vocal activer.
+Pour remplacer la musique après activation : /accueil-vocal reconnecter.

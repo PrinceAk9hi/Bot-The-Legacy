@@ -212,6 +212,11 @@ async function interaction(i){
   if(sub==='fermer')return i.reply({content:'Archiver puis fermer ce ticket ? Cette action supprime son salon après archivage.',components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:close').setLabel('Confirmer la fermeture').setStyle(ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
   i.customId='qg:'+({prendre:'claim',renommer:'rename'}[sub]);
  }
+ if(i.isChatInputCommand?.()&&['conference','sc','accueil-vocal'].includes(i.commandName)){require('../utils/qgDurability').assertDurable();return require('./'+({conference:'qgConferences',sc:'qgDiscipline','accueil-vocal':'qgVoiceReception'})[i.commandName]).execute(i);}
+ if(i.customId?.startsWith('qgc:'))return require('./qgConferences').handle(i);
+ if(i.customId?.startsWith('qgd:')){const d=require('./qgDiscipline');return i.customId.startsWith('qgd:edit:')?d.editHandle(i):i.customId.startsWith('qgd:revise:')?d.revise(i):d.handle(i);}
+ if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentLive').handle(i);
+ if(i.customId?.startsWith('qgv:'))return require('./qgVoiceReception').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
  if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
@@ -300,6 +305,8 @@ function register(client){
  if(client.qgSystem)return;client.qgSystem=true;
  client.once(Events.ClientReady,()=>{const guild=client.guilds.cache.get(config.guildId);if(guild){require('./qgSchoolManagementBoard').refresh(guild).catch(e=>console.error('Initialisation suivi gestions :',e.code||e.message));require('./qgSchoolSeparators').syncGuild(guild).catch(e=>console.error('Synchronisation initiale des séparateurs :',e.code||e.message));}});
  const report=(e)=>console.error('QG :',e.code||e.message);
+ client.on(Events.ShardDisconnect,()=>{try{require('./qgConferences').pause();}catch(e){report(e);}});
+ client.on(Events.ShardResume,()=>{const g=client.guilds.cache.get(config.guildId);if(g)require('./qgConferences').recover(g).catch(report);});
  const guarded=(fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(report);
  // Route only QG events here: handlers belonging to other servers must never moderate QG members.
  const emit=client.emit;
@@ -312,7 +319,7 @@ function register(client){
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd)require('./qgInvites').joined(first);guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
-  if(event===Events.VoiceStateUpdate){guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
+  if(event===Events.VoiceStateUpdate){guarded(require('./qgConferences').voice,...args);guarded(require('./qgVoiceReception').tick,first.guild);guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(messageChange,first,null,'delete');return true;}
@@ -320,11 +327,20 @@ function register(client){
   if(event===Events.PresenceUpdate)return true;
   return emit.call(this,event,...args);
  };
+ client.on(Events.InteractionCreate,i=>{if(!i.guildId&&i.customId?.startsWith('qgd:appeal'))require('./qgDiscipline').handle(i).catch(async e=>{await i.reply({content:e.message}).catch(report);});});
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
   require('./qgLevels').migrate();
+  try{require('../utils/qgDurability').assertDurable();await require('./qgConferences').recover(guild);await require('./qgRecruitmentLive').recover(guild);await require('./qgDiscipline').recover(guild);
+   setInterval(()=>guarded(require('./qgConferences').tick,guild),10000).unref();
+   setInterval(()=>guarded(require('./qgVoiceReception').tick,guild),2000).unref();
+   setInterval(()=>guarded(require('./qgDiscipline').tick,guild),60000).unref();
+   setInterval(()=>guarded(async()=>{await require('./qgRecruitmentLive').install(guild);await require('./qgVoiceReception').monitor(guild);}),15000).unref();
+   process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
+  }catch(e){report(e);}
+
   const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();

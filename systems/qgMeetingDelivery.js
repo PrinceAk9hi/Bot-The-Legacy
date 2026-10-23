@@ -32,7 +32,7 @@ async function execute(i){
       meetings.save(id,p=>{p.results[item.id]={status:'pending',detail:'Application en cours ; ne pas rejouer si interrompue'};});
       try{
        if(decision.action==='warn'){
-        a.save(s=>{s.schoolSanctions||=[];const caseId=`meeting:${id}:${item.id}`;if(!s.schoolSanctions.some(x=>x.id===caseId))s.schoolSanctions.push({id:caseId,at:Date.now(),action:'warn',targetId:item.id,actorId:actor.id,reason:decision.reason||'Décision de réunion QG',result:'success'});s.schoolSanctions=s.schoolSanctions.slice(-5000);});
+        const d=require('./qgDiscipline'),c=d.create({sourceKey:`meeting:${id}:${item.id}`,memberId:item.id,actorId:actor.id,reason:decision.reason||'Décision de réunion QG',progressive:true,origin:'manuelle'});const applied=await d.apply(i.guild,c.id,actor,{automatic:true,locked:true});decision.label=applied.status==='escalated'?'Examen par la direction : Dernière Chance déjà active':d.names[applied.level-1];meetings.save(id,p=>{p.actions[item.id].label=decision.label;});
        }else{await panel.changeRoles(member,plan);await require('./qgSchoolSeparators').syncMember(await i.guild.members.fetch({user:member.id,force:true}));}
        meetings.save(id,p=>{p.results[item.id]={status:'done',detail:decision.label,at:Date.now()};});
        await a.audit(i.guild,{action:'meeting.'+decision.action,targetId:item.id,actorId:actor.id,reason:decision.reason,after:{meetingId:id,grade:plan?.choice}});

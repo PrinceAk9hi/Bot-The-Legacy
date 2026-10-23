@@ -1,0 +1,3 @@
+const fs=require('node:fs'),path=require('node:path');
+function assertDurable(){if(!process.env.RAILWAY_ENVIRONMENT_ID&&!process.env.RAILWAY_PROJECT_ID)return;const mount=process.env.RAILWAY_VOLUME_MOUNT_PATH;if(!mount)throw Error('Monte un volume Railway sur /app/data avant d’activer ces modules.');const dir=require('./recruitmentData').getDataDirectory();const relative=path.relative(path.resolve(mount),path.resolve(dir));if(relative.startsWith('..')||path.isAbsolute(relative)||!fs.existsSync(mount))throw Error('Le stockage du bot doit se trouver dans le volume Railway.');}
+module.exports={assertDurable};

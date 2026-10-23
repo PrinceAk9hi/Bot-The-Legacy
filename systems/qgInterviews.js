@@ -184,7 +184,7 @@ async function handle(i){
    const bot=await i.guild.members.fetchMe(),destination=await i.guild.channels.fetch(id==='bring'?actor.voice.channelId:channels().interviewWaiting);
    if(!destination.permissionsFor(actor)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.Connect))throw Error('Permission Déplacer les membres / Se connecter manquante.');
    a.hierarchy(actor,target,bot);
-   await target.voice.setChannel(destination,'Entretien QG');
+   if(id==='bring'&&target.voice.channelId===require('./qgRecruitmentLive').WAIT){await require('./qgRecruitmentLive').sync(i.guild);await require('./qgRecruitmentLive').claim(i.guild,actor,target.id);}else await target.voice.setChannel(destination,'Entretien QG');
    return i.editReply('Candidat déplacé.');
   }
   if(!['oralaccept','oralrefuse'].includes(id))throw Error('Action inconnue.');

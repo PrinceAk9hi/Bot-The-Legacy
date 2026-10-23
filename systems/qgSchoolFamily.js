@@ -28,7 +28,7 @@ async function handle(i) {
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start || start < Date.UTC(2020, 0, 1)) return i.reply({ content: 'Dates invalides. Utilise JJ/MM/AAAA et vérifie que la fin n’est pas avant le début.', flags: MessageFlags.Ephemeral });
     const id = `${Date.now()}-${i.user.id}`;
     await i.deferReply({flags:MessageFlags.Ephemeral});
-    const record = { id, memberId: i.user.id, start, end, reason: i.fields.getTextInputValue('reason').trim().slice(0, 100) || null, comment: i.fields.getTextInputValue('comment').trim().slice(0, 500) || null, status: 'active', createdAt: Date.now() };
+    const record = { id, memberId: i.user.id, start, end, reason: i.fields.getTextInputValue('reason').trim().slice(0, 100) || null, comment: i.fields.getTextInputValue('comment').trim().slice(0, 500) || null, status: 'active', validationStatus: 'pending', createdAt: Date.now() };
     save(s => { s.schoolAbsences ||= {}; s.schoolAbsences[id] = record; s.schoolAudit ||= []; s.schoolAudit.push({ id: `absence-${id}`, at: Date.now(), type: 'absence_declaree', actorId: i.user.id, details: { absenceId: id } }); });
     const target = await i.guild.channels.fetch(channels().managementFollowup).catch(() => null);
     if (target?.isTextBased()) {
@@ -71,7 +71,7 @@ async function handle(i) {
     const parse = value => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim()); if (!m) return NaN; const ms=Date.UTC(+m[3], +m[2]-1, +m[1]),d=new Date(ms); return d.getUTCFullYear()===+m[3]&&d.getUTCMonth()===+m[2]-1&&d.getUTCDate()===+m[1]?ms:NaN; };
     const start = parse(i.fields.getTextInputValue('start')), end = parse(i.fields.getTextInputValue('end'));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return i.reply({ content: 'Dates invalides.', flags: MessageFlags.Ephemeral });
-    rec.start = start; rec.end = end; rec.reason = i.fields.getTextInputValue('reason').trim().slice(0, 100) || null; rec.comment = i.fields.getTextInputValue('comment').trim().slice(0, 500) || null; rec.updatedAt = Date.now();
+    rec.validationStatus = 'pending'; delete rec.validatedBy; delete rec.validatedAt; rec.start = start; rec.end = end; rec.reason = i.fields.getTextInputValue('reason').trim().slice(0, 100) || null; rec.comment = i.fields.getTextInputValue('comment').trim().slice(0, 500) || null; rec.updatedAt = Date.now();
     save(s => { s.schoolAbsences[id] = rec; });
     await i.deferReply({flags:MessageFlags.Ephemeral});await syncAbsenceRoles(i.guild);
     return i.editReply({ content: '✅ Absence mise à jour.' });

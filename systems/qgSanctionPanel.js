@@ -53,16 +53,17 @@ async function handle(i){try{
   const entry={id:randomUUID(),at:Date.now(),targetId:fresh.target.id,actorId:fresh.actor.id,...pending,result:'pending'};delete entry.nonce;
   a.save(s=>{s.schoolSanctions||=[];s.schoolSanctions.push(entry);s.schoolSanctions=s.schoolSanctions.slice(-5000);});
   let error=null;try{
+   if(pending.action==='warn'){const d=require('./qgDiscipline');const c=d.create({sourceKey:'sp:'+entry.id,memberId:fresh.target.id,actorId:fresh.actor.id,reason:pending.reason,progressive:true,status:'review',origin:'manuelle'});if(a.isDirection(fresh.actor)||a.has(fresh.actor,['ticketsLead','recruitmentLead']))await d.apply(i.guild,c.id,fresh.actor,{automatic:true,locked:true});else await d.report(i.guild,c.id);entry.disciplineId=c.id;entry.disciplineStatus=d.state().cases[c.id].status;}
    if(pending.action==='tempjail')await require('./qgJail').apply(fresh.target,fresh.actor,pending.reason,pending.minutes);
    if(pending.action==='tempprison')await rp.apply(fresh.target,'prison',fresh.actor,pending.reason,pending.minutes);
    if(pending.action==='tempmute')await fresh.target.timeout(pending.minutes*60000,pending.reason);
    if(pending.action==='ban')await fresh.target.ban({reason:pending.reason,deleteMessageSeconds:0});
-   entry.result='success';
+   entry.result=entry.disciplineStatus&&entry.disciplineStatus!=='applied'?'review':'success';
   }catch(e){entry.result='failed';error=e;}
   let dm=false;if(entry.result==='success')try{await fresh.target.user.send({embeds:[embed('QG • '+labels[pending.action],`Motif : ${pending.reason}${pending.minutes?`\nDurée : ${pending.minutes} minute(s).`:''}`)],allowedMentions:{parse:[]}});dm=true;}catch{}
-  a.save(s=>{const item=s.schoolSanctions.find(s=>s.id===entry.id);if(item)Object.assign(item,{result:entry.result,dmDelivered:dm});});
+  a.save(s=>{const item=s.schoolSanctions.find(s=>s.id===entry.id);if(item)Object.assign(item,{result:entry.result,dmDelivered:dm,disciplineId:entry.disciplineId,disciplineStatus:entry.disciplineStatus});});
   await a.audit(i.guild,{action:'sanction.'+pending.action,actorId:fresh.actor.id,targetId:fresh.target.id,reason:pending.reason,result:entry.result,after:{minutes:pending.minutes,caseId:entry.id}});
-  if(error)throw error;return i.editReply({content:`${labels[pending.action]} enregistré${pending.action==='warn'?'':' et appliqué'}.${dm?' Notification privée envoyée.':' MP indisponibles : notification non remise.'}`,embeds:[],components:[],allowedMentions:{parse:[]}});
+  if(error)throw error;if(entry.result==='review')return i.editReply({content:'Dossier transmis à la direction pour examen. Aucun avertissement supplémentaire n’a été appliqué.',embeds:[],components:[]});return i.editReply({content:`${labels[pending.action]} enregistré${pending.action==='warn'?'':' et appliqué'}.${dm?' Notification privée envoyée.':' MP indisponibles : notification non remise.'}`,embeds:[],components:[],allowedMentions:{parse:[]}});
  });
  }catch(e){const payload={content:e.code?'Action non terminée : vérifie les permissions du bot et l’état du membre.':clean(e.message),allowedMentions:{parse:[]}};if(i.deferred||i.replied)return i.editReply(payload).catch(()=>{});return i.reply({...payload,flags:F.Ephemeral}).catch(()=>{});}}
 module.exports={data,execute,handle};

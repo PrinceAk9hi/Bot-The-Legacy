@@ -600,22 +600,7 @@ client.reloadCommands =
             }
         }
 
-        // The configured Soul Society guild is authoritative. Register its
-        // commands even if it is missing from the local cache during startup.
-        const soulGuildId = require("./config/soulSociety").IDENTITY.guildId;
-        if (!client.guilds.cache.has(soulGuildId)) {
-            try {
-                await rest.put(
-                    Routes.applicationGuildCommands(client.user.id, soulGuildId),
-                    { body: commands.filter(command => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(command.name)) }
-                );
-                guildCount++;
-            } catch (error) {
-                console.error(`❌ Enregistrement des commandes sur Soul Society (${soulGuildId}) :`, error.code || error.message);
-                throw error;
-            }
-        }
-
+        // Soul Society is intentionally left; do not publish commands there.
         const qgGuildId = require("./config/qg").guildId;
         if (!client.guilds.cache.has(qgGuildId)) {
             try {
@@ -3225,6 +3210,9 @@ async function restoreActiveVoiceControls() {
 client.once(
     Events.ClientReady,
     async readyClient => {
+        try {
+            if(await require('./utils/qgGuildPolicy').leaveSoulSociety(readyClient))console.log('✅ Bot de gestion : Soul Society quitté, activité centrée sur le QG.');
+        } catch(error) { console.warn('Départ de Soul Society impossible :',error.code||error.name); }
         console.log("");
 
         console.log(
@@ -3673,6 +3661,11 @@ if (
 require("./systems/botOwnerTools").register(client);
 require("./systems/qgServer")(client);
 
+client.on(Events.GuildCreate, async guild => {
+    if(guild.id!==require('./utils/qgGuildPolicy').SOUL_SOCIETY_ID)return;
+    try { await guild.leave(); console.log('Bot de gestion : départ de Soul Society après réinvitation.'); }
+    catch(error) { console.warn('Départ de Soul Society impossible :',error.code||error.name); }
+});
 client.login(
     process.env.TOKEN
 );

@@ -1,0 +1,2 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');const {leaveSoulSociety,SOUL_SOCIETY_ID}=require('../utils/qgGuildPolicy');
+test('le bot de gestion quitte seulement Soul Society',async()=>{const left=[];const client={guilds:{cache:new Map([[SOUL_SOCIETY_ID,{leave:async()=>left.push(SOUL_SOCIETY_ID)}],['1558167237200973967',{leave:async()=>left.push('QG')}]])}};assert.equal(await leaveSoulSociety(client),true);assert.deepEqual(left,[SOUL_SOCIETY_ID]);client.guilds.cache.delete(SOUL_SOCIETY_ID);assert.equal(await leaveSoulSociety(client),false);});

@@ -60,27 +60,37 @@ test('persistent panels use stable custom IDs and the five configured management
   assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
 });
 
-test('family application panel attaches the supplied animated GIF and preserves the MP questionnaire button', () => {
+test('family application panel attaches the supplied PNG banner and preserves the MP questionnaire button', () => {
   const fs = require('node:fs'), path = require('node:path');
   const payload = setup.panelPayload('familyApplications');
   const image = payload.embeds[0].data.image.url;
-  assert.equal(image, 'attachment://qg-initial.gif');
-  assert.equal(payload.files[0].name, 'qg-initial.gif');
+  assert.equal(image, 'attachment://qg-candidature-banner.png');
+  assert.equal(payload.files[0].name, 'qg-candidature-banner.png');
   assert.ok(payload.files[0] instanceof require('discord.js').AttachmentBuilder);
-  const bytes = fs.readFileSync(path.join(__dirname, '..', 'assets', 'qg-initial.gif'));
-  assert.equal(bytes.subarray(0, 6).toString(), 'GIF89a');
+  const bytes = fs.readFileSync(path.join(__dirname, '..', 'assets', 'qg-candidature-banner.png'));
+  assert.deepEqual([...bytes.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
+  assert.deepEqual(payload.attachments, []);
+  for (const condition of ['Tag QG obligatoire','16 ans minimum','Casier vierge ou quasiment vierge','Très forte activité sur Discord et en jeu','Envie d’évoluer']) assert.ok(payload.embeds[0].data.description.includes(condition));
   assert.equal(payload.components[0].components[0].data.custom_id, 'qgs:family-apply');
   assert.equal(payload.components[0].components[0].data.label, 'Déposer ma candidature');
 });
 
-test('QG ticket panel exposes the four requested categories and reattaches its animated banner on edits', () => {
+test('QG ticket panel exposes the four requested categories and reattaches its PNG banner on edits', () => {
   const payload = setup.panelPayload('tickets');
   const menu = payload.components[0].components[0];
   assert.deepEqual(menu.toJSON().options.map(option => option.value), ['questions', 'event', 'report', 'foundation']);
   assert.equal(payload.embeds[0].data.color, 0xffffff);
-  assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support-banner.gif');
-  assert.equal(payload.files[0].name, 'qg-support-banner.gif');
+  assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support-banner.png');
+  assert.equal(payload.files[0].name, 'qg-support-banner.png');
   for (const text of ['Questions/Aide', 'Signaler un comportement', 'Demander une animation', 'Contacter la Fondation']) assert.match(payload.embeds[0].data.description, new RegExp(text));
+});
+
+test('candidature uses the existing named guild emblem without inventing an emoji ID', () => {
+  const emoji={id:'123456789012345678',name:'EmblmeSpixelartmonochrome',animated:false,available:true};
+  const guild={emojis:{cache:new (require('discord.js').Collection)([[emoji.id,emoji]])}};
+  const payload=setup.panelPayload('familyApplications',guild);
+  assert.equal(payload.embeds[0].data.title,'<:EmblmeSpixelartmonochrome:123456789012345678> Candidature — Famille SchoolRP');
+  assert.ok(!setup.panelPayload('familyApplications').embeds[0].data.title.includes('📋'));
 });
 
 test('Foundation ticket permissions deny every non-Foundation server role while keeping applicant access', () => {

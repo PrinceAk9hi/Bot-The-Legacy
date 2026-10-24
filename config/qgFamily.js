@@ -1,4 +1,4 @@
 module.exports={
  description:'QG est une famille issue de SchoolRP.',
- conditions:'La famille QG est actuellement réservée aux personnes de 18 ans et plus. Le tag QG est obligatoire, le respect également, et une forte activité est demandée. Une ouverture aux 13 ans et plus est seulement une possibilité future : elle n’est pas en vigueur.'
+ conditions:'**Conditions de recrutement**\n• Tag QG obligatoire.\n• 16 ans minimum.\n• Casier vierge ou quasiment vierge.\n• Très forte activité sur Discord et en jeu.\n• Envie d’évoluer et de s’investir dans la famille.'
 };

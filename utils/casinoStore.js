@@ -1,8 +1,9 @@
 const {randomInt,randomUUID}=require('node:crypto');
 const {read,update}=require('./recruitmentData');
+function createStore(storeName='casino',{currency='Yens',command='=casino'}={}){
 const DAY=86400000,MAX=10000;
 function account(s,id){s.accounts||={};return s.accounts[id]||=( {balance:1000,dailyAt:0,played:0,wagered:0,returned:0,history:[],used:[]} );}
-function transaction(id,fn){let result;update('casino',s=>{const a=account(s,id);expire(a);result=fn(a,s);if(!Number.isSafeInteger(a.balance)||a.balance<0||a.balance>1e12)throw Error('Limite de portefeuille atteinte.');});return result;}
+function transaction(id,fn){let result;update(storeName,s=>{const a=account(s,id);expire(a);result=fn(a,s);if(!Number.isSafeInteger(a.balance)||a.balance<0||a.balance>1e12)throw Error('Limite de portefeuille atteinte.');});return result;}
 function snapshot(id){return transaction(id,a=>structuredClone(a));}
 function score(cards){let sum=0,aces=0;for(const c of cards){const n=c%13+1;if(n===1){sum+=11;aces++;}else sum+=Math.min(n,10);}while(sum>21&&aces){sum-=10;aces--;}return sum;}
 function shuffle(){const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}return deck;}
@@ -14,8 +15,8 @@ function daily(id){return transaction(id,a=>{if(Date.now()-a.dailyAt<DAY)throw E
 function start(id,kind,stake,bet,token){return transaction(id,a=>{
  if(!['slots','roulette','blackjack','mines'].includes(kind))throw Error('Jeu inconnu.');
  if(a.used.includes(token))throw Error('Cette mise a déjà été traitée.');
- if(a.game)throw Error('Termine ta partie en cours avec =casino.');
- if(!Number.isSafeInteger(stake)||stake<10||stake>MAX)throw Error('Choisis une mise entière de 10 à 10 000 Yens.');
+ if(a.game)throw Error('Termine ta partie en cours avec '+command+'.');
+ if(!Number.isSafeInteger(stake)||stake<10||stake>MAX)throw Error('Choisis une mise entière de 10 à 10 000 '+currency+'.');
  if(a.balance<stake)throw Error('Solde insuffisant.');
  bet=String(bet||'').trim().toLowerCase();
  if(kind==='roulette'&&!['rouge','noir','pair','impair'].includes(bet)&&!(/^(?:[0-9]|[12][0-9]|3[0-6])$/.test(bet)))throw Error('Pari : rouge, noir, pair, impair ou un numéro de 0 à 36.');
@@ -28,7 +29,7 @@ function start(id,kind,stake,bet,token){return transaction(id,a=>{
  return structuredClone(a);
  });}
 function action(id,gameId,version,action){return transaction(id,a=>{
- const g=a.game;if(!g||g.id!==gameId||g.version!==version)throw Error('Ce bouton est ancien. Rouvre =casino pour reprendre ta partie.');
+ const g=a.game;if(!g||g.id!==gameId||g.version!==version)throw Error('Ce bouton est ancien. Rouvre '+command+' pour reprendre ta partie.');
  if(g.kind==='blackjack'){
   if(action==='stand')stand(a,g);
   else if(action==='hit'){g.player.push(g.deck.pop());if(score(g.player)>21)finish(a,g,0,'Tu dépasses 21.');else if(score(g.player)===21)stand(a,g);}
@@ -39,6 +40,8 @@ function action(id,gameId,version,action){return transaction(id,a=>{
   else{if(!/^(?:[0-9]|1[0-5])$/.test(action))throw Error('Case incorrecte.');const cell=Number(action);if(g.revealed.includes(cell))throw Error('Case déjà ouverte.');g.revealed.push(cell);if(g.mines.includes(cell))finish(a,g,0,'Une mine ! Mise perdue.');else if(g.revealed.length===13)finish(a,g,cash(g),'Toutes les cases sûres découvertes !');}
  }g.version++;return structuredClone(a);
  });}
-function leaderboard(){return Object.entries(read('casino').accounts||{}).sort((a,b)=>b[1].balance-a[1].balance).slice(0,15);}
-function expireAll(){update('casino',s=>{for(const a of Object.values(s.accounts||{}))expire(a);});}
-module.exports={snapshot,daily,start,action,score,cash,leaderboard,expireAll,DAY,MAX};
+function leaderboard(){return Object.entries(read(storeName).accounts||{}).sort((a,b)=>b[1].balance-a[1].balance).slice(0,15);}
+function expireAll(){update(storeName,s=>{for(const a of Object.values(s.accounts||{}))expire(a);});}
+return {snapshot,daily,start,action,score,cash,leaderboard,expireAll,DAY,MAX};
+}
+module.exports={...createStore(),createStore};

@@ -11,7 +11,7 @@ const notificationPanel=token=>({embeds:[card('Tes notifications','Choisis les n
 const membership=require('../utils/qgVerificationMembership');
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
-const card = (title, text) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(text);
+const card = (title, text) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(text);
 function profileModal(profile={}){
  return new ModalBuilder().setCustomId('qgs:entry-form').setTitle('Vérification • QG').addComponents(
   ...[['roblox','Pseudo Roblox, sans @',profile.robloxName,20],['discord','Nom souhaité sur le serveur',profile.discordName,32]].map(([id,label,value,max])=>{

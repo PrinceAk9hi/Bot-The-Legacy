@@ -3,7 +3,7 @@ const {read,update}=require('../utils/recruitmentData');
 const config=require('../config/qg');
 const s=()=>read('qgServer');
 const save=fn=>update('qgServer',fn);
-function team(type){return ['report','foundation','complaint'].includes(type)?['creator','globalManager']:type==='event'?['creator','globalManager','administrator','animationLead','animationManagement']:['creator','globalManager','administrator','ticketsLead','ticketsManagement'];}
+function team(type){if(type==='casino')return ['creator','globalManager','administrator','casinoLead','casinoOperator'];return ['report','foundation','complaint'].includes(type)?['creator','globalManager']:type==='event'?['creator','globalManager','administrator','animationLead','animationManagement']:['creator','globalManager','administrator','ticketsLead','ticketsManagement'];}
 function overwrites(guild,userId,type){const roles=s().schoolRoles||{};const allowed=[guild.client.user.id,...team(type).map(k=>roles[k]).filter(Boolean)];const grants=new Map([[guild.id,{id:guild.id,deny:[P.ViewChannel]}]]);
  // Explicit denials protect reports and Foundation tickets from broader category roles.
  if(['report','foundation','complaint'].includes(type))for(const role of guild.roles.cache.values())if(!allowed.includes(role.id)&&role.id!==guild.id)grants.set(role.id,{id:role.id,deny:[P.ViewChannel]});
@@ -29,13 +29,13 @@ async function ensure(guild){
 const moving=new Set();
 async function escalate(channel,reason){if(moving.has(channel.id))return false;moving.add(channel.id);try{
  const rec=s().tickets?.[channel.id];if(!rec||rec.escalatedAt)return false;
- const key=['report','foundation','complaint'].includes(rec.type)?'foundation':rec.type==='event'?'animationManagement':'supportManagement';
+ const key=rec.type==='casino'?'casinoStaff':['report','foundation','complaint'].includes(rec.type)?'foundation':rec.type==='event'?'animationManagement':'supportManagement';
  const dest=s().schoolCategories?.[key];if(!dest)throw Error('Lance la mise à jour QG pour créer les catégories de traitement.');
  // Never synchronize with the destination category: applicant and team access stay explicit.
  await channel.permissionOverwrites.set(overwrites(channel.guild,rec.ownerId,rec.type));
  await channel.setParent(dest,{lockPermissions:false,reason:'Transmission à l’équipe concernée'});
  save(x=>{x.tickets[channel.id].escalatedAt=Date.now();x.tickets[channel.id].escalationReason=reason.slice(0,1000);});
- const role=s().schoolRoles?.[key==='foundation'?'globalManager':key==='animationManagement'?'animationManagement':'ticketsManagement'];
+ const role=s().schoolRoles?.[key==='casinoStaff'?'casinoLead':key==='foundation'?'globalManager':key==='animationManagement'?'animationManagement':'ticketsManagement'];
  await channel.send({content:role?`<@&${role}>`:undefined,embeds:[require('./qgPanels').embed('Relais à l’équipe',reason.slice(0,2000))],allowedMentions:{parse:[],roles:role?[role]:[]}});return true;
  }finally{moving.delete(channel.id);}}
 module.exports={ensure,escalate,overwrites,team};

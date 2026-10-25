@@ -52,7 +52,7 @@ async function respond(message){
 }
 async function message(m){
  if(m.guildId!==config.guildId||m.author.bot)return false;
- const rec=read('qgServer').tickets?.[m.channelId];if(!rec||rec.ownerId!==m.author.id||rec.escalatedAt||rec.claimedBy)return false;
+ const rec=read('qgServer').tickets?.[m.channelId];if(!rec||rec.type==='casino'||rec.ownerId!==m.author.id||rec.escalatedAt||rec.claimedBy)return false;
  pending.set(m.channelId,m);if(running.has(m.channelId))return true;running.add(m.channelId);
  try{while(pending.has(m.channelId)){const next=pending.get(m.channelId);pending.delete(m.channelId);try{await respond(next);}catch(e){incident('handler:'+next.id,next.channelId,e.code||e.name);}}}finally{running.delete(m.channelId);}return true;
 }

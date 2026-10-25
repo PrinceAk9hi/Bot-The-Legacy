@@ -6,7 +6,7 @@ const channels = () => read('qgServer').schoolChannels || {};
 const save = fn => update('qgServer', fn);
 const familyKeys = ['test', 'confirmed', 'expert', 'prestigious', 'senior'];
 const familyNames = { test: 'Membre Test', confirmed: 'Membre Confirmé', expert: 'Membre Expert', prestigious: 'Membre Prestigieux', senior: 'Membre Senior' };
-const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function family(member) { const r = roles(); return familyKeys.some(k => r[k] && member.roles.cache.has(r[k])); }
 function staff(member) { const r = roles(); return member.id === config.ownerId || member.id === member.guild.ownerId || ['creator', 'globalManager', 'administrator', 'recruitmentLead'].some(k => r[k] && member.roles.cache.has(r[k])); }
 function panel(key) {

@@ -35,7 +35,7 @@ function render(actor,member,id,tab='profile'){
   box.addActionRowComponents(row(new Button().setCustomId(`qgu:tool:${id}:convocation`).setLabel('📨 Convoquer').setStyle(S.Secondary).setDisabled(!a.isDirection(actor)&&!a.has(actor,['recruitmentLead','recruitmentManagement'])),button('validate','✅ Valider le test',S.Success,!can('rankup')||!member.roles.cache.has(a.state().schoolRoles?.test)),button('sanctions','🛡️ Sanctions',S.Danger,!can('prison'))))
   .addActionRowComponents(row(...[['locknick','🔒 Lock pseudo'],['unlocknick','🔓 Unlock pseudo']].map(([action,label])=>new Button().setCustomId(`qgu:tool:${id}:${action}`).setLabel(label).setStyle(S.Secondary).setDisabled(!a.isDirection(actor)))));
  }
- box.addTextDisplayComponents(text('-# Fondateur - QG • Panel privé, réservé à son auteur.'));
+ box.addTextDisplayComponents(text('-# '+require('../utils/qgBrand').signature+' • Panel privé, réservé à son auteur.'));
  return{flags:F.IsComponentsV2,components:[box],allowedMentions:{parse:[]}};
 }
 module.exports={render};

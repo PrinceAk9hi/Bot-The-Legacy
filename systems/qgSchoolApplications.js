@@ -16,7 +16,7 @@ const familyRoleKeys = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
 const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead' };
 const teamLabels = { ticketsManagement: 'Gestion Support', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux', rpManagement: 'Gestion RP' };
 const trim = text => String(text ?? '').slice(0, 1000);
-const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
 function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && r[k] !== '1561157108307861574' && member.roles.cache.has(r[k])); }
 function verifiedForRecruitment(member, data = state()) {

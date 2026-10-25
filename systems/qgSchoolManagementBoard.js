@@ -57,7 +57,7 @@ async function buildPanel(guild) {
     return { name: `${group.label} · ${count} titulaire(s)`, value: `${leadLines}\n${teamLines}${extra}`.slice(0, 1024), count };
   }).sort((a, b) => b.count - a.count);
 
-  const embed = new EmbedBuilder().setFooter({text:'Fondateur - QG'})
+  const embed = new EmbedBuilder().setFooter(require('../utils/qgBrand').footer())
     .setColor(0xffffff)
     .setTitle('📊 Classement et suivi des gestions')
     .setDescription('Effectifs actuels par gestion, responsables et date de prise de fonction connue.\n\n* Pour les personnes déjà présentes avant le suivi, la date indique le début du suivi : Discord ne fournit pas la date historique exacte.')

@@ -163,7 +163,7 @@ async function transcript(channel){
   before=batch.last().id;
  }throw Error('Archive trop longue. Le ticket est conservé.');
 }
-const ticketTypes={questions:{label:'Questions/Aide',prefix:'aide',description:'Pose ta question ou décris le problème rencontré. Indique les étapes déjà tentées.'},report:{label:'Signaler un comportement',prefix:'signalement',description:'Décris l’incident avec son contexte, la date et l’heure approximatives, les pseudos Roblox et RP concernés, et joins une preuve utile.'},complaint:{label:'Réclamation',prefix:'reclamation',description:'Explique la décision que tu souhaites contester, le contexte et les éléments que la Fondation doit examiner.'},foundation:{label:'Contacter la Fondation',prefix:'fondation',description:'Décris ta demande confidentielle. Seul le demandeur et les rôles Fondation (Créateur et Gérant Global) peuvent consulter ce ticket.'},event:{label:'Demander une animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
+const ticketTypes={casino:{label:'Support Casino',prefix:'casino',description:'Décris ton problème de jeu ou de solde, avec la date et le jeu concerné. Les jetons sont uniquement fictifs.'},questions:{label:'Questions/Aide',prefix:'aide',description:'Pose ta question ou décris le problème rencontré. Indique les étapes déjà tentées.'},report:{label:'Signaler un comportement',prefix:'signalement',description:'Décris l’incident avec son contexte, la date et l’heure approximatives, les pseudos Roblox et RP concernés, et joins une preuve utile.'},complaint:{label:'Réclamation',prefix:'reclamation',description:'Explique la décision que tu souhaites contester, le contexte et les éléments que la Fondation doit examiner.'},foundation:{label:'Contacter la Fondation',prefix:'fondation',description:'Décris ta demande confidentielle. Seul le demandeur et les rôles Fondation (Créateur et Gérant Global) peuvent consulter ce ticket.'},event:{label:'Demander une animation',prefix:'animation',description:'Précise les familles concernées, le contenu, la date et l’heure, le lieu, le caractère public ou privé et la récompense éventuelle.'},partnership:{label:'Demande de partenariat',prefix:'partenariat',description:'Indique le nom et l’objectif du serveur, le contenu proposé, s’il diffuse du contenu +18 et son lien avec SchoolRP.'}};
 function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={},allRoleIds=[]){
  const foundationKeys=['creator','globalManager'];
  const allowedFoundationIds=new Set(foundationKeys.map(k=>schoolRoles[k]).filter(Boolean));
@@ -176,12 +176,12 @@ function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={}
 }
 function ticketStaff(member,type){const roles=saved().schoolRoles||{};return member.id===config.ownerId||member.id===member.guild.ownerId||require('./qgTicketRouting').team(type).some(k=>roles[k]&&member.roles.cache.has(roles[k]));}
 async function ticket(i,type='questions'){
- const s=saved(),member=await i.guild.members.fetch(i.user.id),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.community&&member.roles.cache.has(schoolRoles.community);
+ const s=saved(),member=await i.guild.members.fetch({user:i.user.id,force:true}),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.community&&member.roles.cache.has(schoolRoles.community);
  if(!ticketTypes[type])throw Error('Type de ticket invalide. Choisis un sujet dans le panneau.');
- if(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
+ if(type==='casino'?!require('../utils/qgCasinoAccess').memberAllowed(member):(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member)))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
  if(ch){store(x=>{x.tickets||={};x.tickets[ch.id]||={ownerId:i.user.id,type,createdAt:Date.now()};});return i.editReply(`Tu as déjà un ticket de ce type : <#${ch.id}>`);}
- const parent=s.schoolCategories?.ticketInbox;if(!parent)throw Error('Le staff doit lancer /setup-serveur mise-a-jour pour préparer les tickets.');
+ const parent=type==='casino'?s.schoolCategories?.casinoSupport:s.schoolCategories?.ticketInbox;if(!parent)throw Error('Le staff doit lancer /maj pour préparer les tickets.');
  const overwrites=require('./qgTicketRouting').overwrites(i.guild,i.user.id,type);
  ch=await i.guild.channels.create({name:`${ticketTypes[type].prefix}-${i.user.username}`.replace(/[^a-z0-9-]/gi,'-').slice(0,90),type:T.GuildText,parent,topic:buildQGTicketTopic(i.user.id,type),
  permissionOverwrites:overwrites});
@@ -190,7 +190,7 @@ async function ticket(i,type='questions'){
  await log(i.guild,'Ticket ouvert',`Type : ${ticketTypes[type].label}\nAuteur : <@${i.user.id}> • <#${ch.id}>`);return i.editReply(`✅ Ton ticket ${ticketTypes[type].label.toLowerCase()} : <#${ch.id}>`);
 }
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
-function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
+function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership|casino))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
  if(await require('./qgProfileCatchup').handle(i))return;
  if(require('./qgProfileCatchup').active(i.user.id)&&!i.customId?.startsWith('qgs:help'))return i.reply({content:'Complète ton profil depuis le bouton du MP ou du règlement pour retrouver tes accès.',flags:MessageFlags.Ephemeral});
@@ -218,6 +218,9 @@ async function interaction(i){
  if(i.customId?.startsWith('qgd:')){const d=require('./qgDiscipline');return i.customId.startsWith('qgd:edit:')?d.editHandle(i):i.customId.startsWith('qgd:revise:')?d.revise(i):d.handle(i);}
  if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentHub').action(i,require('./qgRecruitmentLive').handle,'voice');
  if(i.customId?.startsWith('qgv:'))return require('./qgRecruitmentHub').action(i,require('./qgVoiceReception').handle,'audio');
+ if(i.customId?.startsWith('qgcs:'))return require('./qgCasinoGames').handle(i);
+ if(i.customId?.startsWith('qgcasino:'))return require('./qgCasino').handle(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='casino')return require('./qgCasinoGames').launch(i);
  if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
  if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
@@ -247,7 +250,8 @@ async function interaction(i){
   return i.showModal(new ModalBuilder().setCustomId('qg:rename-save').setTitle('Renommer le ticket').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('Nouveau nom').setStyle(TextInputStyle.Short).setMaxLength(80).setRequired(true))));
  }
  await i.deferReply({flags:MessageFlags.Ephemeral});
- return serial(action==='ticket'||action==='ticket-type'?'ticket:'+i.user.id:'channel:'+i.channelId,async()=>{
+ return serial(action==='ticket'||action==='ticket-type'||action==='casino-ticket'?'ticket:'+i.user.id:'channel:'+i.channelId,async()=>{
+  if(action==='casino-ticket')return ticket(i,'casino');
   if(action==='ticket')return ticket(i);
   if(action==='ticket-type')return ticket(i,i.values?.[0]);
   const t=saved().tickets?.[i.channelId],member=await i.guild.members.fetch(i.user.id);
@@ -260,7 +264,8 @@ async function interaction(i){
   if(action==='rename-save'){const name=i.fields.getTextInputValue('name').trim().replace(/[^\p{L}\p{N}-]/gu,'-').slice(0,80);if(!name)throw Error('Nom invalide.');await i.channel.setName(name);return i.editReply('✅ Ticket renommé.');}
   if(action==='close'){
    const body=await transcript(i.channel);
-   await log(i.guild,'Archive du ticket',`Auteur : <@${t.ownerId}> (${t.ownerId})\nFermé par : <@${i.user.id}>\nSalon : ${i.channel.name}`, [new AttachmentBuilder(body,{name:`ticket-${i.channelId}.txt`})]);
+   const archived=await log(i.guild,'Archive du ticket',`Auteur : <@${t.ownerId}> (${t.ownerId})\nFermé par : <@${i.user.id}>\nSalon : ${i.channel.name}`, [new AttachmentBuilder(body,{name:`ticket-${i.channelId}.txt`})]);
+   if(t.type==='casino'&&!archived)throw Error('Archive non enregistrée : le ticket casino reste ouvert. Vérifie le salon des logs.');
    await i.editReply('✅ Archive enregistrée. Fermeture du ticket.');await i.channel.delete('Ticket QG archivé');store(s=>{delete s.tickets[i.channelId];});
   }
  });
@@ -280,6 +285,7 @@ async function voice(oldState,newState){
  });
 }
 async function message(m){
+ await require('./qgPublicThreads').message(m);
  if(await require('./botOwnerTools').message(m))return;
  if(m.author.bot)return;
  require('./qgMemberMetrics').message(m);
@@ -348,6 +354,7 @@ function register(client){
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);
+  setInterval(()=>guarded(require('./qgCasino').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
   await guarded(require('./qgSupportWorkspace').install,guild);
   await guarded(require('./qgRecruitmentControl').refresh,guild);

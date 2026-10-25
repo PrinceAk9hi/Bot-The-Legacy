@@ -2,7 +2,7 @@ const {EmbedBuilder,ActionRowBuilder,StringSelectMenuBuilder}=require('discord.j
 const {read}=require('../utils/recruitmentData');
 const icons={questions:{id:'1561415725485260840',name:'mail'},event:{id:'1561417105218215996',name:'staff'},report:{id:'1561415502125862922',name:'whitediamond'},foundation:{id:'1561417429999952033',name:'papercrown'},notifications:{id:'1561427092262883559',name:'notification'}};
 const icon=k=>`<:${icons[k].name}:${icons[k].id}>`;
-const embed=(title,description)=>new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed=(title,description)=>new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 const teams=[['rpManagement','rpLead','Gestion RP','Développer les scènes roleplay, accompagner les joueurs et coordonner les projets RP.'],['ticketsManagement','ticketsLead','Gestion Support','Accompagner les membres, répondre aux questions et prendre en charge les tickets.'],['recruitmentManagement','recruitmentLead','Gestion Recrutement','Étudier les candidatures, organiser les entretiens et accompagner les nouveaux membres.'],['animationManagement','animationLead','Gestion Animation','Préparer des animations, proposer des événements et faire vivre la communauté.'],['networksManagement','networksLead','Gestion Réseaux','Préparer les publications et développer la présence de la famille sur les réseaux.']];
 function tickets(guild){
  const find=(name,fallback)=>{const e=guild?.emojis?.cache?.find(e=>e.name===name&&e.available!==false);return e?{id:e.id,name:e.name,animated:e.animated}:fallback;};

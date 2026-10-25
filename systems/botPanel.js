@@ -18,7 +18,7 @@ function payload(client, notice = '', guildId = IDENTITY.guildId) {
             { name: 'Statut enregistré', value: saved.enabled ? statuses[saved.status] || saved.status : 'Géré automatiquement', inline: true },
             { name: 'Statut actuel', value: isOff() ? 'Bot en pause' : statuses[live?.status] || 'Automatique', inline: true },
             { name: 'Activité enregistrée', value: saved.enabled ? activity ? escapeMarkdown(activity.state||activity.name).slice(0, 1024) : 'Aucune activité' : 'Gérée automatiquement' })
-        .setFooter({ text: guildId===require('../config/qg').guildId?'Fondateur - QG':'Aven uniquement • Réglages sauvegardés • Maintenance et pause prioritaires' })],
+        .setFooter(guildId===require('../config/qg').guildId?require('../utils/qgBrand').footer():{text:'Aven uniquement • Réglages sauvegardés • Maintenance et pause prioritaires'})],
         components: [row(new StringSelectMenuBuilder().setCustomId('botpanel:status').setPlaceholder('Modifier le statut').addOptions(
             Object.entries(statuses).map(([value, label]) => ({ label, value, default: Boolean(saved.enabled && saved.status === value) })))),
         row(new StringSelectMenuBuilder().setCustomId('botpanel:activity').setPlaceholder('Modifier l’activité et son texte').addOptions(

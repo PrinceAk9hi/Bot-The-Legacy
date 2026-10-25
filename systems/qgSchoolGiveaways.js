@@ -8,7 +8,7 @@ const state = () => read('qgServer');
 const staffKeys = ['creator','globalManager','administrator','animationLead','animationManagement'];
 const eligible = member => { const r=state().schoolRoles||{}, old=state().roles||{}; return [...['verified','community','creator','globalManager','administrator','senior','prestigious','expert','confirmed','test'].map(k=>r[k]),old.member].filter(Boolean).some(id=>member.roles.cache.has(id)); };
 const canManage = member => { const r=state().schoolRoles||{}; return member.id===config.ownerId||member.id===member.guild.ownerId||staffKeys.some(k=>r[k]&&member.roles.cache.has(r[k])); };
-const embed = (title,description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed = (title,description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function duration(text){const m=/^(\d+)(s|m|h|d)$/i.exec(text);if(!m)return 0;const factor={s:1000,m:60000,h:3600000,d:86400000}[m[2].toLowerCase()];return Number(m[1])*factor;}
 function payload(giveaway){return {embeds:[embed('🎁 Giveaway',`**Récompense :** ${giveaway.prize}\n**Organisé par :** ${giveaway.creatorId}\n**Gagnants :** ${giveaway.winnerCount}\n**Fin :** <t:${Math.floor(giveaway.endsAt/1000)}:R>\n**Participants :** ${giveaway.participants.length}\n\nClique sur le bouton pour participer. Participation réservée aux membres vérifiés.`)],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`qgs:giveaway:${giveaway.id}`).setLabel('Participer').setEmoji('🎉').setStyle(ButtonStyle.Primary))],allowedMentions:{parse:[]}};}
 async function create(message,parts){

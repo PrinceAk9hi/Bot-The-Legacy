@@ -17,7 +17,7 @@ function locked(key, fn) {
 }
 async function log(guild, title, description) {
   try { const id = state().schoolChannels?.logsModeration; if (!id) return;
-    const ch = await guild.channels.fetch(id); await ch.send({ embeds: [new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description.slice(0,3500)).setTimestamp()], allowedMentions: {parse:[]} });
+    const ch = await guild.channels.fetch(id); await ch.send({ embeds: [new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description.slice(0,3500)).setTimestamp()], allowedMentions: {parse:[]} });
   } catch (e) { console.error('Journal protection QG indisponible :', e.code || e.name); }
 }
 const bursts = new Map();
@@ -85,7 +85,7 @@ async function newcomerAttempt(guild,userId,content,reference){
   if(previous?.joinedAt===member.joinedTimestamp&&['pending','kicked','review'].includes(previous.status))return true;
   const rec={joinedAt:member.joinedTimestamp,at:Date.now(),reference,reason,status:'pending'};
   save(s=>{s.schoolNewcomerIncidents||={};s.schoolNewcomerIncidents[userId]=rec;});
-  rec.dmSent=await member.send({embeds:[new EmbedBuilder().setColor(0xffffff).setTitle('Avertissement • QG').setDescription(`Motif détecté pendant tes premières 24 heures sur le serveur : ${reason}. Cette infraction entraîne ton exclusion du QG.`).setFooter({text:'Fondateur - QG'})],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
+  rec.dmSent=await member.send({embeds:[new EmbedBuilder().setColor(0xffffff).setTitle('Avertissement • QG').setDescription(`Motif détecté pendant tes premières 24 heures sur le serveur : ${reason}. Cette infraction entraîne ton exclusion du QG.`).setFooter(require('../utils/qgBrand').footer())],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
   try{if(!member.kickable)throw Error('hierarchy');await member.kick(`Protection nouveaux membres : ${reason}`);rec.status='kicked';}
   catch(e){rec.status='review';rec.errorCode=String(e.code||e.message).slice(0,80);}
   save(s=>{s.schoolNewcomerIncidents[userId]=rec;});

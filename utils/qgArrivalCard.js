@@ -28,7 +28,8 @@ async function render(member,{avatar=true,robloxId,fetchAvatar=roblox.fullBody,f
  c.fillStyle='#fff';c.font='bold 48px sans-serif';c.fillText('BIENVENUE',337,178);
  let size=38;let name=(member.displayName||member.user.username).replace(/[\r\n\u0000-\u001f]/g,' ').slice(0,80);do{c.font=`${size--}px sans-serif`;}while(c.measureText(name).width>675&&size>17);while(c.measureText(name).width>675&&name.length>1)name=name.slice(0,-2)+'…';c.fillText(name,340,237);
  c.fillStyle='#c7c8cc';c.font='20px sans-serif';c.fillText('Une nouvelle rencontre. Une place parmi nous.',340,285);
- c.fillStyle='#999ba1';c.font='16px sans-serif';c.fillText('Fondateur - QG',340,337);
+ c.fillStyle='#999ba1';c.font='16px sans-serif';try{const emblem=await loadImage(require('node:path').join(__dirname,'../assets/qg-direction-emblem.png'));c.drawImage(emblem,340,318,24,24);}catch{}
+ c.fillText(require('./qgBrand').label,374,337);
  return canvas.toBuffer('image/png');
 }
 module.exports={render,cropBounds};

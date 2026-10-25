@@ -51,7 +51,7 @@ async function deliver(guild,key,channelId,payload,privateOnly=false){
   const recent=await ch.messages.fetch({limit:100});message=recent.find(m=>m.author.id===guild.client.user.id&&m.embeds.some(e=>e.footer?.text?.includes(marker)));
   if(!message)throw Error('Envoi incertain : vérifier manuellement '+key);
  }else{
-  payload.embeds[0].setFooter({text:'Fondateur - QG • '+marker});
+  payload.embeds[0].setFooter(require('../utils/qgBrand').footer(' • '+marker));
   a.save(s=>{s.schoolCommunityDeliveries||={};s.schoolCommunityDeliveries[key]={pending:true,at:Date.now()};});
   try{message=await ch.send(payload);}catch(e){if(e.status>=400&&e.status<500&&e.status!==429)a.save(s=>{delete s.schoolCommunityDeliveries[key];});throw e;}
  }

@@ -46,7 +46,7 @@ function render(r,stage='notes',page=0){
   items.push(row(new Menu().setCustomId(`qgm:decision:${r.id}:${member.id}.${page}`).setPlaceholder('Choisir une décision').addOptions([{label:'Aucune action',value:'none'},{label:'Rankup',value:'rankup'},{label:'Derank',value:'derank'},{label:'Avertissement',value:'warn'},...['test','confirmed','expert','prestigious','senior'].map((rank,j)=>({label:'Rétrograder vers '+(['Test','Confirmé','Expert','Prestigieux','Senior'][j]),value:'demote.'+rank}))])),row(b('reason','… Motif facultatif',`${member.id}.${page}`)));
  }
  items.push(row(b('page','◀',`${stage}.${page-1}`,S.Secondary,page===0),b('page','▶',`${stage}.${page+1}`,S.Secondary,page===max),b('page',stage==='notes'?'Continuer : grades':'Récapitulatif',stage==='notes'?'grades.0':'review.0',S.Success)));
- items.push(text('-# Fondateur - QG'));return box(items);
+ items.push(text('-# '+require('../utils/qgBrand').signature));return box(items);
 }
 function summary(r,page,b){
  const ids=r.roster.filter(m=>r.notes[m.id]||r.actions[m.id]);const max=Math.max(0,Math.ceil(ids.length/2)-1);page=Math.max(0,Math.min(max,page));
@@ -94,7 +94,7 @@ async function openMeeting(guild,r){
    if(!message)throw Error('Annonce de réunion incertaine : vérification manuelle nécessaire dans le salon d’annonces.');
   }else{
    save(r.id,p=>{p.announcementPending=true;});
-   message=await ch.send({embeds:[embed('📅 La réunion du QG commence',`**${clean(r.name)}**\n${clean(r.description||'')}\nRejoignez <#${voiceId}>. Discussion : <#${discussion.id}>.\nDurée prévue : ${r.duration} minutes.`).setFooter({text:`Fondateur - QG • ${marker}`})],allowedMentions:{parse:[]}});
+   message=await ch.send({embeds:[embed('📅 La réunion du QG commence',`**${clean(r.name)}**\n${clean(r.description||'')}\nRejoignez <#${voiceId}>. Discussion : <#${discussion.id}>.\nDurée prévue : ${r.duration} minutes.`).setFooter(require('../utils/qgBrand').footer(' • '+marker))],allowedMentions:{parse:[]}});
   }
   r=save(r.id,p=>{p.announcementId=message.id;p.announcementPending=false;});
  }

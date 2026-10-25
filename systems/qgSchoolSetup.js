@@ -15,7 +15,7 @@ const roleMap = () => state().schoolRoles || {};
 const categoryMap = () => state().schoolCategories || {};
 const channelMap = () => state().schoolChannels || {};
 const clean = text => String(text ?? '').replace(/@everyone|@here|<@&?\d+>|<#[0-9]+>/g, '[mention]').slice(0, 1800);
-const embed = (title, description) => new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function audit(type, actorId, details = {}) {
   store(s => { s.schoolAudit ||= []; s.schoolAudit.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, at: Date.now(), type, actorId, details }); if (s.schoolAudit.length > 1000) s.schoolAudit.splice(0, s.schoolAudit.length - 1000); });
 }

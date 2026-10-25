@@ -26,7 +26,7 @@ channels.push(
  ['supportApply','📝・candidature-support','help',T.GuildText],['supportInfo','ℹ️・infos-support','help',T.GuildText],
  ['staffAnnouncements','📢・annonces-staff','staff',T.GuildText],['staffGiveaways','🎉・giveaways-staff','staff',T.GuildText],['staffRequests','📍・demandes-staff','staff',T.GuildText],['staffAlerts','⏰・alertes-staff','staff',T.GuildText],['staffIdeas','📬・boîte-à-idées','staff',T.GuildText],['staffMemories','📸・souvenirs-staff','staff',T.GuildText],['staffSanctions','✏️・suivi-sanctions','staff',T.GuildText],['staffCommands','🤖・commandes-staff','staff',T.GuildText],['staffApplications','📨・candidatures-support','staff',T.GuildText]
 );
-const embed=(title,description)=>new EmbedBuilder().setFooter({text:'Fondateur - QG'}).setColor(0xffffff).setTitle(title).setDescription(description);
+const embed=(title,description)=>new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 const rules=()=>({embeds:[embed('Bienvenue au QG — Règlement',
 'Bienvenue dans notre communauté ! Lis ces règles avant de participer.\n\n'+
 '**1. Respect**\nAucune insulte, discrimination, menace, intimidation ou harcèlement. Respecte les limites et la vie privée de chacun.\n\n'+

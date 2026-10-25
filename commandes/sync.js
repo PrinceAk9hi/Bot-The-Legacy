@@ -5,7 +5,7 @@ const pending = new Map();
 const required = [P.ManageChannels, P.ManageRoles];
 const snapshot = channel => [...channel.permissionOverwrites.cache.values()].map(o => ({ id: o.id, type: o.type, allow: o.allow.bitfield.toString(), deny: o.deny.bitfield.toString() })).sort((a,b) => a.id.localeCompare(b.id));
 const signature = channel => JSON.stringify(snapshot(channel));
-const frame = (title, description) => new EmbedBuilder().setColor(0xffffff).setTitle(title).setDescription(description).setFooter({ text: 'Fondateur - QG' });
+const frame = (title, description) => new EmbedBuilder().setColor(0xffffff).setTitle(title).setDescription(description).setFooter(require('../utils/qgBrand').footer());
 async function plan(guild, direction, categoryId, channelId) {
   await guild.roles.fetch();
   const all = await guild.channels.fetch();

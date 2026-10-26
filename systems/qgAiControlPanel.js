@@ -34,7 +34,7 @@ function panel(page='overview',offset=0){
   if(page==='corrections'){items=Object.values(s.corrections);actions=[button('form:correction','Signaler / proposer'),button('form:review','Examiner une correction')];text='Une proposition ne devient officielle qu’après validation.\n';}
   if(page==='unresolved'){const outcomes=new Map(s.events.filter(e=>e.type==='outcome').map(e=>[e.channelId,e.result]));items=s.events.filter(e=>e.unresolved||e.type==='escalation').map(e=>({...e,status:outcomes.get(e.channelId)||'pending'}));actions=[button('form:outcome','Marquer une issue'),button('form:correction','Proposer une solution')];}
   if(page==='errors'){items=s.events.filter(e=>e.type==='error'||e.faults?.length);text='Erreurs techniques et réponses rejetées. Aucun secret ni contenu de clé.\n';}
-  if(page==='config'){text=`Réponses : ${s.config.enabled?'activées':'désactivées'}\nSalons : ${s.config.channels.length?s.config.channels.map(id=>'<#'+id+'>').join(', '):'tous les tickets QG uniquement'}\nRétention : ${s.config.retentionDays} jours\nÉtat du stockage : ${store.diagnostics().health}\nPersistance : volume Railway requis, un seul processus.\nLa liste des tickets reste distincte des salons de réponses publiques configurés avec le bouton dédié.`;actions=[button('toggle','Activer / désactiver'),button('form:config','Salons et conservation'),button('form:public','Réponses publiques'),button('form:reset','Réinitialiser un contexte'),button('diagnostic','Diagnostic')];}
+  if(page==='config'){text=`Réponses : ${s.config.enabled?'activées':'désactivées'}\nSalons : ${s.config.channels.length?s.config.channels.map(id=>'<#'+id+'>').join(', '):'tous les tickets QG uniquement'}\nRétention : ${s.config.retentionDays} jours\nÉtat du stockage : ${store.diagnostics().health}\nPersistance : volume Railway requis, un seul processus.\nLes mentions fonctionnent partout par défaut. Le bouton Réponses publiques permet de restreindre les salons ; une liste vide réactive les mentions partout.`;actions=[button('toggle','Activer / désactiver'),button('form:config','Salons et conservation'),button('form:public','Réponses publiques'),button('form:reset','Réinitialiser un contexte'),button('diagnostic','Diagnostic')];}
   if(page==='test'){text='La réponse sera visible uniquement par toi. Aucun ticket déplacé, aucun rôle mentionné, aucune action administrative. Un test utilise deux appels : sélection des connaissances, puis réponse.';actions=[button('form:test','Tester une question')];}
   items=items.slice().reverse();offset=Math.max(0,Math.min(Number(offset)||0,Math.max(0,Math.floor((items.length-1)/5)*5)));
   if(['knowledge','corrections','unresolved','errors'].includes(page))text+=(items.slice(offset,offset+5).map(e=>`**${kb.clean(e.title||e.question||e.topic||e.type||'Correction').slice(0,100)}**\nRéférence : \`${e.id}\`\n${e.status||e.decision||''} • ${new Date(e.updatedAt||e.at||e.createdAt).toISOString().slice(0,10)}\n${kb.clean(e.content||e.problem||e.reason||e.code||'').slice(0,240)}`).join('\n\n')||'Aucune entrée.')+`\n\n${items.length} entrée(s).`;
@@ -48,7 +48,7 @@ const fields={
  archive:[['id','Référence de la connaissance',true]],search:[['question','Question à rechercher',true]],
  correction:[['question','Question initiale',true],['answer','Réponse incorrecte',true],['problem','Type d’erreur et explication',true],['correction','Correction proposée',true],['subject','Sujet',true]],
  review:[['id','Référence de la correction',true]],outcome:[['id','Référence de la demande (ci-dessus)',true],['result','resolved / ignored / pending',true]],
- public:[['channels','Salons publics autorisés (IDs)',false],['mentions','Mention obligatoire : oui / non',true]],
+ public:[['channels','Salons publics (vide = partout)',false],['mentions','Mention obligatoire : oui / non',true]],
  config:[['channels','IDs des tickets autorisés, vide = tous',false],['days','Conservation en jours (1 à 365)',true]],
  reset:[['channel','ID du ticket',true],['user','ID du demandeur',true]],test:[['question','Question de test',true]]
 };
@@ -102,7 +102,7 @@ async function handle(i){
     if(arg==='public'){
  const ids=get('channels').split(/[\s,]+/).filter(Boolean);if(!['oui','non'].includes(get('mentions')))throw Error('Réponds oui ou non.');
  for(const id of ids){const ch=await i.guild.channels.fetch(id);if(!ch?.isTextBased()||!ch.permissionsFor(i.guild.roles.everyone)?.has('ViewChannel'))throw Error('Choisis uniquement des salons publics du QG.');}
- store.transact(s=>{s.config.publicChannels=[...new Set(ids)];s.config.mentionsOnly=get('mentions')==='oui';store.audit(s,'config.public',i.user.id,null);});return i.editReply(panel('config'));
+ store.transact(s=>{s.config.publicScope=ids.length?'selected':'all';s.config.publicChannels=[...new Set(ids)];s.config.mentionsOnly=get('mentions')==='oui';store.audit(s,'config.public',i.user.id,null);});return i.editReply(panel('config'));
  }
  if(arg==='config'){
 

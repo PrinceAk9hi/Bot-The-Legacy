@@ -16,7 +16,7 @@ Le rappel n’ajoute pas de rôle Avertissement 1/2/Dernière Chance. L’histor
 
 ## IA
 Les modules existants sont réutilisés. Ajouts : connaissances officielles préchargées, sélection sémantique des sources par le modèle, contexte temporel Europe/Paris, statut actuel des candidatures, réponses publiques configurables et historique des modifications de connaissances.
-Dans /ia → Configuration → Réponses publiques : sélectionner les salons publics et indiquer si une mention est obligatoire. Sans salon configuré, aucune réponse publique automatique.
+Dans /ia → Configuration → Réponses publiques : sélectionner les salons publics et indiquer si une mention est obligatoire. Par défaut, les mentions sont autorisées dans tous les salons accessibles au bot. Une liste non vide limite les réponses aux salons choisis ; une liste vide réactive les mentions partout.
 La mémoire reste isolée par serveur, salon et utilisateur. Les tickets conservent leur fonctionnement et leur transfert humain. Les corrections validées restent administrées dans /ia.
 
 Variables :

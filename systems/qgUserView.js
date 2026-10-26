@@ -9,6 +9,7 @@ function render(actor,member,id,tab='profile'){
  const can=action=>a.can(actor,action);
  const state=rp.status(member.id);
  const linked=a.state().schoolEntryVerification?.[member.id];
+ const age=require('./qgAgeProfiles').bracket(member.id),ageLabel=age?'+'+age+' (déclarée, non vérifiée par Roblox)':'Non renseignée';
  const roblox=linked?.robloxId&&/^\d+$/.test(String(linked.robloxId))?`[${clean(linked.robloxName||'Profil Roblox')}](https://www.roblox.com/users/${linked.robloxId}/profile)${linked.confirmedAt?' — profil déclaré et confirmé':' — vérification en cours'}`:'Aucun compte Roblox QG lié';
  const box=new ContainerBuilder().setAccentColor(0xffffff)
  .addSectionComponents(new SectionBuilder().addTextDisplayComponents(text(`## 👤 Panel membre • ${clean(member.user.username).slice(0,80)}\nPanel de gestion rapide de <@${member.id}>`)).setThumbnailAccessory(new ThumbnailBuilder().setURL(member.user.displayAvatarURL())))
@@ -18,7 +19,7 @@ function render(actor,member,id,tab='profile'){
  if(tab==='profile'){
   const roles=[...member.roles.cache.values()].filter(r=>r.id!==member.guild.id).sort((x,y)=>y.position-x.position);
   let shown=[],size=0;for(const role of roles){const mention=`<@&${role.id}>`;if(size+mention.length>1400||shown.length>=30)break;shown.push(mention);size+=mention.length+2;}
-  box.addTextDisplayComponents(text(`### 👤 Utilisateur\n**Nom Discord :** ${clean(member.user.username)}\n**Nom serveur :** ${clean(member.displayName)}\n**ID :** \`${member.id}\`\n**Bot :** ${member.user.bot?'Oui':'Non'}\n\n### 🎮 Roblox\n${roblox}\n\n### 📅 Compte\n**Créé :** ${stamp(member.user.createdTimestamp)}\n**Arrivé sur le serveur :** ${stamp(member.joinedTimestamp)}\n\n### 🎭 Rôles\n${shown.join(', ')||'Aucun rôle'}${roles.length>shown.length?`\n+ ${roles.length-shown.length} autre(s) rôle(s)`:''}`))
+  box.addTextDisplayComponents(text(`### 👤 Utilisateur\n**Nom Discord :** ${clean(member.user.username)}\n**Nom serveur :** ${clean(member.displayName)}\n**ID :** \`${member.id}\`\n**Bot :** ${member.user.bot?'Oui':'Non'}\n\n### 🎮 Roblox\n${roblox}\n**Tranche d’âge Roblox :** ${ageLabel}\n\n### 📅 Compte\n**Créé :** ${stamp(member.user.createdTimestamp)}\n**Arrivé sur le serveur :** ${stamp(member.joinedTimestamp)}\n\n### 🎭 Rôles\n${shown.join(', ')||'Aucun rôle'}${roles.length>shown.length?`\n+ ${roles.length-shown.length} autre(s) rôle(s)`:''}`))
   .addSeparatorComponents(new SeparatorBuilder()).addActionRowComponents(row(button('applications','📋 Profil candidat'),button('stats','📊 Statistiques')));
  }else if(tab==='voice'){
   const connected=!!member.voice?.channelId,allowed=can('prison');

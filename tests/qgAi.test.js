@@ -8,7 +8,7 @@ test.after(()=>fs.rmSync(root,{recursive:true,force:true}));
 let n=0;const fresh=()=>createStore(path.join(root,String(++n)));
 const discord={channels:{'111111111111111111':{name:'règlement'}},roles:{'222222222222222222':{name:'Gestion Support'}},entries:[]};
 const entry=(patch={})=>({id:'entry',title:'Responsable du bot',content:'La maintenance du bot QG est supervisée par le Créateur.',guildId:config.guildId,subject:'bot-owner',status:'validated',...patch});
-const completion=v=>async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decision:'answer',answer:'Le Créateur supervise le bot.',reason:'',basis:'local',sourceIds:['entry'],...v})}}],usage:{prompt_tokens:20,completion_tokens:10}});
+const completion=v=>async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify({ids:v.sourceIds||['entry'],decision:'answer',answer:'Le Créateur supervise le bot.',reason:'',basis:'local',sourceIds:['entry'],...v})}}],usage:{prompt_tokens:20,completion_tokens:10}});
 test('1 bot owner uses appropriate source, not member counts',async()=>{
  const db=fresh();db.transact(s=>{s.knowledge.a=entry();s.knowledge.b=entry({id:'count',subject:'members',content:'Le bot compte 42 membres.'});});
  const r=await svc.generate({question:'Qui gère le bot QG ?',discord,db,complete:completion({})});assert.equal(r.topic,'bot-owner');assert.deepEqual(r.sources.map(s=>s.id),['entry']);assert.match(r.answer,/Créateur/);
@@ -28,10 +28,10 @@ test('5 missing developer name never invokes provider to invent identity',async(
 });
 test('6 validated correction is retrieved immediately and after reload',()=>{
  const directory=path.join(root,'restart'),db=createStore(directory);const id=kb.propose({question:'Qui gère le bot ?',answer:'42 membres',problem:'hors sujet',correction:'La maintenance du bot est supervisée par le Créateur.',subject:'bot-owner'},'admin',db);kb.review(id,true,'admin',db);
- assert.equal(kb.search(Object.values(createStore(directory).read().knowledge),'Qui gère le bot ?',config.guildId,'bot-owner').length,1);
+ assert.equal(kb.search(Object.values(createStore(directory).read().knowledge).filter(e=>!e.id.startsWith('official:')),'Qui gère le bot ?',config.guildId,'bot-owner').length,1);
 });
 test('7 pending and rejected corrections never become official knowledge',()=>{
- const db=fresh(),id=kb.propose({question:'Qui gère le bot ?',correction:'Une fausse personne',subject:'bot-owner'},'user',db);assert.equal(Object.keys(db.read().knowledge).length,0);kb.review(id,false,'admin',db);assert.equal(Object.keys(db.read().knowledge).length,0);assert.throws(()=>kb.review(id,true,'admin',db));
+ const db=fresh(),id=kb.propose({question:'Qui gère le bot ?',correction:'Une fausse personne',subject:'bot-owner'},'user',db);assert.equal(Object.keys(db.read().knowledge).filter(id=>!id.startsWith('official:')).length,0);kb.review(id,false,'admin',db);assert.equal(Object.keys(db.read().knowledge).filter(id=>!id.startsWith('official:')).length,0);assert.throws(()=>kb.review(id,true,'admin',db));
 });
 test('8 Discord references remain valid and unknown identifiers are removed',()=>{
  const r=svc.references('Rôle 222222222222222222, salon <#111111111111111111>, inconnu 333333333333333333, @everyone',discord);assert.match(r,/Gestion Support/);assert.match(r,/<#111111111111111111>/);assert.doesNotMatch(r,/333333333333333333|@everyone/);
@@ -53,7 +53,7 @@ test('concurrent transactions and event deduplication preserve data',async()=>{
  const db=fresh();await Promise.all(Array.from({length:20},(_,i)=>Promise.resolve().then(()=>db.event({id:String(i),type:'test'}))));db.event({id:'0',type:'test'});assert.equal(db.read().events.length,20);
 });
 test('expired or archived knowledge excluded and edits replace content',()=>{
- const db=fresh(),e=kb.saveEntry({title:'Responsable du bot',subject:'bot-owner',content:'Le Créateur gère le bot.'},'admin',db);kb.saveEntry({...e,content:'La direction technique assure la maintenance du bot.'},'admin',db);assert.equal(Object.keys(db.read().knowledge).length,1);assert.match(db.read().knowledge[e.id].content,/direction technique/);assert.equal(kb.search([entry({expiresAt:1}),entry({status:'archived'})],'Qui gère le bot ?',config.guildId,'bot-owner').length,0);
+ const db=fresh(),e=kb.saveEntry({title:'Responsable du bot',subject:'bot-owner',content:'Le Créateur gère le bot.'},'admin',db);kb.saveEntry({...e,content:'La direction technique assure la maintenance du bot.'},'admin',db);assert.equal(Object.keys(db.read().knowledge).filter(id=>!id.startsWith('official:')).length,1);assert.match(db.read().knowledge[e.id].content,/direction technique/);assert.equal(kb.search([entry({expiresAt:1}),entry({status:'archived'})],'Qui gère le bot ?',config.guildId,'bot-owner').length,0);
 });
 test('wrong server and unrelated owner response are blocked after generation',()=>{
  const args={question:'Qui gère le bot ?',topic:'bot-owner',sources:[entry()],discord};
@@ -75,7 +75,7 @@ test('dry-run service has no Discord actions or persistent writes',async()=>{
 });
 test('legacy migration imports only explicitly validated QG records as pending, once',()=>{
  const db=fresh(),load=name=>name==='ticketKnowledgeEntries'?{good:entry(),unscoped:entry({guildId:undefined}),foreign:entry({guildId:'other'})}:{};
- const r=kb.migrate('admin',db,load);assert.equal(r.count,1);assert.equal(r.excluded,2);assert.equal(Object.keys(db.read().knowledge).length,0);assert.equal(Object.values(db.read().corrections)[0].status,'pending');assert.equal(kb.migrate('admin',db,load).count,0);
+ const r=kb.migrate('admin',db,load);assert.equal(r.count,1);assert.equal(r.excluded,2);assert.equal(Object.keys(db.read().knowledge).filter(id=>!id.startsWith('official:')).length,0);assert.equal(Object.values(db.read().corrections)[0].status,'pending');assert.equal(kb.migrate('admin',db,load).count,0);
 });
 test('permission-filtered context discovers actual recruitment panel, hides inaccessible rooms',async()=>{
  const storage=require('../utils/recruitmentData'),dir=path.join(root,'context');storage.setDataDirectory(dir);

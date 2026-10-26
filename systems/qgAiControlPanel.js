@@ -29,13 +29,13 @@ function panel(page='overview',offset=0){
     const ranked=map=>[...map].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([q,n])=>`• ${kb.clean(q).slice(0,180)} : **${n}**`).join('\n')||'Aucune mesure.';
     text=`**Questions les plus fréquentes**\n${ranked(counts)}\n\n**Types de signalements et anomalies**\n${ranked(errors)}\n\nRegroupement par texte normalisé, sur la période conservée. Les formulations différentes ne sont pas fusionnées automatiquement.`;
   }
-  if(page==='overview')text=`**QG — Assistant officiel**\nRéponses : **${s.config.enabled?'activées':'désactivées'}**\nFournisseur : OpenAI — ${process.env.OPENAI_API_KEY?'clé présente, disponibilité à confirmer par un test':'clé absente'}\n\n${metrics(s)}`;
+  if(page==='overview')text=`**QG — Assistant officiel**\nRéponses : **${s.config.enabled?'activées':'désactivées'}**\nFournisseur : API compatible configurée — ${require('../utils/qgAiProvider').configured()?'clé présente, disponibilité à confirmer par un test':'clé absente'}\n\n${metrics(s)}`;
   if(page==='knowledge'){items=Object.values(s.knowledge);actions=[button('form:knowledge','Ajouter / modifier'),button('form:archive','Archiver'),button('form:search','Rechercher'),button('migrate','Importer en brouillons')];text='Informations publiques QG uniquement. Sujets : '+topics.join(', ')+'.\n';}
   if(page==='corrections'){items=Object.values(s.corrections);actions=[button('form:correction','Signaler / proposer'),button('form:review','Examiner une correction')];text='Une proposition ne devient officielle qu’après validation.\n';}
   if(page==='unresolved'){const outcomes=new Map(s.events.filter(e=>e.type==='outcome').map(e=>[e.channelId,e.result]));items=s.events.filter(e=>e.unresolved||e.type==='escalation').map(e=>({...e,status:outcomes.get(e.channelId)||'pending'}));actions=[button('form:outcome','Marquer une issue'),button('form:correction','Proposer une solution')];}
   if(page==='errors'){items=s.events.filter(e=>e.type==='error'||e.faults?.length);text='Erreurs techniques et réponses rejetées. Aucun secret ni contenu de clé.\n';}
-  if(page==='config'){text=`Réponses : ${s.config.enabled?'activées':'désactivées'}\nSalons : ${s.config.channels.length?s.config.channels.map(id=>'<#'+id+'>').join(', '):'tous les tickets QG uniquement'}\nRétention : ${s.config.retentionDays} jours\nÉtat du stockage : ${store.diagnostics().health}\nPersistance : volume Railway requis, un seul processus.\nUne liste de salons restreint les tickets ; elle n’active pas l’IA dans les discussions publiques.`;actions=[button('toggle','Activer / désactiver'),button('form:config','Salons et conservation'),button('form:reset','Réinitialiser un contexte'),button('diagnostic','Diagnostic')];}
-  if(page==='test'){text='La réponse sera visible uniquement par toi. Aucun ticket déplacé, aucun rôle mentionné, aucune action administrative. Un test utilise au maximum un appel au fournisseur actuel.';actions=[button('form:test','Tester une question')];}
+  if(page==='config'){text=`Réponses : ${s.config.enabled?'activées':'désactivées'}\nSalons : ${s.config.channels.length?s.config.channels.map(id=>'<#'+id+'>').join(', '):'tous les tickets QG uniquement'}\nRétention : ${s.config.retentionDays} jours\nÉtat du stockage : ${store.diagnostics().health}\nPersistance : volume Railway requis, un seul processus.\nLa liste des tickets reste distincte des salons de réponses publiques configurés avec le bouton dédié.`;actions=[button('toggle','Activer / désactiver'),button('form:config','Salons et conservation'),button('form:public','Réponses publiques'),button('form:reset','Réinitialiser un contexte'),button('diagnostic','Diagnostic')];}
+  if(page==='test'){text='La réponse sera visible uniquement par toi. Aucun ticket déplacé, aucun rôle mentionné, aucune action administrative. Un test utilise deux appels : sélection des connaissances, puis réponse.';actions=[button('form:test','Tester une question')];}
   items=items.slice().reverse();offset=Math.max(0,Math.min(Number(offset)||0,Math.max(0,Math.floor((items.length-1)/5)*5)));
   if(['knowledge','corrections','unresolved','errors'].includes(page))text+=(items.slice(offset,offset+5).map(e=>`**${kb.clean(e.title||e.question||e.topic||e.type||'Correction').slice(0,100)}**\nRéférence : \`${e.id}\`\n${e.status||e.decision||''} • ${new Date(e.updatedAt||e.at||e.createdAt).toISOString().slice(0,10)}\n${kb.clean(e.content||e.problem||e.reason||e.code||'').slice(0,240)}`).join('\n\n')||'Aucune entrée.')+`\n\n${items.length} entrée(s).`;
   const components=[new Row().addComponents(new Menu().setCustomId('qgai:page').setPlaceholder('Navigation').addOptions(Object.entries(pages).map(([value,label])=>({value,label,default:value===page}))))];
@@ -48,6 +48,7 @@ const fields={
  archive:[['id','Référence de la connaissance',true]],search:[['question','Question à rechercher',true]],
  correction:[['question','Question initiale',true],['answer','Réponse incorrecte',true],['problem','Type d’erreur et explication',true],['correction','Correction proposée',true],['subject','Sujet',true]],
  review:[['id','Référence de la correction',true]],outcome:[['id','Référence de la demande (ci-dessus)',true],['result','resolved / ignored / pending',true]],
+ public:[['channels','Salons publics autorisés (IDs)',false],['mentions','Mention obligatoire : oui / non',true]],
  config:[['channels','IDs des tickets autorisés, vide = tous',false],['days','Conservation en jours (1 à 365)',true]],
  reset:[['channel','ID du ticket',true],['user','ID du demandeur',true]],test:[['question','Question de test',true]]
 };
@@ -70,7 +71,7 @@ async function handle(i){
     if(action==='migrate'){const result=kb.migrate(i.user.id);return i.editReply(`${result.count} entrée(s) QG importée(s) dans les corrections à valider ; ${result.excluded} exclue(s). Aucun fichier historique modifié, aucune connaissance importée publiée automatiquement.`);}
     if(action==='diagnostic'){
       store.transact(s=>store.audit(s,'diagnostic',i.user.id,null));
-      return i.editReply({embeds:[embed('Diagnostic IA',`Module chargé. JSON lisible et écriture réussie.\n${store.diagnostics().health}\nClé OpenAI : ${process.env.OPENAI_API_KEY?'présente':'absente'}.\nDisponibilité distante : non vérifiée ; utilise le test.\nLes données doivent être placées sur un volume Railway persistant.`)],allowedMentions:{parse:[]}});
+      return i.editReply({embeds:[embed('Diagnostic IA',`Module chargé. JSON lisible et écriture réussie.\n${store.diagnostics().health}\nClé du fournisseur : ${require('../utils/qgAiProvider').configured()?'présente':'absente'}.\nDisponibilité distante : non vérifiée ; utilise le test.\nLes données doivent être placées sur un volume Railway persistant.`)],allowedMentions:{parse:[]}});
     }
     if(action==='toggle'){
       const s=store.read();return i.editReply({content:`Confirmer ${s.config.enabled?'la désactivation':'l’activation'} des réponses automatiques ?`,components:[new Row().addComponents(button(`confirm-toggle:${s.config.revision||0}:${s.config.enabled?'off':'on'}`,'Confirmer',Style.Danger))]});
@@ -98,7 +99,13 @@ async function handle(i){
     if(arg==='review'){
       const c=store.read().corrections[get('id')];if(!c||c.status!=='pending')throw Error('Correction absente ou déjà examinée.');return i.editReply({embeds:[embed('Examiner la correction',kb.clean(`Question : ${c.question||'expirée'}\nErreur : ${c.problem||'expirée'}\nSujet : ${c.subject}\nCorrection : ${c.correction}`).slice(0,3900))],components:[new Row().addComponents(button(`review:${c.id}:yes`,'Valider',Style.Success),button(`review:${c.id}:no`,'Refuser',Style.Danger))],allowedMentions:{parse:[]}});
     }
-    if(arg==='config'){
+    if(arg==='public'){
+ const ids=get('channels').split(/[\s,]+/).filter(Boolean);if(!['oui','non'].includes(get('mentions')))throw Error('Réponds oui ou non.');
+ for(const id of ids){const ch=await i.guild.channels.fetch(id);if(!ch?.isTextBased()||!ch.permissionsFor(i.guild.roles.everyone)?.has('ViewChannel'))throw Error('Choisis uniquement des salons publics du QG.');}
+ store.transact(s=>{s.config.publicChannels=[...new Set(ids)];s.config.mentionsOnly=get('mentions')==='oui';store.audit(s,'config.public',i.user.id,null);});return i.editReply(panel('config'));
+ }
+ if(arg==='config'){
+
       const ids=get('channels').split(/[\s,]+/).filter(Boolean),days=Number(get('days'));if(!Number.isInteger(days)||days<1||days>365)throw Error('Durée invalide.');
       for(const id of ids){const ch=await i.guild.channels.fetch(id);if(!ch||ch.guildId!==i.guildId||!ch.isTextBased())throw Error('Salon invalide.');}
       store.transact(s=>{s.config.channels=[...new Set(ids)];s.config.retentionDays=days;s.config.revision=(s.config.revision||0)+1;store.audit(s,'config.updated',i.user.id,null);});return i.editReply(panel('config'));

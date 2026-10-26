@@ -11,10 +11,10 @@ function createStore(directory = process.env.QG_AI_DATA_DIR || path.join(__dirna
   function valid(s) {
     if (!s || s.schemaVersion !== 1 || s.guildId !== guildId || !s.config || typeof s.config.enabled !== 'boolean' || !Array.isArray(s.config.channels) || !Array.isArray(s.events) || !Array.isArray(s.audit)) throw Error('Stockage IA QG invalide.');
     for (const key of ['knowledge','corrections','conversations']) if (!s[key] || typeof s[key] !== 'object' || Array.isArray(s[key])) throw Error('Stockage IA QG invalide.');
-    return s;
+    return require('./qgAiOfficial').seed(s);
   }
   function read() {
-    if (!fs.existsSync(file)) return defaults();
+    if (!fs.existsSync(file)) return require('./qgAiOfficial').seed(defaults());
     try { return valid(JSON.parse(fs.readFileSync(file, 'utf8'))); }
     catch {
       try { const value = valid(JSON.parse(fs.readFileSync(file + '.bak', 'utf8'))); health = 'Sauvegarde utilisée : fichier principal invalide.'; return value; }

@@ -291,6 +291,7 @@ async function message(m){
  require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgTicketAssistant').message(m))return;
+ if(await require('./qgAiPublic').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
@@ -316,6 +317,7 @@ function register(client){
  client.on(Events.ShardResume,()=>{const g=client.guilds.cache.get(config.guildId);if(g)require('./qgConferences').recover(g).catch(report);});
  const guarded=(fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(report);
  // Route only QG events here: handlers belonging to other servers must never moderate QG members.
+ client.on(Events.UserUpdate,(_old,user)=>{const guild=client.guilds.cache.get(config.guildId),member=guild?.members.cache.get(user.id);if(member)guarded(require('./qgTagWatch').inspect,member);});
  const emit=client.emit;
  client.emit=function(event,...args){
   const first=args[0],guildId=first?.guildId||first?.guild?.id||first?.message?.guildId||args[1]?.guildId||args[1]?.guild?.id;
@@ -354,6 +356,8 @@ function register(client){
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);
+  guarded(require('./qgTagWatch').tick,guild);
+  setInterval(()=>guarded(require('./qgTagWatch').tick,guild),15*60000).unref();
   setInterval(()=>guarded(require('./qgCasino').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
   await guarded(require('./qgSupportWorkspace').install,guild);

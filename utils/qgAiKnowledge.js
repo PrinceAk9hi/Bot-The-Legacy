@@ -47,7 +47,7 @@ function saveEntry(input, actor, db = store) {
     const old = input.id ? s.knowledge[input.id] : null;
     if (input.id && !old) throw Error('Connaissance introuvable.');
     entry = { ...old, id: old?.id || randomUUID(), guildId: config.guildId, subject: input.subject || 'general', category: input.subject || 'general', title: clean(input.title).slice(0,100), content: clean(input.content).slice(0,2400), source: 'staff-reviewed', status: 'validated', active: true, priority: 10, createdAt: old?.createdAt || Date.now(), updatedAt: Date.now(), updatedBy: actor, expiresAt: input.expiresAt || null };
-    s.knowledge[entry.id] = entry; db.audit(s, 'knowledge.save', actor, entry.id);
+    entry.history=[...(old?.history||[]),...(old?[{content:old.content,title:old.title,at:old.updatedAt,author:old.updatedBy}]:[])];entry.validatedBy=actor;s.knowledge[entry.id] = entry; db.audit(s, 'knowledge.save', actor, entry.id);
   }); return entry;
 }
 function propose(input, actor, db = store) {
@@ -61,7 +61,7 @@ function review(id, approve, actor, db = store) {
     c.status=approve?'validated':'rejected'; c.updatedAt=Date.now(); c.validatedBy=actor;
     if(approve) {
       for(const old of Object.values(s.knowledge))if(old.subject===c.subject && normalize(old.title)===normalize((c.question||'').slice(0,100))){old.status='superseded';old.active=false;old.updatedAt=Date.now();}
-      const key=randomUUID(); s.knowledge[key]={id:key,guildId:config.guildId,subject:c.subject,category:c.subject,title:(c.question||'Correction validée').slice(0,100),content:c.correction,source:'correction:'+id,status:'validated',active:true,priority:20,createdAt:Date.now(),updatedAt:Date.now(),updatedBy:actor}; c.knowledgeId=key;
+      const key=randomUUID(); s.knowledge[key]={id:key,guildId:config.guildId,subject:c.subject,category:c.subject,title:(c.question||'Correction validée').slice(0,100),content:c.correction,source:'correction:'+id,status:'validated',active:true,priority:20,createdAt:Date.now(),updatedAt:Date.now(),updatedBy:actor}; c.knowledgeId=key;s.regressionCases||={};s.regressionCases[id]={question:c.question,expectedKnowledgeId:key,createdAt:Date.now(),validatedBy:actor};
     }
     db.audit(s,'correction.'+c.status,actor,id);
   });

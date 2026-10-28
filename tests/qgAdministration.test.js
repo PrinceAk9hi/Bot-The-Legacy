@@ -88,6 +88,6 @@ test('private applications are filtered by team; statistics do not invent vocal 
 test('Discord role failures are logged and do not claim success',async()=>{
  const m=mock();m.target.roles.add=async()=>{throw Object.assign(Error('denied'),{code:50013});};const p=panel.plan(m.actor,m.target,'rankup');await assert.rejects(()=>panel.confirm(interaction(m),'session',session(m,p)));assert.equal(a.state().schoolAdminHistory.at(-1).result,'failed');assert.ok(m.target.roles.cache.has('confirmed'));
 });
-test('AI sends plain text and retains current 18+ QG identity',async()=>{
- const messages=[];await require('../systems/qgTicketAssistant').sendText({send:async p=>{messages.push(p);return{id:'answer'};}},'Bonjour, bienvenue au QG.');assert.equal(messages[0].embeds,undefined);assert.equal(messages[0].content,'Bonjour, bienvenue au QG.');const family=require('../config/qgFamily');assert.match(family.conditions,/18 ans et plus/);assert.match(family.conditions,/pas en vigueur/);assert.match(family.conditions,/tag QG est obligatoire/);
+test('AI sends plain text and retains current QG recruitment conditions',async()=>{
+ const messages=[];await require('../systems/qgTicketAssistant').sendText({send:async p=>{messages.push(p);return{id:'answer'};}},'Bonjour, bienvenue au QG.');assert.equal(messages[0].embeds,undefined);assert.equal(messages[0].content,'Bonjour, bienvenue au QG.');const family=require('../config/qgFamily');assert.match(family.conditions,/16 ans minimum/);assert.match(family.conditions,/Tag QG obligatoire/);
 });

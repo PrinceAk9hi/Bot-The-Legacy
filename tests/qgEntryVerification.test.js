@@ -22,7 +22,7 @@ function fixture() {
   const i = id => ({ customId: id, guildId: config.guildId, user: { id: 'user', username: 'Example' }, guild: { members: { fetch: async () => member }, roles: { fetch: async () => ({ editable: true }) } }, fields: { getTextInputValue: key => ({roblox:'Example',discord:'Example',reason:'Rejoindre la communauté'})[key] }, deferReply: async () => {}, deferUpdate: async () => {}, editReply: async payload => { state.lastPayload = payload; }, reply: async () => {}, showModal: async () => {} });
   return { state, added, deps, member, i };
 }
-test('QG: profile confirmation grants no role; private rules acceptance grants community and chosen age, including after restart', async () => {
+test('QG: profile confirmation grants no role; private rules acceptance grants community only (no age role), including after restart', async () => {
   const f = fixture(); let handle = createHandler(f.deps);
   await handle(f.i('qgs:entry-form'));
   const token = f.state.schoolEntryVerification.user.token;
@@ -36,12 +36,12 @@ test('QG: profile confirmation grants no role; private rules acceptance grants c
   assert.match(f.state.lastPayload.embeds[0].data.description, /Confirmes-tu avoir bien lu et accepté/);
   handle = createHandler(f.deps);
   await handle(f.i(`qgs:entry-accept:${token}`));
-  assert.deepEqual(f.added, ['1562838771538468956','community']);
+  assert.deepEqual(f.added, ['community']);
   assert.ok(f.state.schoolEntryVerification.user.acceptedAt);
   assert.equal(f.state.welcomes, 1);
   await assert.rejects(handle(f.i(`qgs:entry-accept:${token}`)));
   assert.equal(f.state.welcomes, 1);
-  assert.deepEqual(f.added, ['1562838771538468956','community']);
+  assert.deepEqual(f.added, ['community']);
 });
 test('QG: wrong token, missing confirmation and native Discord screening cannot grant access', async () => {
   const f = fixture(), handle = createHandler(f.deps);

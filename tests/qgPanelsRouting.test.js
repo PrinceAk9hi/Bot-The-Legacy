@@ -10,7 +10,7 @@ function guild(){return {id:config.guildId,ownerId:'owner',client:{user:{id:'bot
 test('ticket panel order, supplied emojis, white branding and verification help button',()=>{
  reset();const p=panels.tickets(),data=p.embeds[0].toJSON(),options=p.components[0].toJSON().components[0].options;
  assert.deepEqual(options.map(x=>x.value),['questions','event','report','foundation']);assert.deepEqual(options.map(x=>x.emoji.id),['1561415725485260840',undefined,'1561417105218215996','1561417429999952033']);
- assert.equal(data.color,0xffffff);assert.equal(data.footer.text,'Fondateur - QG');assert.ok(data.description.startsWith('Besoin'));assert.doesNotMatch(JSON.stringify(data),/soul|héritage|héritier/i);
+ assert.equal(data.color,0xffffff);assert.equal(data.footer.text,'Direction du QG');assert.ok(data.description.startsWith('Besoin'));assert.doesNotMatch(JSON.stringify(data),/soul|héritage|héritier/i);
  const buttons=require('../systems/qgEntryVerification').panel().components[0].toJSON().components;assert.ok(buttons.some(x=>x.custom_id==='qgs:help-open'));
 });
 test('management capacity uses real members and excludes the responsible',async()=>{

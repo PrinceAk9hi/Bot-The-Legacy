@@ -46,5 +46,5 @@ test('tranche +13 et notifications : attribution seulement après le règlement'
  const handle=createHandler(f.deps);await handle(f.i('qgs:entry-confirm:age'));await handle(f.i('qgs:entry-age:age:13'));
  await assert.rejects(handle(f.i('qgs:entry-accept:age')));
  await handle({...f.i('qgs:entry-notifs:age'),values:['notifAnnouncements']});assert.equal(f.member.roles.cache.has('annonces'),false);
- await handle(f.i('qgs:entry-accept:age'));assert.equal(f.member.roles.cache.has('annonces'),true);assert.equal(f.member.roles.cache.has('rp'),false);assert.equal(f.member.roles.cache.has('1562838771538468956'),true);assert.equal(f.member.roles.cache.has('1562838566487326781'),false);assert.equal(f.state.schoolEntryVerification.user.ageBracket,'13');assert.deepEqual(f.state.schoolEntryVerification.user.notificationKeys,['notifAnnouncements']);
+ await handle(f.i('qgs:entry-accept:age'));assert.equal(f.member.roles.cache.has('annonces'),true);assert.equal(f.member.roles.cache.has('rp'),false);assert.equal(f.member.roles.cache.has('1562838771538468956'),false);assert.equal(f.state.schoolEntryVerification.user.ageBracket,'13');assert.deepEqual(f.state.schoolEntryVerification.user.notificationKeys,['notifAnnouncements']);
 });

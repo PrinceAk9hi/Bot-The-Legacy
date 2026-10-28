@@ -96,6 +96,7 @@ async function handle(i){if(!i.customId?.startsWith('qgcs:'))return;
   if(action==='daily'){store.daily(owner);note='✅ Récompense de 500 jetons récupérée.';}
   else if(action==='act'){store.action(owner,arg,Number(version),move);view='game';}
   else if(['board','rules','home','games','intro','howto'].includes(action))view=action;
+  else if(action==='balance')view='home';
   else throw Error('Action inconnue.');
   return i.editReply(payload(owner,view,note,arg));
  }catch(e){const p={content:'❌ '+e.message+' Tu peux rouvrir /casino pour retrouver ton état sauvegardé.',flags:MessageFlags.Ephemeral};if(i.deferred||i.replied)return i.followUp(p).catch(()=>{});return i.reply(p).catch(()=>{});}

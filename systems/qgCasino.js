@@ -4,6 +4,8 @@ const games=()=>require('./qgCasinoGames');
 const direction=['creator','globalManager','administrator'],staffKeys=[...direction,'casinoLead','casinoOperator'];
 const brand=require('../utils/qgBrand');
 const state=()=>a.state().schoolCasino||{};
+// Un salon textuel converti en salon d'annonces reste utilisable.
+const compatible=(ch,type)=>ch.type===type||(type===T.GuildText&&ch.type===T.GuildAnnouncement);
 function overwrites(guild,kind){
  const r=a.state().schoolRoles||{},ids=new Set((kind==='public'?['community','verified','test','confirmed','expert','prestigious','senior',...staffKeys]:staffKeys).map(k=>r[k]).filter(id=>guild.roles.cache.has(id)));
  const read=[P.ViewChannel,P.ReadMessageHistory],write=[...read,P.SendMessages,P.AttachFiles,P.EmbedLinks,P.Connect,P.Speak];
@@ -47,7 +49,7 @@ function payload(kind){
  return p;
 }
 async function publish(guild,key,kind){
- const ch=await guild.channels.fetch(a.state().schoolChannels?.[key]);if(!ch||ch.type!==T.GuildText)throw Error('Salon casino introuvable : '+key);
+ const ch=await guild.channels.fetch(a.state().schoolChannels?.[key]);if(!ch||!compatible(ch,T.GuildText))throw Error('Salon casino introuvable : '+key);
  const saved=state().panels?.[kind];let message=saved?.channelId===ch.id?await ch.messages.fetch(saved.messageId).catch(e=>{if(e.code===10008)return null;throw e;}):null;
  if(!message){const recent=await ch.messages.fetch({limit:100});const title=payload(kind).embeds[0].data.title;message=recent.find(m=>m.author.id===guild.client.user.id&&m.embeds[0]?.title===title);}
  const next=payload(kind);if(message){if(message.author.id!==guild.client.user.id)throw Error('Le panel casino enregistré appartient à un autre compte.');await message.edit(next);}else message=await ch.send(next);
@@ -69,7 +71,7 @@ async function install(guild){return a.serial('casino-install',async()=>{
  for(const [key,name,parent,type]of [
   ['casinoHome','🎰・casino','casino',T.GuildText],['casinoRules','📜・règlement-casino','casino',T.GuildText],['casinoBoard','🏆・classement-casino','casino',T.GuildText],['casinoSupportPanel','🎫・support-casino','casino',T.GuildText],['casinoLounge','🔊・salon-du-casino','casino',T.GuildVoice],
   ['casinoControl','🛠・pilotage-casino','casinoStaff',T.GuildText],['casinoTeam','💬・équipe-casino','casinoStaff',T.GuildText],['casinoOffice','🔊・bureau-casino','casinoStaff',T.GuildVoice]]){
-  const parentId=a.state().schoolCategories[parent];let ch=guild.channels.cache.get(a.state().schoolChannels?.[key]);ch||=guild.channels.cache.find(c=>c.parentId===parentId&&c.name===name&&c.type===type);if(ch&&ch.type!==type)throw Error('Salon casino incompatible : '+key);
+  const parentId=a.state().schoolCategories[parent];let ch=guild.channels.cache.get(a.state().schoolChannels?.[key]);ch||=guild.channels.cache.find(c=>c.parentId===parentId&&c.name===name&&compatible(c,type));if(ch&&!compatible(ch,type))throw Error('Salon casino incompatible : '+key);
   const grants=overwrites(guild,parent==='casino'?'public':'staff');if(parent==='casino')for(const entry of grants)if(entry.id!==guild.id&&entry.id!==guild.client.user.id){if(type===T.GuildVoice)entry.allow.push(P.Connect,P.Speak);else entry.deny.push(P.SendMessages,P.CreatePublicThreads,P.CreatePrivateThreads);}
   if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});else await ch.edit({parent:parentId,permissionOverwrites:grants});
   a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});

@@ -13,29 +13,21 @@ function overwrites(guild,kind){
 }
 const art=name=>require('../utils/discordPanelImage').localImage(require('node:path').join(__dirname,'..','assets','casino','qg',name),name);
 const GOLD=0xd4bd86;
-// Vitrine de l'accueil : un embed animé par jeu, dans l'ordre des boutons.
-const showcase=[
- ['slots','🎰','Machines à sous','slots.gif','Trois rouleaux, six symboles.\n**Triple → ×10** · Paire → mise rendue','Gain max ×10'],
- ['roulette','🎡','Roulette','roulette.gif','37 cases, de 0 à 36.\n**Rouge, noir, pair, impair → ×2** · Numéro exact → **×36**','Gain max ×36'],
- ['blackjack','🃏','Blackjack','blackjack.gif','Approche-toi de 21 sans dépasser.\n**Victoire → ×2** · Blackjack naturel → **×2,5**\nTirer, rester ou doubler','Gain max ×2,5'],
- ['mines','💣','Mines','mines.gif','16 cases, 3 mines cachées.\nChaque case sûre fait **grimper le multiplicateur** : encaisse avant l’explosion.','Multiplicateur croissant']];
 function payload(kind){
  const s=state(),channels=a.state().schoolChannels||{},closed=s.enabled===false;
- let title='LE QG · CASINO',text='',rows=[],image=null,extra=[];
+ let title='LE QG · CASINO',text='',rows=[],image=null;
  if(kind==='home'){
   image='hero.gif';
-  text=`### ${closed?'🔴 Nouvelles mises fermées':'🟢 Casino ouvert'}\nBienvenue dans la salle de jeu du QG. Quatre tables t’attendent, ton portefeuille est sauvegardé et tes parties se jouent **en privé**.\n\n> 💰 **1 000 jetons** offerts à ta première visite\n> 🎁 **+500 jetons** chaque jour avec la récompense quotidienne\n> 🎯 Mises de **10 à 10 000 jetons**\n\n**Choisis une table ci-dessous** ou ouvre ton espace pour voir ton solde.`;
-  extra=showcase.map(([,emoji,name,file,desc,max],index)=>new u.EmbedBuilder().setColor(GOLD).setTitle(`${emoji}  ${name}`).setDescription(desc).setImage('attachment://'+file).setFooter(index===showcase.length-1?brand.footer(' · Jetons fictifs, sans achat ni conversion en argent'):{text:max}));
-  rows=[u.row(...showcase.map(([key,emoji,name])=>u.button('qgcasino:play:'+key,name,u.ButtonStyle.Primary).setEmoji(emoji).setDisabled(closed))),
-   u.row(u.button('qgcasino:open','Mon espace',u.ButtonStyle.Success).setEmoji('👛'),u.button('qgcasino:daily','Récompense du jour').setEmoji('🎁'),u.button('qgcasino:board','Classement').setEmoji('🏆'),u.button('qgcasino:rules','Règles').setEmoji('📜')),
-   u.row(u.button('qg:casino-ticket','Support casino').setEmoji('🎫'))];
+  text=`${closed?'🔴 **Nouvelles mises fermées**':'🟢 **Casino ouvert**'}\n\n🎰 Machines à sous · 🎡 Roulette · 🃏 Blackjack · 💣 Mines\n\n> 💰 **1 000 jetons** offerts à ta première visite\n> 🎁 **+500 jetons** chaque jour\n\nAppuie sur **Jouer** : tes parties se déroulent en privé, ton solde est sauvegardé.`;
+  rows=[u.row(u.button('qgcasino:play','Jouer',u.ButtonStyle.Success).setEmoji('🎮').setDisabled(closed),u.button('qgcasino:open','Mon compte',u.ButtonStyle.Primary).setEmoji('👛'),u.button('qgcasino:daily','Récompense du jour').setEmoji('🎁')),
+   u.row(u.button('qgcasino:board','Classement').setEmoji('🏆'),u.button('qgcasino:rules','Règles').setEmoji('📜'),u.button('qg:casino-ticket','Support').setEmoji('🎫'))];
  }else if(kind==='rules'){
   image='reglement.png';
   title='CASINO · Guide du joueur';text='**01 · Une économie fictive**\nJetons gratuits, non achetables et non convertibles en argent ou en récompenses de valeur. Aucun transfert entre joueurs.\n\n**02 · Des règles lisibles**\nMises de 10 à 10 000 jetons, sans dépasser ton solde. Une partie interactive à la fois. Les retours comprennent la mise. Consulte les règles détaillées avant de jouer.\n\n**03 · Des parties conservées**\nTon portefeuille est sauvegardé. Les anciennes interactions ne doublent pas les mises. Après 30 minutes, une partie inactive est résolue selon les règles du jeu.\n\n**04 · Une équipe disponible**\nLes Exécutants du casino traitent les tickets ; le Responsable du casino coordonne l’équipe. La Direction supervise cet espace.';
-  rows=[u.row(u.button('qgcasino:rules','Règles détaillées').setEmoji('📜'),u.button('qgcasino:open','Jouer',u.ButtonStyle.Success).setEmoji('🎰'),u.button('qg:casino-ticket','Contacter le casino').setEmoji('🎫'))];
+  rows=[u.row(u.button('qgcasino:rules','Règles détaillées').setEmoji('📜'),u.button('qgcasino:play','Jouer',u.ButtonStyle.Success).setEmoji('🎮'),u.button('qg:casino-ticket','Contacter le casino').setEmoji('🎫'))];
  }else if(kind==='board'){
   image='classement.gif';const medals=['🥇','🥈','🥉'];
-  title='CASINO · Classement';text=games().store.leaderboard().map(([id,v],i)=>`${medals[i]||`**${i+1}.**`} <@${id}> — **${v.balance.toLocaleString('fr-FR')} jetons**`).join('\n')||'Le classement apparaîtra dès les premières parties.';rows=[u.row(u.button('qgcasino:board','Consulter le classement actuel').setEmoji('🏆'),u.button('qgcasino:open','Mon portefeuille',u.ButtonStyle.Success).setEmoji('👛'))];
+  title='CASINO · Classement';text=games().store.leaderboard().map(([id,v],i)=>`${medals[i]||`**${i+1}.**`} <@${id}> — **${v.balance.toLocaleString('fr-FR')} jetons**`).join('\n')||'Le classement apparaîtra dès les premières parties.';rows=[u.row(u.button('qgcasino:board','Consulter le classement actuel').setEmoji('🏆'),u.button('qgcasino:open','Mon compte',u.ButtonStyle.Success).setEmoji('👛'))];
  }else if(kind==='support'){
   image='support.png';
   title='CASINO · Assistance privée';text='**Une question, un problème de partie ou de portefeuille ?**\n\nOuvre un ticket privé et indique le jeu, la date approximative et ce que tu as constaté. Joins une capture si elle aide à comprendre.\n\n**Ton dossier**\nUn ticket casino actif par membre. L’équipe peut le prendre en charge, le renommer puis l’archiver à sa fermeture.\n\nLes Exécutants du casino, son Responsable et la Direction ont accès au dossier.';rows=[u.row(u.button('qg:casino-ticket','Ouvrir mon ticket casino',u.ButtonStyle.Primary).setEmoji('🎫'))];
@@ -45,7 +37,6 @@ function payload(kind){
  }
  const p={...u.payload(title,text,rows),attachments:[],files:[]};
  if(image){p.embeds[0].setColor(GOLD).setImage('attachment://'+image);p.files.push(art(image).file);}
- if(extra.length){p.embeds[0].setFooter(null);p.embeds.push(...extra);p.files.push(...showcase.map(x=>art(x[3]).file));}
  return p;
 }
 async function publish(guild,key,kind){
@@ -85,7 +76,7 @@ async function handle(i){
  const [,action,arg]=i.customId.split(':');
  if(action==='open')return games().launch(i);
  if(action==='daily')return games().launch(i,'daily');
- if(action==='play')return games().prompt(i,i.user.id,arg);
+ if(action==='play')return arg?games().prompt(i,i.user.id,arg):games().launch(i,'jouer');
  if(action==='rules'||action==='board')return i.reply({...games().payload(i.user.id,action),flags:F.Ephemeral});
  const member=await i.guild.members.fetch({user:i.user.id,force:true});if(!access.staff(member))throw Error('Cette action est réservée à l’équipe casino.');
  await i.deferReply({flags:F.Ephemeral});

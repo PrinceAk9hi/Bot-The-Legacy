@@ -31,9 +31,11 @@ Permissions nécessaires : Voir le salon, Voir les anciens messages, Créer des 
 
 ## Visuels
 
-- Accueil du salon casino : bannière animée puis un embed animé par jeu, avec un bouton direct pour chaque table.
+- Accueil du salon casino : une bannière animée et les boutons Jouer, Mon compte, Récompense du jour, Classement, Règles et Support.
+- Parcours privé : Jouer → choix de la table → fiche du jeu avec son GIF, puis **Miser** ou **Règles du jeu**.
 - Règlement, classement et support ont chacun leur bannière ; les machines à sous et la roulette affichent une animation avant le résultat privé.
-- Fichiers dans assets/casino/qg, générés par `node scripts/generate-casino-art.cjs` (à relancer seulement pour modifier l’art).
+- Les images des parties sont dessinées en direct par utils/qgCasinoDraw.js, avec les polices libres d’assets/fonts (Abril Fatface, Bebas Neue, licence OFL).
+- GIF et bannières dans assets/casino/qg, générés par `node scripts/generate-casino-art.cjs` (à relancer seulement pour modifier l’art).
 
 ## Persistance Railway
 

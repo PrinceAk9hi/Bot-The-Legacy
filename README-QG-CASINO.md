@@ -29,6 +29,12 @@ Permissions nécessaires : Voir le salon, Voir les anciens messages, Créer des 
 - Le Responsable et la Direction peuvent suspendre les nouvelles mises. Les parties engagées restent jouables.
 - Les Exécutants, le Responsable et la Direction gèrent les tickets privés via le système existant. Un échec d’archivage empêche la suppression d’un ticket casino.
 
+## Visuels
+
+- Accueil du salon casino : bannière animée puis un embed animé par jeu, avec un bouton direct pour chaque table.
+- Règlement, classement et support ont chacun leur bannière ; les machines à sous et la roulette affichent une animation avant le résultat privé.
+- Fichiers dans assets/casino/qg, générés par `node scripts/generate-casino-art.cjs` (à relancer seulement pour modifier l’art).
+
 ## Persistance Railway
 
 Le casino utilise qgCasino.json dans le répertoire de données persistant existant, distinct du casino Soul Society. Les rôles, salons, panels et tickets utilisent le stockage QG existant.

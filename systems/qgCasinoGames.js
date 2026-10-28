@@ -3,6 +3,8 @@ const {Events,EmbedBuilder,AttachmentBuilder,ActionRowBuilder,ButtonBuilder,Butt
 const COLORS={primary:0xffffff};const {allowed}=require('../utils/qgCasinoAccess');const store=require('../utils/casinoStore').createStore('qgCasino',{currency:'jetons',command:'/casino'});const isOff=()=>false;
 const {renderGame}=require('../utils/casinoImage');
 const offers=new Map();
+const art=name=>require('../utils/discordPanelImage').localImage(require('node:path').join(__dirname,'..','assets','casino','qg',name),name);
+const spins={slots:['slots-spin.gif','🎰 Les rouleaux tournent…'],roulette:['roulette-spin.gif','🎡 La bille est lancée…']};
 const names={slots:'Machines à sous',roulette:'Roulette',blackjack:'Blackjack',mines:'Mines'};
 const row=(...buttons)=>new ActionRowBuilder().addComponents(...buttons);
 const btn=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
@@ -40,6 +42,7 @@ function payload(id,view='home',notice=''){
   e.setTitle('Ton portefeuille').setDescription(`<@${id}>\n**Solde : ${money(a.balance)}**\nParties terminées : ${a.played}\nTotal misé : ${money(a.wagered)}\nTotal retourné : ${money(a.returned)}\n\n**Dernières parties**\n`+a.history.slice(0,8).map(h=>`${names[h.kind]} : ${money(h.payout-h.stake)} nets`).join('\n'));components=[nav];
  }else{
   e.setTitle('Bienvenue au casino').setDescription(`<@${id}>, appuie sur **🎮 Jeux** pour choisir ton jeu.\n\n**Ton solde : ${money(a.balance)}**\nRécompense quotidienne : **500 jetons**.\n\nSlots · Roulette · Blackjack · Mines\nJetons gratuits, sans achat ni conversion en argent. Retrouve le support sur le panel public.`);
+  const hero=art('hero.gif');e.setColor(0xd4bd86).setImage(hero.url);files=[hero.file];
   e.addFields({name:'01 · Choisir',value:'Ouvre les jeux et indique ta mise.',inline:true},{name:'02 · Jouer',value:'Les résultats et ton solde sont sauvegardés.',inline:true},{name:'03 · Besoin d’aide ?',value:'Ouvre le support depuis le panel public.',inline:true});
  }
  return {content:notice||null,embeds:[e],components,files,attachments:[],allowedMentions:{parse:[]}};
@@ -53,22 +56,30 @@ async function launch(i,name='casino'){
   return i.editReply(payload(i.user.id,view,note));
  }catch(e){return i.editReply({content:'❌ '+e.message});}
 }
+function prompt(i,owner,kind){
+ if(!names[kind])throw Error('Jeu inconnu.');
+ if(require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises sont momentanément fermées. Ta partie en cours reste accessible.');
+ for(const [key,offer]of offers)if(offer.expires<Date.now())offers.delete(key);
+ const token=randomUUID().slice(0,8);offers.set(token,{owner,kind,expires:Date.now()+300000});
+ const modal=new ModalBuilder().setCustomId(`qgcs:stake:${owner}:${token}`).setTitle(names[kind]+' • Ta mise').addComponents(row(new TextInputBuilder().setCustomId('amount').setLabel('Mise : 10 à 10 000 jetons').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(5)));
+ if(kind==='roulette')modal.addComponents(row(new TextInputBuilder().setCustomId('bet').setLabel('Rouge, noir, pair, impair ou numéro 0 à 36').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(10)));
+ return i.showModal(modal);
+}
 async function handle(i){if(!i.customId?.startsWith('qgcs:'))return;
  const [,action,owner,arg,version,move]=i.customId.split(':');
  if(owner!==i.user.id||!await allowed(i)||isOff())return i.reply({content:'Ce panneau ne t’appartient pas ou le casino est indisponible.',flags:MessageFlags.Ephemeral});
  try{
   if(['play','stake'].includes(action)&&require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises sont momentanément fermées. Ta partie en cours reste accessible.');
-  if(i.isButton()&&action==='play'){
-   if(!names[arg])throw Error('Jeu inconnu.');
-   for(const [key,offer]of offers)if(offer.expires<Date.now())offers.delete(key);
-   const token=randomUUID().slice(0,8);offers.set(token,{owner,kind:arg,expires:Date.now()+300000});
-   const modal=new ModalBuilder().setCustomId(`qgcs:stake:${owner}:${token}`).setTitle(names[arg]+' • Ta mise').addComponents(row(new TextInputBuilder().setCustomId('amount').setLabel('Mise : 10 à 10 000 jetons').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(5)));
-   if(arg==='roulette')modal.addComponents(row(new TextInputBuilder().setCustomId('bet').setLabel('Rouge, noir, pair, impair ou numéro 0 à 36').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(10)));
-   return i.showModal(modal);
-  }
+  if(i.isButton()&&action==='play')return prompt(i,owner,arg);
   if(i.isModalSubmit()&&action==='stake'){
    const offer=offers.get(arg);if(!offer||offer.owner!==owner||offer.expires<Date.now())throw Error('Formulaire expiré : rouvre le jeu.');
    offers.delete(arg);await i.deferReply({flags:MessageFlags.Ephemeral});if(require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises viennent de fermer.');store.start(owner,offer.kind,Number(i.fields.getTextInputValue('amount')),offer.kind==='roulette'?i.fields.getTextInputValue('bet'):'',arg);
+   if(spins[offer.kind]){
+    // Le tirage est déjà enregistré : l'animation ne fait que précéder l'affichage du résultat.
+    const [file,label]=spins[offer.kind],spin=art(file);
+    await i.editReply({embeds:[new EmbedBuilder().setColor(0xd4bd86).setAuthor({name:'Casino • Le QG'}).setTitle(label).setDescription(`<@${owner}> • Mise : **${money(store.snapshot(owner).last.stake)}**`).setImage(spin.url)],files:[spin.file],components:[],allowedMentions:{parse:[]}});
+    await new Promise(r=>setTimeout(r,2600));
+   }
    return i.editReply(payload(owner,'game'));
   }
   if(!i.isButton())return;
@@ -80,4 +91,4 @@ async function handle(i){if(!i.customId?.startsWith('qgcs:'))return;
   return i.editReply(payload(owner,view,note));
  }catch(e){const p={content:'❌ '+e.message+' Tu peux rouvrir /casino pour retrouver ton état sauvegardé.',flags:MessageFlags.Ephemeral};if(i.deferred||i.replied)return i.followUp(p).catch(()=>{});return i.reply(p).catch(()=>{});}
 }
-module.exports={launch,handle,payload,store};
+module.exports={launch,handle,payload,prompt,store};

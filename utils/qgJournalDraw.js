@@ -30,10 +30,7 @@ function paper(ctx){
  // Bords jaunis
  const v=ctx.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,W*.66);v.addColorStop(0,'rgba(120,85,35,0)');v.addColorStop(1,'rgba(120,85,35,0.34)');ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
 }
-function aging(ctx,{fold=.53,cup=[ctx.canvas.width-132,70]}={}){
- const W=ctx.canvas.width,H=ctx.canvas.height;
- // Pli horizontal du journal
- const y=H*fold,g=ctx.createLinearGradient(0,y-14,0,y+14);g.addColorStop(0,'rgba(80,55,20,0)');g.addColorStop(.48,'rgba(80,55,20,0.16)');g.addColorStop(.52,'rgba(255,250,235,0.22)');g.addColorStop(1,'rgba(255,250,235,0)');ctx.fillStyle=g;ctx.fillRect(0,y-14,W,28);
+function aging(ctx,{cup=[ctx.canvas.width-132,70]}={}){
  // Trace de tasse de café
  const [cx,cy]=cup;ctx.save();for(const [r,w,a]of [[58,5,.10],[55,1.5,.16],[61,1,.08]]){ctx.strokeStyle=`rgba(120,75,25,${a})`;ctx.lineWidth=w;ctx.beginPath();ctx.arc(cx,cy,r,.3,Math.PI*1.86);ctx.stroke();}ctx.restore();
 }

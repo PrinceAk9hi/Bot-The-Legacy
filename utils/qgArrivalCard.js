@@ -78,7 +78,7 @@ async function render(member,{avatar=true,robloxId,fetchAvatar=roblox.fullBody,f
  try{const emblem=await loadImage(path.join(__dirname,'../assets/qg-direction-emblem.png'));ctx.globalAlpha=.85;ctx.drawImage(emblem,X,374,18,18);ctx.globalAlpha=1;}catch{}
  ctx.font=`13px ${ITALIC}`;ctx.fillStyle=SOFT;ctx.fillText(require('./qgBrand').label+' · Bienvenue dans la communauté',X+24,388);
  ctx.textAlign='right';ctx.fillText('Prix : 1 crédit',R,388);ctx.textAlign='left';
- aging(ctx,{fold:.5,cup:[W-90,H-60]});
+ aging(ctx,{cup:[W-90,H-60]});
  return canvas.toBuffer('image/png');
 }
 module.exports={render,cropBounds};

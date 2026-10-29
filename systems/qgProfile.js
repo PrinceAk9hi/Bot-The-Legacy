@@ -21,7 +21,7 @@ function badges({days,voiceTotal,weekMessages,casino,team,verified}){
 function title(member){
  if(a.isDirection(member))return 'Direction du QG';
  let rank=null;try{rank=require('./qgUserPanel').rank(member);}catch{}
- return rank?grades.names[grades.ranks.indexOf(rank)]:'Communauté';
+ return rank?grades.names[grades.ranks.indexOf(rank)]:'Membre du QG';
 }
 function collect(member,now=Date.now()){
  const id=member.id,s=a.state(),xpAll=read('qgXp'),xp=xpAll[id]?.xp||0,level=levels.level(xp);

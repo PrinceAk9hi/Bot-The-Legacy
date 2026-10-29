@@ -34,7 +34,7 @@ test('badges : équipe, ancien, vocal, bavard, flambeur',()=>{
  assert.deepEqual(profile.badges({team:false,days:3,voiceTotal:0,weekMessages:0,casino:null,verified:false}),[]);
  const staff=profile.collect(member(OTHER,['recrut','community'],1));
  assert.ok(staff.badges.includes('Équipe du QG'));
- assert.equal(staff.title,'Communauté');
+ assert.equal(staff.title,'Membre du QG');
 });
 
 test('carte : image PNG jointe à l’embed, sans avatar disponible',async()=>{

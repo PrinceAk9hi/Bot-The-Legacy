@@ -2,14 +2,14 @@
 
 ## Installation
 
-Déployer le code puis utiliser `/maj` → Tout actualiser dans le QG.
+Déployer le code puis redémarrer le bot : le QG s’actualise automatiquement.
 Le bot doit disposer de Gérer les rôles et Gérer les salons ; son rôle doit être au-dessus des rôles à gérer.
 Attribuer ensuite manuellement les rôles Exécutant du casino et Responsable du casino aux personnes choisies.
 
 ## Signatures
 
 Les embeds et panels utilisent Direction du QG avec l’emblème fourni comme icône de pied de page. Les composants texte utilisent l’emoji personnalisé. La bannière d’arrivée utilise le fichier assets/qg-direction-emblem.png.
-Les panels maintenus sont actualisés par /maj. Les anciens messages historiques et anciennes images envoyées ne sont pas réécrits.
+Les panels maintenus sont actualisés automatiquement au démarrage du bot. Les anciens messages historiques et anciennes images envoyées ne sont pas réécrits.
 Aucun renommage de rôle Direction n’est prévu par cette mise à jour.
 
 ## Fils publics
@@ -46,4 +46,4 @@ Les formulaires de mise ouverts avant un redémarrage doivent être rouverts ; l
 ## Validation et limites
 
 Aucun test automatisé ni essai Discord réel n’a été exécuté pour cette modification. Le code n’est pas déployé par sa simple modification locale.
-Après déploiement, contrôler le bilan /maj, les accès aux salons privés, l’ouverture et l’archivage d’un ticket, puis une partie et un fil public.
+Après déploiement, contrôler le bilan d’actualisation dans la console, les accès aux salons privés, l’ouverture et l’archivage d’un ticket, puis une partie et un fil public.

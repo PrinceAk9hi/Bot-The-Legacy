@@ -1,10 +1,4 @@
 const u=require('../utils/qgModuleUi'),{a}=u;
-const data=new u.SlashCommandBuilder().setName('maj').setDescription('Mettre à jour le QG et accéder à sa configuration').setDMPermission(false)
- .addChannelOption(o=>o.setName('rapports').setDescription('Salon privé du récap des réunions').addChannelTypes(u.ChannelType.GuildText));
-async function authorized(i){const m=await a.actor(i);if(!a.isDirection(m))throw Error('La maintenance est réservée à la direction.');return m;}
-const actions=[['all','Tout actualiser'],['diagnostic','Diagnostic de la structure'],['suivi-profils','Suivi des vérifications'],['reunions','Configurer les réunions'],['noms-categories','Noms des catégories'],['installer','Installer les éléments manquants'],['reparer','Réparer la structure'],['mise-a-jour','Ancienne migration communautaire (aperçu)']];
-async function execute(i){await authorized(i);const id=u.session(i,'maintenance',{reportChannel:i.options.getChannel('rapports')?.id});return i.reply({...u.payload('CENTRE DE MAINTENANCE · QG','**Un espace pour maintenir les outils de la famille.**\n\n**01 · Actualiser**\nPanneaux, rôles de gestion, séparateurs, niveaux et effectifs.\n\n**02 · Entretenir les espaces**\nSupport, recrutement, calendrier et centre d’animations.\n\n**03 · Configurer**\nRéunions, suivi des profils et structure : choisis un outil dans le menu.\n\nUn bilan détaillé est présenté à la fin. Les installations et migrations particulières conservent leur confirmation.',[u.row(u.button('qgmaj:all:'+id,'Tout actualiser',u.ButtonStyle.Primary)),u.row(u.menu('qgmaj:choose:'+id,actions.map(([value,label])=>({value,label})),'Configuration et maintenance'))]),flags:u.MessageFlags.Ephemeral});}
-function proxy(i,action,reportChannel){return new Proxy(i,{get(target,key){if(key==='commandName')return action==='reunions'?'config':'setup-serveur';if(key==='options')return{getSubcommand:()=>action,getChannel:()=>reportChannel?target.guild.channels.cache.get(reportChannel):null,getString:()=>null};const v=Reflect.get(target,key,target);return typeof v==='function'?v.bind(target):v;}});}
 function readable(error){return ({10003:'Salon supprimé ou introuvable',10008:'Message supprimé',50001:'Salon inaccessible au bot',50013:'Permissions du bot insuffisantes',50035:'Contenu refusé par Discord'})[error.code]||String(error.message||'Erreur inconnue');}
 async function panels(guild){return a.serial('maintenance-panels',async()=>{
  const saved=a.state().schoolPanels||{},notices=[];let count=0;
@@ -25,16 +19,15 @@ async function panels(guild){return a.serial('maintenance-panels',async()=>{
  }
  return {detail:count+' panneaux actualisés',notices};
  });}
-function report(results,total,done){const ok=results.filter(r=>r.ok&&!r.notices?.length),warnings=results.filter(r=>r.ok&&r.notices?.length),failed=results.filter(r=>!r.ok);const p=u.payload(done?'Maintenance terminée • QG':'Actualisation du QG',done?'Les modules ont été traités. Consulte les points à vérifier ci-dessous.':'Actualisation des espaces et des outils en cours…');const e=p.embeds[0].setColor(0xffffff).setTimestamp();e.addFields({name:'Progression',value:results.length+'/'+total+' modules',inline:true},{name:'À vérifier',value:String(warnings.length+failed.length),inline:true});for(const [name,list]of [['✓ Modules actualisés',ok],['◈ Points à vérifier',warnings],['! Actions nécessaires',failed]])if(list.length)e.addFields({name,value:list.map(r=>'**'+r.label+'**'+(r.detail?' — '+r.detail:'')+(r.notices?.length?'\n'+r.notices.join('\n'):'')).join('\n').slice(0,1024)});return p;}
-async function runAll(i){return a.serial('qg-maintenance',async()=>{
- await authorized(i);const results=[];
- const jobs=[['Tranches Roblox',()=>require('./qgAgeProfiles').migrate(i.guild)],['Casino',()=>require('./qgCasino').install(i.guild)],['Fils publics',()=>require('./qgPublicThreads').inspect(i.guild)],['Rôles disciplinaires',()=>require('./qgDiscipline').ensure(i.guild)],['Espace recrutement unifié',()=>require('./qgRecruitmentHub').install(i.guild)],['Rôles et gestions',()=>require('./qgCommunityUpgrade').discover(i.guild)],['Séparateurs',()=>require('./qgSchoolSeparators').syncGuild(i.guild)],['Niveaux',()=>require('./qgLevels').migrate()],['Panneaux',()=>panels(i.guild)],['Effectifs',()=>require('./qgCommunityUpgrade').roster(i.guild)],['Support',()=>require('./qgSupportWorkspace').install(i.guild)],['Entretiens',()=>require('./qgInterviews').install(i.guild)],['Centre animations',()=>require('./qgAnimations').ensureControl(i.guild)],['Calendrier',()=>require('./qgAnimations').refresh(i.guild)],['Candidatures',()=>require('./qgRecruitmentControl').refresh(i.guild)]];
- for(const [label,job]of jobs){await authorized(i);try{const result=await job();const detail=typeof result==='string'?result:result?.detail;results.push({label,ok:true,detail,notices:result?.notices});}catch(e){results.push({label,ok:false,detail:readable(e).slice(0,400)});}await i.editReply(report(results,jobs.length,false));}
- await a.audit(i.guild,{action:'maintenance',actorId:i.user.id,after:{results}});return i.editReply(report(results,jobs.length,true));
+// Actualisation complète du QG, lancée automatiquement au démarrage du bot (remplace l’ancienne commande /maj).
+const jobs=guild=>[['Tranches Roblox',()=>require('./qgAgeProfiles').migrate(guild)],['Casino',()=>require('./qgCasino').install(guild)],['Fils publics',()=>require('./qgPublicThreads').inspect(guild)],['Rôles disciplinaires',()=>require('./qgDiscipline').ensure(guild)],['Espace recrutement unifié',()=>require('./qgRecruitmentHub').install(guild)],['Rôles et gestions',()=>require('./qgCommunityUpgrade').discover(guild)],['Séparateurs',()=>require('./qgSchoolSeparators').syncGuild(guild)],['Niveaux',()=>require('./qgLevels').migrate()],['Panneaux',()=>panels(guild)],['Effectifs',()=>require('./qgCommunityUpgrade').roster(guild)],['Support',()=>require('./qgSupportWorkspace').install(guild)],['Entretiens',()=>require('./qgInterviews').install(guild)],['Centre animations',()=>require('./qgAnimations').ensureControl(guild)],['Calendrier',()=>require('./qgAnimations').refresh(guild)],['Candidatures',()=>require('./qgRecruitmentControl').refresh(guild)]];
+async function refreshAll(guild){return a.serial('qg-maintenance',async()=>{
+ const results=[];
+ for(const [label,job]of jobs(guild)){try{const result=await job();results.push({label,ok:true,detail:typeof result==='string'?result:result?.detail,notices:result?.notices});}catch(e){results.push({label,ok:false,detail:readable(e).slice(0,400)});}}
+ const issues=results.filter(r=>!r.ok||r.notices?.length);
+ console.log(`🔄 Actualisation automatique du QG : `+(results.length-issues.length)+'/'+results.length+' modules sans alerte');
+ for(const r of issues)console.warn('   ⚠️ '+r.label+' : '+(r.ok?r.notices.join(' · '):r.detail));
+ await a.audit(guild,{action:'maintenance.auto',actorId:guild.client.user.id,after:{results}}).catch(()=>{});
+ return results;
  });}
-async function handle(i){const [,op,id]=i.customId.split(':'),s=u.get(i,id,'maintenance');await authorized(i);const action=op==='all'?'all':i.values?.[0];if(!actions.some(([key])=>key===action))throw Error('Action inconnue.');
- if(action==='all'){await i.deferReply({flags:u.MessageFlags.Ephemeral});return runAll(i);}
- if(action==='reunions')return require('./qgMeetings').execute(proxy(i,action,s.reportChannel));
- return require('../commandes/setup-serveur').execute(proxy(i,action));
-}
-module.exports={data,execute,handle,runAll,panels,proxy};
+module.exports={refreshAll,panels};

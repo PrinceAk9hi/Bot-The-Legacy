@@ -181,7 +181,7 @@ async function ticket(i,type='questions'){
  if(type==='casino'?!require('../utils/qgCasinoAccess').memberAllowed(member):(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member)))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
  if(ch){store(x=>{x.tickets||={};x.tickets[ch.id]||={ownerId:i.user.id,type,createdAt:Date.now()};});return i.editReply(`Tu as déjà un ticket de ce type : <#${ch.id}>`);}
- const parent=type==='casino'?s.schoolCategories?.casinoSupport:s.schoolCategories?.ticketInbox;if(!parent)throw Error('Le staff doit lancer /maj pour préparer les tickets.');
+ const parent=type==='casino'?s.schoolCategories?.casinoSupport:s.schoolCategories?.ticketInbox;if(!parent)throw Error('L’espace tickets n’est pas encore prêt : il est préparé automatiquement au démarrage du bot.');
  const overwrites=require('./qgTicketRouting').overwrites(i.guild,i.user.id,type);
  ch=await i.guild.channels.create({name:`${ticketTypes[type].prefix}-${i.user.username}`.replace(/[^a-z0-9-]/gi,'-').slice(0,90),type:T.GuildText,parent,topic:buildQGTicketTopic(i.user.id,type),
  permissionOverwrites:overwrites});
@@ -221,8 +221,6 @@ async function interaction(i){
  if(i.customId?.startsWith('qgcs:'))return require('./qgCasinoGames').handle(i);
  if(i.customId?.startsWith('qgcasino:'))return require('./qgCasino').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='casino')return require('./qgCasinoGames').launch(i);
- if(i.isChatInputCommand?.()&&i.commandName==='maj')return require('./qgMaintenance').execute(i);
- if(i.customId?.startsWith('qgmaj:'))return require('./qgMaintenance').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
  if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);
@@ -298,7 +296,7 @@ async function message(m){
  await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){
   if(m.author.id!==config.ownerId&&m.author.id!==m.guild.ownerId)return;
-  return m.reply({content:'Pour installer la nouvelle structure SchoolRP en sécurité, utilise `/maj` puis « Installer les éléments manquants » puis confirme le bouton. `=setupqg` est conservée comme alias historique mais ne lance plus l’installation automatique.',allowedMentions});
+  return m.reply({content:'La mise à jour du QG est désormais automatique à chaque démarrage du bot. `=setupqg` est conservée comme alias historique mais ne lance plus d’installation.',allowedMentions});
  }
  if(['=aide','=help'].includes(m.content.trim()))return m.reply({content:`Lis <#${saved().channels?.commands}> pour les fonctions du QG.`,allowedMentions});
  if(m.content.startsWith('=suggestion ')){
@@ -360,8 +358,8 @@ function register(client){
   setInterval(()=>guarded(require('./qgTagWatch').tick,guild),15*60000).unref();
   setInterval(()=>guarded(require('./qgCasino').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
-  await guarded(require('./qgSupportWorkspace').install,guild);
-  await guarded(require('./qgRecruitmentControl').refresh,guild);
+  // Mise à jour automatique à chaque démarrage : panneaux, rôles, effectifs, support, candidatures…
+  guarded(require('./qgMaintenance').refreshAll,guild);
   await guarded(require('./qgRpStatus').ensureRole,guild,'prison');
   await guarded(require('./qgRpStatus').reconcile,guild);
   setInterval(()=>guarded(require('./qgRpStatus').reconcile,guild),60000).unref();

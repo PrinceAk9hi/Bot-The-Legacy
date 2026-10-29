@@ -8,7 +8,7 @@
 4. Les dépendances nécessaires sont déjà déclarées : `discord.js`, `@discordjs/voice`, `ffmpeg-static`, `prism-media` et `opusscript`. Utiliser `npm ci`. Node >= 22.12.0.
 5. Le bot doit disposer des intents Guilds, GuildMembers et GuildVoiceStates. Activer Guild Members dans le portail si nécessaire.
 6. Vérifier la hiérarchie du bot, Gérer les rôles, Voir le salon, Lire l'historique, Envoyer des messages, Intégrer des liens, Joindre des fichiers, Se connecter, Parler et Déplacer des membres selon les espaces.
-7. Dans Discord : `/maj` → **Tout actualiser**. Les rôles disciplinaires et les panels de pilotage sont installés.
+7. Redémarrer le bot : l’actualisation est automatique. Les rôles disciplinaires et les panels de pilotage sont installés.
 8. Ajouter la musique puis `/accueil-vocal activer`. L'accueil est désactivé par défaut.
 
 Aucune connexion au serveur Discord ni modification du service Railway n'a été effectuée pendant le développement. Le déploiement et une recette dans le serveur restent nécessaires.
@@ -71,7 +71,7 @@ Politique par défaut : **validation humaine**. Avec `automatique:true`, les inf
 
 ## Discipline
 
-Rôles existants réutilisés par leurs identifiants : `warning1`, `warning2`, `lastChance`. Les rôles manquants sont créés sans permissions par `/maj`.
+Rôles existants réutilisés par leurs identifiants : `warning1`, `warning2`, `lastChance`. Les rôles manquants sont créés sans permissions au démarrage du bot.
 
 **Avertissement 1 → Avertissement 2 → Dernière Chance → dossier d'escalade.** Il n'existe pas de quatrième avertissement. Les rôles inférieurs sont retirés ; les motifs et décisions précédentes restent dans l'historique. Aucune exclusion ni rétrogradation automatique.
 
@@ -101,7 +101,7 @@ La connexion Discord réelle, le rendu audio entendu par les candidats, les perm
 
 Le panel permanent réunit désormais Recrutement, Entretiens et vocaux, et Accueil audio. Les rubriques s’ouvrent dans un espace privé lié au recruteur ; les clics suivants mettent à jour ce même message. Les confirmations et formulaires existants sont conservés. /entretien panel ouvre également cet espace.
 
-Après déploiement, /maj → Tout actualiser réutilise le panel d’entretien enregistré et retire uniquement les deux anciens tableaux pilotage/audio identifiés comme appartenant au bot. Les candidatures et historiques restent conservés. Les anciennes réponses éphémères peuvent être fermées manuellement.
+Après déploiement, l’actualisation automatique au démarrage réutilise le panel d’entretien enregistré et retire uniquement les deux anciens tableaux pilotage/audio identifiés comme appartenant au bot. Les candidatures et historiques restent conservés. Les anciennes réponses éphémères peuvent être fermées manuellement.
 
 La direction qui se déclare disponible depuis un bureau est comptée dans les recruteurs disponibles. Les mutations de statut affichent une confirmation explicite ; terminer un entretien inexistant renvoie une explication.
 

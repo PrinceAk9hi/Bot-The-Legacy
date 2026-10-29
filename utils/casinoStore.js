@@ -8,12 +8,24 @@ function snapshot(id){return transaction(id,a=>structuredClone(a));}
 function score(cards){let sum=0,aces=0;for(const c of cards){const n=c%13+1;if(n===1){sum+=11;aces++;}else sum+=Math.min(n,10);}while(sum>21&&aces){sum-=10;aces--;}return sum;}
 function shuffle(){const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}return deck;}
 function cash(g){let chance=1;for(let i=0;i<g.revealed.length;i++)chance*=(13-i)/(16-i);return g.revealed.length?Math.floor(g.stake*.95/chance):g.stake;}
-function finish(a,g,payout,note){g.payout=payout;g.note=note;g.finishedAt=Date.now();a.balance+=payout;a.returned+=payout;a.played++;a.last=g;a.game=null;a.history.unshift({kind:g.kind,stake:g.stake,payout,at:g.finishedAt});a.history=a.history.slice(0,30);}
+// Résumé lisible d'une partie, conservé dans l'historique pour l'administration.
+function detail(g){
+ if(g.kind==='slots')return 'Rouleaux '+g.reels.map(n=>n+1).join('-');
+ if(g.kind==='roulette')return 'Pari '+g.bet+' → '+g.number+' '+g.color;
+ if(g.kind==='blackjack')return 'Joueur '+score(g.player)+' · Banque '+score(g.dealer);
+ if(g.kind==='mines')return g.revealed.filter(c=>!g.mines.includes(c)).length+' case(s) sûre(s)';
+ return '';
+}
+function finish(a,g,payout,note){g.payout=payout;g.note=note;g.finishedAt=Date.now();a.balance+=payout;a.returned+=payout;a.played++;a.last=g;a.game=null;
+ a.byKind||={};const k=a.byKind[g.kind]||={played:0,wagered:0,returned:0};k.played++;k.wagered+=g.stake;k.returned+=payout;
+ a.history.unshift({id:g.id,kind:g.kind,stake:g.stake,payout,at:g.finishedAt,note,detail:detail(g)});a.history=a.history.slice(0,50);}
 function stand(a,g){while(score(g.dealer)<17)g.dealer.push(g.deck.pop());const p=score(g.player),d=score(g.dealer);finish(a,g,p>21?0:d>21||p>d?g.stake*2:p===d?g.stake:0,p>21?'Tu dépasses 21.':d>21||p>d?'Tu remportes la main.':p===d?'Égalité : mise rendue.':'Le croupier gagne.');}
 function expire(a){const g=a.game;if(!g||Date.now()<g.expiresAt)return;if(g.kind==='blackjack')stand(a,g);else finish(a,g,cash(g),'Partie expirée : encaissement automatique.');}
-function daily(id){return transaction(id,a=>{if(Date.now()-a.dailyAt<DAY)throw Error('Récompense disponible <t:'+Math.floor((a.dailyAt+DAY)/1000)+':R>.');a.dailyAt=Date.now();a.balance+=500;return structuredClone(a);});}
+const FROZEN='Ton compte casino est gelé par l’équipe. Ouvre un ticket casino pour en savoir plus.';
+function daily(id){return transaction(id,a=>{if(a.frozen)throw Error(FROZEN);if(Date.now()-a.dailyAt<DAY)throw Error('Récompense disponible <t:'+Math.floor((a.dailyAt+DAY)/1000)+':R>.');a.dailyAt=Date.now();a.balance+=500;return structuredClone(a);});}
 function start(id,kind,stake,bet,token){return transaction(id,a=>{
  if(!['slots','roulette','blackjack','mines'].includes(kind))throw Error('Jeu inconnu.');
+ if(a.frozen)throw Error(FROZEN);
  if(a.used.includes(token))throw Error('Cette mise a déjà été traitée.');
  if(a.game)throw Error('Termine ta partie en cours avec '+command+'.');
  if(!Number.isSafeInteger(stake)||stake<10||stake>MAX)throw Error('Choisis une mise entière de 10 à 10 000 '+currency+'.');
@@ -42,6 +54,23 @@ function action(id,gameId,version,action){return transaction(id,a=>{
  });}
 function leaderboard(){return Object.entries(read(storeName).accounts||{}).sort((a,b)=>b[1].balance-a[1].balance).slice(0,15);}
 function expireAll(){update(storeName,s=>{for(const a of Object.values(s.accounts||{}))expire(a);});}
-return {snapshot,daily,start,action,score,cash,leaderboard,expireAll,DAY,MAX};
+
+// ---- Administration : chaque opération est journalisée (auteur, avant/après, motif). ----
+function peek(id){const a=read(storeName).accounts?.[id];return a?structuredClone(a):null;}
+function accounts(){return Object.entries(structuredClone(read(storeName).accounts||{}));}
+function adminLog(limit=50){return (read(storeName).adminLog||[]).slice(0,limit);}
+function record(s,entry){s.adminLog||=[];s.adminLog.unshift({at:Date.now(),...entry});s.adminLog=s.adminLog.slice(0,300);}
+function amount(n,max=1e9){if(!Number.isSafeInteger(n)||n<=0||n>max)throw Error('Montant invalide : nombre entier de 1 à '+max.toLocaleString('fr-FR')+'.');return n;}
+function admin(id,type,{actorId,reason=''},fn){return transaction(id,(a,s)=>{const before=a.balance;const value=fn(a);record(s,{type,actorId,targetId:id,before,after:a.balance,amount:value,reason:String(reason).slice(0,300)});return structuredClone(a);});}
+function credit(id,n,meta){return admin(id,'credit',meta,a=>{a.balance+=amount(n);return n;});}
+function debit(id,n,meta){return admin(id,'debit',meta,a=>{amount(n);if(a.balance<n)throw Error('Le joueur n’a que '+a.balance.toLocaleString('fr-FR')+' '+currency+'.');a.balance-=n;return n;});}
+function setBalance(id,n,meta){return admin(id,'set',meta,a=>{if(!Number.isSafeInteger(n)||n<0||n>1e9)throw Error('Solde invalide : nombre entier de 0 à 1 000 000 000.');a.balance=n;return n;});}
+function resetDaily(id,meta){return admin(id,'daily',meta,a=>{a.dailyAt=0;return 0;});}
+function freeze(id,frozen,meta){return admin(id,frozen?'freeze':'unfreeze',meta,a=>{a.frozen=frozen;return 0;});}
+function cancelGame(id,meta){return admin(id,'cancel',meta,a=>{const g=a.game;if(!g)throw Error('Aucune partie en cours pour ce joueur.');a.balance+=g.stake;a.wagered-=g.stake;a.game=null;return g.stake;});}
+function note(id,text,meta){return admin(id,'note',meta,a=>{text=String(text||'').trim().slice(0,500);if(!text)throw Error('La note est vide.');a.notes||=[];a.notes.unshift({at:Date.now(),actorId:meta.actorId,text});a.notes=a.notes.slice(0,20);return 0;});}
+function resetAccount(id,meta){return admin(id,'reset',meta,a=>{const keep={notes:a.notes,frozen:a.frozen};for(const key of Object.keys(a))delete a[key];Object.assign(a,{balance:1000,dailyAt:0,played:0,wagered:0,returned:0,history:[],used:[]},keep);return 1000;});}
+function creditAll(n,{actorId,reason=''}){amount(n,100000);let count=0;update(storeName,s=>{for(const a of Object.values(s.accounts||{})){a.balance+=n;count++;}record(s,{type:'bonus',actorId,targetId:null,amount:n,count,reason:String(reason).slice(0,300)});});return count;}
+return {snapshot,daily,start,action,score,cash,leaderboard,expireAll,peek,accounts,adminLog,credit,debit,setBalance,resetDaily,freeze,cancelGame,note,resetAccount,creditAll,DAY,MAX};
 }
 module.exports={...createStore(),createStore};

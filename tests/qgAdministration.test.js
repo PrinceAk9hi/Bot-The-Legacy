@@ -46,7 +46,7 @@ test('closed recruitment blocks a fresh applicant, ongoing MP questionnaire rema
  await require('../systems/qgSchoolApplications').directMessage({guildId:null,author:{id:'new',bot:false},content:'PseudoRoblox',reply:async()=>{},client:{guilds:{fetch:async()=>m.guild}}});assert.equal(a.state().schoolFamilyRecruitment.new.step,1);
 });
 test('/user opens a bound private profile and does not mutate roles',async()=>{
- const m=mock();let out;await panel.execute({...interaction(m),options:{getUser:()=>m.target.user},deferReply:async()=>{},editReply:async p=>{out=p;}});assert.ok(m.target.roles.cache.has('confirmed'));const rendered=JSON.stringify(out.components[0].toJSON());assert.match(rendered,/Panel membre/);assert.match(rendered,/qgu:tab:/);assert.match(rendered,/Profil candidat/);
+ const m=mock();let out;await panel.execute({...interaction(m),options:{getUser:()=>m.target.user},deferReply:async()=>{},editReply:async p=>{out=p;}});assert.ok(m.target.roles.cache.has('confirmed'));const rendered=JSON.stringify(out.components[0].toJSON());assert.match(rendered,/Dossier de membre/);assert.match(rendered,/qgu:tab:/);assert.match(rendered,/Profil candidat/);
 });
 test('rankup and derank select adjacent grade; targeted demotion cannot promote',async()=>{
  const m=mock();let p=panel.plan(m.actor,m.target,'rankup');await panel.confirm(interaction(m),'session',session(m,p));assert.ok(m.target.roles.cache.has('expert'));assert.equal(m.target.roles.cache.has('confirmed'),false);assert.ok(m.target.roles.cache.has('divider-family'));

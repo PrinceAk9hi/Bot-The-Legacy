@@ -52,6 +52,12 @@ async function execute(i){
  if(user.bot)return i.reply({content:'Les bots n’ont pas de carte de membre.',flags:F.Ephemeral});
  const member=await i.guild.members.fetch(user.id).catch(()=>null);
  if(!member)return i.reply({content:'Ce membre n’est pas sur le serveur.',flags:F.Ephemeral});
+ // L'équipe qui consulte un autre membre reçoit son dossier privé (carte + outils du /user) ; sinon carte publique.
+ if(member.id!==i.user.id&&a.can(self,'view')){
+  await i.deferReply({flags:F.Ephemeral});
+  const card=await payload(member),id=require('./qgUserPanel').open(i,self,member,{card:true});
+  return i.editReply({...require('./qgUserView').render(self,member,id,'profile'),files:card.files});
+ }
  await i.deferReply();
  return i.editReply(await payload(member));
 }

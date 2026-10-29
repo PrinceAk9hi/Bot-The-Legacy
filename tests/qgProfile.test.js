@@ -49,3 +49,44 @@ test('commande /profil : schéma valide',()=>{
  assert.equal(json.name,'profil');
  assert.equal(json.options[0].name,'membre');
 });
+
+// ---- Dossier privé de l'équipe (/profil sur un autre membre) ----
+function rich(id,roles){const m=member(id,roles,90);m.user.displayAvatarURL=()=>'https://cdn.discordapp.com/embed/avatars/0.png';m.voice={};m.guild={...guild,roles:{cache:new Collection(roles.map(r=>[r,{id:r,name:'Rôle '+r,position:1}]))}};return m;}
+const view=require('../systems/qgUserView'),panel=require('../systems/qgUserPanel');
+function json(p){return p.components.map(c=>c.toJSON());}
+test('dossier : chaque onglet se construit, carte en tête, total de texte sous la limite',()=>{
+ const actor=rich('owner',[]),target=rich(ME,['expert','recrut','community']);
+ actor.guild.ownerId='owner';target.guild.ownerId='owner';
+ const id=panel.open({guildId:config.guildId},actor,target,{card:true});
+ for(const [tab] of view.TABS){
+  const p=view.render(actor,target,id,tab),out=json(p),flat=JSON.stringify(out);
+  assert.ok(flat.includes('attachment://profil-qg.png'),'carte absente : '+tab);
+  assert.ok(flat.includes('qgu:publish:'+id));
+  const count=node=>Array.isArray(node)?node.reduce((n,x)=>n+count(x),0):node&&typeof node==='object'?Object.entries(node).reduce((n,[k,v])=>n+(k==='content'&&typeof v==='string'?v.length:count(v)),0):0;
+  const texts=count(out);
+  assert.equal(new Set([...flat.matchAll(/"custom_id":"([^"]+)"/g)].map(m=>m[1])).size,[...flat.matchAll(/"custom_id":"([^"]+)"/g)].length,'custom_id dupliqué : '+tab);
+  assert.ok(texts<4000,tab+' : '+texts+' caractères');
+ }
+ const activity=view.activity(target);
+ assert.match(activity,/Niveau 14/);
+ assert.match(view.records(actor,target),/Historique administratif/);
+});
+test('dossier sans carte (/user) : pas de galerie ni de bouton publier',()=>{
+ const actor=rich('owner',[]),target=rich(ME,['expert']);
+ const id=panel.open({guildId:config.guildId},actor,target);
+ const flat=JSON.stringify(json(view.render(actor,target,id,'activity')));
+ assert.ok(!flat.includes('attachment://'));
+ assert.ok(!flat.includes('qgu:publish'));
+});
+test('/profil sur un autre : dossier privé pour l’équipe, carte publique sinon',async()=>{
+ const calls=[];
+ const make=(who,target)=>({guildId:config.guildId,user:{id:who},guild:{members:{fetch:async q=>rich(typeof q==='string'?q:q.user,typeof q==='string'?['expert','community']:(who===OTHER?['recrut','community']:['community']))}},options:{getUser:()=>({id:target,bot:false})},deferReply:async o=>calls.push(['defer',o?.flags]),editReply:async p=>calls.push(['edit',p]),reply:async p=>calls.push(['reply',p])});
+ await profile.execute(make(OTHER,ME));
+ assert.ok(calls[0][1],'réponse privée attendue');
+ assert.ok(JSON.stringify(calls[1][1].components.map(c=>c.toJSON())).includes('Dossier de membre'));
+ assert.equal(calls[1][1].files[0].name,'profil-qg.png');
+ calls.length=0;
+ await profile.execute(make(ME,OTHER));
+ assert.equal(calls[0][1],undefined);
+ assert.equal(calls[1][1].embeds[0].toJSON().image.url,'attachment://profil-qg.png');
+});

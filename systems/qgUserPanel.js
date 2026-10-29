@@ -101,9 +101,10 @@ async function showApplications(i,id){const {actor,member}=await details(i,id),a
  for(const app of apps){if(!app.channelId)continue;const ch=await i.guild.channels.fetch(app.channelId).catch(()=>null);if(ch?.guildId===i.guildId&&ch.permissionsFor(actor)?.has(['ViewChannel','ReadMessageHistory']))rows.push(new Button().setLabel('Dossier '+app.type).setStyle(Style.Link).setURL(`https://discord.com/channels/${i.guildId}/${ch.id}`));}
  return i.editReply({embeds:[embed('Candidatures accessibles • QG',apps.map(app=>`**${app.type}**\nStatut : ${app.status}\nCréée : ${time(app.createdAt)}\nDernière décision : ${time(app.updatedAt)}\nResponsable : ${app.updatedBy?`<@${app.updatedBy}>`:'non enregistré'}`).join('\n\n')||'Aucun dossier auquel tu as accès.')],components:rows.length?[new Row().addComponents(...rows.slice(0,5))]:[],allowedMentions:{parse:[]}});
 }
+// Session de panel (10 min, réservée à son auteur). card : ouverte depuis /profil avec la carte en tête.
+function open(i,actor,member,extra={}){const id=randomUUID();a.save(s=>{s.schoolUserSessions||={};for(const [key,v] of Object.entries(s.schoolUserSessions))if(v.expiresAt<Date.now())delete s.schoolUserSessions[key];s.schoolUserSessions[id]={actorId:actor.id,targetId:member.id,guildId:i.guildId,expiresAt:Date.now()+600000,...extra};});return id;}
 async function execute(i){await i.deferReply({flags:F.Ephemeral});try{
- const actor=await a.actor(i),user=i.options.getUser('membre',true),member=await i.guild.members.fetch(user.id),id=randomUUID();
- a.save(s=>{s.schoolUserSessions||={};for(const [key,v] of Object.entries(s.schoolUserSessions))if(v.expiresAt<Date.now())delete s.schoolUserSessions[key];s.schoolUserSessions[id]={actorId:actor.id,targetId:member.id,guildId:i.guildId,expiresAt:Date.now()+600000};});
+ const actor=await a.actor(i),user=i.options.getUser('membre',true),member=await i.guild.members.fetch(user.id),id=open(i,actor,member);
  return i.editReply(profile(actor,member,id));
  }catch(e){return i.editReply({content:e.code?'Membre introuvable ou permissions insuffisantes.':clean(e.message),allowedMentions:{parse:[]}});}}
 async function handle(i){try{
@@ -111,7 +112,8 @@ async function handle(i){try{
  if(['tool','toolform','toolconfirm'].includes(op))return await require('./qgUserTools').handle(i,id,choice,op==='toolconfirm'?'confirm':op==='toolform'?'form':'open');
  if(op==='action'&&choice==='sanctions')return await require('./qgSanctionPanel').execute(i,member.id);
  if(op==='action'&&choice==='validate'){if(rank(member)!=='test')throw Error('La validation concerne uniquement un Membre Test.');i.values=['rankup'];op='select';}
- if(op==='tab'){if(!['profile','voice','management'].includes(choice))throw Error('Onglet invalide.');return await i.update(require('./qgUserView').render(actor,member,id,choice));}
+ if(op==='tab'||op==='refresh'){if(!require('./qgUserView').TABS.some(([key])=>key===choice))throw Error('Onglet invalide.');return await i.update(require('./qgUserView').render(actor,member,id,choice));}
+ if(op==='publish'){await i.deferReply({flags:F.Ephemeral});const sent=await i.channel.send(await require('./qgProfile').payload(member));return i.editReply({content:`📰 Carte de <@${member.id}> publiée : ${sent.url}`,allowedMentions:{parse:[]}});}
  if(['voice','voiceconfirm','voicecancel'].includes(op)){await i.deferReply({flags:F.Ephemeral});if(op==='voicecancel'){a.save(s=>{delete s.schoolUserSessions[id].voicePending;});return i.editReply('Action annulée.');}return await require('./qgUserVoice').handle(i,id,op==='voiceconfirm'?'confirm':choice,details,op==='voiceconfirm'?choice:null);}
  if(op==='action'){i.values=[choice];op='select';}
  if(op==='select'&&['prison','handcuffs','dog'].includes(i.values[0])){if(!a.can(actor,i.values[0]))throw Error('Action non autorisée.');return i.showModal(modal(id,i.values[0],labels[i.values[0]]));}
@@ -143,4 +145,4 @@ async function handle(i){try{
  }
  return await prepare(i,id,action,null,'Administration du membre');
  }catch(e){const payload={content:e.code?'Action non terminée : vérifie les permissions et l’état du membre.':clean(e.message).slice(0,1700),allowedMentions:{parse:[]}};if(i.deferred||i.replied)return i.editReply(payload).catch(()=>{});return i.reply({...payload,flags:F.Ephemeral}).catch(()=>{});}}
-module.exports={data,execute,handle,plan,rank,lowerOptions,applications,profile,stats,session,confirm,changeRoles,fingerprint};
+module.exports={data,execute,handle,open,plan,rank,lowerOptions,applications,profile,stats,session,confirm,changeRoles,fingerprint};

@@ -92,8 +92,29 @@ async function stats(guild,force=false){
  const channel=await guild.channels.fetch(s.channels.memberCount);const name=`📊・Membres : ${count} • ${config.statSuffix}`;
  if(channel&&channel.name!==name)await channel.setName(name);lastCountRefresh=Date.now();
 }
-async function logTo(guild,key,title,description,files=[]){const s=saved(),ch=await guild.channels.fetch(s.schoolChannels?.[key]||s.channels.logs).catch(()=>null);if(!ch?.isTextBased())return null;return ch.send({embeds:[layout.embed(title,description)],files,allowedMentions});}
+const qgLog=require('../utils/qgLog'),{AuditLogEvent}=require('discord.js');
+// title peut être un embed déjà construit par qgLog.entry, ou un simple titre accompagné d'un texte.
+async function logTo(guild,key,title,description,files=[]){const s=saved(),ch=await guild.channels.fetch(s.schoolChannels?.[key]||s.channels.logs).catch(()=>null);if(!ch?.isTextBased())return null;const embed=typeof title==='string'?qgLog.entry({kind:key==='logsTickets'?'ticket':'info',icon:key==='logsTickets'?'🎫':'',title,description}):title;return ch.send({embeds:[embed],files,allowedMentions});}
 async function log(guild,title,description,files=[]){const key=/membre|règlement|vérifi|accès/i.test(title)?'logsMembers':'logsTickets';return logTo(guild,key,title,description,files);}
+const DAY=86400000;
+function joinLog(member){
+ const age=Date.now()-member.user.createdTimestamp;
+ return qgLog.entry({kind:'join',icon:'📥',title:'Arrivée d’un membre',user:member.user,thumbnail:true,description:`<@${member.id}> a rejoint le QG.`,fields:[
+  {name:'Compte créé',value:`${qgLog.time(member.user.createdTimestamp,'D')} (${qgLog.time(member.user.createdTimestamp)})${age<7*DAY?'\n⚠️ Compte de moins de 7 jours':''}`,inline:true},
+  {name:'Membres',value:String(member.guild.memberCount),inline:true},
+  {name:'Vérification',value:'En attente',inline:true}]});
+}
+async function leaveLog(member){
+ const kick=await qgLog.executor(member.guild,AuditLogEvent.MemberKick,member.id),ban=kick?null:await qgLog.executor(member.guild,AuditLogEvent.MemberBanAdd,member.id,{wait:0});
+ const roles=[...member.roles.cache.values()].filter(r=>r.id!==member.guild.id&&!r.managed).sort((a,b)=>b.position-a.position);
+ const how=kick?`👢 Expulsé par ${qgLog.who(kick.user)}`:ban?`🔨 Banni par ${qgLog.who(ban.user)}`:'🚪 Départ volontaire';
+ return qgLog.entry({kind:'leave',icon:kick?'👢':ban?'🔨':'📤',title:kick?'Membre expulsé':ban?'Membre banni':'Départ d’un membre',user:member.user,thumbnail:true,description:`<@${member.id}> a quitté le QG.`,fields:[
+  {name:'Départ',value:how,inline:true},
+  {name:'Arrivé',value:qgLog.time(member.joinedTimestamp),inline:true},
+  {name:'Membres',value:String(member.guild.memberCount),inline:true},
+  (kick||ban)?.reason&&{name:'Motif',value:(kick||ban).reason},
+  {name:`Rôles (${roles.length})`,value:roles.slice(0,20).map(r=>`<@&${r.id}>`).join(' ')+(roles.length>20?` … +${roles.length-20}`:'')||'Aucun'}]});
+}
 function staff(member){const s=saved(),r=s.roles||{},school=s.schoolRoles||{};return member.id===member.guild.ownerId||member.id===config.ownerId||layout.staffKeys.some(k=>r[k]&&member.roles.cache.has(r[k]))||['creator','globalManager','administrator','ticketsLead','ticketsManagement'].some(k=>school[k]&&member.roles.cache.has(school[k]));}
 async function reaction(reaction,user,add){
  if(user.bot||reaction.emoji.name!=='✅')return;
@@ -112,48 +133,79 @@ async function memberEvent(member,joined){
   await require('./qgProfileCatchup').endMembership(member);
  }
  if(joined)await require('./qgSchoolSeparators').syncMember(member);
- if(joined){await logTo(member.guild,'logsMembers','Arrivée d’un membre',`Membre : <@${member.id}> (${member.id})\nVérification en attente.`).catch(()=>{});return;}
+ if(joined){await logTo(member.guild,'logsMembers',joinLog(member)).catch(()=>{});return;}
  const s=saved(),school=s.schoolChannels||{},ch=await member.guild.channels.fetch(school[joined?'arrivals':'departures']||s.channels?.[joined?'arrivals':'departures']);if(!ch)return;
  const notice=layout.embed(joined?'✦ Bienvenue au QG':'Départ du serveur',joined?`Bienvenue <@${member.id}> !\n\nUn nouvel espace de rencontres, de discussions et de roleplay t’attend. Prends tes repères et trouve ta place parmi nous.\n\n**01 · Vérifie ton profil**\nRends-toi dans <#${school.rules||s.channels.rules}> et clique sur **Commencer ma vérification**.\n\n**02 · Découvre nos règles**\nAprès confirmation de ton profil Roblox, le règlement s’affichera dans un message visible uniquement par toi.\n\n**03 · Rejoins la communauté**\nConfirme l’avoir lu et accepté pour recevoir le rôle **Membre Communautaire**.\n\nHeure d’arrivée : <t:${Math.floor((member.joinedTimestamp||Date.now())/1000)}:F>`:`**${member.user.username}** a quitté le QG.\nID : ${member.id}`).setColor(0xffffff).setTimestamp(joined?member.joinedTimestamp||Date.now():Date.now());
  if(joined)notice.setThumbnail(member.user.displayAvatarURL({size:256}));
  await ch.send({content:joined?`<@${member.id}>`:undefined,embeds:[notice],allowedMentions:{parse:[],users:joined?[member.id]:[]}});
- await logTo(member.guild,'logsMembers',joined?'Arrivée d’un membre':'Départ d’un membre',`Membre : <@${member.id}> (${member.id})\nPseudo : ${member.user.username}\nAuteur : non applicable / non déterminé`).catch(()=>{});
+ await logTo(member.guild,'logsMembers',joined?joinLog(member):await leaveLog(member)).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
  require('./qgCommunityUpgrade').memberChanged(oldMember,newMember);
  await require('./qgUserTools').enforce(oldMember,newMember).catch(e=>console.error('Verrou pseudo QG :',e.code||e.name));
  await require('./qgSupportWorkspace').boost(oldMember,newMember).catch(e=>console.error('Boost QG :',e.code||e.name));
  await require('./qgSchoolSeparators').syncMember(newMember);
- const changes=[];
- if(oldMember.nickname!==newMember.nickname)changes.push(`Surnom : **${oldMember.nickname||'aucun'}** → **${newMember.nickname||'aucun'}**`);
- if(oldMember.user.username!==newMember.user.username)changes.push(`Nom Discord : **${oldMember.user.username}** → **${newMember.user.username}**`);
  const oldRoles=oldMember.roles.cache,newRoles=newMember.roles.cache;
  const board=require('./qgSchoolManagementBoard');
  if(board.trackRoleChanges(oldMember,newMember))await board.refresh(newMember.guild).catch(e=>console.error('Actualisation suivi gestions :',e.code||e.message));
  const added=[...newRoles.values()].filter(r=>!r.managed&&!oldRoles.has(r.id)),removed=[...oldRoles.values()].filter(r=>!r.managed&&!newRoles.has(r.id));
- if(added.length)changes.push(`Rôles ajoutés : ${added.map(r=>`<@&${r.id}>`).join(', ')}`);
- if(removed.length)changes.push(`Rôles retirés : ${removed.map(r=>`<@&${r.id}>`).join(', ')}`);
- if(changes.length)await logTo(newMember.guild,'logsMembers','Profil ou rôles modifiés',`Membre : <@${newMember.id}> (${newMember.id})\n${changes.join('\n')}\nAuteur : non déterminé`);
+ const nick=oldMember.nickname!==newMember.nickname,name=oldMember.user.username!==newMember.user.username;
+ const oldTimeout=oldMember.communicationDisabledUntilTimestamp||0,newTimeout=newMember.communicationDisabledUntilTimestamp||0,timeout=oldTimeout!==newTimeout&&(oldTimeout>Date.now()||newTimeout>Date.now());
+ if(!added.length&&!removed.length&&!nick&&!name&&!timeout)return;
+ const by=added.length||removed.length?await qgLog.executor(newMember.guild,AuditLogEvent.MemberRoleUpdate,newMember.id):nick||timeout?await qgLog.executor(newMember.guild,AuditLogEvent.MemberUpdate,newMember.id):null;
+ const roleList=roles=>roles.map(r=>`<@&${r.id}>`).join(' ');
+ const [kind,icon,title]=timeout?(newTimeout>Date.now()?['danger','🔇','Exclusion temporaire']:['add','🔈','Exclusion temporaire levée']):added.length&&!removed.length&&!nick?['add','➕',added.length>1?'Rôles ajoutés':'Rôle ajouté']:removed.length&&!added.length&&!nick?['remove','➖',removed.length>1?'Rôles retirés':'Rôle retiré']:nick&&!added.length&&!removed.length?['edit','✏️','Surnom modifié']:name?['edit','✏️','Nom Discord modifié']:['edit','🔄','Rôles modifiés'];
+ await logTo(newMember.guild,'logsMembers',qgLog.entry({kind,icon,title,user:newMember.user,description:`Membre : <@${newMember.id}>`,fields:[
+  added.length&&{name:'Ajouté'+(added.length>1?'s':''),value:roleList(added),inline:true},
+  removed.length&&{name:'Retiré'+(removed.length>1?'s':''),value:roleList(removed),inline:true},
+  nick&&{name:'Surnom',value:`${oldMember.nickname||'*aucun*'} → **${newMember.nickname||'*aucun*'}**`},
+  name&&{name:'Nom Discord',value:`@${oldMember.user.username} → **@${newMember.user.username}**`},
+  timeout&&{name:'Jusqu’à',value:newTimeout>Date.now()?`${qgLog.time(newTimeout,'f')} (${qgLog.time(newTimeout)})`:'Levée'},
+  !name&&{name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true},
+  by?.reason&&{name:'Motif',value:by.reason,inline:true}]}));
 }
 async function voiceLog(oldState,newState){
  const member=newState.member||oldState.member;if(!member||member.user.bot)return;
- const events=[];
- if(!oldState.channelId&&newState.channelId)events.push(`Connexion à <#${newState.channelId}>`);
- else if(oldState.channelId&&!newState.channelId)events.push(`Déconnexion de <#${oldState.channelId}>`);
- else if(oldState.channelId!==newState.channelId)events.push(`Déplacement : <#${oldState.channelId}> → <#${newState.channelId}> (auteur non déterminé)`);
- for(const [key,label] of [['selfMute','mute micro personnel'],['serverMute','mute micro serveur'],['selfDeaf','mute casque personnel'],['serverDeaf','mute casque serveur'],['selfVideo','vidéo'],['streaming','partage d’écran']])if(oldState[key]!==newState[key])events.push(`${label} : ${newState[key]?'activé':'désactivé'}`);
- if(events.length)await logTo(member.guild,'logsVoice','État vocal modifié',`Membre : <@${member.id}> (${member.id})\n${events.join('\n')}\nAuteur : non déterminé`);
+ const from=oldState.channelId,to=newState.channelId,fields=[];let icon,title,kind='voice';
+ if(!from&&to){icon='🟢';title='Connexion vocale';fields.push({name:'Salon',value:`<#${to}>`,inline:true});}
+ else if(from&&!to){icon='🔴';title='Déconnexion vocale';kind='remove';fields.push({name:'Salon',value:`<#${from}>`,inline:true});}
+ else if(from!==to){icon='🔀';title='Changement de salon vocal';fields.push({name:'De',value:`<#${from}>`,inline:true},{name:'Vers',value:`<#${to}>`,inline:true});}
+ const toggles=[['selfMute','🎙️','Micro coupé (lui-même)'],['selfDeaf','🎧','Casque coupé (lui-même)'],['serverMute','🔇','Micro coupé par le serveur'],['serverDeaf','🔕','Casque coupé par le serveur'],['selfVideo','📹','Caméra'],['streaming','🖥️','Partage d’écran']].filter(([key])=>Boolean(oldState[key])!==Boolean(newState[key]));
+ if(!title){
+  if(!toggles.length)return;
+  // Les micros et casques coupés par soi-même sont trop fréquents pour être utiles : seuls les changements serveur, caméra et écran sont journalisés.
+  const useful=toggles.filter(([key])=>!key.startsWith('self')||key==='selfVideo');if(!useful.length)return;
+  icon=useful[0][1];title='État vocal';fields.push({name:'Salon',value:to?`<#${to}>`:'—',inline:true});
+  for(const [key,,label]of useful)fields.push({name:label,value:newState[key]?'Activé':'Désactivé',inline:true});
+  if(useful.some(([key])=>key.startsWith('server'))){const by=await qgLog.executor(member.guild,AuditLogEvent.MemberUpdate,member.id);fields.push({name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true});}
+ }
+ await logTo(member.guild,'logsVoice',qgLog.entry({kind,icon,title,user:member.user,description:`Membre : <@${member.id}>`,fields}));
 }
 async function messageChange(oldMessage,newMessage,kind){
  const m=kind==='bulk'?oldMessage:(newMessage||oldMessage);if(!m?.guildId||m.guildId!==config.guildId||m.author?.bot)return;
  const t=saved().tickets?.[m.channelId];const privateTicket=Boolean(t||m.channel?.topic?.startsWith('qg-ticket:'));
- const title=kind==='delete'?'Message supprimé':kind==='edit'?'Message modifié':'Messages supprimés en masse';
- let description=`Salon : <#${m.channelId}>\nAuteur : ${m.author?`${m.author.username} (${m.author.id})`:'non déterminé'}\nAuteur de suppression : non déterminé`;
- if(!privateTicket&&kind==='edit')description+=`\nAvant : ${(oldMessage?.content||'').slice(0,600)||'[vide]'}\nAprès : ${(newMessage?.content||'').slice(0,600)||'[vide]'}`;
- if(!privateTicket&&kind==='delete')description+=`\nContenu : ${(oldMessage?.content||'').slice(0,600)||'[non disponible]'}`;
- if(kind==='bulk')description+=`\nNombre : ${newMessage?.size||0}`;
- for(const secret of [process.env.TOKEN,process.env.OPENAI_API_KEY,process.env.ROBLOX_COOKIE].filter(Boolean))description=description.split(secret).join('[secret masqué]');
- await logTo(m.guild,'logsModeration',title,description);
+ if(kind==='edit'&&oldMessage?.content===newMessage?.content)return; // intégration d'un lien, pas une modification
+ const mask=text=>{text=String(text||'');for(const secret of [process.env.TOKEN,process.env.OPENAI_API_KEY,process.env.ROBLOX_COOKIE].filter(Boolean))text=text.split(secret).join('[secret masqué]');return text;};
+ const fields=[{name:'Salon',value:`<#${m.channelId}>`,inline:true},{name:'Auteur',value:m.author?`<@${m.author.id}>`:'*Non déterminé*',inline:true}];
+ let icon,title,logKind;
+ if(kind==='edit'){
+  icon='✏️';title='Message modifié';logKind='edit';fields.push({name:'Lien',value:`[Aller au message](${newMessage.url})`,inline:true});
+  if(privateTicket)fields.push({name:'Contenu',value:'*Masqué : ticket privé*'});
+  else fields.push({name:'Avant',value:qgLog.quote(mask(oldMessage?.content)||'*Non disponible*')},{name:'Après',value:qgLog.quote(mask(newMessage?.content))});
+ }else if(kind==='delete'){
+  icon='🗑️';title='Message supprimé';logKind='delete';
+  const by=m.author?await qgLog.executor(m.guild,AuditLogEvent.MessageDelete,m.author.id,{maxAge:60000,match:x=>x.extra?.channel?.id===m.channelId}):null;
+  fields.push({name:'Supprimé par',value:by?qgLog.who(by.user):'Son auteur ou non déterminé',inline:true});
+  if(privateTicket)fields.push({name:'Contenu',value:'*Masqué : ticket privé*'});
+  else{fields.push({name:'Contenu',value:oldMessage?.content?qgLog.quote(mask(oldMessage.content)):'*Non disponible (message trop ancien)*'});
+   const files=[...(oldMessage?.attachments?.values?.()||[])];if(files.length)fields.push({name:'Pièces jointes',value:files.map(f=>`📎 ${f.name}`).join('\n')});}
+ }else{
+  icon='🧹';title='Messages supprimés en masse';logKind='delete';
+  const by=await qgLog.executor(m.guild,AuditLogEvent.MessageBulkDelete,m.channelId,{maxAge:60000});
+  fields.push({name:'Nombre',value:String(newMessage?.size||0),inline:true},{name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true});
+  fields.splice(1,1);
+ }
+ await logTo(m.guild,'logsModeration',qgLog.entry({kind:logKind,icon,title,user:kind==='bulk'?null:m.author,fields,footer:kind==='bulk'?'':` · ID ${m.author?.id||'?'} · Message ${m.id}`}));
 }
 async function transcript(channel){
  let before;const all=[];

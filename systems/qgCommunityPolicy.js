@@ -17,7 +17,10 @@ function locked(key, fn) {
 }
 async function log(guild, title, description) {
   try { const id = state().schoolChannels?.logsModeration; if (!id) return;
-    const ch = await guild.channels.fetch(id); await ch.send({ embeds: [new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description.slice(0,3500)).setTimestamp()], allowedMentions: {parse:[]} });
+    const ch = await guild.channels.fetch(id);
+    const memberId = /Membre : (\d{17,20})/.exec(description)?.[1], user = memberId ? await guild.client.users.fetch(memberId).catch(() => null) : null;
+    const text = description.replace(/(Membre : )(\d{17,20})/g, '$1<@$2>').replace(/(Salon : )(\d{17,20})/g, '$1<#$2>');
+    await ch.send({ embeds: [require('../utils/qgLog').entry({ kind: /non confirmée|non supprimé|nécessaire/.test(title + description) ? 'edit' : 'danger', icon: '🛡️', title, user, description: text.slice(0, 3500) })], allowedMentions: {parse:[]} });
   } catch (e) { console.error('Journal protection QG indisponible :', e.code || e.name); }
 }
 const bursts = new Map();

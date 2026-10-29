@@ -35,7 +35,17 @@ async function audit(guild,{action,actorId,targetId,before,after,reason,result='
   const key=action.startsWith('cd')?'logsBot':/rank|management|responsibility/.test(action)?'logsMembers':'logsModeration';
   const id=state().schoolChannels?.[key];if(!id)throw Error('missing_destination');
   const ch=await guild.channels.fetch(id);if(!ch?.isTextBased()||ch.guildId!==config.guildId)throw Error('invalid_destination');
-  await ch.send({embeds:[require('../systems/qgPanels').embed((/rankup/.test(action)?'<a:statusonline:1562837067782950924> ':/derank|demote/.test(action)?'<a:statusoffline:1562836899226324992> ':'')+'Administration QG • '+action,`Auteur : <@${actorId}>\n${targetId?`Membre : <@${targetId}>\n`:''}Date : <t:${Math.floor(e.at/1000)}:f>\nRésultat : ${result}\nAvant : ${clean(JSON.stringify(before)).slice(0,900)}\nAprès : ${clean(JSON.stringify(after)).slice(0,900)}\nMotif : ${e.reason||'Non indiqué'}`)],allowedMentions:{parse:[]}});return true;
+  const log=require('./qgLog'),{icon,title}=log.describeAction(action),failed=result!=='success';
+  const target=targetId?await guild.client.users.fetch(targetId).catch(()=>null):null;
+  const kind=failed?'danger':/rankup/.test(action)?'add':/derank|demote|sanction|discipline/.test(action)?'remove':action.startsWith('casino')?'casino':'admin';
+  const embed=log.entry({kind,icon:failed?'⚠️':icon,title,user:target,fields:[
+   {name:'Auteur',value:actorId?`<@${actorId}>`:'*Système*',inline:true},
+   target&&{name:'Membre',value:`<@${target.id}>`,inline:true},
+   {name:'Résultat',value:failed?'❌ '+clean(String(result)).slice(0,200):'✅ Effectué',inline:true},
+   before!==undefined&&before!==null&&{name:'Avant',value:clean(log.pretty(before))},
+   after!==undefined&&after!==null&&{name:'Après',value:clean(log.pretty(after))},
+   e.reason&&{name:'Motif',value:e.reason}],footer:` · ${action}`});
+  await ch.send({embeds:[embed],allowedMentions:{parse:[]}});return true;
  }catch{save(s=>{const item=s.schoolAdminHistory.find(x=>x.id===e.id);if(item)item.logDelivery='failed';});return false;}
 }
 const locks=new Map();

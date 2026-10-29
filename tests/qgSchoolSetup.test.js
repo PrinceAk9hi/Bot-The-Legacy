@@ -60,15 +60,25 @@ test('persistent panels use stable custom IDs and the five configured management
   assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
 });
 
-test('family application panel attaches the supplied PNG banner and preserves the MP questionnaire button', () => {
+test('family application panel attaches the animated banner matching the recruitment status and preserves the MP questionnaire button', () => {
   const fs = require('node:fs'), path = require('node:path');
-  const payload = setup.panelPayload('familyApplications');
-  const image = payload.embeds[0].data.image.url;
-  assert.equal(image, 'attachment://qg-candidature-banner.png');
-  assert.equal(payload.files[0].name, 'qg-candidature-banner.png');
-  assert.ok(payload.files[0] instanceof require('discord.js').AttachmentBuilder);
-  const bytes = fs.readFileSync(path.join(__dirname, '..', 'assets', 'qg-candidature-banner.png'));
-  assert.deepEqual([...bytes.subarray(0, 8)], [137,80,78,71,13,10,26,10]);
+  const control = require('../systems/qgRecruitmentControl');
+  const original = control.status;
+  let payload;
+  try {
+    for (const [open, name] of [[true, 'qg-candidature-ouvert.gif'], [false, 'qg-candidature-ferme.gif']]) {
+      control.status = () => ({ open });
+      const p = setup.panelPayload('familyApplications');
+      assert.equal(p.embeds[0].data.image.url, `attachment://${name}`);
+      assert.equal(p.files[0].name, name);
+      assert.ok(p.files[0] instanceof require('discord.js').AttachmentBuilder);
+      const bytes = fs.readFileSync(path.join(__dirname, '..', 'assets', name));
+      assert.equal(bytes.subarray(0, 6).toString('latin1'), 'GIF89a');
+      assert.ok(bytes.length < 10 * 1024 * 1024);
+    }
+    control.status = () => ({ open: true });
+    payload = setup.panelPayload('familyApplications');
+  } finally { control.status = original; }
   assert.deepEqual(payload.attachments, []);
   for (const condition of ['Tag QG obligatoire','16 ans minimum','Casier vierge ou quasiment vierge','Très forte activité sur Discord et en jeu','Envie d’évoluer']) assert.ok(payload.embeds[0].data.description.includes(condition));
   assert.equal(payload.components[0].components[0].data.custom_id, 'qgs:family-apply');

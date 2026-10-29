@@ -60,8 +60,10 @@ function panelPayload(key, guild) {
     const emblem = guild?.emojis?.cache?.find(e => e.name === 'EmblmeSpixelartmonochrome' && e.available !== false);
     const heading = emblem ? `<${emblem.animated ? 'a' : ''}:${emblem.name}:${emblem.id}> Candidature — Famille SchoolRP` : 'Candidature — Famille SchoolRP';
     const banner = embed(heading, '**Une famille se construit avec des personnes respectueuses, sincères et motivées.**\n\nAvant de commencer, prépare ton pseudo Roblox et prends quelques minutes pour répondre personnellement aux questions. Une candidature complète et honnête aidera l’équipe à mieux te connaître.\n\n**Comment se déroule le recrutement ?**\nLe questionnaire se fait en messages privés avec le bot, une question à la fois. Tes réponses sont sauvegardées afin que tu puisses avancer sans formulaire Discord. À la fin, ton dossier est transmis à la Gestion Recrutement ; une personne de l’équipe étudiera ta candidature.\n\nClique sur **Déposer ma candidature** pour recevoir la première question en MP. Les messages privés du serveur doivent être ouverts.');
-    const art = localImage(path.join(__dirname, '..', 'assets', 'qg-candidature-banner.png'), 'qg-candidature-banner.png');
     const open = require('./qgRecruitmentControl').status().open;
+    // Bannière animée « Journal du QG » : elle suit le statut réglé par /cd on|off.
+    const bannerName = open ? 'qg-candidature-ouvert.gif' : 'qg-candidature-ferme.gif';
+    const art = localImage(path.join(__dirname, '..', 'assets', bannerName), bannerName);
     banner.setDescription(`**${open ? '<a:statusonline:1562837067782950924> Candidatures ouvertes' : '<a:statusoffline:1562836899226324992> Candidatures fermées'}**\n\n${require('../config/qgFamily').description}\n${require('../config/qgFamily').conditions}\n\n${banner.data.description}`);
     banner.setColor(0xffffff).setImage(art.url);
     return { embeds: [banner], attachments: [], files: [art.file], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qgs:family-apply').setLabel(open ? 'Déposer ma candidature' : 'Candidatures fermées').setEmoji({id:open?'1562837067782950924':'1562836899226324992',name:open?'statusonline':'statusoffline',animated:true}).setDisabled(!open).setStyle(ButtonStyle.Secondary))], allowedMentions: { parse: [] } };

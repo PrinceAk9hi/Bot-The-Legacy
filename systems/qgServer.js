@@ -222,6 +222,7 @@ async function interaction(i){
  if(i.customId?.startsWith('qgcasino:'))return require('./qgCasino').handle(i);
  if(i.customId?.startsWith('qgcadm:'))return require('./qgCasinoAdmin').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='casino')return require('./qgCasinoGames').launch(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='profil')return require('./qgProfile').execute(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
  if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);

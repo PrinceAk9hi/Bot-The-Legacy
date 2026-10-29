@@ -105,6 +105,15 @@ function ranks(){
 }
 function csv(){const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';return 'id;solde;parties;mise;rendu;net;gele;partie_en_cours;derniere_partie\n'+store().accounts().map(([id,x])=>[id,x.balance,x.played,x.wagered,x.returned,x.returned-x.wagered,x.frozen?'oui':'non',x.game?x.game.kind:'',x.history?.[0]?new Date(x.history[0].at).toISOString():''].map(cell).join(';')).join('\n');}
 
+// Ouvre ou suspend les nouvelles mises et actualise les panneaux concernés (aussi utilisé par le centre de commandement).
+function setOpen(guild,actorId,open){return a.serial('casino-status',async()=>{
+ const before=casino().enabled!==false;a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled=open;});
+ await a.audit(guild,{action:'casino.'+(open?'enable':'disable'),actorId,before,after:open}).catch(()=>{});
+ for(const [key,kind]of [['casinoHome','home'],['casinoControl','control']])await require('./qgCasino').publish(guild,key,kind).catch(e=>console.error('Panel casino :',e.code||e.message));
+ await publish(guild).catch(e=>console.error('Admin casino :',e.code||e.message));
+ return open;
+});}
+
 // ---- Interactions ----
 async function handle(i){
  if(i.guildId!==config.guildId)throw Error('Serveur QG incorrect.');
@@ -153,13 +162,7 @@ async function handle(i){
  }
 
  need();
- if(op==='toggle')return a.serial('casino-status',async()=>{
-  const before=casino().enabled!==false;a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled=!before;});
-  await a.audit(i.guild,{action:'casino.'+(before?'disable':'enable'),actorId:i.user.id,before,after:!before}).catch(()=>{});
-  for(const [key,kind]of [['casinoHome','home'],['casinoControl','control']])await require('./qgCasino').publish(i.guild,key,kind).catch(e=>console.error('Panel casino :',e.code||e.message));
-  await publish(i.guild);
-  return i.editReply({content:before?'🔴 Nouvelles mises suspendues. Les parties en cours restent jouables.':'🟢 Nouvelles mises ouvertes.'});
- });
+ if(op==='toggle'){const open=await setOpen(i.guild,i.user.id,casino().enabled===false);return i.editReply({content:open?'🟢 Nouvelles mises ouvertes.':'🔴 Nouvelles mises suspendues. Les parties en cours restent jouables.'});}
  const meta={actorId:i.user.id,reason:''};
  if(op==='daily'){store().resetDaily(target,meta);await audit('daily');refreshPanel();return show(target,'🎁 Le joueur peut de nouveau récupérer sa récompense du jour.');}
  if(op==='freeze'){const frozen=!store().peek(target)?.frozen;store().freeze(target,frozen,meta);await audit(frozen?'freeze':'unfreeze');refreshPanel();return show(target,frozen?'🧊 Compte gelé : plus de mises ni de récompense.':'🔥 Compte dégelé.');}
@@ -168,4 +171,4 @@ async function handle(i){
  if(op==='resetok'){const before=store().peek(target)?.balance??null;store().resetAccount(target,meta);await audit('reset',before,1000);refreshPanel();return show(target,'♻️ Compte réinitialisé.');}
  throw Error('Action inconnue.');
 }
-module.exports={CHANNEL,panel,publish,tick,card,handle,stats,parseAmount,csv};
+module.exports={CHANNEL,panel,publish,tick,card,handle,stats,parseAmount,csv,setOpen};

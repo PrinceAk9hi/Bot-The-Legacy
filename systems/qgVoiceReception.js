@@ -25,7 +25,7 @@ async function playNow(guild,name='context'){return a.serial('voice-manual',asyn
 });}
 function listeners(guild){return [...(guild.channels.cache.get(live.WAIT)?.members?.values()||[])].filter(m=>!m.user.bot);}
 function migrateAutoJoin(){const old=a.state().voiceReception;if(old?.autoJoinVersion===1)return;const disabled=old?.enabled===false&&(a.state().schoolAdminHistory||[]).some(x=>x.action==='voice-reception.desactiver');persist({enabled:!disabled,autoJoinVersion:1});}
-async function tick(guild,{force=false}={}){if(busy||stopped)return;busy=true;guildRef=guild;try{
+async function tick(guild,{force=false}={}){if(busy||stopped||held)return;busy=true;guildRef=guild;try{
  migrateAutoJoin();if(!config().enabled){disconnect();lastError='Accueil désactivé. Utilise /accueil-vocal activer.';return;}
  // Joining Discord must not depend on music files or recruitment storage.
  if(force||listeners(guild).length||connection)await connect(guild);
@@ -57,4 +57,8 @@ async function execute(i){await auth(i);await i.deferReply({flags:u.MessageFlags
  if(op!=='statut')await a.audit(i.guild,{action:'voice-reception.'+op,actorId:i.user.id,after:config()});return i.editReply(status(i.guild));}
 async function handle(i){await i.deferReply({flags:u.MessageFlags.Ephemeral});const member=await a.actor(i);if(!a.isDirection(member)&&!a.has(member,['recruitmentLead','recruitmentManagement']))throw Error('Réservé au recrutement.');let content=null;if(i.customId.startsWith('qgv:play:')){content=await playNow(i.guild,i.customId.split(':')[2]);await a.audit(i.guild,{action:'voice-reception.manual',actorId:i.user.id,after:{announcement:i.customId.split(':')[2]}});}return i.editReply({...status(i.guild),content});}
 function shutdown(){stopped=true;disconnect();}
-module.exports={playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};
+// Pause pendant une alerte d’urgence : le bot ne peut occuper qu’un seul vocal par serveur.
+let held=false;
+async function pause(){held=true;for(let n=0;n<50&&busy;n++)await new Promise(r=>setTimeout(r,100));disconnect();}
+function resume(){held=false;reconnectAt=0;}
+module.exports={pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};

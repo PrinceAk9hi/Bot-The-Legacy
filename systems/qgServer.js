@@ -164,25 +164,48 @@ async function memberUpdate(oldMember,newMember){
   !name&&{name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true},
   by?.reason&&{name:'Motif',value:by.reason,inline:true}]}));
 }
+// Journal vocal détaillé : connexions, déconnexions et déplacements (avec le modérateur responsable
+// retrouvé dans le journal d'audit), micro et sourdine (personnels ou imposés), caméra, écran, durée passée.
+const voiceSince=new Map();
+const VOICE_TOGGLES=[
+ ['serverMute','🔇 Rendu muet par un modérateur','🔊 Micro rétabli par un modérateur'],
+ ['serverDeaf','🔕 Mis en sourdine par un modérateur','🔔 Sourdine retirée par un modérateur'],
+ ['selfMute','🎙️ S’est coupé le micro','🎙️ A réactivé son micro'],
+ ['selfDeaf','🎧 S’est mis en sourdine','🎧 A retiré sa sourdine'],
+ ['selfVideo','📹 A allumé sa caméra','📹 A éteint sa caméra'],
+ ['streaming','🖥️ A lancé un partage d’écran','🖥️ A arrêté son partage d’écran']];
+function spent(ms){const m=Math.round(ms/60000);return m<1?'moins d’une minute':m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0');}
 async function voiceLog(oldState,newState){
  const member=newState.member||oldState.member;if(!member||member.user.bot)return;
- const from=oldState.channelId,to=newState.channelId,fields=[];let icon,title,kind='voice';
- if(!from&&to){icon='🟢';title='Connexion vocale';fields.push({name:'Salon',value:`<#${to}>`,inline:true});}
- else if(from&&!to){icon='🔴';title='Déconnexion vocale';kind='remove';fields.push({name:'Salon',value:`<#${from}>`,inline:true});}
- else if(from!==to){icon='🔀';title='Changement de salon vocal';fields.push({name:'De',value:`<#${from}>`,inline:true},{name:'Vers',value:`<#${to}>`,inline:true});}
- const toggles=[['selfMute','🎙️','Micro coupé (lui-même)'],['selfDeaf','🎧','Casque coupé (lui-même)'],['serverMute','🔇','Micro coupé par le serveur'],['serverDeaf','🔕','Casque coupé par le serveur'],['selfVideo','📹','Caméra'],['streaming','🖥️','Partage d’écran']].filter(([key])=>Boolean(oldState[key])!==Boolean(newState[key]));
+ const guild=member.guild,from=oldState.channelId,to=newState.channelId,now=Date.now(),since=voiceSince.get(member.id);
+ if(to&&to!==from)voiceSince.set(member.id,now);if(!to)voiceSince.delete(member.id);
+ const fields=[],lines=[],people=id=>guild.channels.cache.get(id)?.members?.filter(m=>!m.user.bot).size??0;
+ let icon,title,kind='voice',by=null;
+ if(!from&&to){icon='🟢';title='Connexion vocale';fields.push({name:'Salon',value:`<#${to}> · ${people(to)} présent(s)`,inline:true});}
+ else if(from&&!to){
+  by=await qgLog.recent(guild,AuditLogEvent.MemberDisconnect,{});
+  icon=by?'⛔':'🔴';title=by?'Déconnecté par un modérateur':'Déconnexion vocale';kind='remove';
+  fields.push({name:'Salon',value:`<#${from}>`,inline:true},since&&{name:'Durée',value:spent(now-since),inline:true});
+ }else if(from!==to){
+  by=await qgLog.recent(guild,AuditLogEvent.MemberMove,{match:e=>e.extra?.channel?.id===to});
+  icon='🔀';title=by?'Déplacé par un modérateur':'Changement de salon vocal';
+  fields.push({name:'De',value:`<#${from}>`,inline:true},{name:'Vers',value:`<#${to}> · ${people(to)} présent(s)`,inline:true},since&&{name:'Durée dans le salon précédent',value:spent(now-since),inline:true});
+ }
+ const toggles=VOICE_TOGGLES.filter(([key])=>Boolean(oldState[key])!==Boolean(newState[key]));
+ for(const [key,on,off]of toggles)lines.push(newState[key]?on:off);
  if(!title){
   if(!toggles.length)return;
-  // Les micros et casques coupés par soi-même sont trop fréquents pour être utiles : seuls les changements serveur, caméra et écran sont journalisés.
-  const useful=toggles.filter(([key])=>!key.startsWith('self')||key==='selfVideo');if(!useful.length)return;
-  icon=useful[0][1];title='État vocal';fields.push({name:'Salon',value:to?`<#${to}>`:'—',inline:true});
-  for(const [key,,label]of useful)fields.push({name:label,value:newState[key]?'Activé':'Désactivé',inline:true});
-  if(useful.some(([key])=>key.startsWith('server'))){const by=await qgLog.executor(member.guild,AuditLogEvent.MemberUpdate,member.id);fields.push({name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true});}
+  const [key,on,off]=toggles[0];[icon,...title]=(newState[key]?on:off).split(' ');title=title.join(' ');
+  kind=key.startsWith('server')?(newState[key]?'remove':'add'):'voice';
+  fields.push({name:'Salon',value:to?`<#${to}>`:'—',inline:true});
  }
- await logTo(member.guild,'logsVoice',qgLog.entry({kind,icon,title,user:member.user,description:`Membre : <@${member.id}>`,fields}));
+ if(toggles.some(([key])=>key.startsWith('server'))&&!by)by=await qgLog.executor(guild,AuditLogEvent.MemberUpdate,member.id,{match:e=>e.changes?.some(c=>['mute','deaf'].includes(c.key))});
+ if(by&&by.user?.id!==member.id)fields.push({name:'Par',value:qgLog.who(by.user),inline:true},by.reason&&{name:'Motif',value:by.reason,inline:true});
+ else if(toggles.some(([key])=>key.startsWith('server'))||title==='Déconnecté par un modérateur')fields.push({name:'Par',value:'*Non déterminé*',inline:true});
+ await logTo(guild,'logsVoice',qgLog.entry({kind,icon,title,user:member.user,description:`Membre : <@${member.id}>${lines.length>1||(lines.length&&from!==to)?'\n'+lines.map(l=>'• '+l).join('\n'):''}`,fields:fields.filter(Boolean)}));
 }
-async function messageChange(oldMessage,newMessage,kind){
- const m=kind==='bulk'?oldMessage:(newMessage||oldMessage);if(!m?.guildId||m.guildId!==config.guildId||m.author?.bot)return;
+async function messageChange(oldMessage,newMessage,kind,guard=null){
+ const m=kind==='bulk'?oldMessage:(newMessage||oldMessage);if(!m?.guildId||m.guildId!==config.guildId||(m.author?.bot&&!guard?.rec))return;
  const t=saved().tickets?.[m.channelId];const privateTicket=Boolean(t||m.channel?.topic?.startsWith('qg-ticket:'));
  if(kind==='edit'&&oldMessage?.content===newMessage?.content)return; // intégration d'un lien, pas une modification
  const mask=text=>{text=String(text||'');for(const secret of [process.env.TOKEN,process.env.OPENAI_API_KEY,process.env.ROBLOX_COOKIE].filter(Boolean))text=text.split(secret).join('[secret masqué]');return text;};
@@ -194,15 +217,18 @@ async function messageChange(oldMessage,newMessage,kind){
   else fields.push({name:'Avant',value:qgLog.quote(mask(oldMessage?.content)||'*Non disponible*')},{name:'Après',value:qgLog.quote(mask(newMessage?.content))});
  }else if(kind==='delete'){
   icon='🗑️';title='Message supprimé';logKind='delete';
-  const by=m.author?await qgLog.executor(m.guild,AuditLogEvent.MessageDelete,m.author.id,{maxAge:60000,match:x=>x.extra?.channel?.id===m.channelId}):null;
-  fields.push({name:'Supprimé par',value:by?qgLog.who(by.user):'Son auteur ou non déterminé',inline:true});
+  const by=guard?guard.by:m.author?await qgLog.recent(m.guild,AuditLogEvent.MessageDelete,{match:x=>x.target?.id===m.author.id&&x.extra?.channel?.id===m.channelId,maxAge:60000}):null;
+  if(guard?.rec&&!m.author)fields[1].value=`<@${guard.rec.authorId}>`;
+  fields.push({name:'Supprimé par',value:by?qgLog.who(by.user):'Son auteur',inline:true});
+  if(guard)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':guard.restored?`Message restauré → [voir](${guard.restored})`:`Restauration impossible : ${guard.error||'contenu inconnu (message envoyé avant le démarrage du bot)'}`,inline:true});
   if(privateTicket)fields.push({name:'Contenu',value:'*Masqué : ticket privé*'});
-  else{fields.push({name:'Contenu',value:oldMessage?.content?qgLog.quote(mask(oldMessage.content)):'*Non disponible (message trop ancien)*'});
+  else{const content=oldMessage?.content||guard?.rec?.content;fields.push({name:'Contenu',value:content?qgLog.quote(mask(content)):'*Non disponible (message trop ancien)*'});
    const files=[...(oldMessage?.attachments?.values?.()||[])];if(files.length)fields.push({name:'Pièces jointes',value:files.map(f=>`📎 ${f.name}`).join('\n')});}
  }else{
   icon='🧹';title='Messages supprimés en masse';logKind='delete';
-  const by=await qgLog.executor(m.guild,AuditLogEvent.MessageBulkDelete,m.channelId,{maxAge:60000});
+  const by=guard?guard.by:await qgLog.recent(m.guild,AuditLogEvent.MessageBulkDelete,{match:x=>x.target?.id===m.channelId,maxAge:60000});
   fields.push({name:'Nombre',value:String(newMessage?.size||0),inline:true},{name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true});
+  if(guard)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':`${guard.restored} message(s) restauré(s)${guard.failed?` · ${guard.failed} non restauré(s)${guard.error?` (${guard.error})`:''}`:''}`,inline:true});
   fields.splice(1,1);
  }
  await logTo(m.guild,'logsModeration',qgLog.entry({kind:logKind,icon,title,user:kind==='bulk'?null:m.author,fields,footer:kind==='bulk'?'':` · ID ${m.author?.id||'?'} · Message ${m.id}`}));
@@ -377,15 +403,15 @@ function register(client){
   if(guildId!==config.guildId)return emit.call(this,event,...args);
   if(event===Events.ChannelCreate){guarded(require('./qgProfileCatchup').created,first);guarded(require('./qgCategoryNames').created,first);guarded(require('./qgRpStatus').reconcile,first.guild);guarded(require('./qgSeparatorPermissions').refresh,first);}
   if(event===Events.ChannelUpdate)guarded(require('./qgSeparatorPermissions').refresh,args[1]);
-  if(event===Events.MessageCreate){guarded(message,first);return true;}
+  if(event===Events.MessageCreate){require('./qgMessageGuard').remember(first);guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
   if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd)require('./qgInvites').joined(first);guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
   if(event===Events.VoiceStateUpdate){guarded(require('./qgConferences').voice,...args);guarded(require('./qgVoiceReception').voice,...args);guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
-  if(event===Events.MessageDelete){guarded(messageChange,first,null,'delete');return true;}
-  if(event===Events.MessageBulkDelete){guarded(messageChange,first.first(),first,'bulk');return true;}
+  if(event===Events.MessageDelete){guarded(async()=>messageChange(first,null,'delete',await require('./qgMessageGuard').onDelete(first)));return true;}
+  if(event===Events.MessageBulkDelete){guarded(async()=>messageChange(first.first(),first,'bulk',await require('./qgMessageGuard').onBulk(first,args[1])));return true;}
   if(event===Events.PresenceUpdate)return true;
   return emit.call(this,event,...args);
  };
@@ -394,6 +420,7 @@ function register(client){
  client.once(Events.ClientReady,()=>guarded(async()=>{
   const guild=client.guilds.cache.get(config.guildId);if(!guild)return;
   await guarded(require('./qgInvites').start,guild);
+  await guarded(qgLog.prime,guild,[AuditLogEvent.MemberDisconnect,AuditLogEvent.MemberMove,AuditLogEvent.MessageDelete,AuditLogEvent.MessageBulkDelete]);
   require('./qgLevels').migrate();
   await guarded(require('./qgVoiceReception').tick,guild);
   setInterval(()=>guarded(require('./qgVoiceReception').tick,guild),2000).unref();

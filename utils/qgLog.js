@@ -32,6 +32,27 @@ async function executor(guild,type,targetId,{maxAge=20000,match=()=>true,wait=12
  }catch{return null;}
 }
 
+// Variante pour les entrées que Discord regroupe (déconnexion, déplacement, suppression de messages) :
+// une même entrée voit son compteur augmenter au lieu d'en créer une nouvelle. On retient le compteur
+// de chaque entrée pour reconnaître celle qui vient d'augmenter.
+const counts=new Map();
+function remember(type,e){const key=type+':'+e.id,count=Number(e.extra?.count||1),prev=counts.get(key);counts.set(key,count);if(counts.size>3000)counts.delete(counts.keys().next().value);return {count,prev};}
+const timing={wait:1500,retry:2000};// réglable dans les tests
+async function recent(guild,type,{match=()=>true,maxAge=15000,wait=timing.wait,retries=1,fetchLimit=10}={}){
+ if(!guild?.members?.me?.permissions?.has(P.ViewAuditLog))return null;
+ for(let attempt=0;attempt<=retries;attempt++){
+  const delay=attempt?timing.retry:wait;if(delay)await new Promise(r=>setTimeout(r,delay));
+  try{
+   const logs=await guild.fetchAuditLogs({type,limit:fetchLimit});let hit=null;
+   for(const e of logs.entries.values()){const {count,prev}=remember(type,e);if(hit||!match(e))continue;if(prev===undefined?Date.now()-e.createdTimestamp<=maxAge:count>prev)hit={user:e.executor,reason:e.reason||null};}
+   if(hit)return hit;
+  }catch{return null;}
+ }
+ return null;
+}
+// Mémorise l'état actuel du journal au démarrage pour ne pas attribuer une ancienne action.
+async function prime(guild,types){for(const type of types)try{const logs=await guild.fetchAuditLogs({type,limit:10});for(const e of logs.entries.values())remember(type,e);}catch{}}
+
 // Valeurs « avant / après » des actions d'administration : jamais de JSON brut.
 const snowflake=/^\d{17,20}$/;
 function pretty(value,depth=0){
@@ -55,4 +76,4 @@ function describeAction(action){
  return {icon,title:detail?`${area} · ${detail.replace(/^./,c=>c.toUpperCase())}`:area};
 }
 
-module.exports={COLORS,entry,executor,pretty,describeAction,quote,time,who,cut};
+module.exports={COLORS,entry,executor,recent,prime,timing,pretty,describeAction,quote,time,who,cut};

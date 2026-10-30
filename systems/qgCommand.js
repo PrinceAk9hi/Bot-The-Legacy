@@ -50,6 +50,8 @@ async function panel(guild){
   .addActionRowComponents(
    row(btn('qgcmd:recruit',s.recruit?'🔴 Fermer le recrutement':'🟢 Ouvrir le recrutement',s.recruit?S.Danger:S.Success),btn('qgcmd:casino',s.casino?'🎰 Suspendre le casino':'🎰 Ouvrir le casino',s.casino?S.Secondary:S.Success),btn('qgm:new','📅 Programmer une réunion',S.Primary)),
    row(btn('qgcmd:roster','👥 Effectif détaillé'),btn('qgcmd:report','📊 Rapport d’activité'),btn('qgcmd:announce:family','📣 Annonce famille'),btn('qgcmd:announce:public','📢 Annonce publique')))
+  .addTextDisplayComponents(text('### ♛ Espace Fondation\n-# Réservé à la direction · vues privées'))
+  .addActionRowComponents(...require('./qgFoundation').panelRows())
   .addTextDisplayComponents(text('### 🚨 Urgence'))
   .addActionRowComponents(row(btn('qgcmd:alert','🚨 Alerte urgence',S.Danger,alert.active),btn('qgcmd:gather','📥 Rassembler les vocaux',S.Primary),btn('qgcmd:stop','⏹️ Arrêter l’alerte',S.Secondary,!alert.active),btn('qgcmd:refresh','🔄 Actualiser')));
  return {flags:F.IsComponentsV2,components:[box],allowedMentions:{parse:[]}};

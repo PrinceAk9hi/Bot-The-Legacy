@@ -300,6 +300,7 @@ async function interaction(i){
  if(i.customId?.startsWith('qgcasino:'))return require('./qgCasino').handle(i);
  if(i.customId?.startsWith('qgcadm:'))return require('./qgCasinoAdmin').handle(i);
  if(i.customId?.startsWith('qgcmd:'))return require('./qgCommand').handle(i);
+ if(i.customId?.startsWith('qgfd:'))return require('./qgFoundation').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='casino')return require('./qgCasinoGames').launch(i);
  if(i.isChatInputCommand?.()&&i.commandName==='profil')return require('./qgProfile').execute(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
@@ -441,6 +442,7 @@ function register(client){
   setInterval(()=>guarded(require('./qgCasino').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgCasinoAdmin').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgCommand').tick,guild),60000).unref();
+  setInterval(()=>guarded(require('./qgFoundation').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
   // Mise à jour automatique à chaque démarrage : panneaux, rôles, effectifs, support, candidatures…
   guarded(require('./qgMaintenance').refreshAll,guild);

@@ -6,7 +6,7 @@ const config=require('../config/qg');
 function fixture(){
  const joined=Date.now()-1000;
  const state={schoolRoles:{community:'community'},schoolEntryVerification:{user:{stage:'accepted',robloxId:'42',robloxName:'Example',discordName:'Example',confirmedAt:joined+10,acceptedAt:joined+20,joinedAt:joined}}};
- const member={id:'user',joinedTimestamp:joined,pending:false,displayName:'Example',roles:{cache:new Map(),add:async id=>member.roles.cache.set(id,true)}};
+ const member={id:'user',joinedTimestamp:joined,pending:false,displayName:'Example',roles:{cache:new Map(),add:async id=>member.roles.cache.set(id,true)},edit:async({roles})=>{if(roles)member.roles.cache=new Map(roles.map(id=>[id,true]));return member;}};
  const deps={read:()=>state,update:(_,fn)=>fn(state),recordVerification:()=>{},syncMember:async()=>{},welcome:async()=>{state.welcomes=(state.welcomes||0)+1;}};
  const i=id=>({customId:id,guildId:config.guildId,user:{id:'user',username:'Example'},guild:{members:{fetch:async()=>member},roles:{fetch:async()=>({editable:true})}},reply:async p=>{state.reply=p;},showModal:async p=>{state.modal=p;},deferReply:async()=>{},deferUpdate:async()=>{},editReply:async p=>{state.reply=p;}});
  return{state,member,deps,i};

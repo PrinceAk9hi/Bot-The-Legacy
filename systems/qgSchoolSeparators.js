@@ -67,6 +67,15 @@ function desiredSeparatorIds(member, roles = schoolRoles()) {
     .map(([separatorKey]) => roles[separatorKey]).filter(Boolean);
 }
 
+// Calcule d’avance les séparateurs d’un futur jeu de rôles, pour tout appliquer en une seule modification.
+function withSeparators(member, ids, roles = schoolRoles()) {
+  const separators = new Set(Object.keys(groups).map(key => roles[key]).filter(Boolean));
+  const held = new Set([...ids].filter(id => !separators.has(id)));
+  const cache = member.guild?.roles?.cache;
+  for (const id of desiredSeparatorIds({ roles: { cache: held } }, roles)) if (!cache || cache.has(id)) held.add(id);
+  return held;
+}
+
 async function syncMember(member) {
   if (!member || member.user?.bot || member.guild.id !== config.guildId) return { added: 0, removed: 0 };
   return serial(member.id, async () => {
@@ -107,4 +116,4 @@ async function syncGuild(guild) {
   return { members: processed, added, removed };
 }
 
-module.exports = { groups, labels, resolveExisting, desiredSeparatorIds, syncMember, syncGuild };
+module.exports = { groups, labels, resolveExisting, desiredSeparatorIds, withSeparators, syncMember, syncGuild };

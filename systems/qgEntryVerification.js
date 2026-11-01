@@ -22,7 +22,7 @@ function profileModal(profile={}){
 function panel() {
   return { embeds: [card('Règlement du QG', require('./qgSchoolSetup').ruleText)], components: [row(button('qgs:verify', 'Commencer ma vérification'),button('qgs:help-open','Besoin d’aide'))], allowedMentions: { parse: [] } };
 }
-function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send, recordVerification = require('./qgCommunityUpgrade').recordVerification, syncMember = require('./qgSchoolSeparators').syncMember } = {}) {
+function createHandler({ read = data.read, update = data.update, existing = soul.existing, findRoblox = soul.findRoblox, welcome = require('./qgVerifiedWelcome').send, recordVerification = require('./qgCommunityUpgrade').recordVerification, syncMember = require('./qgSchoolSeparators').syncMember, withSeparators = require('./qgSchoolSeparators').withSeparators } = {}) {
   const busy = new Set();
   const get = id => read('qgServer').schoolEntryVerification?.[id];
   const save = (id, value) => {update('qgServer', state => { state.schoolEntryVerification ||= {}; state.schoolEntryVerification[id] = value; });recordVerification(id,value);};
@@ -84,7 +84,7 @@ function createHandler({ read = data.read, update = data.update, existing = soul
       }
       if (id.startsWith('qgs:entry-accept:')) {
         if (draft.stage !== 'rules' || draft.version !== VERSION || !AGE_BRACKETS.includes(draft.ageBracket) || !Array.isArray(draft.notificationKeys)) throw Error('Vérifie ton profil puis lis la version actuelle du règlement.');
-        const member = await i.guild.members.fetch({ user: i.user.id, force: true });
+        const member = sessionMember;
         if(!membership.current(draft,member))throw Error('Tu as rejoint le serveur de nouveau. Recommence la vérification depuis le règlement.');
         if (member.pending) throw Error('Termine d’abord les contrôles d’accueil natifs de Discord.');
         const roleId = read('qgServer').schoolRoles?.community;
@@ -95,16 +95,21 @@ function createHandler({ read = data.read, update = data.update, existing = soul
         if(desired.some(id=>!id))throw Error('Une notification sélectionnée n’est pas configurée. Préviens la direction.');
         const optionalIds=NOTIFICATIONS.map(k=>configured[k]).filter(Boolean);
         for(const id of new Set([...desired,...optionalIds.filter(id=>member.roles.cache.has(id))])){const role=await i.guild.roles.fetch(id);if(!role?.editable)throw Error('Un rôle de notification est absent ou trop haut. Préviens la direction.');}
-        for(const id of desired)if(!member.roles.cache.has(id))await member.roles.add(id,'Préférences de vérification QG');
-        for(const id of optionalIds)if(!desired.includes(id)&&member.roles.cache.has(id))await member.roles.remove(id,'Préférences de vérification QG');
+        const held=new Set([...member.roles.cache.keys()].filter(id=>id!==i.guild.id));
+        const wanted=new Set([...held].filter(id=>!optionalIds.includes(id)||desired.includes(id)));
+        for(const id of [...desired,roleId])wanted.add(id);
+        const finalRoles=withSeparators(member,wanted,configured);
+        const changes={};
+        if(finalRoles.size!==held.size||[...finalRoles].some(id=>!held.has(id)))changes.roles=[...finalRoles];
         if(draft.discordName!==member.displayName){
           if(!member.manageable)throw Error('Le bot ne peut pas modifier ton nom sur le serveur. Préviens la direction.');
-          await member.setNickname(draft.discordName,'Nom choisi lors de la vérification QG');
+          changes.nick=draft.discordName;
         }
-        if (!member.roles.cache.has(roleId)) await member.roles.add(roleId, 'Profil confirmé et règlement QG accepté');
-        await syncMember(await i.guild.members.fetch({user:i.user.id,force:true}));
+        // Une seule requête : un appel par rôle saturait la limite de débit Discord et déclenchait autant de GuildMemberUpdate.
+        const updated=Object.keys(changes).length?await member.edit({...changes,reason:'Profil confirmé et règlement QG accepté'}):member;
         save(i.user.id, { ...draft, stage: 'accepted', acceptedAt: Date.now(), confirmedAt: draft.confirmedAt || Date.now() });
         await i.editReply({ content: 'Bienvenue au QG ! Ton profil est enregistré et tu as accepté le règlement. Tu es maintenant Membre Communautaire.', embeds: [], components: [], allowedMentions: { parse: [] } });
+        syncMember(updated||member).catch(error => console.warn('Séparateurs QG :', error.code || error.message));
         await welcome(member).catch(error => console.warn('Bienvenue QG non publié :', error.code || error.name));
       }
       return true;

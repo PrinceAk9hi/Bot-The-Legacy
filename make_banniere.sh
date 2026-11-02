@@ -4,6 +4,7 @@
 # Usage : bash make_banniere.sh
 set -e
 cd "$(dirname "$0")"
+source scripts/fonts.sh
 T=out/tmp; mkdir -p $T
 INK=0x1c1a17; PAPER=0xece2c8; GREY=0x948c7e
 PW=1320; PH=440          # page rendue (zoomée/recadrée ensuite)

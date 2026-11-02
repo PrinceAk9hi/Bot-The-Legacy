@@ -5,3 +5,7 @@ node_modules/
 .music-bin/
 data/cards/
 data/qg-ai/
+
+# Polices Windows copiées par scripts/fonts.sh et rendus des bannières
+fonts/
+out/

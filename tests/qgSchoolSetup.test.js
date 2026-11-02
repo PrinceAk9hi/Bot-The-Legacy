@@ -90,8 +90,8 @@ test('QG ticket panel exposes the four requested categories and reattaches its P
   const menu = payload.components[0].components[0];
   assert.deepEqual(menu.toJSON().options.map(option => option.value), ['questions', 'event', 'report', 'foundation']);
   assert.equal(payload.embeds[0].data.color, 0xffffff);
-  assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support-banner.png');
-  assert.equal(payload.files[0].name, 'qg-support-banner.png');
+  assert.equal(payload.embeds[0].data.image.url, 'attachment://qg-support.gif');
+  assert.equal(payload.files[0].name, 'qg-support.gif');
   for (const text of ['Questions/Aide', 'Signaler un comportement', 'Demander une animation', 'Contacter la Fondation']) assert.match(payload.embeds[0].data.description, new RegExp(text));
 });
 

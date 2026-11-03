@@ -6,10 +6,36 @@ const brand=require('../utils/qgBrand');
 const state=()=>a.state().schoolCasino||{};
 // Un salon textuel converti en salon d'annonces reste utilisable.
 const compatible=(ch,type)=>ch.type===type||(type===T.GuildText&&ch.type===T.GuildAnnouncement);
-function overwrites(guild,kind){
- const r=a.state().schoolRoles||{},ids=new Set((kind==='public'?['community','verified','test','confirmed','expert','prestigious','senior',...staffKeys]:staffKeys).map(k=>r[k]).filter(id=>guild.roles.cache.has(id)));
+const playerKeys=['community','verified','test','confirmed','expert','prestigious','senior'];
+const closedNow=()=>state().enabled===false;
+const CATEGORY_OPEN='🎰〃CASINO',CATEGORY_CLOSED='🔒〃CASINO FERMÉ';
+// Casino fermé : les joueurs perdent l'accès, l'équipe casino et la direction le gardent.
+function overwrites(guild,kind,closed=false){
+ const r=a.state().schoolRoles||{},roleIds=keys=>[...new Set(keys.map(k=>r[k]).filter(id=>guild.roles.cache.has(id)))];
+ const staff=roleIds(staffKeys),players=roleIds(playerKeys).filter(id=>!staff.includes(id));
  const read=[P.ViewChannel,P.ReadMessageHistory],write=[...read,P.SendMessages,P.AttachFiles,P.EmbedLinks,P.Connect,P.Speak];
- return [{id:guild.id,deny:[P.ViewChannel]},...[...ids].map(id=>({id,allow:kind==='public'?read:write,deny:[P.MentionEveryone]})),{id:guild.client.user.id,allow:[...write,P.ManageChannels,P.ManageMessages]}];
+ const ids=kind==='public'?[...players,...staff]:staff;
+ return [{id:guild.id,deny:[P.ViewChannel]},...ids.map(id=>closed&&players.includes(id)?{id,deny:[P.ViewChannel,P.Connect,P.MentionEveryone]}:{id,allow:kind==='public'?read:write,deny:[P.MentionEveryone]}),{id:guild.client.user.id,allow:[...write,P.ManageChannels,P.ManageMessages]}];
+}
+// Permissions d'un salon casino ; fermé, seul l'accueil reste lisible (sans écriture) pour annoncer la fermeture.
+function channelGrants(guild,key,parent,type,closed=closedNow()){
+ const grants=overwrites(guild,parent==='casino'?'public':'staff',parent==='casino'&&closed);
+ if(parent==='casino')for(const entry of grants)if(entry.id!==guild.id&&entry.id!==guild.client.user.id&&entry.allow){if(type===T.GuildVoice)entry.allow.push(P.Connect,P.Speak);else entry.deny.push(P.SendMessages,P.CreatePublicThreads,P.CreatePrivateThreads);}
+ if(parent==='casino'&&closed&&key==='casinoHome')for(const entry of grants)if(!entry.allow&&entry.id!==guild.id){entry.allow=[P.ViewChannel,P.ReadMessageHistory];entry.deny=[P.SendMessages,P.AddReactions,P.CreatePublicThreads,P.CreatePrivateThreads,P.MentionEveryone];}
+ return grants;
+}
+const CHANNELS=[['casinoHome','🎰・casino','casino',T.GuildText],['casinoRules','📜・règlement-casino','casino',T.GuildText],['casinoBoard','🏆・classement-casino','casino',T.GuildText],['casinoSupportPanel','🎫・support-casino','casino',T.GuildText],['casinoLounge','🔊・salon-du-casino','casino',T.GuildVoice],
+ ['casinoControl','🛠・pilotage-casino','casinoStaff',T.GuildText],['casinoTeam','💬・équipe-casino','casinoStaff',T.GuildText],['casinoOffice','🔊・bureau-casino','casinoStaff',T.GuildVoice]];
+// Applique l'état ouvert/fermé à toute la catégorie publique du casino.
+async function applyStatus(guild){
+ const closed=closedNow(),s=a.state(),cat=await guild.channels.fetch(s.schoolCategories?.casino).catch(e=>{if(e.code===10003)return null;throw e;});
+ if(!cat)throw Error('Catégorie casino introuvable : relance l’installation du casino.');
+ await cat.edit({name:closed?CATEGORY_CLOSED:CATEGORY_OPEN,permissionOverwrites:overwrites(guild,'public',closed),reason:closed?'Casino fermé':'Casino ouvert'});
+ for(const [key,,parent,type]of CHANNELS.filter(c=>c[2]==='casino')){
+  const ch=await guild.channels.fetch(s.schoolChannels?.[key]).catch(e=>{if(e.code===10003)return null;throw e;});if(!ch)continue;
+  await ch.permissionOverwrites.set(channelGrants(guild,key,parent,type,closed),closed?'Casino fermé':'Casino ouvert');
+  if(closed&&type===T.GuildVoice)for(const m of ch.members.values())if(!access.staff(m))await m.voice.disconnect('Casino fermé').catch(()=>{});
+ }
 }
 const art=name=>require('../utils/discordPanelImage').localImage(require('node:path').join(__dirname,'..','assets','casino','qg',name),name);
 const GOLD=0xd4bd86;
@@ -18,7 +44,7 @@ function payload(kind){
  let title='LE QG · CASINO',text='',rows=[],image=null;
  if(kind==='home'){
   image='hero.gif';
-  text=`${closed?'🔴 **Nouvelles mises fermées**':'🟢 **Casino ouvert**'}\n\n🎰 Machines à sous · 🎡 Roulette · 🃏 Blackjack · 💣 Mines\n\n> 💰 **1 000 jetons** offerts à ta première visite\n> 🎁 **+500 jetons** chaque jour\n\nAppuie sur **Jouer** : tes parties se déroulent en privé, ton solde est sauvegardé.`;
+  text=`${closed?'🔒 **Casino fermé** — aucune partie n’est possible pour le moment.':'🟢 **Casino ouvert**'}\n\n🎰 Machines à sous · 🎡 Roulette · 🃏 Blackjack · 💣 Mines\n\n> 💰 **1 000 jetons** offerts à ta première visite\n> 🎁 **+500 jetons** chaque jour\n\nAppuie sur **Jouer** : tes parties se déroulent en privé, ton solde est sauvegardé.`;
   rows=[u.row(u.button('qgcasino:play','Jouer',u.ButtonStyle.Success).setEmoji('🎮').setDisabled(closed),u.button('qgcasino:open','Mon compte',u.ButtonStyle.Primary).setEmoji('👛'),u.button('qgcasino:daily','Récompense du jour').setEmoji('🎁')),
    u.row(u.button('qgcasino:board','Classement').setEmoji('🏆'),u.button('qgcasino:rules','Règles').setEmoji('📜'),u.button('qg:casino-ticket','Support').setEmoji('🎫'))];
  }else if(kind==='rules'){
@@ -32,7 +58,7 @@ function payload(kind){
   image='support.png';
   title='CASINO · Assistance privée';text='**Une question, un problème de partie ou de portefeuille ?**\n\nOuvre un ticket privé et indique le jeu, la date approximative et ce que tu as constaté. Joins une capture si elle aide à comprendre.\n\n**Ton dossier**\nUn ticket casino actif par membre. L’équipe peut le prendre en charge, le renommer puis l’archiver à sa fermeture.\n\nLes Exécutants du casino, son Responsable et la Direction ont accès au dossier.';rows=[u.row(u.button('qg:casino-ticket','Ouvrir mon ticket casino',u.ButtonStyle.Primary).setEmoji('🎫'))];
  }else{
-  title='CASINO · Pilotage de l’équipe';text=`**État : ${closed?'fermé aux nouvelles mises':'ouvert'}**\n\n**Exécutant du casino**\nAccompagner les joueurs et prendre en charge les tickets depuis leurs boutons.\n\n**Responsable du casino**\nCoordonner l’équipe et ouvrir ou suspendre les nouvelles mises. Les parties engagées restent accessibles.\n\n${brand.badge} **${brand.label}**\nSupervision, attribution des rôles via Discord et historique administratif.\n\n**Accès rapides**\nAccueil : <#${channels.casinoHome}> · Support : <#${channels.casinoSupportPanel}>`;
+  title='CASINO · Pilotage de l’équipe';text=`**État : ${closed?'fermé (catégorie verrouillée, aucune partie possible)':'ouvert'}**\n\n**Exécutant du casino**\nAccompagner les joueurs et prendre en charge les tickets depuis leurs boutons.\n\n**Responsable du casino**\nCoordonner l’équipe et ouvrir ou suspendre les nouvelles mises. Les parties engagées restent accessibles.\n\n${brand.badge} **${brand.label}**\nSupervision, attribution des rôles via Discord et historique administratif.\n\n**Accès rapides**\nAccueil : <#${channels.casinoHome}> · Support : <#${channels.casinoSupportPanel}>`;
   rows=[u.row(u.button('qgcasino:stats','Statistiques'),u.button('qgcasino:tickets','Tickets casino')),u.row(u.button('qgcasino:enable','Ouvrir les mises',u.ButtonStyle.Success),u.button('qgcasino:disable','Suspendre les mises',u.ButtonStyle.Danger))];
  }
  const p={...u.payload(title,text,rows),attachments:[],files:[]};
@@ -58,16 +84,15 @@ async function install(guild){return a.serial('casino-install',async()=>{
   a.save(s=>{s.schoolRoles||={};s.schoolRoles[key]=role.id;});
  }
  const categories=[['casino','🎰〃CASINO','public'],['casinoStaff','🎲〃GESTION CASINO','staff'],['casinoSupport','🎫〃TICKETS CASINO','staff']];
- for(const [key,name,kind]of categories){let ch=guild.channels.cache.get(a.state().schoolCategories?.[key]);ch||=guild.channels.cache.find(c=>c.type===T.GuildCategory&&c.name===name);if(ch&&ch.type!==T.GuildCategory)throw Error('Catégorie casino incompatible : '+key);if(!ch)ch=await guild.channels.create({name,type:T.GuildCategory,permissionOverwrites:overwrites(guild,kind),reason:'Espace casino QG'});else await ch.permissionOverwrites.set(overwrites(guild,kind));a.save(s=>{s.schoolCategories||={};s.schoolCategories[key]=ch.id;});}
- for(const [key,name,parent,type]of [
-  ['casinoHome','🎰・casino','casino',T.GuildText],['casinoRules','📜・règlement-casino','casino',T.GuildText],['casinoBoard','🏆・classement-casino','casino',T.GuildText],['casinoSupportPanel','🎫・support-casino','casino',T.GuildText],['casinoLounge','🔊・salon-du-casino','casino',T.GuildVoice],
-  ['casinoControl','🛠・pilotage-casino','casinoStaff',T.GuildText],['casinoTeam','💬・équipe-casino','casinoStaff',T.GuildText],['casinoOffice','🔊・bureau-casino','casinoStaff',T.GuildVoice]]){
+ for(const [key,name,kind]of categories){let ch=guild.channels.cache.get(a.state().schoolCategories?.[key]);ch||=guild.channels.cache.find(c=>c.type===T.GuildCategory&&(c.name===name||key==='casino'&&c.name===CATEGORY_CLOSED));if(ch&&ch.type!==T.GuildCategory)throw Error('Catégorie casino incompatible : '+key);const closed=kind==='public'&&closedNow();if(!ch)ch=await guild.channels.create({name,type:T.GuildCategory,permissionOverwrites:overwrites(guild,kind,closed),reason:'Espace casino QG'});else await ch.permissionOverwrites.set(overwrites(guild,kind,closed));a.save(s=>{s.schoolCategories||={};s.schoolCategories[key]=ch.id;});}
+ for(const [key,name,parent,type]of CHANNELS){
   const parentId=a.state().schoolCategories[parent];let ch=guild.channels.cache.get(a.state().schoolChannels?.[key]);ch||=guild.channels.cache.find(c=>c.parentId===parentId&&c.name===name&&compatible(c,type));if(ch&&!compatible(ch,type))throw Error('Salon casino incompatible : '+key);
-  const grants=overwrites(guild,parent==='casino'?'public':'staff');if(parent==='casino')for(const entry of grants)if(entry.id!==guild.id&&entry.id!==guild.client.user.id){if(type===T.GuildVoice)entry.allow.push(P.Connect,P.Speak);else entry.deny.push(P.SendMessages,P.CreatePublicThreads,P.CreatePrivateThreads);}
+  const grants=channelGrants(guild,key,parent,type);
   if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});else await ch.edit({parent:parentId,permissionOverwrites:grants});
   a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});
  }
  a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled??=true;s.schoolCasino.installedAt??=Date.now();});
+ await applyStatus(guild);
  for(const [key,kind]of [['casinoHome','home'],['casinoRules','rules'],['casinoBoard','board'],['casinoSupportPanel','support'],['casinoControl','control']])await publish(guild,key,kind);
  return {detail:'2 rôles, 3 catégories, 8 salons et 5 panels prêts'};
  });}
@@ -89,7 +114,7 @@ async function handle(i){
   return i.editReply(u.payload('CASINO · Tickets en cours',`${tickets.length} dossier(s).\n\n`+(tickets.slice(0,30).map(([id,t])=>`<#${id}> · ${t.claimedBy?'pris par <@'+t.claimedBy+'>':'à prendre'}`).join('\n')||'Aucun dossier en attente.')));
  }
  if(!['enable','disable'].includes(action)||!access.manager(member))throw Error('Ouverture et fermeture réservées au Responsable du casino et à la Direction.');
- return a.serial('casino-status',async()=>{const fresh=await i.guild.members.fetch({user:i.user.id,force:true});if(!access.manager(fresh))throw Error('Ton accès responsable a été retiré.');const before=state().enabled;a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled=action==='enable';});await a.audit(i.guild,{action:'casino.'+action,actorId:i.user.id,before,after:action==='enable'});await publish(i.guild,'casinoHome','home');await publish(i.guild,'casinoControl','control');return i.editReply(action==='enable'?'Les nouvelles mises sont ouvertes.':'Les nouvelles mises sont suspendues. Les joueurs peuvent terminer leurs parties en cours.');});
+ return a.serial('casino-status',async()=>{const fresh=await i.guild.members.fetch({user:i.user.id,force:true});if(!access.manager(fresh))throw Error('Ton accès responsable a été retiré.');const before=state().enabled;a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled=action==='enable';});await a.audit(i.guild,{action:'casino.'+action,actorId:i.user.id,before,after:action==='enable'});await publish(i.guild,'casinoHome','home');await publish(i.guild,'casinoControl','control');await applyStatus(i.guild);return i.editReply(action==='enable'?'✅ Casino ouvert : la catégorie est de nouveau accessible et les parties reprennent.':'🔒 Casino fermé : la catégorie est verrouillée et plus aucune partie n’est possible. Les parties en cours seront encaissées à leur expiration.');});
 }
 async function tick(guild){
  if(!state().installedAt)return;
@@ -101,4 +126,4 @@ async function tick(guild){
   await publish(guild,'casinoBoard','board');a.save(s=>{s.schoolCasino.boardSignature=signature;});
  });
 }
-module.exports={install,handle,payload,publish,tick};
+module.exports={install,handle,payload,publish,tick,applyStatus,overwrites,channelGrants};

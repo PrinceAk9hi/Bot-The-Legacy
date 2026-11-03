@@ -1,6 +1,7 @@
 const {randomUUID}=require('node:crypto');
 const {Events,EmbedBuilder,AttachmentBuilder,ActionRowBuilder,ButtonBuilder,ButtonStyle,ModalBuilder,TextInputBuilder,TextInputStyle,MessageFlags}=require('discord.js');
-const {allowed}=require('../utils/qgCasinoAccess');const store=require('../utils/casinoStore').createStore('qgCasino',{currency:'jetons',command:'/casino'});const isOff=()=>false;
+const {allowed}=require('../utils/qgCasinoAccess');const store=require('../utils/casinoStore').createStore('qgCasino',{currency:'jetons',command:'/casino'});const isOff=()=>require('../utils/qgAdmin').state().schoolCasino?.enabled===false;
+const CLOSED='🔒 Le casino est fermé : aucune partie n’est possible pour le moment.';
 const {renderGame}=require('../utils/qgCasinoDraw');
 const offers=new Map();
 const art=name=>require('../utils/discordPanelImage').localImage(require('node:path').join(__dirname,'..','assets','casino','qg',name),name);
@@ -57,7 +58,8 @@ function payload(id,view='home',notice='',kind=''){
  return {content:notice||null,embeds:[e],components,files,attachments:[],allowedMentions:{parse:[]}};
 }
 async function launch(i,name='casino'){
- if(!await allowed(i)||isOff())return i.reply({content:'Le casino est réservé aux membres vérifiés du QG.',flags:MessageFlags.Ephemeral});
+ if(isOff())return i.reply({content:CLOSED,flags:MessageFlags.Ephemeral});
+ if(!await allowed(i))return i.reply({content:'Le casino est réservé aux membres vérifiés du QG.',flags:MessageFlags.Ephemeral});
  await i.deferReply({flags:MessageFlags.Ephemeral});let note='',view=name==='jouer'?'games':name==='classement-casino'?'board':'home';
  try{
   if(name==='daily'){store.daily(i.user.id);note='✅ 500 jetons ajoutés à ton portefeuille.';}
@@ -67,7 +69,7 @@ async function launch(i,name='casino'){
 }
 function prompt(i,owner,kind){
  if(!names[kind])throw Error('Jeu inconnu.');
- if(require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises sont momentanément fermées. Ta partie en cours reste accessible.');
+ if(isOff())throw Error(CLOSED);
  for(const [key,offer]of offers)if(offer.expires<Date.now())offers.delete(key);
  const token=randomUUID().slice(0,8);offers.set(token,{owner,kind,expires:Date.now()+300000});
  const modal=new ModalBuilder().setCustomId(`qgcs:stake:${owner}:${token}`).setTitle(names[kind]+' • Ta mise').addComponents(row(new TextInputBuilder().setCustomId('amount').setLabel('Mise : 10 à 10 000 jetons').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(5)));
@@ -76,13 +78,13 @@ function prompt(i,owner,kind){
 }
 async function handle(i){if(!i.customId?.startsWith('qgcs:'))return;
  const [,action,owner,arg,version,move]=i.customId.split(':');
- if(owner!==i.user.id||!await allowed(i)||isOff())return i.reply({content:'Ce panneau ne t’appartient pas ou le casino est indisponible.',flags:MessageFlags.Ephemeral});
+ if(isOff())return i.reply({content:CLOSED,flags:MessageFlags.Ephemeral});
+ if(owner!==i.user.id||!await allowed(i))return i.reply({content:'Ce panneau ne t’appartient pas ou le casino est indisponible.',flags:MessageFlags.Ephemeral});
  try{
-  if(['play','stake'].includes(action)&&require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises sont momentanément fermées. Ta partie en cours reste accessible.');
   if(i.isButton()&&action==='play')return prompt(i,owner,arg);
   if(i.isModalSubmit()&&action==='stake'){
    const offer=offers.get(arg);if(!offer||offer.owner!==owner||offer.expires<Date.now())throw Error('Formulaire expiré : rouvre le jeu.');
-   offers.delete(arg);await i.deferReply({flags:MessageFlags.Ephemeral});if(require('../utils/qgAdmin').state().schoolCasino?.enabled===false)throw Error('Les nouvelles mises viennent de fermer.');store.start(owner,offer.kind,Number(i.fields.getTextInputValue('amount')),offer.kind==='roulette'?i.fields.getTextInputValue('bet'):'',arg);
+   offers.delete(arg);await i.deferReply({flags:MessageFlags.Ephemeral});if(isOff())throw Error(CLOSED);store.start(owner,offer.kind,Number(i.fields.getTextInputValue('amount')),offer.kind==='roulette'?i.fields.getTextInputValue('bet'):'',arg);
    if(spins[offer.kind]){
     // Le tirage est déjà enregistré : l'animation ne fait que précéder l'affichage du résultat.
     const [file,label]=spins[offer.kind],spin=art(file);

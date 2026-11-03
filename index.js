@@ -133,6 +133,7 @@ const client =
             GatewayIntentBits.GuildMembers,
             GatewayIntentBits.GuildVoiceStates,
             GatewayIntentBits.GuildModeration,
+            GatewayIntentBits.GuildInvites,
             GatewayIntentBits.GuildWebhooks,
             GatewayIntentBits.GuildScheduledEvents,
             GatewayIntentBits.GuildMessages,

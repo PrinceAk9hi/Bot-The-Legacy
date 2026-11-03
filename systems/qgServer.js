@@ -409,6 +409,8 @@ function register(client){
   if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(async()=>messageChange(first,null,'delete',await require('./qgMessageGuard').onDelete(first)));return true;}
   if(event===Events.MessageBulkDelete){guarded(async()=>messageChange(first.first(),first,'bulk',await require('./qgMessageGuard').onBulk(first,args[1])));return true;}
+  if(event===Events.InviteCreate)require('./qgInvites').created(first);
+  if(event===Events.InviteDelete)require('./qgInvites').removed(first);
   if(event===Events.PresenceUpdate)return true;
   return emit.call(this,event,...args);
  };

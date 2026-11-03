@@ -362,6 +362,26 @@ async function voice(oldState,newState){
   const ch=oldState.guild.channels.cache.get(oldState.channelId);if(ch&&ch.members.size===0){await ch.delete('Vocal temporaire vide');store(x=>{delete x.temporaryVoices[ch.id];});}
  });
 }
+// =mv @membre | ID : déplace le membre dans le vocal de l'auteur (permission « Déplacer des membres »).
+async function moveCommand(m){
+ const say=content=>m.reply({content,allowedMentions:{parse:[]}});
+ const id=/^=mv\s+(?:<@!?(\d{17,20})>|(\d{17,20}))\s*$/i.exec(m.content.trim());
+ if(!id)return say('Utilisation : `=mv @membre` ou `=mv ID`. Le membre est déplacé dans ton salon vocal.');
+ const author=await m.guild.members.fetch(m.author.id),target=await m.guild.members.fetch(id[1]||id[2]).catch(e=>{if(e.code===10007)return null;throw e;});
+ const dest=author.voice.channel;
+ if(!dest)return say('Rejoins d’abord un salon vocal : le membre y sera déplacé.');
+ if(!target)return say('Membre introuvable sur le QG.');
+ if(!target.voice.channel)return say(`<@${target.id}> n’est connecté à aucun salon vocal.`);
+ if(target.voice.channelId===dest.id)return say(`<@${target.id}> est déjà dans ton salon vocal.`);
+ const owner=m.author.id===config.ownerId||m.author.id===m.guild.ownerId;
+ if(!owner&&!(dest.permissionsFor(author)?.has(P.MoveMembers)&&target.voice.channel.permissionsFor(author)?.has(P.MoveMembers)))return say('Il te faut la permission « Déplacer des membres » sur les deux salons vocaux.');
+ const me=await m.guild.members.fetchMe();
+ if(!dest.permissionsFor(me)?.has([P.MoveMembers,P.Connect])||!target.voice.channel.permissionsFor(me)?.has(P.MoveMembers))return say('Le bot n’a pas la permission de déplacer ce membre vers ton salon.');
+ const from=target.voice.channelId;
+ await target.voice.setChannel(dest,`=mv par ${m.author.username} (${m.author.id})`);
+ await log(m.guild,'Membre déplacé',`Par : <@${m.author.id}>\nMembre : <@${target.id}>\nDe : <#${from}> → <#${dest.id}>`).catch(()=>{});
+ return say(`✅ <@${target.id}> a été déplacé dans <#${dest.id}>.`);
+}
 async function message(m){
  await require('./qgPublicThreads').message(m);
  if(await require('./botOwnerTools').message(m))return;
@@ -370,6 +390,7 @@ async function message(m){
  if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
+ if(/^=mv(\s|$)/i.test(m.content.trim()))return moveCommand(m);
  if(await require('./qgLevels').command(m,saved()))return;
  await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){

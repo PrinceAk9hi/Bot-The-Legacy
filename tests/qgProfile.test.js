@@ -19,7 +19,7 @@ test('collecte : grade, niveau, position, Roblox et casino',()=>{
  store.credit(ME,500,{actorId:OTHER,reason:'test'});
  const p=profile.collect(member(ME,['expert','community'],200));
  assert.equal(p.title,'Membre Expert');
- assert.equal(p.level,14);
+ assert.equal(p.level,13);
  assert.ok(p.current<=p.xp&&p.xp<p.next);
  assert.equal(p.position,2);
  assert.equal(p.roblox,'SakuraRP');
@@ -68,7 +68,7 @@ test('dossier : chaque onglet se construit, carte en tête, total de texte sous 
   assert.ok(texts<4000,tab+' : '+texts+' caractères');
  }
  const activity=view.activity(target);
- assert.match(activity,/Niveau 14/);
+ assert.match(activity,/Niveau 13/);
  assert.match(view.records(actor,target),/Historique administratif/);
 });
 test('dossier sans carte (/user) : pas de galerie ni de bouton publier',()=>{

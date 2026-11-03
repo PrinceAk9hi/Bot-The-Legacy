@@ -5,8 +5,30 @@ const {embed}=require('./qgPanels');
 const row=id=>new Row().addComponents(new Button().setCustomId(id).setLabel('Compléter mon profil').setStyle(B.Primary));
 const get=id=>a.state().profileCatchup?.members?.[id];
 const put=(id,value)=>a.save(s=>{s.profileCatchup||={};s.profileCatchup.members||={};s.profileCatchup.members[id]=value;});
-const active=id=>!!get(id)&&get(id).status!=='complete';
-function completeProfile(p){return p?.stage==='accepted'&&p.robloxId&&p.discordName&&p.confirmedAt;}
+// Avec le membre, un joueur déjà vérifié n'est jamais considéré comme « profil à compléter ».
+const active=(id,member)=>!!get(id)&&get(id).status!=='complete'&&!(member&&verified(member));
+function completeProfile(p){return p?.stage==='accepted'&&p.robloxId;}
+// Vérifié = profil QG accepté avec un compte Roblox pour ce séjour, ou rôle communautaire et compte Roblox relié.
+function verified(member){
+ const s=a.state(),p=s.schoolEntryVerification?.[member.id];
+ if(completeProfile(p)&&require('../utils/qgVerificationMembership').current(p,member))return true;
+ const roles=[s.schoolRoles?.community,s.schoolRoles?.verified].filter(Boolean);
+ return roles.some(id=>member.roles.cache.has(id))&&!!require('../utils/robloxLinks').getRobloxLink(member.id)?.robloxId;
+}
+// Lève le rattrapage d'un joueur déjà vérifié et rend ses accès.
+async function release(member){
+ return a.serial('profile-catchup:'+member.id,async()=>{
+  const rec=get(member.id);if(!rec||rec.status==='complete')return;
+  await restore(member,rec);rec.status='complete';rec.completedAt=Date.now();rec.endReason='already-verified';delete rec.draft;delete rec.error;put(member.id,rec);
+ });
+}
+async function blocked(i){
+ if(!active(i.user.id))return false;
+ const guild=i.guild?.id===config.guildId?i.guild:await i.client.guilds.fetch(config.guildId);
+ const member=await guild.members.fetch({user:i.user.id,force:true}).catch(e=>{if(e.code===10007)return null;throw e;});
+ if(member&&verified(member)){await release(member);return false;}
+ return true;
+}
 async function restrict(member,rec){
  const guild=member.guild,rules=a.state().schoolChannels?.rules||a.state().channels?.rules;
  if(!rules)throw Error('Salon règlement non configuré.');
@@ -70,6 +92,7 @@ async function tick(guild){
     const m=await guild.members.fetch({user:id,force:true}).catch(e=>{if(e.code===10007)return null;throw e;});
     if(!m){current.nextTry=Date.now()+3600000;put(id,current);return;}
     if(m.joinedTimestamp>current.createdAt){await restore(m,current);current.status='complete';current.endReason='membership-ended';delete current.draft;put(id,current);return;}
+    if(verified(m)){await restore(m,current);current.status='complete';current.completedAt=Date.now();current.endReason='already-verified';delete current.draft;delete current.error;put(id,current);return;}
     // Administrator et le propriétaire contournent les interdictions Discord.
     if(m.id===guild.ownerId||m.permissions.has(P.Administrator)){current.error='Accès administrateur : restriction impossible avec les dérogations Discord.';current.nextTry=Date.now()+3600000;put(id,current);return;}
     if(current.status==='restoring'){await finish(m,current);return;}
@@ -105,6 +128,7 @@ async function handle(i){
  if(rec&&rec.status!=='complete'){
   const guild=await i.client.guilds.fetch(config.guildId),member=await guild.members.fetch({user:i.user.id,force:true});
   if(member.joinedTimestamp>rec.createdAt){await endMembership(member);await i.reply({content:'Tu as rejoint le serveur de nouveau. Recommence la vérification complète depuis le salon règlement.',flags:F.Ephemeral});return true;}
+  if(verified(member)){await release(member);if(id==='qgs:verify')return false;await i.reply({content:'Tu es déjà vérifié : tes accès sont rétablis.',flags:F.Ephemeral});return true;}
  }
  if(!rec||rec.status==='complete'){await i.reply({content:'Ton profil ne nécessite pas de complément.',flags:F.Ephemeral});return true;}
  try{
@@ -147,4 +171,4 @@ async function endMembership(member){
   await restore(member,rec);rec.status='complete';rec.endedAt=Date.now();rec.endReason='membership-ended';delete rec.draft;put(member.id,rec);
  });
 }
-module.exports={tick,handle,active,created,endMembership};
+module.exports={tick,handle,active,blocked,verified,created,endMembership};

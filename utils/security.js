@@ -64,11 +64,6 @@ async function blockUnauthorizedSlash(interaction) {
             if (allowed) return false;
             void interaction.client.logs?.emit?.(interaction.guild, { category:'security', type:'unauthorized_logs_access', title:'Tentative non autorisée d’accès à /logs', actor:interaction.user?.id, channel:interaction.channelId, source:'Contrôle d’accès slash', severity:'warning' }).catch(()=>{});
         }
-        if (interaction.commandName === 'ia') {
-            const allowed = hasBypass(interaction) || interaction.memberPermissions?.has?.('Administrator') || require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId));
-            if (allowed) return false;
-        }
-        if (interaction.commandName === 'ia' && interaction.options?.getString?.('ameliorer')?.trim() && require('../config/tickets').accessRoles.some(roleId => interaction.member?.roles?.cache?.has(roleId))) return false;
         if (hasBypass(interaction)) return false;
         const { personal, recruiter } = require("./memberCare");
         if (["bienvenue", "mon-profil", "carte", "absence", "anniversaire", "sound", "stopsound", "play", "musique", "queue", "skip", "casino", "solde", "daily", "slots", "roulette", "blackjack", "mines", "classement-casino", "stats-casino"].includes(interaction.commandName) && personal(interaction.member)) return false;
@@ -82,10 +77,8 @@ module.exports.blockUnauthorizedSlash = blockUnauthorizedSlash;
 
 function canUseCommand(subject, name) {
     if (['ad', 'line', 'bot'].includes(name)) return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === '547192186547077130';
-    if (name === 'ia') return (subject?.user?.id || subject?.member?.user?.id || subject?.id) === require('./lineState').OWNER_ID || hasBypass(subject) || Boolean((subject?.member || subject)?.permissions?.has?.('Administrator')) || require('../config/tickets').accessRoles.some(roleId => (subject?.member || subject)?.roles?.cache?.has?.(roleId));
     if (hasBypass(subject)) return true;
     const member = subject.member || subject;
-    if (name === 'ticket-ia') return require('../config/tickets').accessRoles.some(roleId => member?.roles?.cache?.has?.(roleId));
     const { personal, recruiter } = require('./memberCare');
     if (['bienvenue','mon-profil','carte','absence','anniversaire','sound','stopsound','play','musique','queue','skip','casino','solde','daily','slots','roulette','blackjack','mines','classement-casino','stats-casino'].includes(name)) return personal(member);
     return ['suivi-test','convocation'].includes(name) && recruiter(member);

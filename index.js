@@ -20,13 +20,6 @@ console.log(
 );
 
 console.log(
-    "OPENAI API :",
-    process.env.OPENAI_API_KEY
-        ? "✅ chargée"
-        : "❌ absente"
-);
-
-console.log(
     "ROBLOX COOKIE :",
     process.env.ROBLOX_COOKIE
         ? "✅ chargé"
@@ -536,10 +529,6 @@ client.reloadCommands =
         const commands =
             loadCommands();
 
-        if (!commands.some(command => command.name === "ia")) {
-            throw new Error("La commande /ia n’a pas été chargée depuis commandes/ia.js.");
-        }
-
         registerCommandSystems();
 
         const rest =
@@ -584,9 +573,9 @@ client.reloadCommands =
                     {
                         body:
                             guild.id === require("./config/qg").guildId
-                            ? commands.filter(c => ["casino", "conference", "sc", "accueil-vocal", "profil", "delc", "sync", "ia", "cd", "user", "support", "sp", "réunion", "notesmp", "entretien", "mp", "mpall", "rankup", "derank", "effectif", "note", "pdt", "recrutement-stats"].includes(c.name)).map(c => c.name === 'casino' ? {...c,description:'Casino QG • Jeux et jetons fictifs'} : c.name === 'derank' ? require('./systems/qgGrades').schema('derank').toJSON() : c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'support' ? {...c,options:c.options.filter(o=>o.name!=='installer')} : c.name === 'entretien' ? {...require('./systems/qgInterviews').data.toJSON(),options:require('./systems/qgInterviews').data.toJSON().options.filter(o=>o.name!=='installer')} : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c)
+                            ? commands.filter(c => ["casino", "conference", "sc", "accueil-vocal", "profil", "delc", "sync", "cd", "user", "support", "sp", "réunion", "notesmp", "entretien", "mp", "mpall", "rankup", "derank", "effectif", "note", "pdt", "recrutement-stats"].includes(c.name)).map(c => c.name === 'casino' ? {...c,description:'Casino QG • Jeux et jetons fictifs'} : c.name === 'derank' ? require('./systems/qgGrades').schema('derank').toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'support' ? {...c,options:c.options.filter(o=>o.name!=='installer')} : c.name === 'entretien' ? {...require('./systems/qgInterviews').data.toJSON(),options:require('./systems/qgInterviews').data.toJSON().options.filter(o=>o.name!=='installer')} : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c)
                             : guild.id === require("./config/soulSociety").IDENTITY.guildId
-                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(c.name)) : []
+                                ? commands.filter(c => ["rank", "mrankup", "sound", "stopsound", "logs", "delc", "mp", "mpall"].includes(c.name)) : []
                     }
                 );
 
@@ -604,7 +593,7 @@ client.reloadCommands =
         const qgGuildId = require("./config/qg").guildId;
         if (!client.guilds.cache.has(qgGuildId)) {
             try {
-                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["casino", "conference", "sc", "accueil-vocal", "profil", "delc", "sync", "ia", "cd", "user", "support", "sp", "réunion", "notesmp", "entretien", "mp", "mpall", "rankup", "derank", "effectif", "note", "pdt", "recrutement-stats"].includes(command.name)).map(c => c.name === 'casino' ? {...c,description:'Casino QG • Jeux et jetons fictifs'} : c.name === 'derank' ? require('./systems/qgGrades').schema('derank').toJSON() : c.name === 'ia' ? require('./systems/qgAiControlPanel').data.toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'support' ? {...c,options:c.options.filter(o=>o.name!=='installer')} : c.name === 'entretien' ? {...require('./systems/qgInterviews').data.toJSON(),options:require('./systems/qgInterviews').data.toJSON().options.filter(o=>o.name!=='installer')} : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c) });
+                await rest.put(Routes.applicationGuildCommands(client.user.id, qgGuildId), { body: commands.filter(command => ["casino", "conference", "sc", "accueil-vocal", "profil", "delc", "sync", "cd", "user", "support", "sp", "réunion", "notesmp", "entretien", "mp", "mpall", "rankup", "derank", "effectif", "note", "pdt", "recrutement-stats"].includes(command.name)).map(c => c.name === 'casino' ? {...c,description:'Casino QG • Jeux et jetons fictifs'} : c.name === 'derank' ? require('./systems/qgGrades').schema('derank').toJSON() : c.name === 'user' ? require('./systems/qgUserPanel').data.toJSON() : c.name === 'support' ? {...c,options:c.options.filter(o=>o.name!=='installer')} : c.name === 'entretien' ? {...require('./systems/qgInterviews').data.toJSON(),options:require('./systems/qgInterviews').data.toJSON().options.filter(o=>o.name!=='installer')} : c.name === 'réunion' ? require('./systems/qgMeetings').data.toJSON() : c) });
                 guildCount++;
             } catch (error) {
                 console.error(`❌ Enregistrement de /setup-serveur sur le QG (${qgGuildId}) :`, error.code || error.message);
@@ -2292,7 +2281,7 @@ client.on(
                 await client.commands.get("delc")?.handleComponent(interaction);
                 return;
             }
-            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "ia", "logs", "delc", "mp", "mpall"].includes(interaction.commandName)) {
+            if (interaction.isChatInputCommand() && !["rank", "mrankup", "sound", "stopsound", "logs", "delc", "mp", "mpall"].includes(interaction.commandName)) {
                 await interaction.reply({ content: 'Les commandes utilisent maintenant le préfixe =. Tape =aide pour les retrouver.', flags: MessageFlags.Ephemeral });
                 return;
             }
@@ -2399,11 +2388,6 @@ client.on(
 
             if (interaction.customId?.startsWith("memberctl:")) {
                 await client.userActions(interaction);
-                return;
-            }
-
-            if (interaction.customId?.startsWith('iac:')) {
-                await require('./systems/iaControlPanel').handle(interaction);
                 return;
             }
 
@@ -3240,7 +3224,7 @@ client.once(
                 await client.reloadCommands();
 
             console.log(
-                `✅ ${result.commands} commande(s) = chargée(s) ; /rank, /mrankup, /sound, /stopsound et /ia publiées sur ${result.guilds} serveur(s) !`
+                `✅ ${result.commands} commande(s) = chargée(s) ; /rank, /mrankup, /sound et /stopsound publiées sur ${result.guilds} serveur(s) !`
             );
 
             console.log("");

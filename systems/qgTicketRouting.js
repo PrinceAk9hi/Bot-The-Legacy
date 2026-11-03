@@ -9,6 +9,24 @@ function overwrites(guild,userId,type){const roles=s().schoolRoles||{};const all
  if(['report','foundation','complaint'].includes(type))for(const role of guild.roles.cache.values())if(!allowed.includes(role.id)&&role.id!==guild.id)grants.set(role.id,{id:role.id,deny:[P.ViewChannel]});
  for(const id of [...allowed,...(userId?[userId]:[])])grants.set(id,{id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.EmbedLinks,P.AttachFiles],deny:id===guild.client.user.id?[]:[P.MentionEveryone]});
  if(grants.size>100)throw Error('Trop de rôles pour garantir les permissions du ticket privé.');return [...grants.values()];}
+// Une catégorie par type de ticket ; le casino garde son espace dédié (casinoSupport).
+const CATEGORIES={questions:['ticketsQuestions','🎫・TICKETS AIDE'],report:['ticketsReport','🎫・TICKETS SIGNALEMENTS'],complaint:['ticketsComplaint','🎫・TICKETS RÉCLAMATIONS'],foundation:['ticketsFoundation','🎫・TICKETS FONDATION'],event:['ticketsEvent','🎫・TICKETS ANIMATION'],partnership:['ticketsPartnership','🎫・TICKETS PARTENARIAT']};
+// Rôles de gestion mentionnés à l'ouverture d'un ticket.
+function pingKeys(type){return type==='casino'?['casinoLead','casinoOperator']:['report','foundation','complaint'].includes(type)?['globalManager']:type==='event'?['animationLead','animationManagement']:['ticketsLead','ticketsManagement'];}
+function pingRoles(type){const roles=s().schoolRoles||{};return [...new Set(pingKeys(type).map(k=>roles[k]).filter(Boolean))];}
+const creatingCategory=new Map();
+async function category(guild,type){
+ if(type==='casino'){const id=s().schoolCategories?.casinoSupport;if(!id)throw Error('L’espace tickets casino n’est pas encore prêt.');return id;}
+ const [key,name]=CATEGORIES[type]||CATEGORIES.questions;
+ if(creatingCategory.has(key))return creatingCategory.get(key);
+ const job=(async()=>{
+  let ch=s().schoolCategories?.[key]&&(guild.channels.cache.get(s().schoolCategories[key])||await guild.channels.fetch(s().schoolCategories[key]).catch(e=>{if(e.code===10003)return null;throw e;}));
+  ch||=guild.channels.cache.find(c=>c.type===ChannelType.GuildCategory&&c.name===name);
+  if(!ch)ch=await guild.channels.create({name,type:ChannelType.GuildCategory,permissionOverwrites:overwrites(guild,null,type),reason:'Catégorie de tickets QG'});
+  save(x=>{x.schoolCategories||={};x.schoolCategories[key]=ch.id;});return ch.id;
+ })();
+ creatingCategory.set(key,job);try{return await job;}finally{creatingCategory.delete(key);}
+}
 let installing;
 async function ensure(guild){
  if(guild.id!==config.guildId)throw Error('Serveur QG incorrect.');if(installing)return installing;
@@ -23,6 +41,7 @@ async function ensure(guild){
  const role=absent||await guild.roles.create({name:'Absent',color:0xaaaaaa,permissions:[],reason:'Suivi des absences QG'});
  if(role.permissions?.bitfield && role.permissions.bitfield!==0n)throw Error('Le rôle Absent existant contient des permissions : retire-les avant de l’utiliser pour les absences.');
  save(x=>{x.schoolRoles||={};x.schoolRoles.absent=role.id;});
+ for(const type of Object.keys(CATEGORIES))await category(guild,type);
  const inbox=guild.channels.cache.get(s().schoolCategories.ticketInbox);await inbox.setPosition(guild.channels.cache.size-1);
  return inbox.id;})();try{return await installing;}finally{installing=null;}
 }
@@ -38,4 +57,4 @@ async function escalate(channel,reason){if(moving.has(channel.id))return false;m
  const role=s().schoolRoles?.[key==='casinoStaff'?'casinoLead':key==='foundation'?'globalManager':key==='animationManagement'?'animationManagement':'ticketsManagement'];
  await channel.send({content:role?`<@&${role}>`:undefined,embeds:[require('./qgPanels').embed('Relais à l’équipe',reason.slice(0,2000))],allowedMentions:{parse:[],roles:role?[role]:[]}});return true;
  }finally{moving.delete(channel.id);}}
-module.exports={ensure,escalate,overwrites,team};
+module.exports={ensure,escalate,overwrites,team,category,pingRoles};

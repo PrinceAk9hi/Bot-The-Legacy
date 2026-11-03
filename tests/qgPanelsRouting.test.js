@@ -15,8 +15,8 @@ test('ticket panel order, supplied emojis, white branding and verification help 
 });
 test('management capacity uses real members and excludes the responsible',async()=>{
  reset();const members=new Collection([['a',{user:{bot:false},roles:{cache:new Map([['animation',true]])}}],['lead',{user:{bot:false},roles:{cache:new Map([['animation',true],['animation-lead',true]])}}]]);
- const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.description,/Gestion Animation[\s\S]*?1\/2/);
- const unknown=await panels.management();assert.match(unknown.embeds[0].data.description,/non mesuré/);
+ const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.fields.find(f=>f.name==='Gestion Animation').value,/●○  \*\*1\*\* place libre/);
+ const unknown=await panels.management();assert.match(unknown.embeds[0].data.fields[0].value,/non mesurées/);
 });
 test('reports and Foundation are private from Support and Administrator roles',()=>{
  reset();for(const type of ['report','foundation']){const out=routing.overwrites(guild(),'applicant',type);assert.ok(out.find(x=>x.id==='support').deny.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='admin').deny.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='applicant').allow.includes(P.ViewChannel));assert.ok(out.find(x=>x.id==='global').allow.includes(P.ViewChannel));}
@@ -44,11 +44,6 @@ test('absence role follows overlapping dates and cancellation',async()=>{
  g.roles.fetch=async()=>({editable:true,members:new Map()});g.members={fetch:async()=>member};
  const sync=require('../systems/qgSchoolFamily').syncAbsenceRoles;await sync(g);await sync(g);assert.deepEqual(events,['add']);storage.update('qgServer',s=>{s.schoolAbsences.a.status='cancelled';});await sync(g);assert.deepEqual(events,['add','remove']);
 });
-test('AI decision parsing rejects invalid output and a transfer without reason',()=>{
- const parse=require('../systems/qgTicketAssistant').parse;
- assert.throws(()=>parse('hello'));assert.throws(()=>parse('{"answer":"oui","decision":"escalate","reason":""}'));
- assert.equal(parse('{"answer":"Clique sur le bouton","decision":"answer","reason":""}').decision,'answer');
-});
 test('arrival card generates a PNG locally without network',async()=>{
  const png=await require('../utils/qgArrivalCard').render({displayName:'Aven',user:{username:'Aven'}},{avatar:false});assert.equal(png.subarray(1,4).toString(),'PNG');assert.ok(png.length>10000);
 });
@@ -57,5 +52,5 @@ test('ticket categories and absent role are reused on a second update',async()=>
  g.members={fetchMe:async()=>({permissions:{has:()=>true}})};
  g.channels={cache:all,fetch:async()=>all,create:async options=>{const ch={...options,id:`category-${++categories}`,setPosition:async()=>{}};all.set(ch.id,ch);return ch;}};
  g.roles.create=async options=>{const role={...options,id:'new-absent',permissions:{bitfield:0n}};g.roles.cache.set(role.id,role);roles++;return role;};
- await routing.ensure(g);await routing.ensure(g);assert.equal(categories,3);assert.equal(roles,1);assert.equal(storage.read('qgServer').schoolRoles.absent,'new-absent');
+ await routing.ensure(g);await routing.ensure(g);assert.equal(categories,9);assert.equal(roles,1);assert.equal(storage.read('qgServer').schoolRoles.absent,'new-absent');
 });

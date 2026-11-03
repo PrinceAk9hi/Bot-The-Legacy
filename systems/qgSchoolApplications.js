@@ -20,7 +20,7 @@ const embed = (title, description) => new EmbedBuilder().setFooter(require('../u
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
 function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && r[k] !== '1561157108307861574' && member.roles.cache.has(r[k])); }
 function verifiedForRecruitment(member, data = state()) {
-  if(require('./qgProfileCatchup').active(member.id))return false;
+  if(require('./qgProfileCatchup').active(member.id,member))return false;
   const verification = data.schoolEntryVerification?.[member.id];
   const roleId = data.schoolRoles?.community;
   return Boolean(member.guild.id === config.guildId && !member.pending && roleId && member.roles.cache.has(roleId) && require('../utils/qgVerificationMembership').current(verification,member) && verification?.stage === 'accepted' && verification.acceptedAt && verification.confirmedAt && verification.robloxId);

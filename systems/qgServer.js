@@ -259,19 +259,19 @@ async function ticket(i,type='questions'){
  if(type==='casino'?!require('../utils/qgCasinoAccess').memberAllowed(member):(s.schoolSetup?!schoolMember&&!staff(member):!member.roles.cache.has(s.roles.member)&&!staff(member)))throw Error('Accepte d’abord le règlement pour accéder aux tickets.');
  const channels=await i.guild.channels.fetch();let ch=channels.find(x=>{const data=parseQGTicketTopic(x?.topic);return data?.ownerId===i.user.id&&data.type===type;});
  if(ch){store(x=>{x.tickets||={};x.tickets[ch.id]||={ownerId:i.user.id,type,createdAt:Date.now()};});return i.editReply(`Tu as déjà un ticket de ce type : <#${ch.id}>`);}
- const parent=type==='casino'?s.schoolCategories?.casinoSupport:s.schoolCategories?.ticketInbox;if(!parent)throw Error('L’espace tickets n’est pas encore prêt : il est préparé automatiquement au démarrage du bot.');
- const overwrites=require('./qgTicketRouting').overwrites(i.guild,i.user.id,type);
+ const routing=require('./qgTicketRouting'),parent=await routing.category(i.guild,type),pings=routing.pingRoles(type);
+ const overwrites=routing.overwrites(i.guild,i.user.id,type);
  ch=await i.guild.channels.create({name:`${ticketTypes[type].prefix}-${i.user.username}`.replace(/[^a-z0-9-]/gi,'-').slice(0,90),type:T.GuildText,parent,topic:buildQGTicketTopic(i.user.id,type),
  permissionOverwrites:overwrites});
  store(x=>{x.tickets||={};x.tickets[ch.id]={ownerId:i.user.id,type,createdAt:Date.now()};});
- await ch.send({content:`<@${i.user.id}>`,embeds:[layout.embed(`Ticket privé · ${ticketTypes[type].label}`,`${ticketTypes[type].description}\n\nLe ticket est accessible à toi et à l’équipe concernée. Il sera archivé à sa fermeture.`)],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:claim').setLabel('Prendre en charge').setStyle(ButtonStyle.Primary),new ButtonBuilder().setCustomId('qg:rename').setLabel('Renommer').setStyle(ButtonStyle.Secondary),new ButtonBuilder().setCustomId('qg:close').setLabel('Fermer').setStyle(ButtonStyle.Danger))],allowedMentions:{users:[i.user.id],parse:[]}});
+ await ch.send({content:[`<@${i.user.id}>`,...pings.map(id=>`<@&${id}>`)].join(' '),embeds:[layout.embed(`Ticket privé · ${ticketTypes[type].label}`,`${ticketTypes[type].description}\n\nLe ticket est accessible à toi et à l’équipe concernée. Il sera archivé à sa fermeture.`)],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:claim').setLabel('Prendre en charge').setStyle(ButtonStyle.Primary),new ButtonBuilder().setCustomId('qg:rename').setLabel('Renommer').setStyle(ButtonStyle.Secondary),new ButtonBuilder().setCustomId('qg:close').setLabel('Fermer').setStyle(ButtonStyle.Danger))],allowedMentions:{users:[i.user.id],roles:pings,parse:[]}});
  await log(i.guild,'Ticket ouvert',`Type : ${ticketTypes[type].label}\nAuteur : <@${i.user.id}> • <#${ch.id}>`);return i.editReply(`✅ Ton ticket ${ticketTypes[type].label.toLowerCase()} : <#${ch.id}>`);
 }
 function buildQGTicketTopic(ownerId,type='questions'){return `qg-ticket:${ownerId}:${type}`;}
 function parseQGTicketTopic(topic){const match=/^qg-ticket:(\d+)(?::(questions|report|complaint|foundation|event|partnership|casino))?$/.exec(String(topic||''));return match?{ownerId:match[1],type:match[2]||'questions'}:null;}
 async function interaction(i){
  if(await require('./qgProfileCatchup').handle(i))return;
- if(require('./qgProfileCatchup').active(i.user.id)&&!i.customId?.startsWith('qgs:help'))return i.reply({content:'Complète ton profil depuis le bouton du MP ou du règlement pour retrouver tes accès.',flags:MessageFlags.Ephemeral});
+ if(!i.customId?.startsWith('qgs:help')&&await require('./qgProfileCatchup').blocked(i))return i.reply({content:'Complète ton profil depuis le bouton du MP ou du règlement pour retrouver tes accès.',flags:MessageFlags.Ephemeral});
  if(i.customId?.startsWith('botpanel:'))return i.client.botPanel.handle(i);
  if(i.customId?.startsWith('ownerDM:'))return require('./botOwnerTools').handle(i);
  if(i.isChatInputCommand?.()&&['mp','mpall'].includes(i.commandName))return require('./botOwnerTools').execute(i);
@@ -312,8 +312,6 @@ async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='cd')return require('./qgRecruitmentControl').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='user')return require('./qgUserPanel').execute(i);
  if(i.customId?.startsWith('qgu:'))return require('./qgUserPanel').handle(i);
- if(i.isChatInputCommand?.()&&i.commandName==='ia')return require('./qgAiControlPanel').execute(i);
- if(i.customId?.startsWith('qgai:'))return require('./qgAiControlPanel').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='setup-serveur')return require('../commandes/setup-serveur').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='delc')return require('../commandes/delc').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='sync')return require('../commandes/sync').execute(i);
@@ -370,8 +368,6 @@ async function message(m){
  if(m.author.bot)return;
  require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
- if(await require('./qgTicketAssistant').message(m))return;
- if(await require('./qgAiPublic').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
@@ -449,8 +445,6 @@ function register(client){
   await guarded(require('./qgRpStatus').ensureRole,guild,'prison');
   await guarded(require('./qgRpStatus').reconcile,guild);
   setInterval(()=>guarded(require('./qgRpStatus').reconcile,guild),60000).unref();
-  const pruneAI=()=>require('../utils/qgAiStore').transact(()=>{});
-  await guarded(pruneAI);setInterval(()=>guarded(pruneAI),3600000).unref();
   setInterval(()=>guarded(require('./qgPanels').refreshManagement,guild),60000).unref();
   await require('./qgSchoolFamily').syncAbsenceRoles(guild).catch(e=>console.error('Rôle Absent :',e.code||e.name));
   setInterval(()=>guarded(require('./qgSchoolFamily').syncAbsenceRoles,guild),60000).unref();

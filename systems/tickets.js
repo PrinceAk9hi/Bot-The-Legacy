@@ -1050,7 +1050,7 @@ async function createTicket(
 
         if (!mainMessage) {
             mainMessage = await existing.send({
-                content: '🎫 Ticket créé. L’assistant IA répondra ici et transmettra à l’équipe si nécessaire.',
+                content: '🎫 Ticket créé. Un membre de la gestion va te répondre ici.',
                 allowedMentions: { parse: [] },
                 embeds: [
                     createTicketEmbed({
@@ -1142,7 +1142,7 @@ async function createTicket(
 
     const ticketMessage =
         await channel.send({
-            content: '🎫 Ticket créé. L’assistant IA répondra ici et transmettra à l’équipe si nécessaire.',
+            content: '🎫 Ticket créé. Un membre de la gestion va te répondre ici.',
             allowedMentions: { parse: [] },
 
             embeds: [
@@ -1327,7 +1327,6 @@ function registerTicketSystem(
         }
     };
 
-    require("./ticketAssistant")(client);
 
     const install=()=>{if(!require('../utils/lineState').isOff())require('../utils/ticketPanel').install(client).catch(e=>console.error('Panel tickets :',e.code||e.message));};
     if(client.isReady())install();else client.once(Events.ClientReady,install);

@@ -55,11 +55,22 @@ make() {
 
   # Titre : taille ajustée pour tenir dans la largeur, mots placés côte à côte
   local HF=fonts/BOD_BLAR.TTF
-  local wf=$(measure $HF 100 "$word1 $word2")
-  local hs=$(awk "BEGIN{s=int(1180*100/$wf); print (s>104?104:s)}")
-  local w1=$(measure $HF $hs "$word1") wt=$(measure $HF $hs "$word1 $word2") w2=$(measure $HF $hs "$word2")
-  local x0=$(( (PW - wt) / 2 )) hy=$(( 196 - hs * 7 / 10 ))
-  local x2=$(( x0 + wt - w2 ))
+  local inline=0 TS=$TS hs w1 wt w2 x0 hy x2 SW0 SH0
+  [[ -z "$word2" ]] && inline=1
+  if (( inline )); then
+    # Titre seul, tampon droit collé juste à sa droite : l'ensemble est centré
+    local wf=$(measure $HF 100 "$word1")
+    hs=$(awk "BEGIN{s=int(1150/($wf/100+3.25)); print (s>104?104:s)}")
+    w1=$(measure $HF $hs "$word1"); SH0=$(( hs * 23 / 40 * 2 )); SW0=$(( SH0 * 480 / 340 * 2 ))
+    x0=$(( (PW - w1 - 30 - SW0) / 2 )); hy=$(( 196 - hs * 7 / 10 )); x2=$x0; w2=2
+    TS=$(awk "BEGIN{print $T1+0.35}")
+    printf ' ' > $T/w2.txt
+  else
+    local wf=$(measure $HF 100 "$word1 $word2")
+    hs=$(awk "BEGIN{s=int(1180*100/$wf); print (s>104?104:s)}")
+    w1=$(measure $HF $hs "$word1"); wt=$(measure $HF $hs "$word1 $word2"); w2=$(measure $HF $hs "$word2")
+    x0=$(( (PW - wt) / 2 )); hy=$(( 196 - hs * 7 / 10 )); x2=$(( x0 + wt - w2 ))
+  fi
 
   # 1) La une (sans le titre)
   cat > $T/page.txt <<F
@@ -101,8 +112,9 @@ drawbox=x=24:y=24:w=iw-48:h=ih-48:c=white:t=3,\
 drawtext=fontfile=fonts/STENCIL.TTF:textfile=$T/stamp.txt:fontsize=$ss:fontcolor=white:x=(w-tw)/2:y=(h-th)/2+3,\
 geq=lum='lum(X,Y)*if(lt(random(1),0.2),0.3,0.93)'[m];\
 [1]format=rgba[c];[c][m]alphamerge,\
-rotate=a=-0.17:ow=rotw(0.17):oh=roth(0.17):c=none" -frames:v 1 $T/stamp0.png
+$( (( inline )) && echo "scale=$SW0:$SH0" || echo "rotate=a=-0.17:ow=rotw(0.17):oh=roth(0.17):c=none")" -frames:v 1 $T/stamp0.png
   local SCX=1030 SCY=335
+  (( inline )) && { SCX=$(( x0 + w1 + 30 + SW0 / 2 )); SCY=$(( hy + hs * 11 / 20 )); }
   ffmpeg -v error -y -f lavfi -i "color=c=black@0:s=${PW}x${PH}:d=0.04,format=rgba" -i $T/stamp0.png \
     -filter_complex "[0][1]overlay=$SCX-w/2:$SCY-h/2" -frames:v 1 $T/stamp.png
   biglayer stamp stampbig 1.9 $SCX $SCY
@@ -137,8 +149,8 @@ F
   echo "ok: $name"
 }
 
-make recrutement_ouvert 0x1d7a3a RECRUTEMENT "OUVERT !" "Le QG ouvre ses portes : les candidatures sont acceptées dès aujourd'hui." "OUVERT"
-make recrutement_ferme  0xb8262b RECRUTEMENT "FERMÉ"    "Les portes du QG sont closes jusqu'à nouvel ordre. Revenez plus tard."     "FERMÉ"
+make recrutement_ouvert 0x1d7a3a RECRUTEMENT "" "Le QG ouvre ses portes : les candidatures sont acceptées dès aujourd'hui." "OUVERT"
+make recrutement_ferme  0xb8262b RECRUTEMENT "" "Les portes du QG sont closes jusqu'à nouvel ordre. Revenez plus tard."     "FERMÉ"
 make support            0x1f4e8c SERVICE     "SUPPORT"  "Une question, un souci, un projet ? Ouvre un ticket : l'équipe te répond." "QG" "N° 043"
 # Copie dans les assets utilisés par les panels
 cp out/banniere_qg_recrutement_ouvert.gif assets/qg-candidature-ouvert.gif

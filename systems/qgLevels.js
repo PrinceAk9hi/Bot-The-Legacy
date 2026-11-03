@@ -50,7 +50,9 @@ async function sync(member,state){
  }
 
 }
-function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(id=>id&&id!=='1561157108307861574');return ids.some(id=>member.roles.cache.has(id));}
+function eligible(member,state){if(!member||member.user.bot)return false;const ids=[state.roles?.member,state.schoolRoles?.community,...['senior','prestigious','expert','confirmed','test'].map(k=>state.schoolRoles?.[k])].filter(id=>id&&id!=='1561157108307861574');if(ids.some(id=>member.roles.cache.has(id)))return true;
+ // Gestions, direction et joueurs vérifiés sans rôle communautaire gardent l'accès aux niveaux.
+ const a=require('../utils/qgAdmin');return a.isDirection(member)||a.has(member,[...Object.keys(a.teams),...Object.values(a.teams)])||require('./qgProfileCatchup').verified(member);}
 async function message(m,state){
  if(m.guildId!==config.guildId||m.author.bot||m.webhookId||!eligible(m.member,state))return;
  const text=m.content.normalize('NFKC').toLowerCase().replace(/https?:\/\/\S+/g,'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
@@ -75,7 +77,7 @@ async function voice(guild,state,now=Date.now()){
 async function command(m,state){
  const match=/^=niveau(?:\s+(?:<@!?(\d+)>|(\d+)))?\s*$/.exec(m.content),leader=/^=classement\s*$/.test(m.content);
  if(!match&&!leader)return false;
- if(!eligible(m.member,state)&&m.author.id!==m.guild.ownerId){await m.reply({content:'Accepte le règlement pour accéder aux niveaux.',allowedMentions:{parse:[]}});return true;}
+ if(!eligible(m.member,state)&&m.author.id!==m.guild.ownerId){await m.reply({content:'Termine ta vérification dans le salon règlement pour accéder aux niveaux.',allowedMentions:{parse:[]}});return true;}
  const all=read('qgXp');
  if(match){
   const id=match[1]||match[2]||m.author.id,p=all[id]||{xp:0},n=level(p.xp),today=p.day===day(Date.now());

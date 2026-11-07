@@ -19,22 +19,34 @@ const trim = text => String(text ?? '').slice(0, 1000);
 const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
 function inFamily(member) { const r = ids().roles; return familyRoleKeys.some(k => r[k] && r[k] !== '1561157108307861574' && member.roles.cache.has(r[k])); }
-function verifiedForRecruitment(member, data = state()) {
-  if(require('./qgProfileCatchup').active(member.id,member))return false;
-  const verification = data.schoolEntryVerification?.[member.id];
-  const roleId = data.schoolRoles?.community;
-  return Boolean(member.guild.id === config.guildId && !member.pending && roleId && member.roles.cache.has(roleId) && require('../utils/qgVerificationMembership').current(verification,member) && verification?.stage === 'accepted' && verification.acceptedAt && verification.confirmedAt && verification.robloxId);
+// Vérifié = rôle communautaire + profil QG accepté avec compte Roblox (ou compte Roblox relié), la direction passant toujours.
+// Renvoie la raison précise d'un refus, ou null.
+function verificationProblem(member, data = state()) {
+  if (member.guild.id !== config.guildId) return 'Action disponible uniquement sur le QG.';
+  if (member.pending) return 'Termine d’abord les contrôles d’accueil de Discord.';
+  if (require('./qgProfileCatchup').active(member.id, member)) return 'Complète ton profil QG depuis le bouton reçu en MP ou dans le salon règlement.';
+  if (require('../utils/qgAdmin').isDirection(member)) return null;
+  const v = data.schoolEntryVerification?.[member.id], roleId = data.schoolRoles?.community;
+  const profile = v?.stage === 'accepted' && v.robloxId && require('../utils/qgVerificationMembership').current(v, member);
+  const linked = !!require('../utils/robloxLinks').getRobloxLink(member.id)?.robloxId;
+  if ((profile || linked) && roleId && member.roles.cache.has(roleId)) return null;
+  if (profile || linked) return 'Tu n’as pas le rôle Membre Communautaire : contacte la direction.';
+  if (!v) return 'Aucune vérification n’est enregistrée pour ton compte.';
+  if (!require('../utils/qgVerificationMembership').current(v, member)) return 'Ta vérification date d’un précédent passage sur le serveur : refais-la.';
+  if (v.stage !== 'accepted') return 'Ta vérification n’est pas allée jusqu’au bout : il manque la confirmation du règlement.';
+  return 'Ton compte Roblox n’est pas enregistré dans ta vérification.';
 }
-function verificationRequired() {
-  const channelId = state().schoolChannels?.rules;
-  return `Termine d’abord ta vérification${channelId ? ` dans <#${channelId}>` : ' dans le salon règlement'} : confirme ton profil Roblox, puis la lecture du règlement. Tu pourras ensuite déposer ta candidature famille.`;
+function verifiedForRecruitment(member, data = state()) { return !verificationProblem(member, data); }
+function verificationRequired(member) {
+  const channelId = state().schoolChannels?.rules, reason = member ? verificationProblem(member) : null;
+  return `${reason ? reason + '\n' : ''}Termine d’abord ta vérification${channelId ? ` dans <#${channelId}>` : ' dans le salon règlement'} : confirme ton profil Roblox, puis la lecture du règlement. Tu pourras ensuite déposer ta candidature famille.`;
 }
 
 async function beginFamilyRecruitment(i) {
   await i.deferReply({ flags: MessageFlags.Ephemeral });
   if (i.guildId !== config.guildId) return i.editReply('Action disponible uniquement sur le QG.');
-  const server = await i.client.guilds.fetch(config.guildId), member = await server.members.fetch(i.user.id);
-  if (!verifiedForRecruitment(member)) return i.editReply(verificationRequired());
+  const server = await i.client.guilds.fetch(config.guildId), member = await server.members.fetch({ user: i.user.id, force: true });
+  if (!verifiedForRecruitment(member)) return i.editReply(verificationRequired(member));
   if (inFamily(member)) return i.editReply('Tu fais déjà partie de la famille. Utilise le panel des gestions pour rejoindre une équipe.');
   const active = state().schoolFamilyRecruitment || {};
   if (active[i.user.id] && ['in_progress', 'submitted', 'in_review', 'waiting_interview'].includes(active[i.user.id].status)) return i.editReply('Tu as déjà une candidature active. Vérifie tes MP ou le suivi fourni par l’équipe.');
@@ -51,7 +63,7 @@ async function beginFamilyRecruitment(i) {
 async function submitFamily(memberId, app, client) {
  const guild = await client.guilds.fetch(config.guildId);
  const candidate = await guild.members.fetch(memberId);
- if (!verifiedForRecruitment(candidate)) throw new Error(verificationRequired());
+ if (!verifiedForRecruitment(candidate)) throw new Error(verificationRequired(candidate));
  await require('./qgInterviews').submitApplication(guild, app);
  await candidate.send('Ta candidature a été transmise à la Gestion Recrutement. La décision écrite précède l’entretien oral.').catch(() => {});
 }
@@ -149,8 +161,8 @@ async function directMessage(message) {
   const text = message.content.trim();
   if (text.toLowerCase() === 'annuler') { save(s => { s.schoolFamilyRecruitment[message.author.id].status = 'cancelled'; s.schoolFamilyRecruitment[message.author.id].updatedAt = Date.now(); }); await message.reply('Candidature annulée. Tu pourras recommencer depuis le panel.'); return true; }
   const guild = await message.client.guilds.fetch(config.guildId);
-  const member = await guild.members.fetch(message.author.id).catch(() => null);
-  if (!member || !verifiedForRecruitment(member)) { await message.reply(verificationRequired()); return true; }
+  const member = await guild.members.fetch({ user: message.author.id, force: true }).catch(() => null);
+  if (!member || !verifiedForRecruitment(member)) { await message.reply(verificationRequired(member)); return true; }
   if (!text && !message.attachments.size) return message.reply('Envoie une réponse écrite pour continuer.');
   app.answers[app.step] = (text || '[Pièce jointe fournie]').slice(0, 1500);
   app.answerDurations ||= [];
@@ -167,4 +179,4 @@ async function directMessage(message) {
   return true;
 }
 
-module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, _test: { inFamily, managerFor, verifiedForRecruitment } };
+module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, _test: { inFamily, managerFor, verifiedForRecruitment, verificationProblem } };

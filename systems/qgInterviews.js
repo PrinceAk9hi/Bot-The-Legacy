@@ -127,7 +127,7 @@ async function decision(i,actor,app,action){
  const target=await i.guild.members.fetch({user:app.applicantId,force:true});
  if(oral&&(!officeIds().includes(actor.voice.channelId)||target.voice.channelId!==actor.voice.channelId))throw Error('Le candidat et le recruteur doivent être dans le même bureau.');
  const accepted=action.endsWith('accept'),r=roles();
- if(accepted&&!require('./qgSchoolApplications')._test.verifiedForRecruitment(target))throw Error('La vérification du candidat doit être terminée.');
+ if(accepted){const problem=require('./qgSchoolApplications')._test.verificationProblem(target);if(problem)throw Error('Vérification du candidat incomplète : '+problem);}
  if(accepted&&require('./qgSchoolApplications')._test.inFamily(target))throw Error('Ce membre possède déjà un grade familial.');
  const add=accepted?(oral?r.test:r.interviewWaiting):r.recruitmentRefused;
  if(!add||!r.interviewWaiting||!r.recruitmentRefused)throw Error('Rôles absents : lance /entretien installer et vérifie le grade Membre Test.');

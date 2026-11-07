@@ -9,3 +9,7 @@ data/qg-ai/
 # Polices Windows copiées par scripts/fonts.sh et rendus des bannières
 fonts/
 out/
+
+# Bot Hunter : ids du serveur et tickets
+hunter/data/
+hunter/bot.log

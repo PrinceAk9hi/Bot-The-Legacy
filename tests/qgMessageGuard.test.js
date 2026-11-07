@@ -46,6 +46,27 @@ test('un modérateur supprime : restauré ; le propriétaire ou le bot : suppres
  assert.equal(sent.length,1);
 });
 
+test('un Directeur supprime : suppression conservée ; un autre rôle : restauré',async()=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),data=require('../utils/recruitmentData'),previous=data.getDataDirectory();
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qg-guard-'));data.setDataDirectory(dir);
+ try{
+  data.update('qgServer',s=>{s.schoolRoles={creator:'DIR'};});
+  const DIRECTOR='600000000000000000',roles=id=>({roles:{cache:new Map(id===DIRECTOR?[['DIR',{}]]:[['AUTRE',{}]])}});
+  guild.members.cache=new Map();guild.members.fetch=async id=>roles(id);
+  guard.remember(message('40',USER,'a'),{fetcher:async()=>null});audit.push(entry(AuditLogEvent.MessageDelete,DIRECTOR,{target:USER,channel:'c1',id:'dir1'}));
+  assert.equal((await guard.onDelete({id:'40',guildId:config.guildId,guild})).allowed,true);
+  guard.remember(message('41',USER,'b'),{fetcher:async()=>null});audit.push(entry(AuditLogEvent.MessageDelete,MOD,{target:USER,channel:'c1',id:'dir2'}));
+  const byOther=await guard.onDelete({id:'41',guildId:config.guildId,guild});
+  assert.equal(byOther.allowed,false);assert.equal(byOther.by.user.id,MOD);
+  assert.equal(sent.length,1);
+  guard.remember(message('42',DIRECTOR,'c'),{fetcher:async()=>null});
+  assert.equal((await guard.onDelete({id:'42',guildId:config.guildId,guild})).allowed,true,'un Directeur supprime son propre message');
+  for(const id of ['43'])guard.remember(message(id,USER,'x'),{fetcher:async()=>null});
+  audit.push(entry(AuditLogEvent.MessageBulkDelete,DIRECTOR,{target:'c1',count:1,id:'dir3'}));
+  assert.equal((await guard.onBulk(new Collection([['43',{id:'43'}]]),{...channel,guild})).allowed,true);
+ }finally{data.setDataDirectory(previous);fs.rmSync(dir,{recursive:true,force:true});}
+});
+
 test('journal d’audit regroupé : on reconnaît l’entrée dont le compteur augmente',async()=>{
  const e=entry(AuditLogEvent.MemberDisconnect,MOD,{count:1,id:'agg'});e.createdTimestamp=Date.now()-3600000;audit.push(e);
  assert.equal(await qgLog.recent(guild,AuditLogEvent.MemberDisconnect,{}),null);

@@ -1,5 +1,5 @@
 // Protection des messages du QG : un message supprimé réapparaît aussitôt (nom et avatar de son auteur,
-// pièces jointes conservées), sauf si la suppression vient du propriétaire ou du bot lui-même
+// pièces jointes conservées), sauf si la suppression vient du propriétaire, d'un Directeur ou du bot lui-même
 // (anti-spam, modération automatique). Le contenu est gardé en mémoire dès l'envoi du message.
 const {AuditLogEvent,AttachmentBuilder,PermissionFlagsBits:P}=require('discord.js');
 const config=require('../config/qg'),qgLog=require('../utils/qgLog');
@@ -23,7 +23,14 @@ function remember(m,{fetcher=fetch}={}){
   fetcher(f.url,{signal:AbortSignal.timeout(20000)}).then(r=>r.ok?r.arrayBuffer():null).then(buf=>{if(!buf||buf.byteLength>FILE_MAX||!cache.has(rec.id))return;f.buffer=Buffer.from(buf);bytes+=f.buffer.length;prune();}).catch(()=>{});}
  prune();return rec;
 }
-const allowedActor=(guild,id)=>id===config.ownerId||id===guild.client.user.id;
+// Peuvent supprimer pour de bon : le propriétaire, le bot et les membres ayant le rôle Directeur.
+async function allowedActor(guild,id){
+ if(id===config.ownerId||id===guild.client.user.id)return true;
+ const director=require('../utils/qgAdmin').state().schoolRoles?.creator;
+ if(!director||!id)return false;
+ const member=guild.members?.cache?.get?.(id)||await guild.members?.fetch?.(id)?.catch(()=>null);
+ return !!member?.roles?.cache?.has(director);
+}
 
 async function webhook(guild,channel){
  const parent=channel.isThread?.()?channel.parent:channel;
@@ -59,7 +66,7 @@ async function onDelete(m){
  if(!by)by=await qgLog.recent(guild,AuditLogEvent.MemberBanAdd,{match:e=>e.target?.id===rec.authorId,maxAge:120000,wait:0,retries:0});
  // Sans entrée d'audit, c'est l'auteur qui a supprimé son propre message.
  const actor=by?.user?.id||rec.authorId;
- if(allowedActor(guild,actor))return {by,allowed:true,rec};
+ if(await allowedActor(guild,actor))return {by,allowed:true,rec};
  try{const sent=await restore(guild,rec);return {by,allowed:false,restored:sent.url,rec};}
  catch(e){return {by,allowed:false,error:e.message,rec};}
 }
@@ -69,7 +76,7 @@ async function onBulk(messages,channel){
  const list=[...messages.values()].map(m=>cache.get(m.id)||(m.author&&!m.author.bot&&!m.webhookId&&(m.content||m.attachments?.size)?record(m):null)).filter(Boolean).sort((x,y)=>x.createdAt-y.createdAt);
  if(!by&&list.length){const authors=new Set(list.map(r=>r.authorId));by=await qgLog.recent(guild,AuditLogEvent.MemberBanAdd,{match:e=>authors.has(e.target?.id),maxAge:120000,wait:0,retries:0});}
  for(const m of messages.values())cache.delete(m.id);
- if(by&&allowedActor(guild,by.user?.id))return {by,allowed:true,count:list.length};
+ if(by&&await allowedActor(guild,by.user?.id))return {by,allowed:true,count:list.length};
  let restored=0,failed=0,error=null;
  for(const rec of list.slice(0,40)){try{await restore(guild,rec);restored++;}catch(e){failed++;error=e.message;}}
  return {by,allowed:false,restored,failed:failed+Math.max(0,list.length-40),error,count:list.length};

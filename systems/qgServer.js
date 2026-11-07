@@ -142,6 +142,7 @@ async function memberEvent(member,joined){
 }
 async function memberUpdate(oldMember,newMember){
  require('./qgCommunityUpgrade').memberChanged(oldMember,newMember);
+ require('../utils/qgRoblox').memberChanged(oldMember,newMember);
  await require('./qgUserTools').enforce(oldMember,newMember).catch(e=>console.error('Verrou pseudo QG :',e.code||e.name));
  await require('./qgSupportWorkspace').boost(oldMember,newMember).catch(e=>console.error('Boost QG :',e.code||e.name));
  await require('./qgSchoolSeparators').syncMember(newMember);
@@ -305,6 +306,7 @@ async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='profil')return require('./qgProfile').execute(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
+ if(i.customId?.startsWith('qgx:'))return require('./qgExpel').handle(i);
  if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);
  if(i.customId?.startsWith('qgf:'))return require('./qgFamilyAdmin').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='animation')return require('./qgAnimations').execute(i);
@@ -391,6 +393,7 @@ async function message(m){
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(/^=mv(\s|$)/i.test(m.content.trim()))return moveCommand(m);
+ if(await require('./qgExpel').message(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
  await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){
@@ -452,7 +455,7 @@ function register(client){
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

@@ -14,7 +14,8 @@ const state = () => read('qgServer');
 const save = fn => update('qgServer', fn);
 const familyRoleKeys = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
 const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead' };
-const teamLabels = { ticketsManagement: 'Gestion Support', recruitmentManagement: 'Gestion Recrutement', animationManagement: 'Gestion Animation', networksManagement: 'Gestion Réseaux', rpManagement: 'Gestion RP' };
+// Les rôles de gestion s'appellent désormais « Exécutant ».
+const teamLabels = { ticketsManagement: 'Exécutant Support', recruitmentManagement: 'Exécutant des Recrutements', animationManagement: 'Exécutant des Animations', networksManagement: 'Exécutant des Réseaux', rpManagement: 'Exécutant du RP' };
 const trim = text => String(text ?? '').slice(0, 1000);
 const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }
@@ -90,7 +91,14 @@ async function submitManagement(i, team) {
   if (existing && ['submitted', 'in_review'].includes(existing.status)) throw new Error('Tu as déjà une candidature active pour cette gestion.');
   const lead = roles[managerFor[team]], managementRole = roles[team];
   if(!lead||!managementRole)throw Error('Cette gestion doit être configurée par la direction avec /setup-serveur actualiser-qg.');
-  const ch = await guild.channels.create({ name: `candidature-${team.replace('Management', '')}-${i.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 90), type: 0, parent: categories.managementPlus, topic: `qgs-management-application:${team}:${i.user.id}`,
+  // La catégorie « managementPlus » a été supprimée : repli sur l'espace des responsables (qui traitent ces dossiers).
+  let parent = null;
+  for (const id of [categories.managementPlus, categories.responsibles].filter(Boolean)) {
+    const category = await guild.channels.fetch(id).catch(() => null);
+    if (category?.type === 4) { parent = category.id; break; }
+  }
+  if (!parent) throw new Error('Aucune catégorie disponible pour les candidatures aux postes d’exécutant : préviens la direction.');
+  const ch = await guild.channels.create({ name: `candidature-${team.replace('Management', '')}-${i.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 90), type: 0, parent, topic: `qgs-management-application:${team}:${i.user.id}`,
     permissionOverwrites: [{ id: guild.id, deny: [P.ViewChannel] }, { id: i.client.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.EmbedLinks, P.ManageChannels] }, { id: i.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }, ...[roles.creator, roles.globalManager, lead, managementRole].filter(Boolean).map(id => ({ id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }))] });
   const labels = { motivation: 'Motivation', experience: 'Expérience', availability: 'Disponibilités', skills: 'Compétences', contribution: 'Contribution envisagée' };
   const fields = Object.entries(labels).map(([id, label]) => ({ name:label,value:trim(i.fields.getTextInputValue(id))||'Non renseigné' }));

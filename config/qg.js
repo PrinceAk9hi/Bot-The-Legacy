@@ -4,6 +4,9 @@ module.exports = {
  invite: 'UEhuBsJdG',
  ownerId: '547192186547077130',
  label: 'QG',
- statSuffix: '.gg/QG'
+ statSuffix: '.gg/QG',
+ // Communauté Roblox du QG
+ robloxGroupId: 1031372038,
+ robloxGroupUrl: 'https://www.roblox.com/share/g/1031372038'
 };
 

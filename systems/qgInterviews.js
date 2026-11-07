@@ -26,7 +26,12 @@ function requireApp(id){const app=appFor(id);if(!app)throw Error('Ce dossier a �
 function controls(app){return [row(button(`qgr:written:${app.caseId}:accept`,'Accepter',B.Success),button(`qgr:written:${app.caseId}:refuse`,'Refuser',B.Danger),button(`qgr:dds:${app.caseId}`,'DDS'),button(`qgr:ticket:${app.caseId}`,'Ouvrir un ticket'))];}
 function summary(app){
  const result=embed('📋 Candidature • QG',`Candidat : <@${app.applicantId}>\nStatut : **${app.status}**\nDossier : ${app.caseId}\nDéposée <t:${Math.floor((app.submittedAt||app.createdAt)/1000)}:f>\n${app.updatedBy?`Dernier traitement : <@${app.updatedBy}>\n`:''}Les réponses complètes sont jointes au dossier.`);
- for(let n=0;n<Math.min(3,app.answers?.length||0);n++)result.addFields({name:`Question ${n+1}`,value:clean(app.answers[n]||'Sans réponse').slice(0,800)});
+ // Toutes les questions, réparties pour tenir sous la limite Discord (6 000 caractères par embed, 25 champs).
+ const questions=app.questions||require('./qgSchoolApplications').familyQuestions,count=Math.min(25,Math.max(questions.length,app.answers?.length||0));
+ const names=Array.from({length:count},(_,n)=>`${n+1}. ${questions[n]||'Question '+(n+1)}`.slice(0,200));
+ const d=result.data,used=(d.title||'').length+(d.description||'').length+(d.footer?.text||'').length+names.join('').length;
+ const share=Math.min(1024,Math.floor((5900-used)/Math.max(1,count)));
+ names.forEach((name,n)=>{const text=clean(app.answers?.[n]||'Sans réponse');result.addFields({name,value:text.length>share?text.slice(0,share-1)+'…':text});});
  return result;
 }
 function panel(){const card=embed('ESPACE RECRUTEUR · QG','**Chaque candidature mérite un suivi clair et une décision expliquée.**\nRetrouve ici les outils de préparation, d’entretien et de compte rendu.').setColor(0xffffff).addFields(

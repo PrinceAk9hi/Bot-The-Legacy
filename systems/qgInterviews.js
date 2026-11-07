@@ -3,6 +3,7 @@ const {SlashCommandBuilder,ActionRowBuilder:Row,ButtonBuilder:Button,ButtonStyle
 const a=require('../utils/qgAdmin'),config=require('../config/qg'),{embed}=require('./qgPanels');
 const clean=require('../utils/qgAiKnowledge').clean;
 const REPORT='1562090387588390942';
+const RECRUITER_PING='1561157119619760281';
 const staffKeys=['creator','globalManager','administrator','recruitmentLead','recruitmentManagement'];
 const data=new SlashCommandBuilder().setName('entretien').setDescription('Espace recruteur du QG').setDMPermission(false)
  .addSubcommand(s=>s.setName('panel').setDescription('Ouvrir les outils d’entretien'))
@@ -94,7 +95,8 @@ async function submitApplication(guild,app){
   put(app);
   const recent=await ch.messages.fetch({limit:100});
   let message=recent.find(m=>m.author.id===guild.client.user.id&&m.components.some(r=>r.components.some(c=>c.customId===`qgr:dds:${app.caseId}`)));
-  if(!message)message=await ch.send({embeds:[summary(app)],files:[attachment(app)],components:controls(app),allowedMentions:{parse:[]}});
+  // Nouvelle candidature : ping du rôle Exécutant des Recrutements.
+  if(!message)message=await ch.send({content:`<@&${RECRUITER_PING}>`,embeds:[summary(app)],files:[attachment(app)],components:controls(app),allowedMentions:{parse:[],roles:[RECRUITER_PING]}});
   app.channelId=ch.id;app.messageId=message.id;put(app);
   return app;
  });

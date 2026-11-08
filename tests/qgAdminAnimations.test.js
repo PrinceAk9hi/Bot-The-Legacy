@@ -23,18 +23,31 @@ beforeEach(()=>{
 test('schemas slash : commandes nouvelles et derank QG valides',()=>{for(const name of ['note','pdt','effectif','recrutement-stats'])assert.equal(family.schema(name).toJSON().name,name);for(const name of ['rankup','derank'])assert.equal(grades.schema(name).toJSON().name,name);assert.equal(animations.data.toJSON().name,'animation');});
 test('dates Paris : heure inexistante et ambiguë refusées ; récurrence garde l’heure locale',()=>{assert.throws(()=>u.date('29/03/2026 02:30'));assert.throws(()=>u.date('25/10/2026 02:30'));const at=u.date('24/10/2026 21:00');assert.equal(animations.nextDate(at,1),u.date('25/10/2026 21:00'));assert.equal(animations.nextDate(at,1)-at,25*3600000);});
 test('inscription atomique : pas de doublon, complet = bloqué, place libérée réutilisable',()=>{const e=animations.newEvent(draft(),ACTOR);animations.sign(e,TARGET,true);animations.sign(e,TARGET,true);assert.throws(()=>animations.sign(e,OTHER,true),/Plus aucune place/);assert.deepEqual(e.participants,[TARGET]);assert.equal(e.waitlist.length,0);animations.sign(e,TARGET,false);assert.deepEqual(e.participants,[]);animations.sign(e,OTHER,true);assert.deepEqual(e.participants,[OTHER]);e.status='Annulée';assert.throws(()=>animations.sign(e,TARGET,true));});
-test('planning : bouton Participer à côté, bloqué quand complet, Détails avec la fiche complète',async()=>{
+test('planning : seuls Détails (à côté) et Proposer ; fiche avec Participer bloqué quand complet',async()=>{
  const open=animations.newEvent(draft({title:'Ouverte',capacity:3}),ACTOR),full=animations.newEvent(draft({title:'Pleine',capacity:1,description:'Fiche détaillée',rewards:'Un badge',conditions:'Être en vocal'}),ACTOR);full.participants=[OTHER];
  animations.save(s=>{s.events[open.id]=open;s.events[full.id]=full;});await animations.refresh(guild);
  const json=sent.at(-1).p.components[0].toJSON(),sections=json.components.filter(c=>c.type===9);
  assert.equal(sections.length,2);
  const byTitle=t=>sections.find(s=>s.components[0].content.includes(t));
- assert.equal(byTitle('Ouverte').accessory.label,'Participer');assert.ok(!byTitle('Ouverte').accessory.disabled);assert.match(byTitle('Ouverte').components[0].content,/0\/3 places/);
- assert.equal(byTitle('Pleine').accessory.label,'Complet');assert.equal(byTitle('Pleine').accessory.disabled,true);
- assert.ok(json.components.some(c=>c.type===1&&c.components.some(b=>b.custom_id==='qga:info:'+full.id)));
- let reply;const i=interaction('qga:info:'+full.id,TARGET);i.editReply=async p=>{validate(p);reply=p;};await animations.handle(i);
- const d=reply.embeds[0].data.description;assert.match(d,/Fiche détaillée/);assert.match(d,/Un badge/);assert.match(d,/Être en vocal/);assert.match(d,/1\/1 place/);
+ assert.equal(byTitle('Ouverte').accessory.custom_id,'qga:info:'+open.id);assert.match(byTitle('Ouverte').components[0].content,/0\/3 places/);
+ assert.match(byTitle('Pleine').components[0].content,/complet/);
+ // Aucun autre bouton que « Détails » et « Proposer une animation ».
+ const ids=[];const walk=c=>{if(c.custom_id)ids.push(c.custom_id);if(c.accessory)walk(c.accessory);for(const x of c.components||[])walk(x);};walk(json);
+ assert.deepEqual(ids.sort(),['qga:info:'+full.id,'qga:info:'+open.id,'qga:suggest'].sort());
+ let reply;const view=async(eventId,who)=>{const i=interaction('qga:info:'+eventId,who);i.editReply=async p=>{validate(p);reply=p;};await animations.handle(i);return reply;};
+ const r=await view(full.id,TARGET),d=r.embeds[0].data.description;assert.match(d,/Fiche détaillée/);assert.match(d,/Un badge/);assert.match(d,/Être en vocal/);assert.match(d,/1\/1 place/);
+ const joinBtn=r.components[0].toJSON().components[0];assert.equal(joinBtn.label,'Complet');assert.equal(joinBtn.disabled,true);
+ assert.equal((await view(open.id,TARGET)).components[0].toJSON().components[0].label,'Participer');
  await assert.rejects(animations.handle(interaction('qga:join:'+full.id,TARGET)),/Plus aucune place/);
+});
+test('proposition : jeu, description et joueurs max repris à l’acceptation',async()=>{
+ let modal;const s=interaction('qga:suggest',TARGET);s.showModal=async m=>{modal=m.toJSON();};await animations.handle(s);
+ const labels=modal.components.map(r=>r.components[0].label);assert.equal(labels[0],'Jeu');assert.ok(labels.some(l=>/Nombre max de joueurs/.test(l)));assert.ok(labels.some(l=>l==='Description'));
+ await assert.rejects(animations.handle(interaction('qga:save-suggestion',TARGET,[],{title:'Loup-garou',description:'Partie',players:'abc'})),/Nombre max de joueurs/);
+ await animations.handle(interaction('qga:save-suggestion',TARGET,[],{title:'Loup-garou',description:'Partie en vocal',players:'12',date:''}));
+ const p=Object.values(animations.state().suggestions)[0];assert.equal(p.title,'Loup-garou');assert.equal(p.capacity,12);
+ const id=u.session(interaction(''),'animation');await animations.handle(interaction('qga:opensuggestion:'+id,ACTOR,[p.id]));await animations.handle(interaction('qga:acceptsuggestion:'+id,ACTOR));
+ assert.equal(u.get(interaction(''),id,'animation').draft.capacity,12);
 });
 test('permissions organisateur : propre animation uniquement, responsable toutes',()=>{const e=animations.newEvent(draft({organizerId:OTHER}),OTHER);assert.equal(animations.mayEdit(members.get(OTHER),e),true);e.organizerId=ACTOR;assert.equal(animations.mayEdit(members.get(OTHER),e),false);assert.equal(animations.mayEdit(members.get(ACTOR),e),true);});
 test('calendrier : pages valides, actualisation sans republier',async()=>{animations.save(s=>{for(let n=0;n<9;n++){const e=animations.newEvent(draft({title:'Animation '+n,summary:'x'.repeat(600),location:'x'.repeat(200),type:'x'.repeat(100)}),ACTOR);s.events[e.id]=e;}});await animations.refresh(guild);const count=sent.length;assert.equal(count,3);await animations.refresh(guild);assert.equal(sent.length,count);});

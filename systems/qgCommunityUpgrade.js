@@ -92,7 +92,13 @@ async function tick(guild){
   for(const [id,v] of Object.entries(a.state().schoolFamilyMembership||{}))if(v.active){
    await deliver(guild,'recruit:'+id+':'+v.joinedAt,'1562193740079038515',{content:`<@&1561363081018474626>`,embeds:[embed('✦ Une nouvelle recrue rejoint le QG',`Bienvenue dans la famille, <@${id}> !\n\nRejoins régulièrement les membres **en vocal et en jeu** : les échanges et l’activité font vivre notre famille.\n\nPrends le temps de lire <#1561157212154372137> pour connaître nos repères et nos attentes.\n\n**Rejoins notre communauté Roblox** : [envoie ta demande ici](${config.robloxGroupUrl}). Elle restera en attente et sera acceptée automatiquement quand tu passeras **Membre Confirmé**.\n\nHeureux de te compter parmi nous !`)],allowedMentions:{parse:[],roles:['1561363081018474626']}}).catch(e=>console.error('Annonce recrutement QG :',e.code||e.name));
   }
-  if(Date.now()-lastRoster>300000){await roster(guild);lastRoster=Date.now();}
+  if(Date.now()-lastRoster>300000){
+   await roster(guild);lastRoster=Date.now();
+   // Guide de la famille (effectifs par grade) et panel exécutant (places libres) suivent les rôles.
+   const panels=require('./qgPanels');
+   await panels.refreshGuide(guild).catch(e=>console.error('Guide famille QG :',e.code||e.name));
+   await panels.refreshManagement(guild).catch(e=>console.error('Panel exécutant QG :',e.code||e.name));
+  }
  }finally{busy=false;}
 }
 async function execute(i){

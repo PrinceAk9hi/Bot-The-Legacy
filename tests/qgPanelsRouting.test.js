@@ -15,7 +15,7 @@ test('ticket panel order, supplied emojis, white branding and verification help 
 });
 test('management capacity uses real members and excludes the responsible',async()=>{
  reset();const members=new Collection([['a',{user:{bot:false},roles:{cache:new Map([['animation',true]])}}],['lead',{user:{bot:false},roles:{cache:new Map([['animation',true],['animation-lead',true]])}}]]);
- const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.fields.find(f=>f.name==='Gestion Animation').value,/●○  \*\*1\*\* place libre/);
+ const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.fields.find(f=>f.name==='🎉 Exécutant des Animations').value,/●○  \*\*1\*\* place libre/);
  const unknown=await panels.management();assert.match(unknown.embeds[0].data.fields[0].value,/non mesurées/);
 });
 test('reports and Foundation are private from Support and Administrator roles',()=>{

@@ -1,52 +1,58 @@
-const u=require('../utils/qgModuleUi'),{a}=u,live=require('./qgRecruitmentLive'),{Mixer}=require('../utils/qgAudioMixer'),fs=require('node:fs'),path=require('node:path');
+// Accueil vocal du salon d'attente entretien (sans musique).
+// - Un candidat attend et aucun recruteur n'est en bureau : annonce « recruteurs absents » (et « bienvenue » à l'arrivée).
+// - Des recruteurs sont en bureau d'entretien : « Des recruteurs sont actuellement en bureau d'entretien, préparez-vous à être déplacé sous peu. »
+// - Plus personne en attente : le bot quitte le vocal.
+const u=require('../utils/qgModuleUi'),{a}=u,live=require('./qgRecruitmentLive'),{decode}=require('../utils/qgAudioMixer'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'../assets/audio/qg'),defaults={enabled:true,normal:.65,duck:.20,voice:1,downMs:1500,upMs:2000,interval:15000};
 const config=()=>({...defaults,...a.state().voiceReception});
-const files=['accueil','concertation','recruteurs-occupes','recruteurs-absents'];
-let announcementVersion=0;let connection,player,mixer,busy=false,current=null,nextAt=0,welcome=false,lastError=null,reconnectAt=0,guildRef,stopped=false,testing=false;
+const files=['accueil','recruteurs-absents','recruteurs-en-bureau'];
+const labels={accueil:'Bienvenue','recruteurs-absents':'Aucun recruteur en bureau','recruteurs-en-bureau':'Recruteurs en bureau d’entretien'};
+let announcementVersion=0;let connection,player,mixer=null,busy=false,current=null,nextAt=0,welcome=false,lastError=null,reconnectAt=0,guildRef,stopped=false,testing=false,decoder=null;
 function persist(patch){a.save(s=>{s.voiceReception={...config(),...patch};});}
-function checkFiles(){const absent=[...files,'ambiance'].filter(n=>!fs.existsSync(path.join(root,n+'.mp3')));if(absent.length)throw Error('Ajoute les fichiers suivants dans assets/audio/qg : '+absent.map(x=>x+'.mp3').join(', '));const ffmpeg=process.env.FFMPEG_PATH||require('ffmpeg-static');if(!ffmpeg||!fs.existsSync(ffmpeg))throw Error('FFmpeg absent. Réinstalle les dépendances.');}
-function stopAudio(){announcementVersion++;mixer?.destroy();mixer=null;player?.stop();player=null;current=null;}
-function disconnect(){stopAudio();if(connection&&connection.state.status!=='destroyed')connection.destroy();connection=null;}
+function checkFiles(){const absent=files.filter(n=>!fs.existsSync(path.join(root,n+'.mp3')));if(absent.length)throw Error('Ajoute les fichiers suivants dans assets/audio/qg : '+absent.map(x=>x+'.mp3').join(', '));const ffmpeg=process.env.FFMPEG_PATH||require('ffmpeg-static');if(!ffmpeg||!fs.existsSync(ffmpeg))throw Error('FFmpeg absent. Réinstalle les dépendances.');}
+// Annonce adaptée : des recruteurs présents en bureau (quel que soit leur statut) ou personne.
+function choice(guild){return live.snapshot(guild).staff.length?'recruteurs-en-bureau':'recruteurs-absents';}
+function stopAudio(){announcementVersion++;try{decoder?.process?.kill();}catch{}decoder=null;player?.stop(true);player=null;current=null;}
+function disconnect(){stopAudio();if(connection&&connection.state.status!=='destroyed')connection.destroy();connection=null;reconnectAt=0;}
 async function connect(guild,voice=require('@discordjs/voice')){if(Date.now()<reconnectAt)return;if(connection?.state.status===voice.VoiceConnectionStatus.Ready)return;const ch=await guild.channels.fetch(live.WAIT),bot=await guild.members.fetchMe();if(!ch?.isVoiceBased()||!ch.permissionsFor(bot)?.has([u.PermissionFlagsBits.ViewChannel,u.PermissionFlagsBits.Connect,u.PermissionFlagsBits.Speak]))throw Error('Accès au vocal d’accueil insuffisant.');const other=voice.getVoiceConnection(guild.id);if(other&&other!==connection&&other.joinConfig.channelId!==live.WAIT)throw Error('Le bot utilise déjà un autre vocal. Libère cette connexion avant activation.');reconnectAt=Date.now()+15000;if(connection&&connection.state.status!=='destroyed'){connection.rejoin({channelId:live.WAIT});}else{connection=voice.joinVoiceChannel({channelId:live.WAIT,guildId:guild.id,adapterCreator:guild.voiceAdapterCreator,selfDeaf:true,selfMute:false});connection.on('error',e=>{lastError=e.message;});connection.on('stateChange',(_,next)=>{if(next.status==='disconnected'||next.status==='destroyed'){stopAudio();nextAt=Date.now()+15000;}});}await voice.entersState(connection,voice.VoiceConnectionStatus.Ready,20000);lastError=null;}
-function ensureMusic(){if(mixer&&!mixer.destroyed)return;const voice=require('@discordjs/voice');mixer=new Mixer(path.join(root,'ambiance.mp3'),config());mixer.on('error',e=>{lastError=e.message;nextAt=Date.now()+15000;});player=voice.createAudioPlayer({behaviors:{noSubscriber:voice.NoSubscriberBehavior.Pause}});player.on('error',e=>{lastError=e.message;stopAudio();});player.play(voice.createAudioResource(mixer,{inputType:voice.StreamType.Raw}));connection.subscribe(player);}
-async function announce(name,{replace=false}={}){if(!files.includes(name)||current&&!replace)return;const version=++announcementVersion,activeMixer=mixer;if(replace)activeMixer.cancelAnnouncement();current=name;try{await activeMixer.announce(path.join(root,name+'.mp3'));}catch(e){if(e.code!=='ANNOUNCEMENT_REPLACED')lastError=e.message;}finally{if(version===announcementVersion){current=null;nextAt=(activeMixer.voiceEndedAt||Date.now())+config().interval;}}}
+function ensureMusic(){if(player)return;const voice=require('@discordjs/voice');player=voice.createAudioPlayer({behaviors:{noSubscriber:voice.NoSubscriberBehavior.Pause}});player.on('error',e=>{lastError=e.message;});connection.subscribe(player);}
+async function announce(name,{replace=false}={}){if(!files.includes(name)||current&&!replace)return;const voice=require('@discordjs/voice');ensureMusic();const version=++announcementVersion;current=name;
+ try{try{decoder?.process?.kill();}catch{}decoder=decode(path.join(root,name+'.mp3'));const resource=voice.createAudioResource(decoder.stream,{inputType:voice.StreamType.Raw,inlineVolume:true});resource.volume?.setVolume(config().voice);const p=player;p.play(resource);
+  await new Promise(resolve=>{const done=()=>{p.off(voice.AudioPlayerStatus.Idle,done);resolve();};p.on(voice.AudioPlayerStatus.Idle,done);setTimeout(done,120000).unref?.();});}
+ catch(e){lastError=e.message;}finally{if(version===announcementVersion){current=null;nextAt=Date.now()+config().interval;}}}
 async function playNow(guild,name='context'){return a.serial('voice-manual',async()=>{
  if(!config().enabled)throw Error('L’accueil vocal est désactivé.');
  if(!listeners(guild).some(live.candidate))throw Error('Aucun candidat n’attend dans le vocal.');
- const choice=live.snapshot(guild).announcement;
- if(name==='context')name=choice;
- if(!name)return 'Un recruteur est disponible, ou les statuts sont mixtes : musique seule.';
+ if(name==='context')name=choice(guild);
  if(!files.includes(name))throw Error('Annonce inconnue.');
- if(name!=='accueil'&&name!==choice)throw Error('Cette annonce ne correspond pas à la situation actuelle des recruteurs.');
  checkFiles();await connect(guild);if(connection?.state.status!=='ready')throw Error('Connexion en cours. Réessaie dans quelques secondes.');
- ensureMusic();welcome=false;nextAt=Infinity;
+ welcome=false;nextAt=Infinity;
  void announce(name,{replace:true});
- return 'Annonce lancée maintenant. Prochaine annonce automatique '+config().interval/1000+' s après sa fin.';
+ return 'Annonce lancée : '+labels[name]+'.';
 });}
 function listeners(guild){return [...(guild.channels.cache.get(live.WAIT)?.members?.values()||[])].filter(m=>!m.user.bot);}
 function migrateAutoJoin(){const old=a.state().voiceReception;if(old?.autoJoinVersion===1)return;const disabled=old?.enabled===false&&(a.state().schoolAdminHistory||[]).some(x=>x.action==='voice-reception.desactiver');persist({enabled:!disabled,autoJoinVersion:1});}
 async function tick(guild,{force=false}={}){if(busy||stopped||held)return;busy=true;guildRef=guild;try{
  migrateAutoJoin();if(!config().enabled){disconnect();lastError='Accueil désactivé. Utilise /accueil-vocal activer.';return;}
- // Joining Discord must not depend on music files or recruitment storage.
- if(force||listeners(guild).length||connection)await connect(guild);
  let arrivals=[];try{arrivals=await live.sync(guild);}catch(e){lastError='Suivi des candidats : '+e.message;}
  if(arrivals.length)welcome=true;
- const waiting=live.state().queue.length;
- if(!waiting&&!testing){welcome=false;stopAudio();return;}
+ const waiting=live.state().queue.length||listeners(guild).some(live.candidate);
+ // Plus personne en attente d'entretien : le bot quitte le vocal.
+ if(!waiting&&!testing){welcome=false;if(connection)disconnect();return;}
+ await connect(guild);
  if(connection?.state.status!=='ready')return;
- checkFiles();ensureMusic();
- if(!current){if(welcome){welcome=false;announce('accueil').catch(e=>{lastError=e.message;});}else if(Date.now()>=nextAt){const choice=live.snapshot(guild).announcement;if(choice)announce(choice).catch(e=>{lastError=e.message;});else nextAt=Date.now()+config().interval;}}
+ checkFiles();
+ if(!current){if(welcome){welcome=false;announce('accueil').catch(e=>{lastError=e.message;});}else if(Date.now()>=nextAt)announce(choice(guild)).catch(e=>{lastError=e.message;});}
  }catch(e){lastError=e.message;reconnectAt=Date.now()+15000;}finally{busy=false;}}
 async function voice(old,next){if(old.channelId===next.channelId)return;if(next.channelId===live.WAIT&&!next.member?.user.bot){reconnectAt=0;return tick(next.guild,{force:true});}if(old.channelId===live.WAIT)return tick(next.guild);}
-function status(guild){const c=config(),snap=live.snapshot(guild),labels={accueil:'Bienvenue',concertation:'Équipe en concertation','recruteurs-occupes':'Recruteurs en entretien','recruteurs-absents':'Aucun recruteur présent'},choice=snap.announcement;
- const p=u.payload('🎧 ACCUEIL VOCAL · QG','**Les annonces sont automatiques.**\nUn clic sur « Annoncer maintenant » diffuse immédiatement le message adapté à l’équipe. Le délai automatique repart après la fin de la voix.\n\nLa musique continue sous Jessica. Si une voix est déjà en cours, elle est remplacée.',[
+function status(guild){const c=config(),snap=live.snapshot(guild),next=choice(guild);
+ const p=u.payload('🎧 ACCUEIL VOCAL · QG','Le bot rejoint le vocal d’attente quand un candidat attend, diffuse l’annonce adaptée, puis quitte le vocal quand plus personne n’attend.',[
  u.row(u.button('qgv:play:context','Annoncer maintenant',u.ButtonStyle.Primary),u.button('qgv:play:accueil','Dire bienvenue'),u.button('qgv:status','Actualiser'))]);
  p.embeds[0].addFields(
- {name:'Connexion & musique',value:`${c.enabled?'🟢 Activé':'🔴 Désactivé'} · ${connection?.state.status==='ready'?'Connecté':'Non connecté'}\nMusique : ${mixer&&!mixer.destroyed?'en lecture':'arrêtée'}\nSalon : <#${live.WAIT}>`},
+ {name:'Connexion',value:`${c.enabled?'🟢 Activé':'🔴 Désactivé'} · ${connection?.state.status==='ready'?'Connecté':'Non connecté'}\nSalon : <#${live.WAIT}>`},
  {name:'Annonce en cours',value:labels[current]||'Aucune',inline:true},
- {name:'Prochaine annonce automatique',value:current?`${c.interval/1000} s après la voix en cours`:!c.enabled||!live.state().queue.length?'En attente d’un candidat':!choice?'Musique seule — selon les disponibilités':Number.isFinite(nextAt)&&nextAt>Date.now()?u.time(nextAt):'À la prochaine vérification',inline:true},
- {name:'Situation de l’équipe',value:`${snap.available.length} disponible(s) · ${snap.occupied.length} en entretien · ${snap.concertation.length} en concertation\nMessage adapté : **${labels[choice]||'aucun — musique seule'}**`},
- {name:'Réglages',value:`Musique : ${Math.round(c.normal*100)} % → ${Math.round(c.duck*100)} % pendant Jessica\nVoix : ${Math.round(c.voice*100)} % · Répétition : ${c.interval/1000} s après chaque annonce`});
+ {name:'Prochaine annonce',value:!c.enabled||!live.state().queue.length?'En attente d’un candidat':labels[next],inline:true},
+ {name:'Recruteurs en bureau',value:String(snap.staff.length)});
  if(lastError)p.embeds[0].addFields({name:'À résoudre',value:lastError.slice(0,1024)});return p;}
 async function monitor(guild){return require('./qgRecruitmentHub').install(guild);}
 async function auth(i){const m=await a.actor(i);if(!a.isDirection(m)&&!a.has(m,['recruitmentLead']))throw Error('Réservé à la direction et au responsable recrutement.');return m;}
@@ -61,4 +67,4 @@ function shutdown(){stopped=true;disconnect();}
 let held=false;
 async function pause(){held=true;for(let n=0;n<50&&busy;n++)await new Promise(r=>setTimeout(r,100));disconnect();}
 function resume(){held=false;reconnectAt=0;}
-module.exports={pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};
+module.exports={choice,labels,pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};

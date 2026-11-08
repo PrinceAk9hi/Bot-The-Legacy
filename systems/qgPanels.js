@@ -4,9 +4,7 @@ const icons={questions:{id:'1561415725485260840',name:'mail'},event:{id:'1561417
 const icon=k=>`<:${icons[k].name}:${icons[k].id}>`;
 const embed=(title,description)=>new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 // Équipes d'exécutants (anciennement « gestions ») : [rôle, rôle du responsable, libellé, mission, emoji].
-const teams=[['rpManagement','rpLead','Exécutant du RP','Scènes roleplay, accompagnement des joueurs et projets RP.','🎭'],['ticketsManagement','ticketsLead','Exécutant Support','Accueil des membres, réponses aux questions et suivi des tickets.','🎫'],['recruitmentManagement','recruitmentLead','Exécutant des Recrutements','Étude des candidatures, entretiens et intégration des recrues.','📋'],['animationManagement','animationLead','Exécutant des Animations','Animations, événements et vie de la communauté.','🎉'],['networksManagement','networksLead','Exécutant des Réseaux','Publications et présence de la famille sur les réseaux.','🌐']];
-const casinoTeam=['casinoOperator','casinoLead','Exécutant du casino','Tables de jeu, classement et support du casino.','🎰'];
-function tickets(guild){
+const teams=[['rpManagement','rpLead','Exécutant du RP','Scènes roleplay, accompagnement des joueurs et projets RP.','🎭'],['ticketsManagement','ticketsLead','Exécutant Support','Accueil des membres, réponses aux questions et suivi des tickets.','🎫'],['recruitmentManagement','recruitmentLead','Exécutant des Recrutements','Étude des candidatures, entretiens et intégration des recrues.','📋'],['animationManagement','animationLead','Exécutant des Animations','Animations, événements et vie de la communauté.','🎉'],['networksManagement','networksLead','Exécutant des Réseaux','Publications et présence de la famille sur les réseaux.','🌐']];function tickets(guild){
  const find=(name,fallback)=>{const e=guild?.emojis?.cache?.find(e=>e.name===name&&e.available!==false);return e?{id:e.id,name:e.name,animated:e.animated}:fallback;};
  const ticketIcons={...icons,event:find('announcement',{name:'📣'}),report:find('staff',{id:'1561417105218215996',name:'staff'})};
  const ticketIcon=key=>ticketIcons[key].id?`<${ticketIcons[key].animated?'a':''}:${ticketIcons[key].name}:${ticketIcons[key].id}>`:ticketIcons[key].name;
@@ -32,9 +30,10 @@ async function refreshManagement(guild){const rec=read('qgServer').schoolPanels?
 function brand(guild){const e=guild?.emojis?.cache?.find(e=>e.name==='QG'&&e.available!==false);return e?`<${e.animated?'a':''}:${e.name}:${e.id}> `:'';}
 
 // ---------- #help-qg : guide de la famille ----------
-const grades=[['test','🧪'],['confirmed','✅'],['expert','🎯'],['prestigious','💎'],['senior','👑']];
+// Du plus haut grade au plus bas.
+const grades=[['senior','👑'],['prestigious','💎'],['expert','🎯'],['confirmed','✅'],['test','🧪']];
 // Présentation des salons, reconnus par un mot de leur nom.
-const channelInfo=[[/help-qg|guide-famille/,'Ce guide : salons, grades, exécutants et communauté.'],[/rejoindre-une-gestion/,'Candidater pour devenir exécutant.'],[/nouvelle-recrue/,'Accueil des nouvelles recrues de la famille.'],[/annonces-famille/,'Annonces officielles de la famille.'],[/rankup|avertissement/,'Promotions, rétrogradations et avertissements.'],[/absences/,'Déclarer et gérer tes absences.'],[/effectifs/,'Liste à jour des membres et de leur grade.'],[/reunion|réunion/,'Convocations et comptes rendus des réunions.'],[/annonces-ann?imation/,'Annonces des animations à venir.'],[/planning-ann?imation/,'Planning des prochaines animations.'],[/general|général/,'Discussion entre membres de la famille.'],[/medias|médias/,'Captures, vidéos et souvenirs de la famille.'],[/suggestions/,'Tes idées pour améliorer la famille.'],[/commandes/,'Commandes du bot : vocal temporaire, profil…'],[/organigramme/,'Qui fait quoi dans la famille.'],[/giveaway/,'Giveaways réservés à la famille.']];
+const channelInfo=[[/help-qg|guide-famille/,'Ce guide : salons, grades et communauté.'],[/rejoindre-une-gestion/,'Candidater pour devenir exécutant.'],[/nouvelle-recrue/,'Accueil des nouvelles recrues de la famille.'],[/annonces-famille/,'Annonces officielles de la famille.'],[/rankup|avertissement/,'Promotions, rétrogradations et avertissements.'],[/absences/,'Déclarer et gérer tes absences.'],[/effectifs/,'Liste à jour des membres et de leur grade.'],[/reunion|réunion/,'Convocations et comptes rendus des réunions.'],[/annonces-ann?imation/,'Annonces des animations à venir.'],[/planning-ann?imation/,'Planning des prochaines animations.'],[/general|général/,'Discussion entre membres de la famille.'],[/medias|médias/,'Captures, vidéos et souvenirs de la famille.'],[/suggestions/,'Tes idées pour améliorer la famille.'],[/commandes/,'Commandes du bot : vocal temporaire, profil…'],[/organigramme/,'Qui fait quoi dans la famille.'],[/giveaway/,'Giveaways réservés à la famille.']];
 function describeChannel(c){const n=c.name.normalize('NFC').toLowerCase();return channelInfo.find(([re])=>re.test(n))?.[1]||null;}
 async function guide(guild){
  const s=read('qgServer'),r=s.schoolRoles||{},link=require('../config/qg').robloxGroupUrl,b=brand(guild);
@@ -43,15 +42,13 @@ async function guide(guild){
  const count=id=>humans&&id?humans.filter(m=>m.roles.cache.has(id)).length:null;
  const roleName=(key,fallback)=>guild?.roles?.cache?.get(r[key])?.name?.replace(/^«\s*I\s*/,'')||fallback;
  // 1. Présentation + communauté Roblox
- const intro=embed('⛩️ Guide de la famille QG',`${b}Bienvenue dans le guide de la famille ! Retrouve ici nos salons, nos grades, nos équipes d’exécutants et le lien de notre communauté Roblox.\n\n🎮 **Communauté Roblox**\n${link}\nEnvoie ta demande d’adhésion : elle est acceptée quand tu passes **Membre Confirmé**. Les exécutants y reçoivent le rang **Membre gestion**.\n\n🏛️ **Direction**\n${['creator','globalManager','administrator'].map(k=>r[k]?`<@&${r[k]}>`:null).filter(Boolean).join(' → ')||'Directeur → Superviseur → Administrateur'}\nLa Direction encadre la famille et valide les décisions importantes.`);
+ const intro=embed('⛩️ Guide de la famille QG',`${b}Bienvenue dans le guide de la famille ! Retrouve ici nos salons, nos grades et le lien de notre communauté Roblox.\n\n🎮 **Communauté Roblox**\n${link}\nEnvoie ta demande d’adhésion : elle est acceptée quand tu passes **Membre Confirmé**.\n\n🏛️ **Direction**\n${['creator','globalManager','administrator'].map(k=>r[k]?`<@&${r[k]}>`:null).filter(Boolean).join(' → ')||'Directeur → Superviseur → Administrateur'}\nLa Direction encadre la famille et valide les décisions importantes.`);
  // 2. Grades et effectifs
  const lines=grades.map(([key,emoji])=>{const n=count(r[key]);return `${emoji} **${roleName(key,key)}** — ${n===null?'?':n} membre${n>1?'s':''}`;});
  const total=humans?humans.filter(m=>grades.some(([k])=>r[k]&&m.roles.cache.has(r[k]))).length:null;
  const gradesEmbed=embed('📈 Grades et effectifs',`${lines.join('\n')}\n\n**Total famille : ${total===null?'?':total}**\n\nLes promotions sont décidées par les responsables habilités selon l’activité, l’investissement et le comportement. Aucune promotion n’est automatique.\n-# Effectifs mis à jour automatiquement.`);
- // 3. Les équipes d'exécutants
- const teamsEmbed=embed('🛡️ Les équipes d’exécutants',`Chaque équipe est dirigée par son responsable. Pour en rejoindre une : <#${s.schoolChannels?.joinManagement||''}>.`).addFields(...[...teams,casinoTeam].map(([key,lead,label,desc,emoji])=>{const n=count(r[key]);return {name:`${emoji} ${roleName(key,label)}`,value:`${desc}\nResponsable : ${r[lead]?`<@&${r[lead]}>`:'non configuré'} · ${n===null?'?':n} exécutant${n>1?'s':''}`};}));
- // 4. Les salons de la famille (catégories contenant « FAMILLE » + celle de ce guide)
- const embeds=[intro,gradesEmbed,teamsEmbed];
+ // 3. Les salons de la famille (catégories contenant « FAMILLE » + celle de ce guide)
+ const embeds=[intro,gradesEmbed];
  if(guild){
   await guild.channels.fetch().catch(()=>null);
   const guideParent=guild.channels.cache.get(s.schoolChannels?.familyGuide)?.parentId;

@@ -221,7 +221,7 @@ async function messageChange(oldMessage,newMessage,kind,guard=null){
   const by=guard?guard.by:m.author?await qgLog.recent(m.guild,AuditLogEvent.MessageDelete,{match:x=>x.target?.id===m.author.id&&x.extra?.channel?.id===m.channelId,maxAge:60000}):null;
   if(guard?.rec&&!m.author)fields[1].value=`<@${guard.rec.authorId}>`;
   fields.push({name:'Supprimé par',value:by?qgLog.who(by.user):'Son auteur',inline:true});
-  if(guard)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':guard.restored?`Message restauré → [voir](${guard.restored})`:`Restauration impossible : ${guard.error||'contenu inconnu (message envoyé avant le démarrage du bot)'}`,inline:true});
+  if(guard&&!guard.allowed)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':guard.restored?`Message restauré → [voir](${guard.restored})`:`Restauration impossible : ${guard.error||'contenu inconnu (message envoyé avant le démarrage du bot)'}`,inline:true});
   if(privateTicket)fields.push({name:'Contenu',value:'*Masqué : ticket privé*'});
   else{const content=oldMessage?.content||guard?.rec?.content;fields.push({name:'Contenu',value:content?qgLog.quote(mask(content)):'*Non disponible (message trop ancien)*'});
    const files=[...(oldMessage?.attachments?.values?.()||[])];if(files.length)fields.push({name:'Pièces jointes',value:files.map(f=>`📎 ${f.name}`).join('\n')});}
@@ -229,7 +229,7 @@ async function messageChange(oldMessage,newMessage,kind,guard=null){
   icon='🧹';title='Messages supprimés en masse';logKind='delete';
   const by=guard?guard.by:await qgLog.recent(m.guild,AuditLogEvent.MessageBulkDelete,{match:x=>x.target?.id===m.channelId,maxAge:60000});
   fields.push({name:'Nombre',value:String(newMessage?.size||0),inline:true},{name:'Par',value:by?qgLog.who(by.user):'*Non déterminé*',inline:true});
-  if(guard)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':`${guard.restored} message(s) restauré(s)${guard.failed?` · ${guard.failed} non restauré(s)${guard.error?` (${guard.error})`:''}`:''}`,inline:true});
+  if(guard&&!guard.allowed)fields.push({name:'🛡️ Protection',value:guard.allowed?'Suppression autorisée (propriétaire ou bot)':`${guard.restored} message(s) restauré(s)${guard.failed?` · ${guard.failed} non restauré(s)${guard.error?` (${guard.error})`:''}`:''}`,inline:true});
   fields.splice(1,1);
  }
  await logTo(m.guild,'logsModeration',qgLog.entry({kind:logKind,icon,title,user:kind==='bulk'?null:m.author,fields,footer:kind==='bulk'?'':` · ID ${m.author?.id||'?'} · Message ${m.id}`}));

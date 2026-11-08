@@ -5,6 +5,8 @@ const {AuditLogEvent,AttachmentBuilder,PermissionFlagsBits:P}=require('discord.j
 const config=require('../config/qg'),qgLog=require('../utils/qgLog');
 const HOOK='QG · Messages restaurés',KEEP=48*3600000,MAX=20000,FILE_MAX=8*1024*1024,BUDGET=150*1024*1024;
 const cache=new Map(),hooks=new Map();let bytes=0;
+// Les messages supprimés ne sont plus republiés (demande de la direction). Mettre à true pour réactiver.
+const RESTORE=false;
 
 function prune(now=Date.now()){
  for(const [id,rec] of cache){if(cache.size<=MAX&&now-rec.createdAt<KEEP&&bytes<=BUDGET)break;drop(id,rec);}
@@ -66,7 +68,8 @@ async function onDelete(m){
  if(!by)by=await qgLog.recent(guild,AuditLogEvent.MemberBanAdd,{match:e=>e.target?.id===rec.authorId,maxAge:120000,wait:0,retries:0});
  // Sans entrée d'audit, c'est l'auteur qui a supprimé son propre message.
  const actor=by?.user?.id||rec.authorId;
- if(await allowedActor(guild,actor))return {by,allowed:true,rec};
+ // Restauration désactivée sur tout le serveur : une suppression est toujours conservée.
+ if(!RESTORE||await allowedActor(guild,actor))return {by,allowed:true,rec};
  try{const sent=await restore(guild,rec);return {by,allowed:false,restored:sent.url,rec};}
  catch(e){return {by,allowed:false,error:e.message,rec};}
 }
@@ -76,9 +79,9 @@ async function onBulk(messages,channel){
  const list=[...messages.values()].map(m=>cache.get(m.id)||(m.author&&!m.author.bot&&!m.webhookId&&(m.content||m.attachments?.size)?record(m):null)).filter(Boolean).sort((x,y)=>x.createdAt-y.createdAt);
  if(!by&&list.length){const authors=new Set(list.map(r=>r.authorId));by=await qgLog.recent(guild,AuditLogEvent.MemberBanAdd,{match:e=>authors.has(e.target?.id),maxAge:120000,wait:0,retries:0});}
  for(const m of messages.values())cache.delete(m.id);
- if(by&&await allowedActor(guild,by.user?.id))return {by,allowed:true,count:list.length};
+ if(!RESTORE||by&&await allowedActor(guild,by.user?.id))return {by,allowed:true,count:list.length};
  let restored=0,failed=0,error=null;
  for(const rec of list.slice(0,40)){try{await restore(guild,rec);restored++;}catch(e){failed++;error=e.message;}}
  return {by,allowed:false,restored,failed:failed+Math.max(0,list.length-40),error,count:list.length};
 }
-module.exports={remember,onDelete,onBulk,restore,record,cache,HOOK};
+module.exports={remember,onDelete,onBulk,restore,record,cache,HOOK,RESTORE};

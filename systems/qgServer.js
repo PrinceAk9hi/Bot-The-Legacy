@@ -307,6 +307,7 @@ async function interaction(i){
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
  if(i.customId?.startsWith('qgx:'))return require('./qgExpel').handle(i);
+ if(i.customId?.startsWith('qgref:'))return require('./qgReferent').handle(i);
  if(i.isChatInputCommand?.()&&['effectif','note','pdt','recrutement-stats'].includes(i.commandName))return require('./qgFamilyAdmin').execute(i);
  if(i.customId?.startsWith('qgf:'))return require('./qgFamilyAdmin').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='animation')return require('./qgAnimations').execute(i);
@@ -455,7 +456,7 @@ function register(client){
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

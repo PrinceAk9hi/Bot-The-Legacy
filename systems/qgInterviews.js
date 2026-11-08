@@ -176,7 +176,7 @@ async function handle(i){
   return i.showModal(form(`qgr:crsave:${token}`,'Compte-rendu recrutement',[['presentation','Présentation + Communication',true],['decision','Date arrivée / refus + décision',false],['trial','Durée PDT',false],['candidate','Discord du candidat',false,app.applicantId]]));
  }
  await i.deferReply({flags:F.Ephemeral});
- if(op==='questions')return i.editReply({embeds:[embed('Guide d’entretien','Les questions et consignes de l’entretien oral ne sont pas encore configurées. Elles seront ajoutées après transmission par la direction.')]});
+ if(op==='questions')return i.editReply({embeds:require('../config/qgInterviewGuide').sections(a.state().schoolChannels?.familyGuide).map(([title,text])=>embed('🎙️ '+title,text)),allowedMentions:{parse:[]}});
  if(op==='choose')return choose(i,actor,id);
  if(op==='select'){
   const app=requireApp(i.values[0]),target=await i.guild.members.fetch({user:app.applicantId,force:true});
@@ -252,7 +252,10 @@ async function handle(i){
 // Durée observée uniquement : aucun temps hors ligne n’est reconstitué.
 let lastTick=Date.now();
 let observed=new Set();
+// Au premier passage après un démarrage : les fiches déjà postées sont réaffichées avec toutes les questions.
+let cardsRefreshed=false;
 async function tick(guild){
+ if(!cardsRefreshed){cardsRefreshed=true;for(const app of Object.values(a.state().schoolFamilyRecruitment||{}))if(app.channelId&&app.messageId)await refresh(guild,app);}
  const now=Date.now(),elapsed=Math.min(65000,Math.max(0,now-lastTick));lastTick=now;
  const present=new Set();
  for(const id of officeIds()){

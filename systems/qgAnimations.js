@@ -19,10 +19,11 @@ const audit=(guild,m,e,action,before,reason)=>a.audit(guild,{action:'animation.'
 function conflicts(e,all=Object.values(state().events)){return all.filter(x=>x.id!==e.id&&!closed(x)&&x.startAt<e.startAt+e.minutes*60000&&e.startAt<x.startAt+x.minutes*60000);}
 function validateDraft(e){if(!e.title?.trim()||e.title.length>100)throw Error('Titre requis, 100 caractères maximum (limite du menu Discord).');if(!Number.isFinite(e.startAt)||e.startAt<=Date.now()&&!(e.id&&event(e.id)?.startAt===e.startAt))throw Error('La date doit être future.');if(!Number.isInteger(e.minutes)||e.minutes<1||e.minutes>10080)throw Error('Durée : 1 à 10 080 minutes.');if(e.capacity!==null&&(!Number.isInteger(e.capacity)||e.capacity<1))throw Error('Nombre de places invalide.');if(!e.organizerId)throw Error('Organisateur requis.');}
 function newEvent(draft,actorId){validateDraft(draft);return{...draft,id:randomUUID(),status:'Programmée',createdAt:Date.now(),createdBy:actorId,version:1,participants:[],waitlist:[],attendance:{},history:[],deliveries:{},report:null};}
+const full=e=>!!e.capacity&&(e.participants||[]).length>=e.capacity;
 function sign(e,userId,join,now=Date.now()){
  if(!e.signups||closed(e)||now>=e.startAt)throw Error('Les inscriptions sont fermées.');
  e.participants||=[];e.waitlist||=[];
- if(join){if(e.participants.includes(userId)||e.waitlist.includes(userId))return 'Déjà inscrit.';if(e.capacity&&e.participants.length>=e.capacity){e.waitlist.push(userId);return 'Ajouté à la liste d’attente.';}e.participants.push(userId);return 'Inscription confirmée.';}
+ if(join){if(e.participants.includes(userId)||e.waitlist.includes(userId))return 'Déjà inscrit.';if(full(e))throw Error('Plus aucune place disponible pour cette animation.');e.participants.push(userId);return 'Inscription confirmée.';}
  const was=e.participants.includes(userId);e.participants=e.participants.filter(id=>id!==userId);e.waitlist=e.waitlist.filter(id=>id!==userId);if(was&&e.waitlist.length&&(!e.capacity||e.participants.length<e.capacity))e.participants.push(e.waitlist.shift());return 'Désinscription enregistrée.';
 }
 function publicButtons(id){return u.row(u.button('qga:join:'+id,'Participer',u.ButtonStyle.Success),u.button('qga:leave:'+id,'Se désinscrire'),u.button('qga:participants:'+id,'Voir les participants'));}
@@ -35,10 +36,54 @@ async function deliver(guild,channelId,key,payload){const ch=await channel(guild
  else{payload.embeds[0].setFooter(require('../utils/qgBrand').footer(' · '+marker));save(s=>{s.deliveries||={};s.deliveries[key]={pending:true,at:Date.now()};});try{message=await ch.send(payload);}catch(error){if(error.status>=400&&error.status<500&&error.status!==429)save(s=>{delete s.deliveries[key];});throw error;}}
  save(s=>{s.deliveries[key]={id:message.id,channelId,at:Date.now()};});return message;
 }
+// ---------- Planning (#planning-animations) ----------
+// Chaque animation a sa carte : date, places et bouton « Participer » juste à côté,
+// puis « Détails » (fiche complète rédigée par l'animateur) et « Participants ».
+const PER_PAGE=4;
+function joinButton(e){
+ const d=require('discord.js');
+ if(!e.signups)return u.button('qga:info:'+e.id,'Sans inscription').setDisabled(true);
+ if(Date.now()>=e.startAt)return u.button('qga:info:'+e.id,'Inscriptions closes').setDisabled(true);
+ if(full(e))return u.button('qga:join:'+e.id,'Complet',d.ButtonStyle.Danger).setDisabled(true);
+ return u.button('qga:join:'+e.id,'Participer',d.ButtonStyle.Success).setEmoji('✋');
+}
+function places(e){
+ if(!e.signups)return 'Sans inscription';
+ const n=(e.participants||[]).length;
+ return e.capacity?`${n}/${e.capacity} place${e.capacity>1?'s':''}${full(e)?' · **complet**':''}`:`${n} inscrit${n>1?'s':''} · places illimitées`;
+}
+function card(e){
+ const d=require('discord.js');
+ const text=`### 🎉 ${e.title}\n📅 <t:${Math.floor(e.startAt/1000)}:F> · <t:${Math.floor(e.startAt/1000)}:R>\n⏱️ ${e.minutes} min · 👥 ${places(e)}\n🎙️ <@${e.organizerId}>${e.status==='En cours'?' · 🔴 **En cours**':''}${e.summary?'\n'+e.summary.slice(0,300):''}`;
+ return [
+  new d.SectionBuilder().addTextDisplayComponents(new d.TextDisplayBuilder().setContent(text)).setButtonAccessory(joinButton(e)),
+  u.row(u.button('qga:info:'+e.id,'Détails de l’animation').setEmoji('📖'),...(e.signups?[u.button('qga:participants:'+e.id,'Participants').setEmoji('👥')]:[]))
+ ];
+}
+function planningPayload(list,page,pages){
+ const d=require('discord.js'),box=new d.ContainerBuilder().setAccentColor(0xffffff);
+ box.addTextDisplayComponents(new d.TextDisplayBuilder().setContent(`## 📅 Planning des animations${pages>1?` · ${page+1}/${pages}`:''}\nClique sur **Participer** pour t’inscrire. **Détails** affiche toute la fiche préparée par l’animateur.`));
+ const part=list.slice(page*PER_PAGE,page*PER_PAGE+PER_PAGE);
+ if(!part.length)box.addSeparatorComponents(new d.SeparatorBuilder()).addTextDisplayComponents(new d.TextDisplayBuilder().setContent(page<pages?'Aucune animation prévue pour le moment. Propose une idée à l’équipe !':'Cette page est désormais vide.'));
+ for(const e of part){const [section,actions]=card(e);box.addSeparatorComponents(new d.SeparatorBuilder()).addSectionComponents(section).addActionRowComponents(actions);}
+ box.addSeparatorComponents(new d.SeparatorBuilder()).addActionRowComponents(u.row(u.button('qga:suggest','Proposer une animation').setEmoji('💡'),u.button('qga:public','Toutes les animations')));
+ return {components:[box],flags:d.MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
+}
+// Fiche complète, visible uniquement par la personne qui clique.
+function details(e,userId){
+ const lines=[`📅 **Date** : <t:${Math.floor(e.startAt/1000)}:F> (<t:${Math.floor(e.startAt/1000)}:R>)`,`⏱️ **Durée** : ${e.minutes} min`,`🏷️ **Type** : ${e.type||'Autre'}`,`📍 **Lieu** : ${e.location||'À préciser'}`,`🎙️ **Animateur** : <@${e.organizerId}>${e.coorganizers?.length?' · avec '+e.coorganizers.map(id=>'<@'+id+'>').join(', '):''}`,`👥 **Places** : ${places(e)}`,`📌 **Statut** : ${e.status}`];
+ const body=[lines.join('\n'),e.summary&&`**En bref**\n${e.summary}`,e.description&&`**Description**\n${e.description}`,e.rewards&&`🎁 **Récompenses**\n${e.rewards}`,e.conditions&&`✅ **Conditions de participation**\n${e.conditions}`].filter(Boolean).join('\n\n');
+ const registered=(e.participants||[]).includes(userId)||(e.waitlist||[]).includes(userId);
+ const rows=e.signups?[u.row(registered?u.button('qga:leave:'+e.id,'Se désinscrire',require('discord.js').ButtonStyle.Danger):joinButton(e),u.button('qga:participants:'+e.id,'Participants'))]:[];
+ return u.payload('🎉 '+e.title,u.chunks(body)[0],rows);
+}
 async function refresh(guild){return a.serial('animations-calendar',async()=>{
- const list=Object.values(state().events).filter(e=>!closed(e)).sort((x,y)=>x.startAt-y.startAt),pages=Math.max(1,Math.ceil(list.length/2)),ch=await channel(guild,CALENDAR),saved=state().calendar||[];
- for(let page=0;page<Math.max(pages,saved.length);page++){const description=page<pages?list.slice(page*2,page*2+2).map(overview).join('\n\n')||'Aucune animation prévue. Propose une idée à l’équipe !':'Cette page est désormais vide.';const payload=u.payload(`Calendrier des animations · ${Math.min(page+1,pages)}/${pages}`,description,[u.row(u.button('qga:public','Consulter / s’inscrire'),u.button('qga:suggest','Proposer une animation'))]);const hash=createHash('sha256').update(JSON.stringify(payload)).digest('hex'),old=saved[page];if(old?.hash===hash)continue;let msg=old?.id?await ch.messages.fetch(old.id).catch(e=>{if(e.code===10008)return null;throw e;}):null;
-  if(msg){if(msg.author.id!==guild.client.user.id)throw Error('Le calendrier appartient à un autre bot.');await msg.edit(payload);}else msg=await deliver(guild,CALENDAR,'calendar-'+page+'-'+(old?.id||'initial'),payload);
+ const list=Object.values(state().events).filter(e=>!closed(e)).sort((x,y)=>x.startAt-y.startAt),pages=Math.max(1,Math.ceil(list.length/PER_PAGE)),ch=await channel(guild,CALENDAR),saved=state().calendar||[];
+ for(let page=0;page<Math.max(pages,saved.length);page++){const payload=planningPayload(list,page,pages);const hash=createHash('sha256').update(JSON.stringify(payload)).digest('hex'),old=saved[page];if(old?.hash===hash)continue;let msg=old?.id?await ch.messages.fetch(old.id).catch(e=>{if(e.code===10008)return null;throw e;}):null;
+  if(msg&&msg.author.id!==guild.client.user.id)throw Error('Le calendrier appartient à un autre bot.');
+  // Un ancien message à embed ne peut pas devenir un message à composants : on le remplace.
+  if(msg&&!msg.flags.has(require('discord.js').MessageFlags.IsComponentsV2)){await msg.delete().catch(()=>{});msg=null;}
+  if(msg)await msg.edit(payload);else msg=await ch.send(payload);
   save(s=>{s.calendar[page]={id:msg.id,hash};});
  }
  });}
@@ -53,7 +98,7 @@ async function execute(i){await i.deferReply({flags:u.MessageFlags.Ephemeral});a
 function mainForm(id,e={}){return u.form('qga:save-main:'+id,'Animation · informations',[['title','Titre',e.title||''],['summary','Description courte',e.summary||'',true,true],['start','Date : JJ/MM/AAAA HH:mm',e.startAt?paris(e.startAt):''],['minutes','Durée estimée en minutes',e.minutes||60],['type','Type',e.type||'Communautaire']]);}
 function paris(at){const p=Object.fromEntries(new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(at).map(x=>[x.type,x.value]));return`${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;}
 function nextDate(at,days){const [date,time]=paris(at).split(' '),[d,m,y]=date.split('/').map(Number),v=new Date(Date.UTC(y,m-1,d+days));return u.date(`${String(v.getUTCDate()).padStart(2,'0')}/${String(v.getUTCMonth()+1).padStart(2,'0')}/${v.getUTCFullYear()} ${time}`);}
-async function draftPreview(i,id){const s=u.get(i,id,'animation'),e=s.draft;if(!e)throw Error('Brouillon introuvable.');return i.editReply(u.payload('Préparer l’animation',`**${e.title}**\n${u.time(e.startAt)} · ${e.minutes} min\n${(e.summary||'').slice(0,1000)}\nOrganisateur <@${e.organizerId}>\n${conflicts(e).length?'⚠ Conflit de calendrier : '+conflicts(e).map(x=>x.title).join(', ').slice(0,600):'Aucun conflit détecté.'}\n\nVérifie les options avant de confirmer.`,[u.row(u.button('qga:edit:'+id,'Informations'),u.button('qga:options:'+id,'Participants / organisateurs'),u.button('qga:details:'+id,'Détails / récurrence')),u.row(u.button('qga:confirm-event:'+id,'Confirmer',u.ButtonStyle.Success),u.button('qga:home:'+id,'Retour'))]));}
+async function draftPreview(i,id){const s=u.get(i,id,'animation'),e=s.draft;if(!e)throw Error('Brouillon introuvable.');return i.editReply(u.payload('Préparer l’animation',`**${e.title}**\n${u.time(e.startAt)} · ${e.minutes} min\n${(e.summary||'').slice(0,1000)}\nOrganisateur <@${e.organizerId}>\n👥 Places max : **${e.signups?(e.capacity||'illimitées'):'sans inscription'}** (bouton « Places max / participants »)\n${conflicts(e).length?'⚠ Conflit de calendrier : '+conflicts(e).map(x=>x.title).join(', ').slice(0,600):'Aucun conflit détecté.'}\n\nVérifie les options avant de confirmer.`,[u.row(u.button('qga:edit:'+id,'Informations'),u.button('qga:options:'+id,'Places max / participants'),u.button('qga:details:'+id,'Détails / récurrence')),u.row(u.button('qga:confirm-event:'+id,'Confirmer',u.ButtonStyle.Success),u.button('qga:home:'+id,'Retour'))]));}
 function announcePayload(post,page){const parts=u.markdownChunks(post.text);const description=parts[page];const p=u.payload(post.title,description||' ');p.embeds[0].setColor(post.color||0xffffff);if(page===0&&post.image)p.embeds[0].setImage(post.image);p.embeds[0].setFooter(require('../utils/qgBrand').footer(` · ${page+1}/${parts.length}`));if(page===0&&post.signups)p.components=[publicButtons(post.eventId)];p.allowedMentions={parse:[],roles:page===0?post.mentions||[]:[],users:[]};if(page===0&&post.mentions?.length)p.content=post.mentions.map(id=>'<@&'+id+'>').join(' ');return p;}
 async function previewPost(i,id,page=0){const s=u.get(i,id,'animation'),p=s.post;if(!p)throw Error('Annonce introuvable.');const parts=u.markdownChunks(p.text),at=Math.min(page,parts.length-1),payload=announcePayload(p,at);payload.content=`Aperçu ${at+1}/${parts.length} · Publication : ${p.publishAt?u.time(p.publishAt):'immédiate'} · ${p.text.length} caractères`;payload.allowedMentions={parse:[]};payload.components=[u.row(u.button('qga:posttext:'+id,'Ajouter du texte'),u.button('qga:postreplace:'+id,'Remplacer le texte'),u.button('qga:postoptions:'+id,'Options'),u.button('qga:toggle-post-signups:'+id,p.signups?'Bouton inscription : oui':'Bouton inscription : non')),u.row(u.button(`qga:preview:${id}:${Math.max(0,at-1)}:prev`,'◀'),u.button(`qga:preview:${id}:${Math.min(parts.length-1,at+1)}:next`,'▶'),u.button('qga:publish:'+id,p.publishAt?'Programmer':'Publier',u.ButtonStyle.Success),u.button('qga:home:'+id,'Retour'))];return i.editReply(payload);}
 async function publish(guild,id){return a.serial('animation-post:'+id,async()=>{const p=state().posts[id];if(!p||['cancelled','published'].includes(p.status))return;const m=await guild.members.fetch({user:p.authorId,force:true}),e=event(p.eventId);if(!e||!mayEdit(m,e)||closed(e))throw Error('Publication bloquée : animation fermée ou autorisation retirée.');
@@ -66,22 +111,23 @@ async function publish(guild,id){return a.serial('animation-post:'+id,async()=>{
 async function posts(i,id,page=0){const m=await authorize(i),rows=Object.values(state().posts).filter(p=>lead(m)||p.authorId===m.id).sort((x,y)=>y.createdAt-x.createdAt),part=rows.slice(page*20,page*20+20);return i.editReply(u.payload('Publications d’animations',part.map(p=>`${p.title} · ${p.status} · ${u.time(p.publishAt||p.publishedAt)}${p.error?' · '+p.error:''}`).join('\n')||'Aucune publication.',[...(part.length?[u.row(u.menu('qga:openpost:'+id,part.map(p=>({value:p.id,label:p.title.slice(0,90),description:p.status}))))]:[]),u.row(u.button('qga:home:'+id,'Retour'),u.button(`qga:posts:${id}:${Math.max(0,page-1)}:prev`,'◀'),u.button(`qga:posts:${id}:${Math.min(Math.max(0,Math.ceil(rows.length/20)-1),page+1)}:next`,'▶'))]));}
 function statistics(){const rows=Object.values(state().events),reports=rows.filter(e=>e.report),attendance=rows.flatMap(e=>Object.values(e.attendance||{})),present=attendance.filter(v=>v===true).length,by={};for(const e of rows){const r=by[e.organizerId]||={count:0,finished:0,reports:0};r.count++;if(e.status==='Terminée'||e.status==='Archivée')r.finished++;if(e.report)r.reports++;}return u.payload('Statistiques animations',`Organisées : ${rows.length}\nTerminées / archivées : ${rows.filter(e=>['Terminée','Archivée'].includes(e.status)).length}\nAnnulées : ${rows.filter(e=>e.status==='Annulée').length}\nComptes rendus : ${reports.length}\nParticipants déclarés dans les CR : ${reports.reduce((n,e)=>n+e.report.participants,0)}\nPrésences renseignées : ${present}/${attendance.length}\nTaux parmi les présences renseignées : ${attendance.length?(100*present/attendance.length).toFixed(1)+' %':'non mesuré'}\nNote moyenne des CR : ${reports.length?(reports.reduce((n,e)=>n+e.report.rating,0)/reports.length).toFixed(2)+'/5':'non mesurée'}\n\n**Activité des organisateurs**\n${Object.entries(by).sort((x,y)=>y[1].count-x[1].count).slice(0,20).map(([id,r])=>`<@${id}> : ${r.count} organisées · ${r.finished} terminées · ${r.reports} CR`).join('\n')}\n\nLes volumes ne mesurent pas seuls la qualité du travail.`);}
 async function handle(i){const [,op,id,extra]=i.customId.split(':');
- if(['join','leave','participants','public','control','suggest','save-suggestion'].includes(op)){
+ if(['join','leave','participants','info','public','control','suggest','save-suggestion'].includes(op)){
   const m=await member(i);if(['suggest','save-suggestion'].includes(op)&&!animator(m)&&!a.has(m,['community',...require('./qgGrades').ranks]))throw Error('Termine la vérification avant de proposer une animation.');if(op==='suggest')return i.showModal(u.form('qga:save-suggestion','Proposer une animation',[['title','Titre'],['description','Description','',true,true],['date','Date souhaitée JJ/MM/AAAA HH:mm','',false],['type','Type','Communautaire']]));
   await i.deferReply({flags:u.MessageFlags.Ephemeral});
   if(op==='save-suggestion'){const f=k=>i.fields.getTextInputValue(k).trim(),suggestionId=randomUUID(),title=f('title');if(!title||title.length>100)throw Error('Titre requis, 100 caractères maximum.');save(s=>{s.suggestions[suggestionId]={id:suggestionId,title,description:f('description'),startAt:f('date')?u.date(f('date')):null,type:f('type'),authorId:m.id,createdAt:Date.now(),status:'À examiner',history:[]};});return i.editReply('Proposition enregistrée. Les responsables animations pourront l’examiner.');}
   if(op==='public'||op==='control'){const token=u.session(i,'animation');return home(i,token);}
+  if(op==='info'){const e=event(id);if(!e||['Supprimée','Archivée'].includes(e.status))throw Error('Animation introuvable.');return i.editReply(details(e,m.id));}
   if(!a.isDirection(m)&&!a.has(m,['community',...require('./qgGrades').ranks]))throw Error('Termine ta vérification pour participer.');
   const e=event(id);if(!e)throw Error('Animation introuvable.');
   if(op==='participants'){const lines=[`Confirmés (${e.participants.length})`,...e.participants.map(x=>'<@'+x+'>'),`\nAttente (${e.waitlist.length})`,...e.waitlist.map(x=>'<@'+x+'>')],pages=u.chunks(lines.join('\n'));return i.editReply({...u.payload('Participants · '+e.title,pages[0]),...(pages.length>1?{files:[new u.AttachmentBuilder(Buffer.from(lines.join('\n')),{name:'participants.txt'})]}:{})});}
-  const result=await a.serial('animation:'+id,async()=>{let result;edit(id,r=>{result=sign(r,m.id,op==='join');});return result;});await i.editReply(result);await refresh(i.guild);return;
+  const result=await a.serial('animation:'+id,async()=>{let result;edit(id,r=>{result=sign(r,m.id,op==='join');});return result;});await i.editReply({content:`${op==='join'?'✅':'👋'} ${result} — **${e.title}**`,embeds:[],components:[]});await refresh(i.guild);return;
  }
  const s=u.get(i,id,'animation'),m=await member(i),e=s.eventId?event(s.eventId):null,field=k=>i.fields.getTextInputValue(k).trim();
  if(['new','edit','options','details','announce','posttext','postreplace','postoptions','cancel','delete','report','report-detail','attendance','reviewreport','manage-signups'].includes(op)){
   if(op==='delete')await deleteActor(i,e);else await authorize(i,e,op==='reviewreport');
   if(op==='new'){u.patch(id,x=>{delete x.eventId;delete x.sourceVersion;x.draft={organizerId:m.id,coorganizers:[],capacity:null,signups:true,repeatDays:0};});return i.showModal(mainForm(id));}
   if(op==='edit'){if(!s.draft&&e)u.patch(id,x=>{x.draft={...e};x.sourceVersion=e.version;});return i.showModal(mainForm(id,s.draft||e));}
-  if(op==='options'){const d=s.draft||e;if(!d)throw Error('Crée d’abord une animation.');return i.showModal(u.form('qga:save-options:'+id,'Participants et organisateurs',[['organizer','ID organisateur',d.organizerId],['coorganizers','IDs coanimateurs (séparés par espaces)',(d.coorganizers||[]).join(' '),false],['capacity','Places max, vide = illimité',d.capacity||'',false],['signups','Inscriptions : oui / non',d.signups?'oui':'non'],['location','Lieu / salon',d.location||'',false]]));}
+  if(op==='options'){const d=s.draft||e;if(!d)throw Error('Crée d’abord une animation.');return i.showModal(u.form('qga:save-options:'+id,'Places max et organisateurs',[['capacity','Places max (vide = illimité)',d.capacity||'',false],['organizer','ID organisateur',d.organizerId],['coorganizers','IDs coanimateurs (séparés par espaces)',(d.coorganizers||[]).join(' '),false],['signups','Inscriptions : oui / non',d.signups?'oui':'non'],['location','Lieu / salon',d.location||'',false]]));}
   if(op==='details'){if(!s.draft&&e)u.patch(id,x=>{x.draft={...e};x.sourceVersion=e.version;});const d=s.draft||e||{};return i.showModal(u.form('qga:save-details:'+id,'Détails et récurrence',[['description','Description détaillée',d.description||'',false,true],['rewards','Récompenses',d.rewards||'',false,true],['conditions','Conditions de participation',d.conditions||'',false,true],['repeat','Récurrence en jours, 0 = aucune',d.repeatDays||0]]));}
   if(op==='announce'){if(!e)throw Error('Enregistre d’abord l’animation.');u.patch(id,x=>{x.post={id:randomUUID(),eventId:e.id,title:e.title,text:'',authorId:m.id,signups:e.signups,color:0xffffff,mentions:[],revision:1};});return i.showModal(u.form('qga:save-posttext:'+id,'Annonce · première partie',[['text','Texte (ajout de parties possible ensuite)','',true,true]]));}
   if(op==='posttext'||op==='postreplace')return i.showModal(u.form('qga:'+ (op==='postreplace'?'replace-posttext':'save-posttext')+':'+id,'Annonce · texte',[['text','Texte (4 000 caractères par formulaire)','',true,true]]));

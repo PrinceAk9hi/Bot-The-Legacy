@@ -132,4 +132,29 @@ test('entretien accepté : rappel tag, communauté Roblox et activité',()=>{
  assert.match(text,/tag du serveur est obligatoire/);assert.match(text,/communauté Roblox/);assert.match(text,/actif dans la famille/);
  assert.ok(text.includes(config.robloxGroupUrl));
  assert.equal(p.components[0].components[0].data.url,config.robloxGroupUrl);
+ const dm=require('../systems/qgInterviews').welcomeReminderPayload(A,{kind:'catchup',dm:true});
+ assert.equal(dm.content,null);assert.deepEqual(dm.allowedMentions,{parse:[]});
+ assert.match(dm.embeds[0].data.description,/pas encore demandé à rejoindre/);assert.ok(!dm.embeds[0].data.description.includes(`<@${A}>`));
+});
+
+test('rattrapage communauté : rappel unique aux membres de la famille sans demande Roblox',async()=>{
+ const T=C,OUT='555555555555555555';
+ a.save(s=>{s.schoolEntryVerification={[A]:{robloxId:'1'},[B]:{robloxId:'2'},[T]:{robloxId:'3'},[OUT]:{robloxId:'4'}};});
+ // A : test sans demande · B : déjà dans le groupe · T : demande en attente · OUT : pas de la famille · GONE : sans compte Roblox
+ const members=new Collection([[A,member(A,['test'])],[B,member(B,['confirmed'])],[T,member(T,['test'])],[OUT,member(OUT,['community'])],[GONE,member(GONE,['test'])]]);
+ const api={getRankInGroup:async(g,u)=>u===2?5:0,getJoinRequest:async(g,u)=>u===3?{requester:{userId:3}}:null};
+ const sent=[];
+ const send=async(g,id)=>{sent.push(id);a.save(s=>{s.schoolCommunityReminder||={};s.schoolCommunityReminder[id]={status:'reminded',at:Date.now()};});return{channel:true,dm:false};};
+ const roblox=require('../utils/qgRoblox');
+ assert.equal(await roblox.remind(guild,members,{api,send}),1);
+ assert.deepEqual(sent,[A]);
+ const seen=a.state().schoolCommunityReminder;
+ assert.equal(seen[B].status,'member');assert.equal(seen[T].status,'requested');assert.equal(seen[OUT],undefined);
+ assert.equal(await roblox.remind(guild,members,{api,send}),0);assert.deepEqual(sent,[A]);
+ // Demande retirée : relance après 24 h seulement.
+ api.getJoinRequest=async()=>null;
+ assert.equal(await roblox.remind(guild,members,{api,send,now:Date.now()+25*3600000}),1);assert.deepEqual(sent,[A,T]);
+ // Erreur Roblox : personne n'est relancé.
+ a.save(s=>{s.schoolCommunityReminder={};});
+ assert.equal(await roblox.remind(guild,members,{api:{getRankInGroup:async()=>{throw Error('500');}},send}),0);
 });

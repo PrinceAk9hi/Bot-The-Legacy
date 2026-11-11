@@ -115,6 +115,53 @@ async function tick(guild) {
     return goal && robloxIdFor(m.id) && !(done[m.id]?.status === 'synced' && done[m.id].goal === goal) && done[m.id]?.status !== 'protected';
   }).slice(0, 15);
   for (const member of todo) await sync(member);
+  await remind(guild, members).catch(e => console.error('❌ Rappel communauté Roblox :', e?.message || e));
 }
 
-module.exports = { sync, exile, memberChanged, tick, target, robloxIdFor, GROUP_ID, RANK_NAMES };
+// Le compte est-il dans le groupe ('member'), en attente ('requested') ou absent ('none') ?
+// Une erreur Roblox remonte : on ne relance personne sur un doute.
+async function communityStatus(robloxId, api = noblox) {
+  if (api === noblox) await ensureLogin();
+  if (Number(await api.getRankInGroup(GROUP_ID, robloxId)) > 0) return 'member';
+  try {
+    return (await api.getJoinRequest(GROUP_ID, robloxId)) ? 'requested' : 'none';
+  } catch (e) {
+    if (/404|not found/i.test(String(e?.message || e))) return 'none';
+    throw e;
+  }
+}
+
+// Rattrapage : membres de la famille (Membre Test et plus) qui n'ont pas encore demandé à
+// rejoindre la communauté Roblox. Rappel une seule fois, en MP + dans le salon des rappels.
+// Au plus 10 vérifications et 5 rappels par passage (toutes les 10 minutes) pour ne pas inonder le salon.
+const RECHECK_MS = 24 * 3600000;
+function family(member) {
+  const r = a.state().schoolRoles || {};
+  return ['test', ...FAMILY_ABOVE_TEST].some(k => r[k] && member.roles.cache.has(r[k]));
+}
+async function remind(guild, members, { api = noblox, send, now = Date.now() } = {}) {
+  send ||= (g, id) => require('../systems/qgInterviews').welcomeReminder(g, id, 'catchup');
+  const seen = a.state().schoolCommunityReminder || {};
+  const due = m => {
+    const s = seen[m.id];
+    return !s || (!['reminded', 'member'].includes(s.status) && now - (s.at || 0) >= RECHECK_MS);
+  };
+  const todo = [...members.values()]
+    .filter(m => !m.user.bot && family(m) && robloxIdFor(m.id) && due(m))
+    .sort((x, y) => (seen[x.id]?.at || 0) - (seen[y.id]?.at || 0))
+    .slice(0, 10);
+  let sent = 0;
+  for (const m of todo) {
+    if (sent >= 5) break;
+    const status = await communityStatus(robloxIdFor(m.id), api).catch(e => { console.error('❌ Statut communauté Roblox :', String(e?.message || e).slice(0, 200)); return null; });
+    if (!status) continue;
+    if (status === 'none') {
+      const r = await send(guild, m.id);
+      if (r.channel || r.dm) { sent++; continue; }
+    }
+    a.save(s => { s.schoolCommunityReminder ||= {}; s.schoolCommunityReminder[m.id] = { status: status === 'none' ? 'failed' : status, at: now }; });
+  }
+  return sent;
+}
+
+module.exports = { sync, exile, memberChanged, tick, target, robloxIdFor, communityStatus, remind, GROUP_ID, RANK_NAMES };

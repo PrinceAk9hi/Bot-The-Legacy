@@ -21,6 +21,11 @@ Accès : direction et Responsable Recrutement (mêmes droits que `/rankup`).
 
 `=acp` est la version manuelle de la synchronisation automatique de `utils/qgRoblox.js`, qui fait déjà la même chose quand un membre reçoit le rôle Discord Membre Confirmé (ou plus). Elle sert pour un joueur sans grade Discord, ou pour forcer l'acceptation tout de suite sans attendre le rattrapage de 10 minutes.
 
+### Rappels de communauté
+
+- **Entretien accepté** (panel recruteur) : la recrue reçoit en MP et dans le salon 1561157222032212059 les rappels (tag du serveur obligatoire, demande à rejoindre la communauté Roblox avec le lien, activité).
+- **Rattrapage** : toutes les 10 minutes, `utils/qgRoblox.js` vérifie les membres de la famille (Membre Test et plus) dont le compte Roblox est connu. Ceux qui ne sont ni dans le groupe ni en demande d'adhésion reçoivent le même rappel (MP + salon), **une seule fois**. Au plus 5 rappels par passage. Une demande en attente est revérifiée après 24 h. Suivi dans `schoolCommunityReminder` (`data/qgServer.json`). Les membres sans compte Roblox vérifié ne sont pas relancés.
+
 Groupe Roblox du QG : **1031372038** (`robloxGroupId` dans `config/qg.js`).
 
 Configuration Railway (facultative) :

@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 60 — Rappels de communauté en MP et rattrapage
+
+- Le rappel de bienvenue part en MP **et** dans le salon 1561157222032212059.
+- Rattrapage automatique : les membres de la famille qui n'ont pas encore demandé à rejoindre la
+  communauté Roblox reçoivent le rappel une fois (MP + salon, 5 au plus toutes les 10 minutes).
+- Modifiés : `systems/qgInterviews.js`, `utils/qgRoblox.js`, `tests/qgAcceptLeaderboard.test.js`,
+  `README-QG-ADMIN.md`
+
 ## 59 — Carte du classement et rappel de bienvenue
 
 - `/classement` s'affiche en carte image « Journal du QG », comme `=niveau` (avatars, podium,

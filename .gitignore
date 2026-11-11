@@ -3,8 +3,10 @@ node_modules/
 
 # Outils audio téléchargés pendant npm install
 .music-bin/
-data/cards/
-data/qg-ai/
+
+# Données privées du bot (membres, candidatures, tickets…) : sur le volume Railway, jamais dans Git
+data/
+data-local-backup-*/
 
 # Polices Windows copiées par scripts/fonts.sh et rendus des bannières
 fonts/

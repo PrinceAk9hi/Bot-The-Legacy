@@ -304,6 +304,8 @@ async function interaction(i){
  if(i.customId?.startsWith('qgfd:'))return require('./qgFoundation').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='casino')return require('./qgCasinoGames').launch(i);
  if(i.isChatInputCommand?.()&&i.commandName==='profil')return require('./qgProfile').execute(i);
+ if(i.isChatInputCommand?.()&&i.commandName==='classement')return require('./qgLeaderboard').execute(i);
+ if(i.customId?.startsWith('qgclass:'))return require('./qgLeaderboard').handle(i);
  if(i.isChatInputCommand?.()&&['rankup','derank'].includes(i.commandName))return require('./qgGrades').execute(i);
  if(i.customId?.startsWith('qgg:'))return require('./qgGrades').handle(i);
  if(i.customId?.startsWith('qgx:'))return require('./qgExpel').handle(i);
@@ -395,6 +397,7 @@ async function message(m){
  if(await require('./qgSchoolNews').message(m))return;
  if(/^=mv(\s|$)/i.test(m.content.trim()))return moveCommand(m);
  if(await require('./qgExpel').message(m))return;
+ if(await require('./qgAccept').command(m))return;
  if(await require('./qgLevels').command(m,saved()))return;
  await require('./qgLevels').message(m,saved());
  if(m.content.trim()==='=setupqg'){

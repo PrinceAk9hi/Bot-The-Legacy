@@ -8,6 +8,31 @@
 - Les réponses conversationnelles de l'IA dans les tickets sont du texte normal, sans embed. Les interfaces administratives restent des embeds blancs.
 - L'identité officielle indique : famille QG issue de SchoolRP, réservée actuellement aux 18 ans et plus, tag QG obligatoire, respect et forte activité. Une éventuelle ouverture aux 13 ans et plus est une possibilité future, pas une règle actuelle. Ceci ne constitue pas une vérification automatisée de l'âge.
 
+## Acceptation directe : `=acp`
+
+`=acp @membre`, `=acp ID` ou `=acp PseudoRoblox` (motif facultatif) agit sur le **groupe Roblox** du QG, pas sur Discord :
+
+1. si le joueur n'est pas encore dans le groupe, sa demande d'adhésion en attente est acceptée ;
+2. il reçoit le rang **Membre confirmé** du groupe.
+
+Le compte Roblox d'un membre Discord vient de sa vérification QG (ou d'une liaison Roblox enregistrée). Sans compte connu, utiliser `=acp PseudoRoblox`. Le bot refuse s'il n'y a aucune demande d'adhésion en attente, et ne rétrograde jamais un joueur qui a déjà un rang supérieur. Aucun rôle Discord n'est modifié. L'action est inscrite dans le journal des membres.
+
+Accès : direction et Responsable Recrutement (mêmes droits que `/rankup`).
+
+`=acp` est la version manuelle de la synchronisation automatique de `utils/qgRoblox.js`, qui fait déjà la même chose quand un membre reçoit le rôle Discord Membre Confirmé (ou plus). Elle sert pour un joueur sans grade Discord, ou pour forcer l'acceptation tout de suite sans attendre le rattrapage de 10 minutes.
+
+Groupe Roblox du QG : **1031372038** (`robloxGroupId` dans `config/qg.js`).
+
+Configuration Railway (facultative) :
+
+| Variable | Rôle |
+| --- | --- |
+| `QG_ROBLOX_GROUP_ID` | Remplace le groupe de `config/qg.js` |
+| `QG_ROBLOX_CONFIRMED_RANK` | Numéro du rang Membre confirmé (facultatif : sinon le rang dont le nom contient « Membre confirmé » est utilisé) |
+| `ROBLOX_COOKIE` | Compte Roblox du bot (déjà utilisé) |
+
+Le compte Roblox du bot doit être membre du groupe QG avec un rang **au-dessus** de Membre confirmé et les permissions « accepter les demandes d'adhésion » et « gérer les rangs inférieurs ».
+
 ## Accès
 
 Les rôles sont ceux déjà enregistrés dans la configuration QG, sans anciens identifiants d'un autre serveur.

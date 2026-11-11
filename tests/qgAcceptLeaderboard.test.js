@@ -105,7 +105,7 @@ test('/classement vocal et messages : somme sur la période choisie',()=>{
 });
 
 test('/classement : pages, position personnelle et boutons à IDs uniques',()=>{
- const rows=Array.from({length:23},(_,n)=>[String(100000000000000000+n),1000-n]);
+ const rows=Array.from({length:23},(_,n)=>['1000000000000000'+String(n).padStart(2,'0'),1000-n]);
  const payload=board._test.view('vocal',30,5,rows[21][0],rows);
  const text=payload.embeds[0].data.description;
  assert.match(text,/Ta position : \*\*#22\*\*/);

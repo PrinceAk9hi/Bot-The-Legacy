@@ -3,7 +3,7 @@
 // et l'encadré « Ta position » en pied de page.
 const {createCanvas,loadImage,FRAKTUR,SERIF,BOLD,ITALIC,DISPLAY,INK,SOFT,RED,fr,fit,sizeTo,spaced,rule,diamond,paper,aging,stamp}=require('./qgJournalDraw');
 const {portrait}=require('./qgProfileCard');
-const W=1000,TOP=124,ROW=56,FOOT=96;
+const W=1000,TOP=124,ROW=56,FOOT=110;
 const MEDALS=['OR','ARGENT','BRONZE'];
 
 // p = { title, scope, page, pages, total, rows:[{position,name,username,avatar,value,note}], mine:{position,value}|null }
@@ -40,7 +40,7 @@ async function render(p){
  // Pied : ta position et pagination
  const fy=TOP+Math.max(1,rows.length)*ROW+10;
  rule(ctx,30,W-30,fy,1);rule(ctx,30,W-30,fy+4,3);
- const bx=30,bw=W-60-200,bh=FOOT-34;
+ const bx=30,bw=W-60-200,bh=62;
  ctx.strokeStyle=INK;ctx.lineWidth=1.2;ctx.strokeRect(bx,fy+16,bw,bh);ctx.lineWidth=.6;ctx.strokeRect(bx+3,fy+19,bw-6,bh-6);
  ctx.textAlign='left';ctx.fillStyle=INK;ctx.font=`11px ${BOLD}`;ctx.letterSpacing='1.6px';ctx.fillText('TA POSITION',bx+16,fy+38);ctx.letterSpacing='0px';
  const mine=p.mine?`N° ${p.mine.position}  ·  ${p.mine.value}`:'Pas encore classé : un peu d’activité suffit.';

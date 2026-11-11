@@ -114,5 +114,22 @@ test('/classement : pages, position personnelle et boutons à IDs uniques',()=>{
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.every(id=>id.startsWith('qgclass:')&&id.length<=100));
  assert.equal(board._test.duration(3_720_000),'1 h 02');
+ // Données de la carte image : page 3, positions 21 à 23, valeurs sans markdown.
+ const members=new Collection(rows.map(([id])=>[id,{...member(id,['community']),displayName:'Nom '+id.slice(-2),displayAvatarURL:()=>'https://example.invalid/a.png'}]));
+ const c=board._test.card('vocal',30,5,rows[21][0],rows,members);
+ assert.equal(c.page,3);assert.equal(c.pages,3);assert.equal(c.total,23);
+ assert.deepEqual(c.rows.map(r=>r.position),[21,22,23]);
+ assert.equal(c.rows[0].name,'Nom 20');assert.ok(!/\*/.test(c.rows[0].value));
+ assert.deepEqual(c.mine,{position:22,value:'0 min · en vocal'});
+ assert.deepEqual(board._test.plain('niveaux',650),['Niveau 5','650 XP']);
  assert.equal(board.data.toJSON().name,'classement');
+});
+
+test('entretien accepté : rappel tag, communauté Roblox et activité',()=>{
+ const p=require('../systems/qgInterviews').welcomeReminderPayload(A);
+ const text=p.embeds[0].data.description;
+ assert.equal(p.content,`<@${A}>`);assert.deepEqual(p.allowedMentions,{parse:[],users:[A]});
+ assert.match(text,/tag du serveur est obligatoire/);assert.match(text,/communauté Roblox/);assert.match(text,/actif dans la famille/);
+ assert.ok(text.includes(config.robloxGroupUrl));
+ assert.equal(p.components[0].components[0].data.url,config.robloxGroupUrl);
 });

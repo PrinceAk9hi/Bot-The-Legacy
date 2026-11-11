@@ -4,6 +4,21 @@ const a=require('../utils/qgAdmin'),config=require('../config/qg'),{embed}=requi
 const clean=require('../utils/qgAiKnowledge').clean;
 const REPORT='1562090387588390942';
 const RECRUITER_PING='1561157119619760281';
+// Salon où sont rappelées les règles à chaque recrue acceptée après entretien.
+const WELCOME_REMINDER='1561157222032212059';
+function welcomeReminderPayload(memberId){
+ const text=`Bienvenue dans la famille, <@${memberId}> ! Quelques rappels importants :\n\n`+
+  `🏷️ **Le tag du serveur est obligatoire.** Affiche le tag **QG** sur ton profil Discord (Profil → Tag de serveur) et garde-le en permanence.\n\n`+
+  `🎮 **Rejoins la communauté Roblox du QG.** Envoie ta demande d’adhésion au groupe : [rejoindre la communauté](${config.robloxGroupUrl}). Elle sera acceptée quand tu passeras Membre Confirmé.\n\n`+
+  `🔥 **Sois actif dans la famille.** Viens en vocal, joue avec les membres et participe au chat : c’est ton activité qui fait vivre le QG et qui compte pour ta progression.`;
+ return{content:`<@${memberId}>`,embeds:[embed('✦ Bienvenue dans la famille QG',text)],
+  components:[new Row().addComponents(new Button().setStyle(B.Link).setURL(config.robloxGroupUrl).setLabel('Rejoindre la communauté Roblox').setEmoji('🎮'))],
+  allowedMentions:{parse:[],users:[memberId]}};
+}
+async function welcomeReminder(guild,memberId){
+ try{const ch=await guild.channels.fetch(WELCOME_REMINDER);if(!ch?.isTextBased()||ch.guildId!==config.guildId)throw Error('salon indisponible');await ch.send(welcomeReminderPayload(memberId));return true;}
+ catch(e){console.error('Rappel de bienvenue QG :',e.code||e.message);return false;}
+}
 const staffKeys=['creator','globalManager','administrator','recruitmentLead','recruitmentManagement'];
 const data=new SlashCommandBuilder().setName('entretien').setDescription('Espace recruteur du QG').setDMPermission(false)
  .addSubcommand(s=>s.setName('panel').setDescription('Ouvrir les outils d’entretien'))
@@ -148,10 +163,11 @@ async function decision(i,actor,app,action){
  app.status=accepted?(oral?'accept':'waiting_interview'):'refuse';app.updatedAt=Date.now();app.updatedBy=actor.id;if(oral)app.interviewFinishedAt=Date.now();put(app);
  if(oral)await tick(i.guild);
  if(oral&&accepted)require('./qgCommunityUpgrade').recruited(await i.guild.members.fetch({user:target.id,force:true}));
+ const reminded=oral&&accepted?await welcomeReminder(i.guild,target.id):true;
  await a.audit(i.guild,{action:'recruitment.'+action,actorId:actor.id,targetId:target.id,before,after:app.status});
  const dm=await target.send({embeds:[embed('Ta candidature au QG',accepted?(oral?`Ton entretien est accepté. Tu rejoins la famille au grade Membre Test.\n\nRejoins notre communauté Roblox : [envoie ta demande ici](${config.robloxGroupUrl}). Elle sera acceptée quand tu passeras Membre Confirmé.`:`Ta candidature écrite est acceptée. Tu es en attente d’entretien. Indique tes disponibilités dans <#${channels().interviewAvailability}>.`):'Ta candidature a été refusée par l’équipe de recrutement.')],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
  await refresh(i.guild,app);
- return i.editReply({content:`Décision enregistrée.${dm?'':' MP non remis : le candidat doit être prévenu par l’équipe.'}`,embeds:[],components:[]});
+ return i.editReply({content:`Décision enregistrée.${dm?'':' MP non remis : le candidat doit être prévenu par l’équipe.'}${reminded?'':` Rappel de bienvenue non publié dans <#${WELCOME_REMINDER}> : vérifie les permissions du bot.`}`,embeds:[],components:[]});
 }
 async function ticket(i,app){
  let ch=app.ticketId?await i.guild.channels.fetch(app.ticketId).catch(e=>{if(e.code===10003)return null;throw e;}):null;
@@ -272,4 +288,4 @@ async function legacy(i){
  await authorize(i);
  return i.reply({content:'Ce bouton appartient à l’ancien parcours. Utilise /entretien installer puis le nouveau dossier ; aucune admission directe n’est exécutée.',flags:F.Ephemeral});
 }
-module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy};
+module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload};

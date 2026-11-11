@@ -41,9 +41,29 @@ function view(type,days,page,viewerId,rows){
  return u.payload(`🏆 Classement QG · ${TYPES[type]}`,text,components);
 }
 
+// Valeur sans markdown pour la carte image : [ligne principale, note].
+function plain(type,value){
+ if(type==='niveaux')return[`Niveau ${require('./qgLevels').level(value)}`,`${value.toLocaleString('fr-FR')} XP`];
+ return type==='vocal'?[duration(value),'en vocal']:[`${value.toLocaleString('fr-FR')} message${value>1?'s':''}`,'écrits'];
+}
+
+// Données de la carte « Journal du QG » pour une page.
+function card(type,days,page,viewerId,rows,members){
+ const pages=Math.max(1,Math.ceil(rows.length/PAGE));page=Math.min(Math.max(0,page),pages-1);
+ const mine=rows.findIndex(([id])=>id===viewerId);
+ return{title:TYPES[type],scope:type==='niveaux'?'progression totale':`${days} derniers jours`,page:page+1,pages,total:rows.length,
+  rows:rows.slice(page*PAGE,page*PAGE+PAGE).map(([id,v],n)=>{const m=members.get(id),[value,note]=plain(type,v);
+   return{position:page*PAGE+n+1,name:m?.displayName||m?.user?.username||id,username:m?.user?.username||id,avatar:m?.displayAvatarURL?.({extension:'png',size:128})||null,value,note};}),
+  mine:mine>=0?{position:mine+1,value:plain(type,rows[mine][1]).join(' · ')}:null};
+}
+
+// Carte image, avec les mêmes boutons ; repli sur l'embed si le rendu échoue.
 async function build(guild,type,days,page,viewerId){
- const members=await require('../utils/qgMembers')(guild);
- return view(type,days,page,viewerId,ranking(type,days,members,a.state()));
+ const members=await require('../utils/qgMembers')(guild),rows=ranking(type,days,members,a.state()),fallback=view(type,days,page,viewerId,rows);
+ try{
+  const png=await require('../utils/qgLeaderboardCard').render(card(type,days,page,viewerId,rows,members));
+  return{content:null,embeds:[],attachments:[],files:[new u.AttachmentBuilder(png,{name:'classement.png'})],components:fallback.components,allowedMentions:{parse:[]}};
+ }catch(e){console.warn('Carte classement QG :',e.code||e.message);return{...fallback,attachments:[]};}
 }
 
 async function execute(i){
@@ -62,4 +82,4 @@ async function handle(i){
  await i.deferUpdate();
  return i.editReply(await build(i.guild,type,Number(days),Number(page)||0,viewerId));
 }
-module.exports={data,execute,handle,_test:{ranking,view,duration}};
+module.exports={data,execute,handle,_test:{ranking,view,card,plain,duration}};

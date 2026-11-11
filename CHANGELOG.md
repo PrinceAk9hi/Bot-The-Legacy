@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 59 — Carte du classement et rappel de bienvenue
+
+- `/classement` s'affiche en carte image « Journal du QG », comme `=niveau` (avatars, podium,
+  « Ta position », page) ; repli sur l'embed si le rendu échoue. Nouveau : `utils/qgLeaderboardCard.js`.
+- Entretien accepté depuis le panel recruteur : message dans le salon 1561157222032212059
+  (tag du serveur obligatoire, demande à rejoindre la communauté Roblox avec le lien, importance
+  de l'activité). Modifié : `systems/qgInterviews.js`.
+
 ## 58 — `=acp` et `/classement`
 
 - `=acp @membre | ID | PseudoRoblox [motif]` : accepte la demande d'adhésion au groupe Roblox

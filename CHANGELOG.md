@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 76 — Panel d'aide et emojis des gestions
+
+- Le centre de commandement (salon 1565484861660069978) est remplacé par un panel d'aide : toutes les
+  commandes slash (lues sur Discord, avec leurs sous-commandes) et les commandes = avec leur fonction,
+  par rubrique (membres, staff, direction). Republié seulement quand la liste change.
+- « Rejoindre une gestion » : chaque équipe (6, casino compris) avec l'emoji du badge de son rôle
+  d'exécutant, dans le texte et dans le menu.
+- Nouveau : `systems/qgHelp.js`, `tests/qgHelp.test.js`. Modifiés : `systems/qgPanels.js`,
+  `systems/qgServer.js`, `systems/qgMaintenance.js`.
+
 ## 75 — Autres familles School
 
 - Tous les membres du serveur dont le compte Roblox est connu sont vérifiés une fois par jour : une

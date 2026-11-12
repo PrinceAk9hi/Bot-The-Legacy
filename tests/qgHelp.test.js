@@ -1,0 +1,64 @@
+const {test,beforeEach,after}=require('node:test');
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const data=require('../utils/recruitmentData'),a=require('../utils/qgAdmin'),config=require('../config/qg'),{Collection,MessageFlags}=require('discord.js');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qg-help-'));data.setDataDirectory(dir);
+after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+const help=require('../systems/qgHelp');
+beforeEach(()=>{for(const f of fs.readdirSync(dir))fs.rmSync(path.join(dir,f),{force:true});});
+const texts=p=>p.components[0].toJSON().components.filter(c=>c.type===10).map(c=>c.content).join('\n');
+
+function setup(){
+ const messages=new Map(),deleted=[];let n=0;
+ const make=(id,v2)=>({id,flags:{has:f=>v2&&f===MessageFlags.IsComponentsV2},edit:async p=>{messages.get(id).payload=p;},delete:async()=>{deleted.push(id);messages.delete(id);}});
+ const ch={id:help.CHANNEL,guildId:config.guildId,isTextBased:()=>true,send:async p=>{const m=make('new'+(++n),true);m.payload=p;messages.set(m.id,m);return m;},
+  messages:{fetch:async id=>{const m=messages.get(id);if(!m){const e=Error('Unknown Message');e.code=10008;throw e;}return m;},delete:async id=>{deleted.push(id);messages.delete(id);}}};
+ const commands=new Collection([['1',{name:'entretien',description:'Espace recruteur du QG',options:[{type:1,name:'panel'}]}],['2',{name:'classement',description:'Voir le classement du serveur QG',options:[{type:3,name:'type'}]}]]);
+ const guild={id:config.guildId,channels:{fetch:async id=>id===help.CHANNEL?ch:null},commands:{fetch:async()=>commands}};
+ return{guild,messages,deleted,make};
+}
+
+test('aide : commandes slash lues sur Discord et commandes = avec leur fonction',async()=>{
+ const {guild}=setup();
+ const slash=await help._test.slashCommands(guild);
+ assert.deepEqual(slash,[['classement','Voir le classement du serveur QG',[]],['entretien','Espace recruteur du QG',['panel']]]);
+ const all=help._test.pages(help._test.sections(slash)).map(texts).join('\n');
+ assert.match(all,/\*\*\/classement\*\* — Voir le classement du serveur QG/);
+ assert.match(all,/-# `panel`/);
+ for(const cmd of ['=niveau','=classement','=suggestion','=mv @membre','=mvvoc','=clear','=giveaway','=actualite','=acp','=derank','=familles'])assert.ok(all.includes(cmd),cmd);
+ // Plus rien de l'ancien centre de commandement.
+ assert.doesNotMatch(all,/Effectif détaillé|Annonce publique|Journal|Décisions/);
+});
+
+test('aide : remplace l’ancien centre de commandement, puis ne republie que si le contenu change',async()=>{
+ const {guild,messages,deleted,make}=setup();
+ const old=make('ancien',true);messages.set('ancien',old);
+ a.save(s=>{s.schoolCommandPanel={channelId:help.CHANNEL,messageId:'ancien'};});
+ await help.publish(guild);
+ assert.ok(texts(messages.get('ancien').payload).includes('Aide · Commandes du QG'));
+ assert.deepEqual(a.state().schoolHelpPanel.messageIds,['ancien']);
+ messages.get('ancien').edit=async()=>{throw Error('ne doit pas être republié');};
+ assert.equal((await help.publish(guild)).detail,'Panel d’aide à jour');
+ assert.deepEqual(deleted,[]);
+});
+
+test('aide : très longue liste découpée sous la limite Discord',()=>{
+ const slash=Array.from({length:80},(_,n)=>[`commande${n}`,'Une description assez longue pour remplir le panel d’aide du QG.',['a','b','c']]);
+ const pages=help._test.pages(help._test.sections(slash));
+ assert.ok(pages.length>=2);
+ for(const p of pages){const t=p.components[0].toJSON().components.filter(c=>c.type===10).map(c=>c.content);assert.ok(t.join('').length<=4000);for(const c of t)assert.ok(c.length<=2000);}
+});
+
+test('rejoindre une gestion : emoji du badge de chaque rôle d’exécutant, dans le texte et le menu',async()=>{
+ const panels=require('../systems/qgPanels');
+ const roles=new Collection([['rp',{id:'rp',icon:'h1',iconURL:()=>'x'}],['casino',{id:'casino',icon:null}]]);
+ const emojis=new Collection([['77',{id:'77',name:'rp_badge'}]]);
+ const members=new Collection();
+ const guild={id:config.guildId,roles:{cache:roles},emojis:{cache:emojis},members:{cache:members,fetch:async()=>members}};
+ a.save(s=>{s.schoolRoles={rpManagement:'rp',casinoOperator:'casino'};s.schoolRoleBadgeEmojis={rp:{icon:'h1',emojiId:'77',set:'77'}};});
+ const p=await panels.management(guild);
+ const fields=p.embeds[0].toJSON().fields.map(f=>f.name);
+ assert.ok(fields.includes('<:rp_badge:77> Exécutant du RP'));assert.ok(fields.includes('🎰 Exécutant du Casino'));
+ const options=p.components[0].toJSON().components[0].options;
+ assert.deepEqual(options.find(o=>o.value==='rpManagement').emoji,{id:'77',name:'rp_badge',animated:false});
+ assert.equal(options.length,6);assert.ok(options.some(o=>o.value==='casinoOperator'));
+});

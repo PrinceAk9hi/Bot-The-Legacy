@@ -469,7 +469,8 @@ function register(client){
   setInterval(()=>guarded(require('./qgTagWatch').tick,guild),15*60000).unref();
   setInterval(()=>guarded(require('./qgCasino').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgCasinoAdmin').tick,guild),60000).unref();
-  setInterval(()=>guarded(require('./qgCommand').tick,guild),60000).unref();
+  // Le centre de commandement est remplacé par le panel d'aide (même salon).
+  setInterval(()=>guarded(require('./qgHelp').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgFoundation').tick,guild),60000).unref();
   setInterval(()=>guarded(require('./qgMemberMetrics').tick),60000).unref();
   // Mise à jour automatique à chaque démarrage : panneaux, rôles, effectifs, support, candidatures…

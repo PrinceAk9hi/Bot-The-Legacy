@@ -34,6 +34,8 @@ function records(actor,member){
   `### 🧾 Historique administratif\n${a.isDirection(actor)?history.map(e=>`${ago(e.at)} · **${e.action}** · ${e.result==='success'?'✅':'❌'} · <@${e.actorId}>`).join('\n')||'Aucune action enregistrée.':'Réservé à la direction.'}`;
 }
 
+// Autre famille School active (dernière vérification des communautés Roblox).
+function otherFamily(id){const names=require('./qgOtherFamilies').familiesOf(id);if(names.length)return '🏴 **'+names.join(', ')+'**';return a.state().schoolOtherFamilies?.[id]?.checkedAt?'Aucune':'Pas encore vérifiée';}
 function render(actor,member,id,tab='profile'){
  const button=(action,label,style=S.Secondary,disabled=false)=>{const b=new Button().setCustomId(`qgu:action:${id}:${action}`).setLabel(label).setStyle(style).setDisabled(disabled);if(['rankup','derank','demote'].includes(action))b.setEmoji({id:action==='rankup'?'1562837067782950924':'1562836899226324992',name:action==='rankup'?'statusonline':'statusoffline',animated:true});return b;};
  const row=(...buttons)=>new Row().addComponents(...buttons);
@@ -56,7 +58,7 @@ function render(actor,member,id,tab='profile'){
  if(tab==='profile'){
   const roles=[...member.roles.cache.values()].filter(r=>r.id!==member.guild.id).sort((x,y)=>y.position-x.position);
   let shown=[],size=0;for(const role of roles){const mention=`<@&${role.id}>`;if(size+mention.length>1400||shown.length>=30)break;shown.push(mention);size+=mention.length+2;}
-  box.addTextDisplayComponents(text(`### 👤 Utilisateur\n**Nom Discord :** ${clean(member.user.username)}\n**Nom serveur :** ${clean(member.displayName)}\n**ID :** \`${member.id}\`\n**Bot :** ${member.user.bot?'Oui':'Non'}\n\n### 🎮 Roblox\n${roblox}\n**Tranche d’âge Roblox :** ${ageLabel}\n\n### 📅 Compte\n**Créé :** ${stamp(member.user.createdTimestamp)}\n**Arrivé sur le serveur :** ${stamp(member.joinedTimestamp)}\n\n### 🎭 Rôles\n${shown.join(', ')||'Aucun rôle'}${roles.length>shown.length?`\n+ ${roles.length-shown.length} autre(s) rôle(s)`:''}`))
+  box.addTextDisplayComponents(text(`### 👤 Utilisateur\n**Nom Discord :** ${clean(member.user.username)}\n**Nom serveur :** ${clean(member.displayName)}\n**ID :** \`${member.id}\`\n**Bot :** ${member.user.bot?'Oui':'Non'}\n\n### 🎮 Roblox\n${roblox}\n**Tranche d’âge Roblox :** ${ageLabel}\n**Autre famille :** ${otherFamily(member.id)}\n\n### 📅 Compte\n**Créé :** ${stamp(member.user.createdTimestamp)}\n**Arrivé sur le serveur :** ${stamp(member.joinedTimestamp)}\n\n### 🎭 Rôles\n${shown.join(', ')||'Aucun rôle'}${roles.length>shown.length?`\n+ ${roles.length-shown.length} autre(s) rôle(s)`:''}`))
   .addSeparatorComponents(new SeparatorBuilder()).addActionRowComponents(row(button('applications','📋 Profil candidat'),button('stats','📊 Statistiques')));
  }else if(tab==='activity'){
   box.addTextDisplayComponents(text(activity(member)));

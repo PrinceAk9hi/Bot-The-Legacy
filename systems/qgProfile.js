@@ -42,6 +42,9 @@ async function payload(member){
  const p=collect(member);p.avatar=await avatarBytes(member);
  const file=new AttachmentBuilder(await require('../utils/qgProfileCard').render(p),{name:'profil-qg.png'});
  const e=new EmbedBuilder().setColor(0xd4bd86).setImage('attachment://profil-qg.png').setFooter(require('../utils/qgBrand').footer(' · Carte de membre'));
+ // Autre famille School active du membre (communauté Roblox), si détectée.
+ const families=require('./qgOtherFamilies').familiesOf(member.id);
+ if(families.length)e.setDescription(`🏴 **Autre famille :** ${families.join(', ')}`);
  return {embeds:[e],files:[file],allowedMentions:{parse:[]}};
 }
 async function execute(i){

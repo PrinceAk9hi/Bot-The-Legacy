@@ -35,10 +35,26 @@ async function fetchGroups(robloxId,http=fetch){
  return(body.data||[]).map(x=>({id:Number(x.group?.id),name:x.group?.name||'',owner:String(x.group?.owner?.username||'').toLowerCase(),ownerId:Number(x.group?.owner?.userId)||null}));
 }
 
-// Familles créées par le compte schoolfamily, sauf la communauté du QG.
+// Famille active correspondant à un nom de communauté (config.activeFamilies + alias), ou null si inactive.
+const norm=t=>String(t||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function activeFamily(name){
+ const key=norm(familyName(name)),aliases=config.familyAliases||{};
+ return(config.activeFamilies||[]).find(f=>norm(f)===key||(aliases[f]||[]).some(x=>norm(x)===key))||null;
+}
+// Familles actives créées par le compte schoolfamily, sauf la communauté du QG. Nom officiel de la liste.
 function otherFamilies(groups){
- const own=Number(config.robloxGroupId);
- return groups.filter(g=>g.owner===OWNER()&&g.id!==own).map(g=>({id:g.id,name:familyName(g.name)}));
+ const own=Number(config.robloxGroupId),out=[];
+ for(const g of groups){
+  if(g.owner!==OWNER()||g.id===own)continue;
+  const name=activeFamily(g.name);
+  if(name&&!out.some(f=>f.name===name))out.push({id:g.id,name});
+ }
+ return out;
+}
+// Familles actives d'un membre, d'après la dernière vérification (pour /profil et /user).
+function familiesOf(discordId){
+ const names=(a.state().schoolOtherFamilies?.[discordId]?.families||[]).map(f=>activeFamily(f.name)).filter(Boolean);
+ return[...new Set(names)];
 }
 
 async function report(guild,member,roblox,families){
@@ -78,11 +94,11 @@ async function command(m){
  const actor=await m.guild.members.fetch({user:m.author.id,force:true});
  if(!a.can(actor,'rankup')){await m.reply({content:'Commande réservée à la direction et au responsable recrutement.',allowedMentions:{parse:[]}});return true;}
  const members=await require('../utils/qgMembers')(m.guild),seen=a.state().schoolOtherFamilies||{};
- const rows=Object.entries(seen).filter(([id,x])=>members.has(id)&&x.families?.length).map(([id,x])=>`<@${id}> (${x.robloxName}) — ${x.families.map(f=>`**${f.name}**`).join(', ')}`);
+ const rows=Object.entries(seen).filter(([id])=>members.has(id)&&familiesOf(id).length).map(([id,x])=>`<@${id}> (${x.robloxName}) — ${familiesOf(id).map(f=>`**${f}**`).join(', ')}`);
  const humans=[...members.values()].filter(x=>!x.user.bot),linked=humans.filter(x=>robloxOf(x.id)).length,checked=humans.filter(x=>seen[x.id]?.checkedAt).length;
  const {embed}=require('./qgPanels');
  const text=`${rows.join('\n')||'Aucun membre dans une autre famille School pour le moment.'}\n\n-# ${checked}/${linked} comptes Roblox vérifiés · ${humans.length-linked} membre(s) sans compte Roblox connu.`;
  await m.reply({embeds:[embed(`🏴 Autres familles School · ${rows.length}`,text.slice(0,4000))],allowedMentions:{parse:[]}});
  return true;
 }
-module.exports={tick,command,_test:{familyName,otherFamilies,fetchGroups,robloxOf}};
+module.exports={tick,command,familiesOf,activeFamily,_test:{familyName,otherFamilies,fetchGroups,robloxOf}};

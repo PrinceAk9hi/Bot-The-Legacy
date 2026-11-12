@@ -204,7 +204,6 @@ async function updateIncremental(guild, client) {
       ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions'],
       ['communityCommands', 'communityCommands', 'Mon vocal temporaire'],
       ['familyCommands', 'familyCommands', 'Mon vocal temporaire'],
-      ['notifications','notifications','Tes notifications'],
       ['joinManagement','joinManagement','Rejoindre une gestion'],
       ['absences','absences','Signaler une absence'],
       ['familyGuide','familyGuide','Guide de la famille'],
@@ -267,11 +266,8 @@ async function handle(i) {
     await i.deferReply({ flags: MessageFlags.Ephemeral });
     const member = await i.guild.members.fetch(i.user.id);
     if (!member.roles.cache.has(r.community)) return i.editReply('Accepte d’abord le règlement.');
-    const keys = ['notifAnnouncements', 'notifRp', 'notifNetworks', 'notifServers'];
-    const wanted = new Set(i.values);
-    for (const key of keys) if (r[key]) wanted.has(key) ? await member.roles.add(r[key]) : await member.roles.remove(r[key]);
-    audit('notifications_modifiees', i.user.id, { roles: [...wanted] });
-    return i.editReply('Tes préférences de notifications ont été enregistrées.');
+    // Les rôles de notification ont été supprimés : l'ancien panel ne fait plus rien.
+    return i.editReply('Les notifications par rôle ont été retirées du serveur.');
   }
   if (i.customId === 'qgs:family-apply') {
     const { beginFamilyRecruitment } = require('./qgSchoolApplications');

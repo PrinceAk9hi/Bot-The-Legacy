@@ -7,7 +7,6 @@ const VERSION = 3;
 const AGE_BRACKETS=['18','13'];
 const NOTIFICATIONS=['notifAnnouncements','notifRp','notifNetworks','notifServers'];
 const agePanel=token=>({embeds:[card('Ta tranche d’âge sur Roblox','Quelle est ta tranche d’âge sur Roblox ?')],components:[row(...['18','13'].map(age=>button('qgs:entry-age:'+token+':'+age,'Tranche d’âge +'+age+' sur Roblox')))],allowedMentions:{parse:[]}});
-const notificationPanel=token=>({embeds:[card('Tes notifications','Choisis les notifications que tu souhaites recevoir, ou continue sans notification.')],components:[row(new StringSelectMenuBuilder().setCustomId('qgs:entry-notifs:'+token).setPlaceholder('Choisir mes notifications').setMinValues(0).setMaxValues(4).addOptions(NOTIFICATIONS.map((value,n)=>({value,label:['Annonces','Roleplay','Réseaux','Serveur'][n]})))),row(button('qgs:entry-no-notifs:'+token,'Continuer sans notification'))],allowedMentions:{parse:[]}});
 const membership=require('../utils/qgVerificationMembership');
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
 const button = (id, label) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(ButtonStyle.Secondary);
@@ -75,12 +74,13 @@ function createHandler({ read = data.read, update = data.update, existing = soul
       }
       if(id.startsWith('qgs:entry-age:')){
         const age=id.split(':')[3];if(draft.stage!=='age'||!AGE_BRACKETS.includes(age))throw Error('Étape de tranche d’âge invalide.');
-        save(i.user.id,{...draft,ageBracket:age,stage:'notifications'});await i.editReply(notificationPanel(draft.token));return true;
+        // Plus de question sur les notifications (rôles supprimés) : directement le règlement.
+        save(i.user.id,{...draft,ageBracket:age,notificationKeys:[],stage:'rules'});await i.editReply(rules(draft.token));return true;
       }
       if(id.startsWith('qgs:entry-notifs:')||id.startsWith('qgs:entry-no-notifs:')){
-        const selected=id.startsWith('qgs:entry-no-notifs:')?[]:i.values;
-        if(draft.stage!=='notifications'||!Array.isArray(selected)||selected.some(k=>!NOTIFICATIONS.includes(k)))throw Error('Choix de notifications invalide.');
-        save(i.user.id,{...draft,notificationKeys:[...new Set(selected)],stage:'rules'});await i.editReply(rules(draft.token));return true;
+        // Ancienne étape (messages ouverts avant la suppression) : on continue sans notification.
+        if(!['notifications','rules'].includes(draft.stage))throw Error('Étape de vérification invalide.');
+        save(i.user.id,{...draft,notificationKeys:[],stage:'rules'});await i.editReply(rules(draft.token));return true;
       }
       if (id.startsWith('qgs:entry-accept:')) {
         if (draft.stage !== 'rules' || draft.version !== VERSION || !AGE_BRACKETS.includes(draft.ageBracket) || !Array.isArray(draft.notificationKeys)) throw Error('Vérifie ton profil puis lis la version actuelle du règlement.');
@@ -91,10 +91,9 @@ function createHandler({ read = data.read, update = data.update, existing = soul
         const role = roleId && await i.guild.roles.fetch(roleId);
         if (!role?.editable) throw Error('Le rôle Membre Communautaire est absent ou trop haut pour le bot. Préviens la direction.');
         const configured=read('qgServer').schoolRoles||{};
-        const desired=draft.notificationKeys.map(k=>configured[k]);
-        if(desired.some(id=>!id))throw Error('Une notification sélectionnée n’est pas configurée. Préviens la direction.');
-        const optionalIds=NOTIFICATIONS.map(k=>configured[k]).filter(Boolean);
-        for(const id of new Set([...desired,...optionalIds.filter(id=>member.roles.cache.has(id))])){const role=await i.guild.roles.fetch(id);if(!role?.editable)throw Error('Un rôle de notification est absent ou trop haut. Préviens la direction.');}
+        const desired=[];
+        const optionalIds=NOTIFICATIONS.map(k=>configured[k]).filter(id=>id&&member.roles.cache.has(id));
+        for(const id of optionalIds){const role=await i.guild.roles.fetch(id).catch(()=>null);if(role&&!role.editable)throw Error('Un ancien rôle de notification est trop haut pour le bot. Préviens la direction.');}
         const held=new Set([...member.roles.cache.keys()].filter(id=>id!==i.guild.id));
         const wanted=new Set([...held].filter(id=>!optionalIds.includes(id)||desired.includes(id)));
         for(const id of [...desired,roleId])wanted.add(id);

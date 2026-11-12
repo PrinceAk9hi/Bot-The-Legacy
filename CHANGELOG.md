@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 81 — Plus de notifications par rôle
+
+- Vérification d'entrée : après la tranche d'âge, le règlement s'affiche directement (plus de question
+  sur les notifications). Les anciens rôles de notification encore détenus sont retirés à la validation.
+- L'ancien panel « Tes notifications » ne donne plus de rôle et n'est plus republié ; `=actualite … | ping`
+  ne mentionne un rôle que s'il existe encore.
+- Modifiés : `systems/qgEntryVerification.js`, `systems/qgSchoolSetup.js`, `systems/qgSchoolNews.js`, tests.
+
 ## 80 — Familles actives et profils
 
 - `activeFamilies` dans `config/qg.js` : les familles actives (49 depuis le retrait de BLACKLIST, inactive) (liste des gérants). Une communauté de

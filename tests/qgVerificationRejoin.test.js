@@ -40,11 +40,13 @@ test('nouveau séjour : profil confirmé puis règlement accepté et une seule b
 test('anciens enregistrements : date d’acceptation comparée à l’arrivée',()=>{
  const member={joinedTimestamp:200};assert.equal(current({stage:'accepted',acceptedAt:100},member),false);assert.equal(current({stage:'accepted',acceptedAt:300},member),true);
 });
-test('tranche +13 et notifications : attribution seulement après le règlement',async()=>{
+test('tranche +13 : plus de question sur les notifications, règlement directement',async()=>{
  const f=fixture();f.state.schoolRoles.notifAnnouncements='annonces';f.state.schoolRoles.notifRp='rp';f.member.roles.remove=async id=>f.member.roles.cache.delete(id);f.member.roles.cache.set('1562838566487326781',true);f.member.roles.cache.set('rp',true);
  f.state.schoolEntryVerification.user={joinedAt:f.member.joinedTimestamp,stage:'profile',token:'age',expires:Date.now()+60000,robloxId:'42',discordName:'Example'};
  const handle=createHandler(f.deps);await handle(f.i('qgs:entry-confirm:age'));await handle(f.i('qgs:entry-age:age:13'));
- await assert.rejects(handle(f.i('qgs:entry-accept:age')));
- await handle({...f.i('qgs:entry-notifs:age'),values:['notifAnnouncements']});assert.equal(f.member.roles.cache.has('annonces'),false);
- await handle(f.i('qgs:entry-accept:age'));assert.equal(f.member.roles.cache.has('annonces'),true);assert.equal(f.member.roles.cache.has('rp'),false);assert.equal(f.member.roles.cache.has('1562838771538468956'),false);assert.equal(f.state.schoolEntryVerification.user.ageBracket,'13');assert.deepEqual(f.state.schoolEntryVerification.user.notificationKeys,['notifAnnouncements']);
+ assert.equal(f.state.schoolEntryVerification.user.stage,'rules');
+ await handle(f.i('qgs:entry-accept:age'));
+ assert.equal(f.member.roles.cache.has('community'),true);assert.equal(f.member.roles.cache.has('annonces'),false);
+ assert.equal(f.member.roles.cache.has('rp'),false,'ancien rôle de notification retiré');
+ assert.equal(f.state.schoolEntryVerification.user.ageBracket,'13');assert.deepEqual(f.state.schoolEntryVerification.user.notificationKeys,[]);
 });

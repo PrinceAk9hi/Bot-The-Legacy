@@ -77,3 +77,14 @@ test('/réunion : annonce à la fin de la programmation, une seule fois, barrée
  const cancelled=meetings._test.scheduledPayload(meetings.get('m1'),true);
  assert.equal(cancelled.content,null);assert.match(cancelled.embeds[0].data.description,/annulée/);assert.deepEqual(cancelled.allowedMentions,{parse:[]});
 });
+
+test('aide communautaire : histoire, fondateurs, inspiration, valeurs, et rejoindre la famille en dernier',async()=>{
+ const p=require('../systems/qgCommunityHelp').payload(null,{schoolChannels:{familyApplications:'777',tickets:'888'}});
+ const titles=p.embeds.map(e=>e.toJSON().title),all=p.embeds.map(e=>e.toJSON().description).join('\n');
+ assert.ok(titles[0].includes('Aide et FAQ'),'titre retrouvé par la mise à jour automatique');
+ assert.match(titles.at(-1),/Rejoindre la famille/);
+ for(const x of ['Qualité & Grandeur','7 novembre 2026','Aven et EMS','Key et Meg','esthétique ancienne','Respect','<#888>','<#777>','Tag QG obligatoire',config.robloxGroupUrl])assert.ok(all.includes(x),x);
+ assert.ok(all.length+titles.join('').length<6000);
+ const setup=require('../systems/qgSchoolSetup');
+ assert.ok((await setup.panelPayload('help',null)).embeds[0].toJSON().title.includes('Aide et FAQ'));
+});

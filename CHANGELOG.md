@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 82 — Aide et FAQ version communautaire
+
+- Salon 📚・aide-et-faq : présentation du QG (Qualité & Grandeur), histoire (ouverture, fondateurs,
+  superviseurs, création du serveur), inspiration, valeurs, repères sur le serveur et, à la fin, comment
+  rejoindre la famille (conditions et étapes). Textes modifiables dans `systems/qgCommunityHelp.js`.
+
 ## 81 — Plus de notifications par rôle
 
 - Vérification d'entrée : après la tranche d'âge, le règlement s'affiche directement (plus de question

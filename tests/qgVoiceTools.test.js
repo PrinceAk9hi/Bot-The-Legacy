@@ -158,3 +158,10 @@ test('responsabilité : le rôle d’exécutant de la même équipe est ajouté 
  assert.deepEqual(await upgrade.leadRoles(member(['tm'])),[]);
  assert.equal(added.length,2);
 });
+
+test('effectif : ordre Direction, Responsables, Grades de la famille, Exécutants',()=>{
+ const roles=new Collection([['c',{id:'c',name:'Créateur'}],['l',{id:'l',name:'Responsable RP'}],['t',{id:'t',name:'Membre Test'}],['e',{id:'e',name:'Exécutant RP'}]]);
+ a.save(s=>{s.schoolRoles={creator:'c',rpLead:'l',test:'t',rpManagement:'e'};});
+ const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[]);
+ assert.deepEqual(parts.map(p=>p.title),['👑 Direction','⭐ Responsables','🎖️ Grades de la famille','🛠️ Exécutants']);
+});

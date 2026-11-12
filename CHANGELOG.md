@@ -6,6 +6,10 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 71 — Ordre des blocs de l'effectif
+
+- Direction, Responsables, Grades de la famille, Exécutants (salon effectifs et guide famille).
+
 ## 70 — Casino dans « Devenir exécutant », rôle d'exécutant des responsables
 
 - Panel « rejoindre une gestion » : sixième équipe **Exécutant du Casino** (candidature traitée par le

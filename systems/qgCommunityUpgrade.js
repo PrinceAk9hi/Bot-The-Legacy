@@ -131,7 +131,7 @@ function fullRoster(guild,members,badges=new Map()){
  const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${count}**`;};
-return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['⭐ Responsables',leadKeys()],['🛠️ Exécutants',managerKeys()]]
+return[['👑 Direction',DIRECTION_KEYS],['⭐ Responsables',leadKeys()],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',managerKeys()]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }
 // Effectif en composants intégrés : total de la famille et un bloc par catégorie de rôles.

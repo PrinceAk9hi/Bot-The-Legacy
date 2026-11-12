@@ -110,7 +110,8 @@ function roleEmoji(guild,role,key,names=[],badges=new Map()){
  }
  return role?.unicodeEmoji||'▫️';
 }
-const leadKeys=()=>Object.values(a.teams),managerKeys=()=>Object.keys(a.teams);
+// Équipes d'exécutants + le casino (Responsable du casino / Exécutant du casino, hors a.teams).
+const leadKeys=()=>[...Object.values(a.teams),'casinoLead'],managerKeys=()=>[...Object.keys(a.teams),'casinoOperator'];
 const teamKeys=()=>[...leadKeys(),...managerKeys()];
 // Emojis du serveur retrouvés d'après le badge de chaque rôle de l'effectif.
 async function badgeMap(guild){const r=a.state().schoolRoles||{};return require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});}

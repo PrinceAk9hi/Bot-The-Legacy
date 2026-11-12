@@ -138,3 +138,11 @@ test('badges : un nouvel emoji ajouté au serveur relance la comparaison',async(
  emojis.set('2',{id:'2',name:'nouveau'});
  assert.equal((await badges.badgeEmojis({emojis:{cache:emojis}},[role],{print})).get('r'),'<:nouveau:2>');
 });
+
+test('effectif : le casino a son responsable et son exécutant',()=>{
+ const roles=new Collection([['cl',{id:'cl',name:'Responsable du casino'}],['co',{id:'co',name:'Exécutant du Casino'}]]);
+ a.save(s=>{s.schoolRoles={casinoLead:'cl',casinoOperator:'co'};});
+ const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
+ const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[m('cl'),m('co'),m('co')]);
+ assert.deepEqual(parts,[{title:'⭐ Responsables',lines:['▫️ <@&cl> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&co> - **2**']}]);
+});

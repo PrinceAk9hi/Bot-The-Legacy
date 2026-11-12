@@ -116,3 +116,13 @@ test('badges : empreinte d’une vraie image PNG',async()=>{
   assert.equal(map.get('r'),'<:rouge:1>');
  }finally{global.fetch=old;}
 });
+
+test('effectif : responsables et exécutants séparés, sans liste détaillée des membres',()=>{
+ const roles=new Collection([['lead',{id:'lead',name:'Responsable RP'}],['team',{id:'team',name:'Exécutant RP'}]]);
+ a.save(s=>{s.schoolRoles={rpLead:'lead',rpManagement:'team'};});
+ const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
+ const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[m('lead','team'),m('team')]);
+ assert.deepEqual(parts,[{title:'⭐ Responsables',lines:['▫️ <@&lead> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&team> - **2**']}]);
+ const json=JSON.stringify(upgrade._test.rosterPage({total:2,summary:parts}).components[0].toJSON());
+ assert.match(json,/2 MEMBRES DANS LA FAMILLE/);assert.doesNotMatch(json,/Arrivée dans la famille|PAGE/);
+});

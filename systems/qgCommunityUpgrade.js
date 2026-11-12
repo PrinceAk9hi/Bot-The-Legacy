@@ -72,32 +72,21 @@ async function deliver(guild,key,channelId,payload,privateOnly=false){
 async function roster(guild){
  const id=a.state().schoolChannels?.familyRoster;if(!id)return;
  const ch=await guild.channels.fetch(id);if(!ch?.isTextBased())return;
- const members=await require('../utils/qgMembers')(guild),r=a.state().schoolRoles||{};
- const list=[...members.values()].filter(m=>!m.user.bot&&family(m)).sort((x,y)=>{
-  const rank=m=>familyKeys.reduce((n,k,j)=>m.roles.cache.has(r[k])?j:n,-1);return rank(y)-rank(x)||x.displayName.localeCompare(y.displayName,'fr');
- });
+ const members=await require('../utils/qgMembers')(guild);
+ const list=[...members.values()].filter(m=>!m.user.bot&&family(m));
  // Passage aux composants intégrés : les anciennes pages (embeds) sont remplacées une seule fois.
  if(!a.state().schoolFamilyRosterV2){
   for(const old of a.state().schoolFamilyRosterMessages||[])if(old)await ch.messages.delete(old).catch(e=>{if(e.code!==10008)throw e;});
   a.save(s=>{s.schoolFamilyRosterMessages=[];s.schoolFamilyRosterV2=true;});
  }
- const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],humans=[...members.values()].filter(m=>!m.user.bot);
+ const saved=a.state().schoolFamilyRosterMessages||[],humans=[...members.values()].filter(m=>!m.user.bot);
  // Badge de chaque rôle → emoji du serveur correspondant (comparaison d'images, mémorisée).
- const badges=await badgeMap(guild);
- const summary=fullRoster(guild,humans,badges);
- for(let page=0;page<Math.max(pages,saved.length);page++){
-  let message=saved[page]?await ch.messages.fetch(saved[page]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
-  if(page>=pages){if(message)await message.edit(rosterPage({total:list.length,page,pages,lines:[],empty:true}));continue;}
-  const lines=list.slice(page*8,page*8+8).map(m=>{
-   const grade=familyKeys.filter(k=>r[k]!==excluded&&m.roles.cache.has(r[k])).map(k=>guild.roles.cache.get(r[k])?.name||k).join(', ');
-   const application=a.state().schoolFamilyRecruitment?.[m.id];
-   const date=a.state().schoolFamilyMembership?.[m.id]?.joinedAt||(application?.status==='accept'?(application.interviewFinishedAt||application.updatedAt):null),rankup=require('./qgMemberMetrics').lastRankup(m.id);
-   return `**<@${m.id}>** • ${grade}\nArrivée dans la famille : ${date?`<t:${Math.floor(date/1000)}:D>`:'inconnue — non enregistrée'}\nDernier rankup : ${rankup?`<t:${Math.floor(rankup/1000)}:D>`:'non enregistré'}`;
-  });
-  const payload=rosterPage({total:list.length,page,pages,lines,summary:page===0?summary:null});
-  if(message)await message.edit(payload);else message=await ch.send(payload);
-  a.save(s=>{s.schoolFamilyRosterMessages||=[];s.schoolFamilyRosterMessages[page]=message.id;});
- }
+ const payload=rosterPage({total:list.length,summary:fullRoster(guild,humans,await badgeMap(guild))});
+ let message=saved[0]?await ch.messages.fetch(saved[0]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
+ if(message)await message.edit(payload);else message=await ch.send(payload);
+ // Plus de liste détaillée des membres : les anciennes pages suivantes sont supprimées.
+ for(const old of saved.slice(1))if(old)await ch.messages.delete(old).catch(e=>{if(e.code!==10008)throw e;});
+ a.save(s=>{s.schoolFamilyRosterMessages=[message.id];});
 }
 // Effectif complet : direction (Référent du QG à la place d'Administrateur), grades de la famille et exécutants, avec pour chaque rôle son
 // emoji du serveur, le rôle et le nombre de personnes qui l'ont.
@@ -121,7 +110,8 @@ function roleEmoji(guild,role,key,names=[],badges=new Map()){
  }
  return role?.unicodeEmoji||'▫️';
 }
-const teamKeys=()=>Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
+const leadKeys=()=>Object.values(a.teams),managerKeys=()=>Object.keys(a.teams);
+const teamKeys=()=>[...leadKeys(),...managerKeys()];
 // Emojis du serveur retrouvés d'après le badge de chaque rôle de l'effectif.
 async function badgeMap(guild){const r=a.state().schoolRoles||{};return require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});}
 const rosterKeys=()=>{const r=a.state().schoolRoles||{};return[...DIRECTION_KEYS,...familyKeys,...teamKeys()].filter(k=>r[k]&&r[k]!==excluded);};
@@ -130,22 +120,17 @@ function fullRoster(guild,members,badges=new Map()){
  const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${count}**`;};
-return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',teams]]
+return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['⭐ Responsables',leadKeys()],['🛠️ Exécutants',managerKeys()]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }
-// Page d'effectif en composants intégrés (texte et séparateurs dans le même cadre).
-function rosterPage({total,page,pages,lines,summary,empty}){
+// Effectif en composants intégrés : total de la famille et un bloc par catégorie de rôles.
+function rosterPage({total,summary}){
  const {ContainerBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
  const text=content=>new TextDisplayBuilder().setContent(content);
- const box=new ContainerBuilder().setAccentColor(0xffffff).addTextDisplayComponents(text(`## ✦ Effectifs de la famille QG\n**${total} MEMBRE${total>1?'S':''} · PAGE ${page+1}/${pages}**`));
- if(empty)box.addTextDisplayComponents(text('Cette page est désormais vide.'));
+ const box=new ContainerBuilder().setAccentColor(0xffffff).addTextDisplayComponents(text(`## ✦ Effectifs de la famille QG\n**${total} MEMBRE${total>1?'S':''} DANS LA FAMILLE**`));
  for(const part of summary||[]){
   box.addSeparatorComponents(new SeparatorBuilder());
   box.addTextDisplayComponents(text(`### ${part.title}\n${part.lines.join('\n')}`.slice(0,1900)));
- }
- if(!empty){
-  box.addSeparatorComponents(new SeparatorBuilder());
-  box.addTextDisplayComponents(text((lines.join('\n\n')||'Aucun membre familial enregistré.').slice(0,2400)));
  }
  box.addTextDisplayComponents(text(`-# Mis à jour <t:${Math.floor(Date.now()/1000)}:R>`));
  return{components:[box],flags:F.IsComponentsV2,allowedMentions:{parse:[]}};

@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 67 — Effectif sans liste détaillée, responsables séparés
+
+- Salon effectifs : un seul message (total, Direction, Grades, Responsables, Exécutants), sans la liste
+  détaillée des membres ; les anciennes pages suivantes sont supprimées.
+- Responsables et exécutants dans deux blocs séparés (salon effectifs et guide famille).
+- Modifiés : `systems/qgCommunityUpgrade.js`, `tests/qgVoiceTools.test.js`
+
 ## 66 — Prestigieux au-dessus de Senior dans les promotions
 
 - Ordre des grades : Test → Confirmé → Expert → Senior → Prestigieux pour /rankup, /derank, le panel

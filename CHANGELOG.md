@@ -6,6 +6,11 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 83 — Fiches de candidature traitées
+
+- Fiche acceptée : embed vert ; refusée : rouge ; boutons (Accepter, Refuser, DDS, ticket) désactivés une
+  fois la décision prise. Statut affiché en clair. Les anciennes fiches sont mises à jour au démarrage.
+
 ## 82 — Aide et FAQ version communautaire
 
 - Salon 📚・aide-et-faq : présentation du QG (Qualité & Grandeur), histoire (ouverture, fondateurs,

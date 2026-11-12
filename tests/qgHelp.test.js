@@ -88,3 +88,14 @@ test('aide communautaire : histoire, fondateurs, inspiration, valeurs, et rejoin
  const setup=require('../systems/qgSchoolSetup');
  assert.ok((await setup.panelPayload('help',null)).embeds[0].toJSON().title.includes('Aide et FAQ'));
 });
+
+test('fiche candidature : verte et boutons désactivés une fois acceptée, rouge si refusée',()=>{
+ const interviews=require('../systems/qgInterviews');
+ const app=status=>({applicantId:'111',caseId:'c1',status,submittedAt:1,answers:['Réponse'],questions:['Question ?']});
+ const disabled=a=>interviews.controls(a)[0].toJSON().components.map(c=>!!c.disabled);
+ assert.deepEqual(disabled(app('submitted')),[false,false,false,false]);
+ assert.equal(interviews.summary(app('submitted')).toJSON().color,0xffffff);
+ for(const s of ['waiting_interview','accept']){assert.equal(interviews.summary(app(s)).toJSON().color,0x2ecc71);assert.deepEqual(disabled(app(s)),[true,true,true,true]);}
+ assert.match(interviews.summary(app('waiting_interview')).toJSON().description,/Acceptée — en attente d’entretien/);
+ assert.equal(interviews.summary(app('refuse')).toJSON().color,0xd62f2f);assert.deepEqual(disabled(app('refuse')),[true,true,true,true]);
+});

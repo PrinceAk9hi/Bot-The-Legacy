@@ -47,9 +47,15 @@ async function authorize(i,foundation=false){
 const appFor=id=>Object.values(a.state().schoolFamilyRecruitment||{}).find(x=>x.caseId===id);
 function put(app){a.save(s=>{s.schoolFamilyRecruitment||={};s.schoolFamilyRecruitment[app.applicantId]=app;});return app;}
 function requireApp(id){const app=appFor(id);if(!app)throw Error('Ce dossier a été remplacé ou est introuvable.');return app;}
-function controls(app){return [row(button(`qgr:written:${app.caseId}:accept`,'Accepter',B.Success),button(`qgr:written:${app.caseId}:refuse`,'Refuser',B.Danger),button(`qgr:dds:${app.caseId}`,'DDS'),button(`qgr:ticket:${app.caseId}`,'Ouvrir un ticket'))];}
+// Fiche traitée (acceptée ou refusée) : tous les boutons sont désactivés.
+const pending=app=>['submitted','in_review'].includes(app.status);
+function controls(app){const done=!pending(app);return [row(button(`qgr:written:${app.caseId}:accept`,'Accepter',B.Success).setDisabled(done),button(`qgr:written:${app.caseId}:refuse`,'Refuser',B.Danger).setDisabled(done),button(`qgr:dds:${app.caseId}`,'DDS').setDisabled(done),button(`qgr:ticket:${app.caseId}`,'Ouvrir un ticket').setDisabled(done))];}
+// Statut lisible et couleur de la fiche : vert si acceptée, rouge si refusée, blanc en attente.
+const STATUS={submitted:'📥 À examiner',in_review:'🔎 En cours d’examen',waiting_interview:'✅ Acceptée — en attente d’entretien',accept:'✅ Acceptée — Membre Test',refuse:'⛔ Refusée'};
+const statusColor=app=>['waiting_interview','accept'].includes(app.status)?0x2ecc71:app.status==='refuse'?0xd62f2f:0xffffff;
 function summary(app){
- const result=embed('📋 Candidature • QG',`Candidat : <@${app.applicantId}>\nStatut : **${app.status}**\nDossier : ${app.caseId}\nDéposée <t:${Math.floor((app.submittedAt||app.createdAt)/1000)}:f>\n${app.updatedBy?`Dernier traitement : <@${app.updatedBy}>\n`:''}Les réponses complètes sont jointes au dossier.`);
+ const result=embed('📋 Candidature • QG',`Candidat : <@${app.applicantId}>\nStatut : **${STATUS[app.status]||app.status}**\nDossier : ${app.caseId}\nDéposée <t:${Math.floor((app.submittedAt||app.createdAt)/1000)}:f>\n${app.updatedBy?`Dernier traitement : <@${app.updatedBy}>\n`:''}Les réponses complètes sont jointes au dossier.`);
+ result.setColor(statusColor(app));
  // Toutes les questions, réparties pour tenir sous la limite Discord (6 000 caractères par embed, 25 champs).
  const questions=app.questions||require('./qgSchoolApplications').familyQuestions,count=Math.min(25,Math.max(questions.length,app.answers?.length||0));
  const names=Array.from({length:count},(_,n)=>`${n+1}. ${questions[n]||'Question '+(n+1)}`.slice(0,200));

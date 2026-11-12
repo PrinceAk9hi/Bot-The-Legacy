@@ -80,7 +80,10 @@ async function roster(guild){
   for(const old of a.state().schoolFamilyRosterMessages||[])if(old)await ch.messages.delete(old).catch(e=>{if(e.code!==10008)throw e;});
   a.save(s=>{s.schoolFamilyRosterMessages=[];s.schoolFamilyRosterV2=true;});
  }
- const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],summary=fullRoster(guild,[...members.values()].filter(m=>!m.user.bot));
+ const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],humans=[...members.values()].filter(m=>!m.user.bot);
+ // Badge de chaque rôle → emoji du serveur correspondant (comparaison d'images, mémorisée).
+ const badges=await require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});
+ const summary=fullRoster(guild,humans,badges);
  for(let page=0;page<Math.max(pages,saved.length);page++){
   let message=saved[page]?await ch.messages.fetch(saved[page]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
   if(page>=pages){if(message)await message.edit(rosterPage({total:list.length,page,pages,lines:[],empty:true}));continue;}
@@ -100,13 +103,15 @@ async function roster(guild){
 const DIRECTION_KEYS=['creator','globalManager','referent']; // referent : « Référent du QG » (systems/qgReferent.js)
 const normalizeName=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 // Emoji du serveur associé à un rôle : config.rosterEmojis[clé] (nom ou ID) si renseigné, sinon
+// l'emoji qui a la même image que le badge du rôle, sinon
 // l'emoji dont le nom correspond au nom du rôle (exact, puis le plus long contenu dans le nom),
 // en ignorant un nom générique présent dans plusieurs rôles (ex. « membre »), sinon l'emoji Unicode du rôle.
-function roleEmoji(guild,role,key,names=[]){
+function roleEmoji(guild,role,key,names=[],badges=new Map()){
  const emojis=[...(guild.emojis?.cache?.values()||[])].filter(e=>e.available!==false&&e.name);
  const show=e=>`<${e.animated?'a':''}:${e.name}:${e.id}>`;
  const forced=config.rosterEmojis?.[key];
  if(forced){const e=emojis.find(e=>e.id===String(forced)||e.name===forced);if(e)return show(e);}
+ if(badges.get(role?.id))return badges.get(role.id);
  const name=normalizeName(role?.name);
  if(name){
   const exact=emojis.find(e=>normalizeName(e.name)===name);if(exact)return show(exact);
@@ -115,11 +120,13 @@ function roleEmoji(guild,role,key,names=[]){
  }
  return role?.unicodeEmoji||'▫️';
 }
-function fullRoster(guild,members){
- const r=a.state().schoolRoles||{},teams=Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
+const teamKeys=()=>Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
+const rosterKeys=()=>{const r=a.state().schoolRoles||{};return[...DIRECTION_KEYS,...familyKeys,...teamKeys()].filter(k=>r[k]&&r[k]!==excluded);};
+function fullRoster(guild,members,badges=new Map()){
+ const r=a.state().schoolRoles||{},teams=teamKeys();
  const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
-  const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all)} <@&${id}> · **${count}**`;};
+  const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${count}**`;};
 return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',teams]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }

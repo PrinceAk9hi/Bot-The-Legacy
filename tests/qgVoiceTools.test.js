@@ -74,12 +74,45 @@ test('effectif complet : emoji du serveur, rôle et nombre pour chaque grade',()
  const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
  const parts=upgrade._test.fullRoster(guild,[m('r-test'),m('r-test'),m('r-conf'),m('r-crea'),m('r-ref'),m('r-rp')]);
  assert.deepEqual(parts.map(p=>p.title),['👑 Direction','🎖️ Grades de la famille','🛠️ Exécutants']);
- assert.deepEqual(parts[0].lines,['▫️ <@&r-crea> · **1**','<:referent:3> <@&r-ref> · **1**']);
- assert.deepEqual(parts[1].lines,['⭐ <@&r-sen> · **0**','<a:confirme:2> <@&r-conf> · **1**','<:membre_test:1> <@&r-test> · **2**']);
- assert.deepEqual(parts[2].lines,['▫️ <@&r-rp> · **1**']);
+ assert.deepEqual(parts[0].lines,['▫️ <@&r-crea> - **1**','<:referent:3> <@&r-ref> - **1**']);
+ assert.deepEqual(parts[1].lines,['⭐ <@&r-sen> - **0**','<a:confirme:2> <@&r-conf> - **1**','<:membre_test:1> <@&r-test> - **2**']);
+ assert.deepEqual(parts[2].lines,['▫️ <@&r-rp> - **1**']);
  const p=upgrade._test.rosterPage({total:3,page:0,pages:1,lines:['x'],summary:parts});
  assert.equal(p.flags,MessageFlags.IsComponentsV2);
  const json=JSON.stringify(p.components[0].toJSON());
- assert.match(json,/Grades de la famille/);assert.ok(json.includes('<:membre_test:1> <@&r-test> · **2**'));
+ assert.match(json,/Grades de la famille/);assert.ok(json.includes('<:membre_test:1> <@&r-test> - **2**'));
  assert.doesNotMatch(JSON.stringify(upgrade._test.rosterPage({total:3,page:1,pages:2,lines:['x']}).components[0].toJSON()),/Direction/);
+});
+
+test('badges : chaque badge de rôle retrouve l’emoji du serveur qui a la même image',async()=>{
+ const badges=require('../utils/qgRoleBadges');badges._test.prints.clear();
+ const img=v=>new Uint8Array(768).fill(v);
+ // Images : badge Senior ≈ emoji 20 (léger écart d'encodage), badge Test = emoji 10, badge sans emoji ressemblant.
+ const images={'emoji/10':img(10),'emoji/20':img(200),'emoji/30':img(120),'role/senior':img(195),'role/test':img(10),'role/autre':img(60)};
+ let calls=0;const print=async url=>{calls++;const key=Object.keys(images).find(k=>url.includes(k.replace('emoji/','emojis/').replace('role/','role-icons/')));return images[key];};
+ const emojis=new Collection([['10',{id:'10',name:'badge_test'}],['20',{id:'20',name:'etoile',animated:true}],['30',{id:'30',name:'autre'}]]);
+ const role=(id,icon)=>({id,icon,iconURL:()=>'https://cdn.discordapp.com/role-icons/'+icon+'.png'});
+ const guild={emojis:{cache:emojis}};
+ const map=await badges.badgeEmojis(guild,[role('rs','senior'),role('rt','test'),role('ra','autre'),{id:'sans-badge',icon:null}],{print});
+ assert.equal(map.get('rs'),'<a:etoile:20>');assert.equal(map.get('rt'),'<:badge_test:10>');assert.equal(map.has('ra'),false);assert.equal(map.has('sans-badge'),false);
+ // Résultat mémorisé : pas de nouveau téléchargement tant que le badge ne change pas.
+ const before=calls;const again=await badges.badgeEmojis(guild,[role('rs','senior'),role('rt','test')],{print});
+ assert.equal(again.get('rs'),'<a:etoile:20>');assert.equal(calls,before);
+ // Le badge prime sur la correspondance par nom dans l'effectif.
+ const roles=new Collection([['rs',{id:'rs',name:'Membre Senior'}]]);
+ a.save(s=>{s.schoolRoles={senior:'rs'};});
+ const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:emojis}},[{roles:{cache:new Collection([['rs',{}]])}}],again);
+ assert.deepEqual(parts[0].lines,['<a:etoile:20> <@&rs> - **1**']);
+});
+
+test('badges : empreinte d’une vraie image PNG',async()=>{
+ const {createCanvas}=require('@napi-rs/canvas'),c=createCanvas(64,64),ctx=c.getContext('2d');ctx.fillStyle='#ff0000';ctx.fillRect(0,0,64,64);
+ const png=c.toBuffer('image/png'),old=global.fetch;
+ global.fetch=async()=>({ok:true,arrayBuffer:async()=>png.buffer.slice(png.byteOffset,png.byteOffset+png.length)});
+ try{
+  const badges=require('../utils/qgRoleBadges');badges._test.prints.clear();
+  const emojis=new Collection([['1',{id:'1',name:'rouge'}]]);
+  const map=await badges.badgeEmojis({emojis:{cache:emojis}},[{id:'r',icon:'h2',iconURL:()=>'https://x/role.png'}]);
+  assert.equal(map.get('r'),'<:rouge:1>');
+ }finally{global.fetch=old;}
 });

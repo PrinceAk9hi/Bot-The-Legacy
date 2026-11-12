@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 64 — Badges de rôle reconnus dans l'effectif
+
+- Le bot compare l'image du badge (icône) de chaque rôle aux emojis du serveur et affiche l'emoji
+  correspondant : `EMOJI @Rôle - NOMBRE`. Correspondances mémorisées (`schoolRoleBadgeEmojis`),
+  recalculées si un badge change. Repli : nom de l'emoji, puis emoji Unicode du rôle.
+- Nouveau : `utils/qgRoleBadges.js`. Modifiés : `systems/qgCommunityUpgrade.js`, `tests/qgVoiceTools.test.js`
+
 ## 63 — Effectif complet avec les emojis du serveur
 
 - Salon effectif : direction (Créateur, Gérant Global, Référent du QG), grades de la famille et exécutants (responsables compris), chaque rôle

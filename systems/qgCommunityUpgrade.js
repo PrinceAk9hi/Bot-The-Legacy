@@ -95,9 +95,9 @@ async function roster(guild){
   a.save(s=>{s.schoolFamilyRosterMessages||=[];s.schoolFamilyRosterMessages[page]=message.id;});
  }
 }
-// Effectif complet : direction, grades de la famille et exécutants, avec pour chaque rôle son
+// Effectif complet : Référent du QG, grades de la famille et exécutants, avec pour chaque rôle son
 // emoji du serveur, le rôle et le nombre de personnes qui l'ont.
-const DIRECTION_KEYS=['creator','globalManager','administrator'];
+const REFERENT_KEYS=['referent']; // rôle « Référent du QG » (systems/qgReferent.js)
 const normalizeName=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 // Emoji du serveur associé à un rôle : config.rosterEmojis[clé] (nom ou ID) si renseigné, sinon
 // l'emoji dont le nom correspond au nom du rôle (exact, puis le plus long contenu dans le nom),
@@ -117,10 +117,10 @@ function roleEmoji(guild,role,key,names=[]){
 }
 function fullRoster(guild,members){
  const r=a.state().schoolRoles||{},teams=Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
- const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
+ const all=[...REFERENT_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all)} <@&${id}> · **${count}**`;};
-return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',teams]]
+return[['🛡️ Référent du QG',REFERENT_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',teams]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }
 // Page d'effectif en composants intégrés (texte et séparateurs dans le même cadre).

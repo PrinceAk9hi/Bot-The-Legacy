@@ -173,3 +173,27 @@ test('effectif : emojis du serveur dans les titres des blocs (crown~1 = deuxièm
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:emojis}},[]);
  assert.deepEqual(parts.map(p=>p.title),['<:crown:200> Direction','<:gavel:300> Responsables','<:whitediamond:400> Grades de la famille','<a:support:500> Exécutants']);
 });
+
+test('effectif : sous chaque grade, les membres en petit avec leur date d’arrivée',()=>{
+ const roles=new Collection([['t',{id:'t',name:'Membre Test'}],['l',{id:'l',name:'Responsable RP'}]]);
+ a.save(s=>{s.schoolRoles={test:'t',rpLead:'l'};s.schoolFamilyMembership={A1:{active:true,joinedAt:Date.UTC(2026,1,3)},A2:{active:true,joinedAt:Date.UTC(2026,0,5)}};});
+ const m=(id,...ids)=>({id,roles:{cache:new Collection(ids.map(x=>[x,{}]))}});
+ const guild={roles:{cache:roles},emojis:{cache:new Collection()}};
+ const parts=upgrade._test.fullRoster(guild,[m('A1','t'),m('A2','t'),m('A3','t','l')],new Map(),{details:true});
+ const grades=parts.find(p=>p.title.includes('Grades')).lines[0].split('\n');
+ assert.deepEqual(grades,['▫️ <@&t> - **3**',`-# <@A2> - <t:${Date.UTC(2026,0,5)/1000}:d>`,`-# <@A1> - <t:${Date.UTC(2026,1,3)/1000}:d>`,'-# <@A3> - date inconnue']);
+ // Les responsables n'ont pas le détail ; sans details (guide famille), aucun détail.
+ assert.deepEqual(parts.find(p=>p.title.includes('Responsables')).lines,['▫️ <@&l> - **1**']);
+ assert.equal(upgrade._test.fullRoster(guild,[m('A1','t')]).find(p=>p.title.includes('Grades')).lines[0],'▫️ <@&t> - **1**');
+});
+
+test('effectif : découpé en plusieurs messages sous la limite Discord',()=>{
+ const lines=['▫️ <@&t> - **150**',...Array.from({length:150},(_,n)=>`-# <@${String(100000000000000000n+BigInt(n))}> - <t:1767225600:d>`)].join('\n');
+ const pages=upgrade._test.rosterPages({total:150,summary:[{title:'Direction',lines:['x']},{title:'Grades de la famille',lines:[lines]}]});
+ assert.ok(pages.length>=2);
+ const texts=pages.map(p=>p.components[0].toJSON().components.filter(c=>c.type===10).map(c=>c.content));
+ for(const t of texts){assert.ok(t.join('').length<=4000);for(const c of t)assert.ok(c.length<=2000);}
+ const all=texts.flat().join('\n');
+ assert.equal((all.match(/-# <@/g)||[]).length,150);
+ assert.match(texts[0][0],/150 MEMBRES/);assert.match(texts.at(-1).at(-1),/Mis à jour/);
+});

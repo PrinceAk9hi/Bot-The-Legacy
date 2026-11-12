@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 73 — Membres sous chaque grade dans l'effectif
+
+- Salon effectifs : sous chaque grade de la famille, une ligne en petit par membre `@membre - date`
+  (date d'arrivée dans la famille, du plus ancien au plus récent). Pas de détail dans le guide famille.
+- L'effectif passe sur plusieurs messages s'il dépasse la limite de texte de Discord.
+
 ## 72 — Emojis du serveur dans les titres de l'effectif
 
 - Direction :crown~1: (deuxième emoji « crown »), Responsables :gavel:, Grades de la famille

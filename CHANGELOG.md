@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 84 — Présentation du QG dans son salon
+
+- La présentation (histoire, fondateurs, inspiration, valeurs, repères, rejoindre la famille) est publiée
+  seule dans le salon 1561157179803701368, au démarrage du bot (un message, modifié ensuite).
+- Le salon 📚・aide-et-faq retrouve son texte d'origine.
+
 ## 83 — Fiches de candidature traitées
 
 - Fiche acceptée : embed vert ; refusée : rouge ; boutons (Accepter, Refuser, DDS, ticket) désactivés une

@@ -1,4 +1,4 @@
-// Aide et FAQ (salon 📚・aide-et-faq) en version communautaire : présentation du QG, histoire,
+// Présentation du QG (salon 1561157179803701368, rien d'autre n'y est publié) : présentation du QG, histoire,
 // fondateurs, inspiration, valeurs, repères sur le serveur, et tout à la fin, comment rejoindre la famille.
 // Contenu tiré des informations officielles (utils/qgAiOfficial.js, config/qgFamily.js) : à modifier ici
 // si l'histoire ou les conditions changent.
@@ -17,7 +17,7 @@ const VALUES=['Activité','Impartialité','Ouverture d’esprit','Inclusivité',
 function payload(guild,state=require('../utils/qgAdmin').state()){
  const ch=key=>state.schoolChannels?.[key]?`<#${state.schoolChannels[key]}>`:null;
  const where=(key,label)=>ch(key)?`${ch(key)} — ${label}`:null;
- const intro=embed('📚 Aide et FAQ · Bienvenue au QG',
+ const intro=embed('📚 Bienvenue au QG',
   `${HISTORY.meaning}\n\nLe QG est une **famille de School RP** sur Roblox, avec son propre serveur Discord. On y joue ensemble, on se retrouve en vocal et on fait vivre une famille soudée, active et respectueuse.\n\nCe salon répond aux questions qu’on se pose en arrivant : d’où vient le QG, qui le dirige, comment se repérer… et comment nous rejoindre.`);
  const history=embed('🕰️ Notre histoire',
   `**Ouverture officielle :** ${HISTORY.opening} (heure de Paris).\n\n**Fondateurs :** ${HISTORY.founders}.\n**Superviseurs :** ${HISTORY.supervisors}.\n\nLe serveur Discord et le bot du QG ont été créés par **${HISTORY.creator}**, cofondateur de la famille.`);
@@ -31,4 +31,18 @@ function payload(guild,state=require('../utils/qgAdmin').state()){
   `${conditions}\n\n**Comment faire ?**\n1. Accepte le règlement et termine ta vérification.\n2. Dépose ta candidature dans ${ch('familyApplications')||'le salon des candidatures famille'} (questionnaire en MP).\n3. Si elle est retenue, tu passes un entretien vocal avec un recruteur.\n4. Accepté(e) ? Tu deviens **Membre Test** et tu rejoins la [communauté Roblox du QG](${config.robloxGroupUrl}).\n\nOn a hâte de te compter parmi nous !`);
  return{embeds:[intro,history,inspiration,values,map,join],allowedMentions:{parse:[]}};
 }
-module.exports={payload,HISTORY};
+const CHANNEL='1561157179803701368';
+// Publie ou met à jour l'unique message de présentation dans son salon (au démarrage du bot).
+async function publish(guild){
+ const a=require('../utils/qgAdmin');
+ return a.serial('qg-community-help',async()=>{
+  const ch=await guild.channels.fetch(CHANNEL).catch(()=>null);
+  if(!ch?.isTextBased?.()||ch.guildId!==config.guildId)throw Error('Salon de présentation du QG introuvable.');
+  const p=payload(guild),saved=a.state().schoolPanels?.communityHelp;
+  let message=saved?.channelId===CHANNEL?await ch.messages.fetch(saved.messageId).catch(()=>null):null;
+  if(message)await message.edit(p);else message=await ch.send(p);
+  a.save(s=>{s.schoolPanels||={};s.schoolPanels.communityHelp={channelId:CHANNEL,messageId:message.id};});
+  return{detail:'Présentation du QG publiée'};
+ });
+}
+module.exports={payload,publish,CHANNEL,HISTORY};

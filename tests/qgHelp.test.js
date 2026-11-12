@@ -78,15 +78,22 @@ test('/réunion : annonce à la fin de la programmation, une seule fois, barrée
  assert.equal(cancelled.content,null);assert.match(cancelled.embeds[0].data.description,/annulée/);assert.deepEqual(cancelled.allowedMentions,{parse:[]});
 });
 
-test('aide communautaire : histoire, fondateurs, inspiration, valeurs, et rejoindre la famille en dernier',async()=>{
+test('présentation du QG : histoire, fondateurs, inspiration, valeurs, et rejoindre la famille en dernier',async()=>{
  const p=require('../systems/qgCommunityHelp').payload(null,{schoolChannels:{familyApplications:'777',tickets:'888'}});
  const titles=p.embeds.map(e=>e.toJSON().title),all=p.embeds.map(e=>e.toJSON().description).join('\n');
- assert.ok(titles[0].includes('Aide et FAQ'),'titre retrouvé par la mise à jour automatique');
+ assert.ok(titles[0].includes('Bienvenue au QG'));
  assert.match(titles.at(-1),/Rejoindre la famille/);
  for(const x of ['Qualité & Grandeur','7 novembre 2026','Aven et EMS','Key et Meg','esthétique ancienne','Respect','<#888>','<#777>','Tag QG obligatoire',config.robloxGroupUrl])assert.ok(all.includes(x),x);
  assert.ok(all.length+titles.join('').length<6000);
+ // Aide et FAQ : texte d'origine, sans la présentation.
  const setup=require('../systems/qgSchoolSetup');
- assert.ok((await setup.panelPayload('help',null)).embeds[0].toJSON().title.includes('Aide et FAQ'));
+ assert.doesNotMatch(JSON.stringify((await setup.panelPayload('help',null)).embeds[0].toJSON()),/Qualité & Grandeur/);
+ // Publication : un seul message dans le salon 1561157179803701368, modifié ensuite.
+ const help=require('../systems/qgCommunityHelp'),sent=[],edits=[];
+ const ch={guildId:config.guildId,isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'pres'};},messages:{fetch:async id=>id==='pres'?{id:'pres',edit:async q=>edits.push(q)}:null}};
+ const g={channels:{fetch:async id=>id==='1561157179803701368'?ch:null}};
+ await help.publish(g);await help.publish(g);
+ assert.equal(sent.length,1);assert.equal(edits.length,1);assert.equal(a.state().schoolPanels.communityHelp.messageId,'pres');
 });
 
 test('fiche candidature : verte et boutons désactivés une fois acceptée, rouge si refusée',()=>{

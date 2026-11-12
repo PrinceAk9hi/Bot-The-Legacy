@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 78 — Journal de la direction
+
+- Salon 1570572219023630357 : actions importantes faites par une personne (rankup, derank, rétrogradation,
+  avertissements avec niveau et motif, sanctions, notes, PDT, décisions et surveillances de la Fondation,
+  candidatures, ouverture du recrutement, référent, annonces…). Pas les actions automatiques ni les logs.
+- Après /notesmp : compte rendu complet de la réunion (notes, détails, décisions, motifs, résultats),
+  une seule fois, découpé si besoin.
+- Nouveau : `systems/qgDirectionJournal.js`, `tests/qgDirectionJournal.test.js`.
+  Modifiés : `utils/qgAdmin.js`, `systems/qgMeetingDelivery.js`.
+
 ## 77 — Annonce de réunion programmée
 
 - Fin de la programmation /réunion : annonce dans le salon d'annonces avec mention de la famille (titre,

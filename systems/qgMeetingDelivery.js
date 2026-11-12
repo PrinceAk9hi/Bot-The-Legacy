@@ -52,6 +52,8 @@ async function execute(i){
    progress++;if(progress%10===0)await i.editReply(`Traitement : ${progress}/${targets.length} membres.`);
   }
   r=meetings.save(id,p=>{p.status='finished';});
+  // Détail complet de la réunion dans le journal de la direction (une seule fois).
+  await require('./qgDirectionJournal').meeting(i.guild,r).catch(e=>console.error('Journal réunion QG :',e.code||e.message));
   const sent=Object.values(r.deliveries).filter(x=>x.status==='sent').length,done=Object.values(r.results).filter(x=>x.status==='done').length;
   return i.editReply(`Réunion ${id} : ${done}/${targets.length} dossiers traités, ${sent} MP remis. Les échecs et opérations incertaines sont consultables avec /réunion. Relancer /notesmp ne rejoue pas les sanctions et ne renvoie pas les MP déjà remis.`);
  });

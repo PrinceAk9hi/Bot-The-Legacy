@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 70 — Casino dans « Devenir exécutant », rôle d'exécutant des responsables
+
+- Panel « rejoindre une gestion » : sixième équipe **Exécutant du Casino** (candidature traitée par le
+  Responsable du casino, deux places hors responsable comme les autres équipes).
+- Un membre qui reçoit une responsabilité reçoit automatiquement le rôle d'exécutant de la même équipe
+  (aussi pour le casino) ; rattrapage des responsables déjà en place toutes les 5 minutes. Jamais retiré.
+- Modifiés : `systems/qgPanels.js`, `systems/qgSchoolApplications.js`, `systems/qgCommunityUpgrade.js`, tests.
+
 ## 69 — Casino dans l'effectif
 
 - Responsable du casino et Exécutant du casino ajoutés aux blocs Responsables et Exécutants

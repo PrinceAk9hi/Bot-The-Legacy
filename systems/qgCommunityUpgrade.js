@@ -52,6 +52,16 @@ async function announce(guild,id){
 function memberChanged(oldMember,newMember){
  if(!family(oldMember)&&family(newMember))recruited(newMember);
  if(family(oldMember)&&!family(newMember))a.save(s=>{const rec=s.schoolFamilyMembership?.[newMember.id];if(rec){rec.active=false;rec.leftAt=Date.now();}});
+ leadRoles(newMember).catch(e=>console.error('Rôle exécutant du responsable :',e.code||e.message));
+}
+// Responsabilité → rôle d'exécutant de la même équipe, ajouté automatiquement (jamais retiré).
+const leadTeams=()=>({...Object.fromEntries(Object.entries(a.teams).map(([team,lead])=>[lead,team])),casinoLead:'casinoOperator'});
+async function leadRoles(member){
+ if(member.guild?.id!==config.guildId||member.user?.bot)return[];
+ const r=a.state().schoolRoles||{};
+ const add=Object.entries(leadTeams()).filter(([lead,team])=>r[lead]&&r[team]&&member.roles.cache.has(r[lead])&&!member.roles.cache.has(r[team])).map(([,team])=>r[team]);
+ if(add.length)await member.roles.add(add,'Responsabilité QG : rôle d’exécutant associé');
+ return add;
 }
 async function deliver(guild,key,channelId,payload,privateOnly=false){
  const prior=a.state().schoolCommunityDeliveries?.[key];if(prior?.messageId)return;
@@ -150,6 +160,8 @@ async function tick(guild){
    await announce(guild,id).catch(e=>console.error('Annonce recrutement QG :',e.code||e.name));
   }
   if(Date.now()-lastRoster>300000){
+   // Rattrapage : responsables déjà en place sans leur rôle d'exécutant.
+   for(const m of (await require('../utils/qgMembers')(guild)).values())await leadRoles(m).catch(e=>console.error('Rôle exécutant du responsable :',e.code||e.message));
    await roster(guild);lastRoster=Date.now();
    // Guide de la famille (effectifs par grade) et panel exécutant (places libres) suivent les rôles.
    const panels=require('./qgPanels');
@@ -170,4 +182,4 @@ async function execute(i){
  const missing=optional.filter(k=>!a.state().schoolRoles?.[k]);
  return i.editReply({embeds:[embed('QG actualisé',`Gestion RP disponible, panel des gestions actualisé, effectifs et niveaux mis à jour.\n${missing.length?'Séparateurs non retrouvés : '+missing.join(', ')+'. Associe tes rôles existants avec /sync associer-separateur.':'Séparateurs existants associés.'}\nLes dates historiques absentes restent indiquées comme inconnues.`)],allowedMentions:{parse:[]}});
 }
-module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,fullRoster,badgeMap,_test:{rosterPage,fullRoster,roleEmoji}};
+module.exports={leadRoles,execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,fullRoster,badgeMap,_test:{rosterPage,fullRoster,roleEmoji}};

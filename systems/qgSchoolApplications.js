@@ -13,9 +13,9 @@ const familyQuestions = [
 const state = () => read('qgServer');
 const save = fn => update('qgServer', fn);
 const familyRoleKeys = ['prestigious', 'senior', 'expert', 'confirmed', 'test'];
-const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead' };
+const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead', casinoOperator: 'casinoLead' };
 // Les rôles de gestion s'appellent désormais « Exécutant ».
-const teamLabels = { ticketsManagement: 'Exécutant Support', recruitmentManagement: 'Exécutant des Recrutements', animationManagement: 'Exécutant des Animations', networksManagement: 'Exécutant des Réseaux', rpManagement: 'Exécutant du RP' };
+const teamLabels = { ticketsManagement: 'Exécutant Support', recruitmentManagement: 'Exécutant des Recrutements', animationManagement: 'Exécutant des Animations', networksManagement: 'Exécutant des Réseaux', rpManagement: 'Exécutant du RP', casinoOperator: 'Exécutant du Casino' };
 const trim = text => String(text ?? '').slice(0, 1000);
 const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function ids() { const s = state(); return { roles: s.schoolRoles || {}, channels: s.schoolChannels || {}, categories: s.schoolCategories || {} }; }

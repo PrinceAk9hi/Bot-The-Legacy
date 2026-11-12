@@ -146,3 +146,15 @@ test('effectif : le casino a son responsable et son exécutant',()=>{
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[m('cl'),m('co'),m('co')]);
  assert.deepEqual(parts,[{title:'⭐ Responsables',lines:['▫️ <@&cl> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&co> - **2**']}]);
 });
+
+test('responsabilité : le rôle d’exécutant de la même équipe est ajouté automatiquement',async()=>{
+ a.save(s=>{s.schoolRoles={rpLead:'rl',rpManagement:'rm',casinoLead:'cl',casinoOperator:'co',ticketsLead:'tl',ticketsManagement:'tm'};});
+ const added=[];
+ const member=ids=>({guild:{id:config.guildId},user:{bot:false},roles:{cache:new Collection(ids.map(id=>[id,{}])),add:async(list)=>{added.push(...list);}}});
+ assert.deepEqual(await upgrade.leadRoles(member(['rl','cl'])),['rm','co']);
+ assert.deepEqual(added,['rm','co']);
+ // Déjà exécutant, ou pas responsable : rien n'est ajouté.
+ assert.deepEqual(await upgrade.leadRoles(member(['tl','tm'])),[]);
+ assert.deepEqual(await upgrade.leadRoles(member(['tm'])),[]);
+ assert.equal(added.length,2);
+});

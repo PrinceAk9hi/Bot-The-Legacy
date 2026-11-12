@@ -53,11 +53,11 @@ test('the regulation fits a single Discord embed description', () => {
   assert.match(setup.ruleText, /Article 20/);
 });
 
-test('persistent panels use stable custom IDs and the five configured management teams', async () => {
+test('persistent panels use stable custom IDs and the six configured management teams (casino included)', async () => {
   for (const key of ['rules', 'notifications', 'familyApplications', 'joinManagement', 'absences', 'rankUp']) assert.ok(setup.panelPayload(key));
   const management = (await setup.panelPayload('joinManagement')).components[0].components[0];
-  assert.equal(management.toJSON().options.length, 5);
-  assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement']);
+  assert.equal(management.toJSON().options.length, 6);
+  assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement', 'casinoOperator']);
 });
 
 test('family application panel attaches the animated banner matching the recruitment status and preserves the MP questionnaire button', () => {

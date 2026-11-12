@@ -8,7 +8,7 @@ consulter l'historique Git.
 
 ## 80 — Familles actives et profils
 
-- `activeFamilies` dans `config/qg.js` : les 50 familles actives (liste des gérants). Une communauté de
+- `activeFamilies` dans `config/qg.js` : les familles actives (49 depuis le retrait de BLACKLIST, inactive) (liste des gérants). Une communauté de
   « schoolfamily » absente de la liste est une famille inactive : ni signalée, ni affichée. Alias pour les
   communautés nommées autrement (LA NIGHTMARE → NIGHTMARE, CRPS → Crips). Diablos n'a pas de communauté.
 - La famille s'affiche dans /profil (sous la carte) et dans /user (section Roblox).

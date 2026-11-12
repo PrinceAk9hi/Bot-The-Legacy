@@ -80,7 +80,7 @@ async function roster(guild){
   for(const old of a.state().schoolFamilyRosterMessages||[])if(old)await ch.messages.delete(old).catch(e=>{if(e.code!==10008)throw e;});
   a.save(s=>{s.schoolFamilyRosterMessages=[];s.schoolFamilyRosterV2=true;});
  }
- const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],grades=gradeCounts(guild,list);
+ const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],summary=fullRoster(guild,[...members.values()].filter(m=>!m.user.bot));
  for(let page=0;page<Math.max(pages,saved.length);page++){
   let message=saved[page]?await ch.messages.fetch(saved[page]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
   if(page>=pages){if(message)await message.edit(rosterPage({total:list.length,page,pages,lines:[],empty:true}));continue;}
@@ -90,37 +90,52 @@ async function roster(guild){
    const date=a.state().schoolFamilyMembership?.[m.id]?.joinedAt||(application?.status==='accept'?(application.interviewFinishedAt||application.updatedAt):null),rankup=require('./qgMemberMetrics').lastRankup(m.id);
    return `**<@${m.id}>** • ${grade}\nArrivée dans la famille : ${date?`<t:${Math.floor(date/1000)}:D>`:'inconnue — non enregistrée'}\nDernier rankup : ${rankup?`<t:${Math.floor(rankup/1000)}:D>`:'non enregistré'}`;
   });
-  const payload=rosterPage({total:list.length,page,pages,lines,grades:page===0?grades:null});
+  const payload=rosterPage({total:list.length,page,pages,lines,summary:page===0?summary:null});
   if(message)await message.edit(payload);else message=await ch.send(payload);
   a.save(s=>{s.schoolFamilyRosterMessages||=[];s.schoolFamilyRosterMessages[page]=message.id;});
  }
 }
-// Grades de la famille : badge (icône ou emoji du rôle), rôle et nombre de membres qui l'ont.
-function gradeCounts(guild,list){
- const r=a.state().schoolRoles||{};
- return [...familyKeys].reverse().filter(k=>r[k]&&r[k]!==excluded).map(k=>{
-  const role=guild.roles.cache.get(r[k]);
-  return{id:r[k],count:list.filter(m=>m.roles.cache.has(r[k])).length,icon:role?.iconURL?.({size:64,extension:'png'})||null,emoji:role?.unicodeEmoji||null};
- });
+// Effectif complet : direction, grades de la famille et exécutants, avec pour chaque rôle son
+// emoji du serveur, le rôle et le nombre de personnes qui l'ont.
+const DIRECTION_KEYS=['creator','globalManager','administrator'];
+const normalizeName=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+// Emoji du serveur associé à un rôle : config.rosterEmojis[clé] (nom ou ID) si renseigné, sinon
+// l'emoji dont le nom correspond au nom du rôle (exact, puis le plus long contenu dans le nom),
+// en ignorant un nom générique présent dans plusieurs rôles (ex. « membre »), sinon l'emoji Unicode du rôle.
+function roleEmoji(guild,role,key,names=[]){
+ const emojis=[...(guild.emojis?.cache?.values()||[])].filter(e=>e.available!==false&&e.name);
+ const show=e=>`<${e.animated?'a':''}:${e.name}:${e.id}>`;
+ const forced=config.rosterEmojis?.[key];
+ if(forced){const e=emojis.find(e=>e.id===String(forced)||e.name===forced);if(e)return show(e);}
+ const name=normalizeName(role?.name);
+ if(name){
+  const exact=emojis.find(e=>normalizeName(e.name)===name);if(exact)return show(exact);
+  const inside=emojis.filter(e=>{const n=normalizeName(e.name);return n.length>=4&&name.includes(n)&&names.filter(x=>x.includes(n)).length<=1;}).sort((x,y)=>normalizeName(y.name).length-normalizeName(x.name).length)[0];
+  if(inside)return show(inside);
+ }
+ return role?.unicodeEmoji||'▫️';
 }
-// Page d'effectif en composants intégrés (texte, badges et séparateurs dans le même cadre).
-function rosterPage({total,page,pages,lines,grades,empty}){
- const {ContainerBuilder,SectionBuilder,TextDisplayBuilder,ThumbnailBuilder,SeparatorBuilder}=require('discord.js');
+function fullRoster(guild,members){
+ const r=a.state().schoolRoles||{},teams=Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
+ const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
+ const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
+  const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all)} <@&${id}> · **${count}**`;};
+return[['👑 Direction',DIRECTION_KEYS],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',teams]]
+  .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
+}
+// Page d'effectif en composants intégrés (texte et séparateurs dans le même cadre).
+function rosterPage({total,page,pages,lines,summary,empty}){
+ const {ContainerBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
  const text=content=>new TextDisplayBuilder().setContent(content);
  const box=new ContainerBuilder().setAccentColor(0xffffff).addTextDisplayComponents(text(`## ✦ Effectifs de la famille QG\n**${total} MEMBRE${total>1?'S':''} · PAGE ${page+1}/${pages}**`));
  if(empty)box.addTextDisplayComponents(text('Cette page est désormais vide.'));
- if(grades?.length){
+ for(const part of summary||[]){
   box.addSeparatorComponents(new SeparatorBuilder());
-  box.addTextDisplayComponents(text('### Grades'));
-  for(const g of grades){
-   const line=`${g.emoji?g.emoji+' ':''}<@&${g.id}> · **${g.count}** membre${g.count>1?'s':''}`;
-   if(g.icon)box.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text(line)).setThumbnailAccessory(new ThumbnailBuilder().setURL(g.icon)));
-   else box.addTextDisplayComponents(text(line));
-  }
+  box.addTextDisplayComponents(text(`### ${part.title}\n${part.lines.join('\n')}`.slice(0,1900)));
  }
  if(!empty){
   box.addSeparatorComponents(new SeparatorBuilder());
-  box.addTextDisplayComponents(text((lines.join('\n\n')||'Aucun membre familial enregistré.').slice(0,3000)));
+  box.addTextDisplayComponents(text((lines.join('\n\n')||'Aucun membre familial enregistré.').slice(0,2400)));
  }
  box.addTextDisplayComponents(text(`-# Mis à jour <t:${Math.floor(Date.now()/1000)}:R>`));
  return{components:[box],flags:F.IsComponentsV2,allowedMentions:{parse:[]}};
@@ -159,4 +174,4 @@ async function execute(i){
  const missing=optional.filter(k=>!a.state().schoolRoles?.[k]);
  return i.editReply({embeds:[embed('QG actualisé',`Gestion RP disponible, panel des gestions actualisé, effectifs et niveaux mis à jour.\n${missing.length?'Séparateurs non retrouvés : '+missing.join(', ')+'. Associe tes rôles existants avec /sync associer-separateur.':'Séparateurs existants associés.'}\nLes dates historiques absentes restent indiquées comme inconnues.`)],allowedMentions:{parse:[]}});
 }
-module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,_test:{rosterPage,gradeCounts}};
+module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,_test:{rosterPage,fullRoster,roleEmoji}};

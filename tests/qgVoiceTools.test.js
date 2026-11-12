@@ -66,12 +66,20 @@ test('nouvelle recrue : annonce envoyée tout de suite, une seule fois',async()=
  assert.equal(sent.length,1);assert.match(sent[0].embeds[0].data.description,new RegExp(AUTHOR));
 });
 
-test('effectif : grades avec badge, rôle et nombre de membres',()=>{
- const p=upgrade._test.rosterPage({total:3,page:0,pages:1,lines:['**<@1>** • Membre Test'],grades:[{id:'r1',count:2,icon:'https://cdn.discordapp.com/role-icons/r1/x.png',emoji:null},{id:'r2',count:1,icon:null,emoji:'⭐'}]});
+test('effectif complet : emoji du serveur, rôle et nombre pour chaque grade',()=>{
+ const roles=new Collection([['r-test',{id:'r-test',name:'Membre Test'}],['r-conf',{id:'r-conf',name:'✦ Membre Confirmé'}],['r-sen',{id:'r-sen',name:'Membre Senior',unicodeEmoji:'⭐'}],['r-crea',{id:'r-crea',name:'Créateur'}],['r-rp',{id:'r-rp',name:'Exécutant RP'}]]);
+ const emojis=new Collection([['1',{id:'1',name:'membre_test'}],['2',{id:'2',name:'confirme',animated:true}],['3',{id:'3',name:'createur'}],['4',{id:'4',name:'membre'}]]);
+ const guild={roles:{cache:roles},emojis:{cache:emojis}};
+ a.save(s=>{s.schoolRoles={test:'r-test',confirmed:'r-conf',senior:'r-sen',creator:'r-crea',rpManagement:'r-rp'};});
+ const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
+ const parts=upgrade._test.fullRoster(guild,[m('r-test'),m('r-test'),m('r-conf'),m('r-crea'),m('r-rp')]);
+ assert.deepEqual(parts.map(p=>p.title),['👑 Direction','🎖️ Grades de la famille','🛠️ Exécutants']);
+ assert.deepEqual(parts[0].lines,['<:createur:3> <@&r-crea> · **1**']);
+ assert.deepEqual(parts[1].lines,['⭐ <@&r-sen> · **0**','<a:confirme:2> <@&r-conf> · **1**','<:membre_test:1> <@&r-test> · **2**']);
+ assert.deepEqual(parts[2].lines,['▫️ <@&r-rp> · **1**']);
+ const p=upgrade._test.rosterPage({total:3,page:0,pages:1,lines:['x'],summary:parts});
  assert.equal(p.flags,MessageFlags.IsComponentsV2);
  const json=JSON.stringify(p.components[0].toJSON());
- assert.match(json,/<@&r1> · \*\*2\*\* membres/);assert.match(json,/⭐ <@&r2> · \*\*1\*\* membre"/);
- assert.match(json,/role-icons\/r1/);assert.match(json,/3 MEMBRES · PAGE 1\/1/);
- // Les autres pages n'affichent pas le récapitulatif des grades.
- assert.doesNotMatch(JSON.stringify(upgrade._test.rosterPage({total:3,page:1,pages:2,lines:['x']}).components[0].toJSON()),/Grades/);
+ assert.match(json,/Grades de la famille/);assert.ok(json.includes('<:membre_test:1> <@&r-test> · **2**'));
+ assert.doesNotMatch(JSON.stringify(upgrade._test.rosterPage({total:3,page:1,pages:2,lines:['x']}).components[0].toJSON()),/Direction/);
 });

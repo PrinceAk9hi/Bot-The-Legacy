@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 63 — Effectif complet avec les emojis du serveur
+
+- Salon effectif : direction, grades de la famille et exécutants (responsables compris), chaque rôle
+  avec son emoji du serveur, le rôle et le nombre de personnes qui l'ont. L'emoji est trouvé par son
+  nom (le même que le rôle) ; `rosterEmojis` dans `config/qg.js` permet d'en imposer un par clé de rôle.
+- Modifiés : `systems/qgCommunityUpgrade.js`, `tests/qgVoiceTools.test.js`
+
 ## 62 — Panel intégré, effectif par grade, =clear et =mvvoc
 
 - Panel entretien en composants intégrés : chaque bouton est à côté de sa fonction. Toutes les

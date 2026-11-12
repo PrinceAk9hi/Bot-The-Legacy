@@ -1,6 +1,7 @@
 const {MessageFlags:F,PermissionFlagsBits:P}=require('discord.js');
 const a=require('../utils/qgAdmin'),config=require('../config/qg'),{embed}=require('./qgPanels');
-const familyKeys=['test','confirmed','expert','prestigious','senior'];
+// Du plus bas au plus haut : Membre Prestigieux est au-dessus de Membre Senior.
+const familyKeys=['test','confirmed','expert','senior','prestigious'];
 const excluded='1561157108307861574';
 function family(member){const r=a.state().schoolRoles||{};return familyKeys.some(k=>r[k]&&r[k]!==excluded&&member.roles.cache.has(r[k]));}
 const normalize=s=>String(s).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'').replace(/^i(?=gestion|responsable|attente|membre|prison)/,'');
@@ -82,7 +83,7 @@ async function roster(guild){
  }
  const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],humans=[...members.values()].filter(m=>!m.user.bot);
  // Badge de chaque rôle → emoji du serveur correspondant (comparaison d'images, mémorisée).
- const badges=await require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});
+ const badges=await badgeMap(guild);
  const summary=fullRoster(guild,humans,badges);
  for(let page=0;page<Math.max(pages,saved.length);page++){
   let message=saved[page]?await ch.messages.fetch(saved[page]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
@@ -121,6 +122,8 @@ function roleEmoji(guild,role,key,names=[],badges=new Map()){
  return role?.unicodeEmoji||'▫️';
 }
 const teamKeys=()=>Object.entries(a.teams).flatMap(([team,lead])=>[lead,team]);
+// Emojis du serveur retrouvés d'après le badge de chaque rôle de l'effectif.
+async function badgeMap(guild){const r=a.state().schoolRoles||{};return require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});}
 const rosterKeys=()=>{const r=a.state().schoolRoles||{};return[...DIRECTION_KEYS,...familyKeys,...teamKeys()].filter(k=>r[k]&&r[k]!==excluded);};
 function fullRoster(guild,members,badges=new Map()){
  const r=a.state().schoolRoles||{},teams=teamKeys();
@@ -181,4 +184,4 @@ async function execute(i){
  const missing=optional.filter(k=>!a.state().schoolRoles?.[k]);
  return i.editReply({embeds:[embed('QG actualisé',`Gestion RP disponible, panel des gestions actualisé, effectifs et niveaux mis à jour.\n${missing.length?'Séparateurs non retrouvés : '+missing.join(', ')+'. Associe tes rôles existants avec /sync associer-separateur.':'Séparateurs existants associés.'}\nLes dates historiques absentes restent indiquées comme inconnues.`)],allowedMentions:{parse:[]}});
 }
-module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,_test:{rosterPage,fullRoster,roleEmoji}};
+module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,fullRoster,badgeMap,_test:{rosterPage,fullRoster,roleEmoji}};

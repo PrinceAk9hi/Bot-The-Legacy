@@ -31,7 +31,7 @@ function brand(guild){const e=guild?.emojis?.cache?.find(e=>e.name==='QG'&&e.ava
 
 // ---------- #help-qg : guide de la famille ----------
 // Du plus haut grade au plus bas.
-const grades=[['senior','👑'],['prestigious','💎'],['expert','🎯'],['confirmed','✅'],['test','🧪']];
+const grades=[['prestigious','💎'],['senior','👑'],['expert','🎯'],['confirmed','✅'],['test','🧪']];
 // Présentation des salons, reconnus par un mot de leur nom.
 const channelInfo=[[/help-qg|guide-famille/,'Ce guide : salons, grades et communauté.'],[/rejoindre-une-gestion/,'Candidater pour devenir exécutant.'],[/nouvelle-recrue/,'Accueil des nouvelles recrues de la famille.'],[/annonces-famille/,'Annonces officielles de la famille.'],[/rankup|avertissement/,'Promotions, rétrogradations et avertissements.'],[/absences/,'Déclarer et gérer tes absences.'],[/effectifs/,'Liste à jour des membres et de leur grade.'],[/reunion|réunion/,'Convocations et comptes rendus des réunions.'],[/annonces-ann?imation/,'Annonces des animations à venir.'],[/planning-ann?imation/,'Planning des prochaines animations.'],[/general|général/,'Discussion entre membres de la famille.'],[/medias|médias/,'Captures, vidéos et souvenirs de la famille.'],[/suggestions/,'Tes idées pour améliorer la famille.'],[/commandes/,'Commandes du bot : vocal temporaire, profil…'],[/organigramme/,'Qui fait quoi dans la famille.'],[/giveaway/,'Giveaways réservés à la famille.']];
 function describeChannel(c){const n=c.name.normalize('NFC').toLowerCase();return channelInfo.find(([re])=>re.test(n))?.[1]||null;}
@@ -42,11 +42,14 @@ async function guide(guild){
  const count=id=>humans&&id?humans.filter(m=>m.roles.cache.has(id)).length:null;
  const roleName=(key,fallback)=>guild?.roles?.cache?.get(r[key])?.name?.replace(/^«\s*I\s*/,'')||fallback;
  // 1. Présentation + communauté Roblox
- const intro=embed('⛩️ Guide de la famille QG',`${b}Bienvenue dans le guide de la famille ! Retrouve ici nos salons, nos grades et le lien de notre communauté Roblox.\n\n🎮 **Communauté Roblox**\n${link}\nEnvoie ta demande d’adhésion : elle est acceptée quand tu passes **Membre Confirmé**.\n\n🏛️ **Direction**\n${['creator','globalManager','administrator'].map(k=>r[k]?`<@&${r[k]}>`:null).filter(Boolean).join(' → ')||'Directeur → Superviseur → Administrateur'}\nLa Direction encadre la famille et valide les décisions importantes.`);
+ const intro=embed('⛩️ Guide de la famille QG',`${b}Bienvenue dans le guide de la famille ! Retrouve ici nos salons, nos grades et le lien de notre communauté Roblox.\n\n🎮 **Communauté Roblox**\n${link}\nEnvoie ta demande d’adhésion : elle est acceptée quand tu passes **Membre Confirmé**.\n\n🏛️ **Direction**\n${['creator','globalManager','referent'].map(k=>r[k]?`<@&${r[k]}>`:null).filter(Boolean).join(' → ')||'Créateur → Gérant Global → Référent du QG'}\nLa Direction encadre la famille et valide les décisions importantes.`);
  // 2. Grades et effectifs
  const lines=grades.map(([key,emoji])=>{const n=count(r[key]);return `${emoji} **${roleName(key,key)}** — ${n===null?'?':n} membre${n>1?'s':''}`;});
  const total=humans?humans.filter(m=>grades.some(([k])=>r[k]&&m.roles.cache.has(r[k]))).length:null;
- const gradesEmbed=embed('📈 Grades et effectifs',`${lines.join('\n')}\n\n**Total famille : ${total===null?'?':total}**\n\nLes promotions sont décidées par les responsables habilités selon l’activité, l’investissement et le comportement. Aucune promotion n’est automatique.\n-# Effectifs mis à jour automatiquement.`);
+ // Effectif complet (direction, grades, exécutants) : EMOJI @Rôle - NOMBRE, emoji retrouvé d'après le badge du rôle.
+ let full=null;
+ if(guild&&humans){const up=require('./qgCommunityUpgrade');full=up.fullRoster(guild,humans,await up.badgeMap(guild)).map(p=>`**${p.title}**\n${p.lines.join('\n')}`).join('\n\n');}
+ const gradesEmbed=embed('📈 Grades et effectifs',`${full||lines.join('\n')}\n\n**Total famille : ${total===null?'?':total}**\n\nLes promotions sont décidées par les responsables habilités selon l’activité, l’investissement et le comportement. Aucune promotion n’est automatique.\n-# Effectifs mis à jour automatiquement.`);
  // 3. Les salons de la famille (catégories contenant « FAMILLE » + celle de ce guide)
  const embeds=[intro,gradesEmbed];
  if(guild){

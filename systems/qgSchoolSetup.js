@@ -54,7 +54,7 @@ function panelPayload(key, guild) {
   if (key === 'managementFollowup') return null;
   if (key === 'help') return { embeds: [embed('📚 Aide et FAQ', 'Pour une demande personnelle, ouvre un ticket dans le salon Support. Pour une question sur le fonctionnement de la famille, consulte le Guide famille. Les commandes sont disponibles dans les salons de discussion autorisés.')], allowedMentions: { parse: [] } };
   if (key === 'familyGuide') return require('./qgPanels').guide(guild);
-  if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Administrateur\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Support • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Senior • Membre Prestigieux • Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
+  if (key === 'familyChart') return { embeds: [embed('📌 Organigramme', `**Direction**\n👑 Créateur\n⚜️ Gérant Global\n🛡️ Référent du QG\n\n**Responsables**\n🎫 Tickets • 📋 Recrutement • 🎉 Animation • 🌐 Réseaux\n\n**Équipes**\nGestion Support • Gestion Recrutement • Gestion Animation • Gestion Réseaux\n\n**Grades familiaux**\nMembre Prestigieux • Membre Senior •Membre Expert • Membre Confirmé • Membre Test\n\nLes noms des titulaires sont consultables via les rôles Discord correspondants.`)], allowedMentions: { parse: [] } };
   if (key === 'rules') return require('./qgEntryVerification').panel();
   if (key === 'familyApplications') {
     const emblem = guild?.emojis?.cache?.find(e => e.name === 'EmblmeSpixelartmonochrome' && e.available !== false);

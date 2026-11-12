@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 65 — Guide famille : effectif complet, Référent du QG, Prestigieux au-dessus de Senior
+
+- « 📈 Grades et effectifs » du guide famille : direction, grades et exécutants en `EMOJI @Rôle - NOMBRE`,
+  emojis retrouvés d'après les badges. Direction : Créateur, Gérant Global, Référent du QG.
+- Membre Prestigieux affiché au-dessus de Membre Senior (guide, effectifs, organigramme).
+- Modifiés : `systems/qgPanels.js`, `systems/qgCommunityUpgrade.js`, `systems/qgSchoolSetup.js`
+
 ## 64 — Badges de rôle reconnus dans l'effectif
 
 - Le bot compare l'image du badge (icône) de chaque rôle aux emojis du serveur et affiche l'emoji

@@ -122,7 +122,7 @@ test('separator reconciliation keeps a group separator while any matching role r
 });
 
 test('family rank progression is ordered from test to senior', () => {
-  assert.deepEqual(family._test.familyKeys, ['test', 'confirmed', 'expert', 'prestigious', 'senior']);
+  assert.deepEqual(family._test.familyKeys, ['test', 'confirmed', 'expert', 'senior', 'prestigious']);
 });
 
 test('family recruitment asks ten questions and management applications require the five requested fields', () => {

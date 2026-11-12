@@ -12,7 +12,7 @@ const familyQuestions = [
 ];
 const state = () => read('qgServer');
 const save = fn => update('qgServer', fn);
-const familyRoleKeys = ['senior', 'prestigious', 'expert', 'confirmed', 'test'];
+const familyRoleKeys = ['prestigious', 'senior', 'expert', 'confirmed', 'test'];
 const managerFor = { ticketsManagement: 'ticketsLead', recruitmentManagement: 'recruitmentLead', animationManagement: 'animationLead', networksManagement: 'networksLead', rpManagement: 'rpLead' };
 // Les rôles de gestion s'appellent désormais « Exécutant ».
 const teamLabels = { ticketsManagement: 'Exécutant Support', recruitmentManagement: 'Exécutant des Recrutements', animationManagement: 'Exécutant des Animations', networksManagement: 'Exécutant des Réseaux', rpManagement: 'Exécutant du RP' };

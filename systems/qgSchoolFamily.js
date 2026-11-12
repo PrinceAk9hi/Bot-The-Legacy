@@ -4,7 +4,7 @@ const config = require('../config/qg');
 const roles = () => read('qgServer').schoolRoles || {};
 const channels = () => read('qgServer').schoolChannels || {};
 const save = fn => update('qgServer', fn);
-const familyKeys = ['test', 'confirmed', 'expert', 'prestigious', 'senior'];
+const familyKeys = ['test', 'confirmed', 'expert', 'senior', 'prestigious'];
 const familyNames = { test: 'Membre Test', confirmed: 'Membre Confirmé', expert: 'Membre Expert', prestigious: 'Membre Prestigieux', senior: 'Membre Senior' };
 const embed = (title, description) => new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle(title).setDescription(description);
 function family(member) { const r = roles(); return familyKeys.some(k => r[k] && member.roles.cache.has(r[k])); }

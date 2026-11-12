@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 66 — Prestigieux au-dessus de Senior dans les promotions
+
+- Ordre des grades : Test → Confirmé → Expert → Senior → Prestigieux pour /rankup, /derank, le panel
+  membre, les demandes de promotion, la rétrogradation liée au tag et le menu des réunions.
+- Modifiés : `systems/qgGrades.js`, `systems/qgUserPanel.js`, `systems/qgTagWatch.js`,
+  `systems/qgSchoolFamily.js`, `systems/qgMeetings.js`, `systems/qgSchoolApplications.js`, tests
+
 ## 65 — Guide famille : effectif complet, Référent du QG, Prestigieux au-dessus de Senior
 
 - « 📈 Grades et effectifs » du guide famille : direction, grades et exécutants en `EMOJI @Rôle - NOMBRE`,

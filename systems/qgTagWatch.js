@@ -1,6 +1,6 @@
 const {randomUUID}=require('node:crypto');
 const a=require('../utils/qgAdmin'),config=require('../config/qg'),panel=require('./qgUserPanel');
-const ranks=['test','confirmed','expert','prestigious','senior'];
+const ranks=['test','confirmed','expert','senior','prestigious'];
 const channelId='1561157222032212059',delay=48*60*60*1000;
 function tagState(user){if(!Object.prototype.hasOwnProperty.call(user,'primaryGuild'))return 'unknown';const p=user.primaryGuild;return p?.identityEnabled===true&&p.identityGuildId===config.guildId?'present':'missing';}
 function decision(record,tag,now=Date.now()){if(tag==='unknown')return 'wait';if(tag==='present')return 'resolve';if(!record)return 'remind';if(record.status==='pending'&&now>=record.dueAt)return 'derank';return 'wait';}

@@ -4,8 +4,8 @@ const a=require('../utils/qgAdmin'),rp=require('./qgRpStatus'),config=require('.
 const {read}=require('../utils/recruitmentData');
 const {embed}=require('./qgPanels');
 const clean=require('../utils/qgAiKnowledge').clean;
-const ranks=['test','confirmed','expert','prestigious','senior'];
-const rankNames=['Membre Test','Membre Confirmé','Membre Expert','Membre Prestigieux','Membre Senior'];
+const ranks=['test','confirmed','expert','senior','prestigious'];
+const rankNames=['Membre Test','Membre Confirmé','Membre Expert','Membre Senior','Membre Prestigieux'];
 const teamNames={ticketsManagement:'Gestion Support',recruitmentManagement:'Gestion Recrutement',animationManagement:'Gestion Animation',networksManagement:'Gestion Réseaux',rpManagement:'Gestion RP'};
 const labels={rankup:require('../utils/qgModuleUi').up+' Rankup',derank:require('../utils/qgModuleUi').down+' Derank',demote:require('../utils/qgModuleUi').down+' Rétrograder',prison:'🔒 Prison',release:'🔓 Libérer de prison',handcuffs:'⛓️ Menotter',unhandcuffs:'🔗 Déménotter',dog:'🐕 Chien RP',undog:'🐾 Libérer du statut chien',management:'🛡️ Gestion',stats:'📊 Statistiques',applications:'📋 Candidatures'};
 const data=new SlashCommandBuilder().setName('user').setDescription('Administrer un membre du QG').setDMPermission(false).addUserOption(o=>o.setName('membre').setDescription('Membre concerné').setRequired(true));

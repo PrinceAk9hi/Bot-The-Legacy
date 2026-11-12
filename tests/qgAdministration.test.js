@@ -7,7 +7,7 @@ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qg-admin-'));storage.setDataDire
 function role(id,position){return{id,name:id,position,managed:false,editable:true,permissions:{bitfield:0n},comparePositionTo(other){return this.position-other.position;}};}
 function mock(){
  storage.update('qgServer',s=>{for(const k of Object.keys(s))delete s[k];s.schoolRoles={creator:'creator',administrator:'admin',test:'test',confirmed:'confirmed',expert:'expert',prestigious:'prestigious',senior:'senior',ticketsLead:'support-lead',ticketsManagement:'support',recruitmentLead:'recruit-lead',recruitmentManagement:'recruit',animationLead:'animation-lead',animationManagement:'animation',networksLead:'networks-lead',networksManagement:'networks',dividerFamily:'divider-family',dividerManagement:'divider-management',dividerResponsibles:'divider-leads'};s.schoolChannels={logsBot:'logs',logsMembers:'logs',logsModeration:'logs',familyApplications:'applications'};});
- const roles=new Collection();for(const [id,n]of [['bot',100],['actor',80],['admin',75],['creator',90],['recruit-lead',65],['support-lead',64],['animation-lead',63],['networks-lead',62],['support',30],['recruit',29],['animation',28],['networks',27],['test',10],['confirmed',11],['expert',12],['prestigious',13],['senior',14],['divider-family',5],['divider-management',6],['divider-leads',7]])roles.set(id,role(id,n));
+ const roles=new Collection();for(const [id,n]of [['bot',100],['actor',80],['admin',75],['creator',90],['recruit-lead',65],['support-lead',64],['animation-lead',63],['networks-lead',62],['support',30],['recruit',29],['animation',28],['networks',27],['test',10],['confirmed',11],['expert',12],['prestigious',14],['senior',13],['divider-family',5],['divider-management',6],['divider-leads',7]])roles.set(id,role(id,n));
  const guild={id:config.guildId,ownerId:'owner',client:{user:{id:'bot'}},roles:{cache:roles,fetch:async id=>id?roles.get(id):roles,create:async data=>{const r=role('rp-'+data.name,15);r.name=data.name;roles.set(r.id,r);return r;}}};
  const members=new Collection();
  function member(id,ids){const cache=new Collection(ids.map(k=>[k,roles.get(k)]));const m={id,guild,displayName:id,joinedTimestamp:100000,user:{id,username:id,bot:id==='bot',createdTimestamp:1000,displayAvatarURL:()=> 'https://cdn.discordapp.com/embed/avatars/0.png'},permissions:{has:p=>id==='bot'||p===P.Administrator&&m.admin===true},voice:{channelId:null},roles:{cache,get highest(){return [...cache.values()].sort((x,y)=>y.position-x.position)[0]||role('everyone',0);},add:async value=>{for(const id of Array.isArray(value)?value:[value])cache.set(id,roles.get(id));},remove:async value=>{for(const id of Array.isArray(value)?value:[value])cache.delete(id);}}};members.set(id,m);return m;}
@@ -54,7 +54,7 @@ test('rankup and derank select adjacent grade; targeted demotion cannot promote'
  p=panel.plan(m.actor,m.target,'demote','test','Motif validé');await panel.confirm(interaction(m),'session',session(m,p));assert.ok(m.target.roles.cache.has('test'));assert.throws(()=>panel.plan(m.actor,m.target,'derank'));assert.throws(()=>panel.plan(m.actor,m.target,'demote','senior','motif'));
 });
 test('maximum grade, actor hierarchy, bot hierarchy and owner protection are enforced',()=>{
- const m=mock(),senior=m.member('senior-person',['senior']),owner=m.member('owner',['creator']);assert.throws(()=>panel.plan(m.actor,senior,'rankup'));assert.throws(()=>a.hierarchy(m.actor,owner,m.bot));assert.throws(()=>a.hierarchy(m.target,m.actor,m.bot));assert.throws(()=>a.hierarchy(m.actor,m.target,m.target));assert.throws(()=>a.hierarchy(m.actor,m.actor,m.bot));
+ const m=mock(),senior=m.member('prestigious-person',['prestigious']),owner=m.member('owner',['creator']);assert.throws(()=>panel.plan(m.actor,senior,'rankup'));assert.throws(()=>a.hierarchy(m.actor,owner,m.bot));assert.throws(()=>a.hierarchy(m.target,m.actor,m.bot));assert.throws(()=>a.hierarchy(m.actor,m.target,m.target));assert.throws(()=>a.hierarchy(m.actor,m.actor,m.bot));
 });
 test('confirmation is one-shot and rejects changed roles or another clicking user',async()=>{
  const m=mock(),p=panel.plan(m.actor,m.target,'rankup'),nonce=session(m,p);await panel.confirm(interaction(m),'session',nonce);await assert.rejects(()=>panel.confirm(interaction(m),'session',nonce));assert.throws(()=>panel.session({...interaction(m),user:{id:'target'}},'session'));
@@ -87,4 +87,11 @@ test('private applications are filtered by team; statistics do not invent vocal 
 });
 test('Discord role failures are logged and do not claim success',async()=>{
  const m=mock();m.target.roles.add=async()=>{throw Object.assign(Error('denied'),{code:50013});};const p=panel.plan(m.actor,m.target,'rankup');await assert.rejects(()=>panel.confirm(interaction(m),'session',session(m,p)));assert.equal(a.state().schoolAdminHistory.at(-1).result,'failed');assert.ok(m.target.roles.cache.has('confirmed'));
+});
+test('ordre des grades : Membre Prestigieux est au-dessus de Membre Senior',()=>{
+ const m=mock(),senior=m.member('senior-person',['senior']),prestigious=m.member('prestigious-person',['prestigious']),expert=m.member('expert-person',['expert']);
+ assert.equal(panel.plan(m.actor,expert,'rankup').choice,'senior');
+ assert.equal(panel.plan(m.actor,senior,'rankup').choice,'prestigious');
+ assert.equal(panel.plan(m.actor,prestigious,'derank').choice,'senior');
+ assert.deepEqual(require('../systems/qgGrades').ranks,['test','confirmed','expert','senior','prestigious']);
 });

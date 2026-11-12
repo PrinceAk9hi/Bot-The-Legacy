@@ -1,6 +1,6 @@
 const u=require('../utils/qgModuleUi'),{a}=u,panel=require('./qgUserPanel');
-const ranks=['test','confirmed','expert','prestigious','senior'];
-const names=['Membre Test','Membre Confirmé','Membre Expert','Membre Prestigieux','Membre Senior'];
+const ranks=['test','confirmed','expert','senior','prestigious'];
+const names=['Membre Test','Membre Confirmé','Membre Expert','Membre Senior','Membre Prestigieux'];
 function schema(name){return new u.SlashCommandBuilder().setName(name).setDescription(name==='rankup'?'Promouvoir un membre du QG':'Rétrograder un membre du QG').setDMPermission(false).addUserOption(o=>o.setName('membre').setDescription('Membre familial').setRequired(true)).addStringOption(o=>o.setName('nature').setDescription('Changement administratif ou disciplinaire').addChoices({name:'Administratif',value:'administratif'},{name:'Disciplinaire',value:'disciplinaire'})).addBooleanOption(o=>o.setName('notifier').setDescription('Envoyer le résultat en MP (oui par défaut)'));}
 function choices(actor,member,action){const current=ranks.indexOf(panel.rank(member)),r=a.state().schoolRoles||{};return ranks.filter((key,n)=>current>=0&&(action==='rankup'?n>current:n<current)&&member.guild.roles.cache.has(r[key])&&(actor.id===member.guild.ownerId||actor.roles.highest.comparePositionTo(member.guild.roles.cache.get(r[key]))>0)).map(key=>({value:key,label:names[ranks.indexOf(key)]}));}
 async function prepare(actor,member,action,to){

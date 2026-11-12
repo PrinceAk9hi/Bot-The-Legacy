@@ -43,7 +43,7 @@ function render(r,stage='notes',page=0){
   items.push(row(b('detail','… Détail facultatif',`${member.id}.${page}`)));
  }else{
   const current=require('./qgUserPanel').rankNames||[];
-  items.push(row(new Menu().setCustomId(`qgm:decision:${r.id}:${member.id}.${page}`).setPlaceholder('Choisir une décision').addOptions([{label:'Aucune action',value:'none'},{label:'Rankup',value:'rankup'},{label:'Derank',value:'derank'},{label:'Avertissement',value:'warn'},...['test','confirmed','expert','prestigious','senior'].map((rank,j)=>({label:'Rétrograder vers '+(['Test','Confirmé','Expert','Prestigieux','Senior'][j]),value:'demote.'+rank}))])),row(b('reason','… Motif facultatif',`${member.id}.${page}`)));
+  items.push(row(new Menu().setCustomId(`qgm:decision:${r.id}:${member.id}.${page}`).setPlaceholder('Choisir une décision').addOptions([{label:'Aucune action',value:'none'},{label:'Rankup',value:'rankup'},{label:'Derank',value:'derank'},{label:'Avertissement',value:'warn'},...['test','confirmed','expert','senior','prestigious'].map((rank,j)=>({label:'Rétrograder vers '+(['Test','Confirmé','Expert','Senior','Prestigieux'][j]),value:'demote.'+rank}))])),row(b('reason','… Motif facultatif',`${member.id}.${page}`)));
  }
  items.push(row(b('page','◀',`${stage}.${page-1}`,S.Secondary,page===0),b('page','▶',`${stage}.${page+1}`,S.Secondary,page===max),b('page',stage==='notes'?'Continuer : grades':'Récapitulatif',stage==='notes'?'grades.0':'review.0',S.Success)));
  items.push(text('-# '+require('../utils/qgBrand').signature));return box(items);

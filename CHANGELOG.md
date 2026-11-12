@@ -6,6 +6,19 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 62 — Panel intégré, effectif par grade, =clear et =mvvoc
+
+- Panel entretien en composants intégrés : chaque bouton est à côté de sa fonction. Toutes les
+  actions visent directement le candidat en Attente entretien du vocal ; une liste n'apparaît que
+  s'il y en a plusieurs. L'ancien message du panel est remplacé une fois.
+- Annonce « nouvelle recrue » envoyée dès l'acceptation (avant : jusqu'à 1 minute ou plus).
+- Salon effectif : récapitulatif des grades (badge du rôle, rôle, nombre de membres) en tête,
+  en composants intégrés ; les anciennes pages sont remplacées une fois.
+- `=clear <nombre>` : supprime la commande et les messages précédents (1 à 100), sans réponse.
+- `=mvvoc [#vocal]` : déplace tout un vocal dans le prochain vocal que l'auteur rejoint (2 min).
+- Nouveaux : `systems/qgVoiceTools.js`, `tests/qgVoiceTools.test.js`. Modifiés : `systems/qgInterviews.js`,
+  `systems/qgRecruitmentHub.js`, `systems/qgCommunityUpgrade.js`, `systems/qgServer.js`, tests.
+
 ## 61 — Panel recruteur direct et appel des candidats
 
 - Le message du panel recruteur affiche directement tous les boutons, chacun décrit dans l'embed.

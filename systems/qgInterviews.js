@@ -58,27 +58,29 @@ function summary(app){
  names.forEach((name,n)=>{const text=clean(app.answers?.[n]||'Sans réponse');result.addFields({name,value:text.length>share?text.slice(0,share-1)+'…':text});});
  return result;
 }
-// Panel recruteur : chaque bouton est décrit dans l'embed, dans l'ordre des boutons.
-function panel(){
- const wait=require('./qgRecruitmentLive').WAIT;
- const card=embed('ESPACE RECRUTEUR · QG',[
-  '**Chaque candidature mérite un suivi clair et une décision expliquée.** Rejoins un bureau d’entretien, puis utilise les boutons ci-dessous.',
-  '',
-  '**📥 Déplacer vers soi** — fait venir un candidat du vocal d’attente dans ton bureau.',
-  '**📋 Voir candidature** — affiche en privé les réponses du candidat présent dans ton bureau.',
-  '**✅ Accepter** — après l’oral : le candidat devient Membre Test (confirmation demandée).',
-  '**⛔ Refuser** — après l’oral : le candidat reçoit Membre refusé (confirmation demandée).',
-  '**⏸️ Attente** — renvoie le candidat de ton bureau dans le vocal d’attente.',
-  '**📄 Compte rendu** — ouvre le bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',
-  '**❓ Questions** — guide des questions d’entretien.',
-  `**📣 Ping les candidats** — mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,
-  '',
-  '*Voir candidature et Compte rendu choisissent automatiquement le candidat s’il est seul dans ton bureau ; sinon, une liste s’affiche. Les candidatures écrites se traitent depuis leur fiche (Accepter, Refuser, DDS, ticket).*'
- ].join('\n')).setColor(0xffffff);
- return {embeds:[card],components:[
-  row(button('qgr:choose:bring','Déplacer vers soi',B.Primary).setEmoji('📥'),button('qgr:choose:view','Voir candidature').setEmoji('📋'),button('qgr:questions','Questions').setEmoji('❓')),
-  row(button('qgr:choose:oralaccept','Accepter',B.Success).setEmoji('✅'),button('qgr:choose:oralrefuse','Refuser',B.Danger).setEmoji('⛔'),button('qgr:choose:wait','Attente').setEmoji('⏸️')),
-  row(button('qgr:choose:cr','Compte rendu').setEmoji('📄'),button('qgr:ping','Ping les candidats',B.Primary).setEmoji('📣'))],allowedMentions:{parse:[]}};
+// Panel recruteur en composants intégrés : chaque bouton est placé à côté de sa fonction.
+// Toutes les actions visent le candidat en Attente entretien présent dans ton bureau (ou dans
+// le vocal d'attente pour Déplacer vers soi) ; une liste n'apparaît que s'il y en a plusieurs.
+// stats : lignes facultatives affichées en bas (compteurs du recrutement).
+function panel(stats=[]){
+ const {ContainerBuilder,SectionBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
+ const wait=require('./qgRecruitmentLive').WAIT,text=content=>new TextDisplayBuilder().setContent(content);
+ const item=(label,description,btn)=>new SectionBuilder().addTextDisplayComponents(text(`**${label}**\n${description}`)).setButtonAccessory(btn);
+ const box=new ContainerBuilder().setAccentColor(0xffffff)
+  .addTextDisplayComponents(text('## ESPACE RECRUTEUR · QG\nRejoins un bureau d’entretien : chaque bouton agit directement sur le candidat en **Attente entretien** de ton vocal. Une liste n’apparaît que s’il y a plusieurs candidats.'))
+  .addSeparatorComponents(new SeparatorBuilder())
+  .addSectionComponents(
+   item('📥 Déplacer vers soi','Fait venir le candidat du vocal d’attente dans ton bureau.',button('qgr:choose:bring','Déplacer',B.Primary)),
+   item('📋 Voir candidature','Affiche en privé les réponses du candidat de ton bureau.',button('qgr:choose:view','Voir')),
+   item('✅ Accepter','Après l’oral : le candidat devient Membre Test (une confirmation).',button('qgr:choose:oralaccept','Accepter',B.Success)),
+   item('⛔ Refuser','Après l’oral : le candidat reçoit Membre refusé (une confirmation).',button('qgr:choose:oralrefuse','Refuser',B.Danger)),
+   item('⏸️ Attente','Renvoie le candidat de ton bureau dans le vocal d’attente.',button('qgr:choose:wait','Attente')),
+   item('📄 Compte rendu','Bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',button('qgr:choose:cr','Compte rendu')),
+   item('❓ Questions','Guide des questions d’entretien.',button('qgr:questions','Questions')),
+   item('📣 Ping les candidats',`Mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,button('qgr:ping','Ping',B.Primary)));
+ if(stats.length)box.addSeparatorComponents(new SeparatorBuilder()).addTextDisplayComponents(text(stats.join(' · ')));
+ box.addTextDisplayComponents(text('-# Les candidatures écrites se traitent depuis leur fiche : Accepter, Refuser, DDS, ticket.'));
+ return {components:[box],flags:F.IsComponentsV2,allowedMentions:{parse:[]}};
 }
 // Appel des candidats en attente d'entretien dans le salon dédié.
 const PING_CHANNEL='1562136833104547871',PING_COOLDOWN=120000;
@@ -178,18 +180,37 @@ function session(i,app,action){
 }
 function getSession(i,id){const s=a.state().schoolInterviewSessions?.[id];if(!s||s.actor!==i.user.id||s.expires<Date.now()||s.used)throw Error('Cette action a expiré ou a déjà été utilisée.');return s;}
 function form(id,title,fields){return new Modal().setCustomId(id).setTitle(title).addComponents(...fields.map(([key,label,long,value])=>row(new Input().setCustomId(key).setLabel(label).setStyle(long?T.Paragraph:T.Short).setMaxLength(long?900:120).setRequired(true).setValue(value||''))));}
-// Candidats possibles pour une action. Pour Voir candidature et Compte rendu, `auto` désigne
-// le candidat à prendre directement : le seul présent dans le bureau, sinon le seul possible.
+// Candidats possibles pour une action. `auto` désigne le candidat à prendre directement, sans
+// sélecteur : le seul présent dans le vocal (ton bureau, ou l'attente pour Déplacer vers soi),
+// sinon le seul possible. Plusieurs candidats : auto = null, une liste s'affiche.
+const PENDING_ONLY=['bring','wait','oralaccept','oralrefuse'];
 async function candidatesFor(i,actor,action){
  const office=actor.voice.channelId;
  if(!officeIds().includes(office))throw Error('Rejoins un bureau d’entretien configuré pour sélectionner un candidat.');
  const source=action==='bring'?channels().interviewWaiting:office;
  const ch=await i.guild.channels.fetch(source);
- const options=Object.values(a.state().schoolFamilyRecruitment||{}).filter(x=>x.caseId&&(ch.members.has(x.applicantId)||(['cr','view'].includes(action)&&recentlyFinished(x,actor)))&&(['waiting_interview','accept','refuse'].includes(x.status))&&(action!=='bring'||x.status==='waiting_interview'));
- if(!options.length)throw Error('Aucun candidat avec dossier disponible dans ce vocal.');
+ const options=Object.values(a.state().schoolFamilyRecruitment||{}).filter(x=>x.caseId&&(ch.members.has(x.applicantId)||(['cr','view'].includes(action)&&recentlyFinished(x,actor)))&&(PENDING_ONLY.includes(action)?x.status==='waiting_interview':['waiting_interview','accept','refuse'].includes(x.status)));
+ if(!options.length)throw Error(action==='bring'?'Aucun candidat en attente d’entretien dans le vocal d’attente.':'Aucun candidat en attente d’entretien dans ton bureau.');
  const here=options.filter(x=>ch.members.has(x.applicantId));
- const auto=['view','cr'].includes(action)?(here.length===1?here[0]:options.length===1?options[0]:null):null;
+ const auto=here.length===1?here[0]:options.length===1?options[0]:null;
  return{options,auto};
+}
+// Exécute l'action du panel sur un candidat (choisi automatiquement ou dans la liste).
+async function act(i,actor,app,action){
+ const target=await i.guild.members.fetch({user:app.applicantId,force:true});
+ if(!officeIds().includes(actor.voice.channelId))throw Error('Rejoins un bureau d’entretien.');
+ if(action==='view'){if(target.voice.channelId!==actor.voice.channelId&&!recentlyFinished(app,actor))throw Error('Le candidat doit être dans ton bureau.');return view(i,app);}
+ if(['bring','wait'].includes(action)){
+  if(app.status!=='waiting_interview'||target.voice.channelId!==(action==='bring'?channels().interviewWaiting:actor.voice.channelId))throw Error('Le candidat a changé de vocal ou de statut.');
+  const bot=await i.guild.members.fetchMe(),destination=await i.guild.channels.fetch(action==='bring'?actor.voice.channelId:channels().interviewWaiting);
+  if(!destination.permissionsFor(actor)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.Connect))throw Error('Permission Déplacer les membres / Se connecter manquante.');
+  a.hierarchy(actor,target,bot);
+  if(action==='bring'&&target.voice.channelId===require('./qgRecruitmentLive').WAIT){await require('./qgRecruitmentLive').sync(i.guild);await require('./qgRecruitmentLive').claim(i.guild,actor,target.id);}else await target.voice.setChannel(destination,'Entretien QG');
+  return i.editReply(`<@${target.id}> déplacé${action==='bring'?' dans ton bureau':' dans le vocal d’attente'}.`);
+ }
+ if(!['oralaccept','oralrefuse'].includes(action))throw Error('Action inconnue.');
+ const token=session(i,app,action);
+ return i.editReply({embeds:[embed('Confirmer la décision',`${action==='oralaccept'?'Accepter':'Refuser'} l’entretien de <@${app.applicantId}> ?`)],components:[row(button(`qgr:confirm:${token}`,'Confirmer',action==='oralaccept'?B.Success:B.Danger))],allowedMentions:{parse:[]}});
 }
 function reportForm(i,app){
  const token=session(i,app,'cr');
@@ -197,7 +218,7 @@ function reportForm(i,app){
 }
 async function choose(i,actor,action){
  const {options,auto}=await candidatesFor(i,actor,action);
- if(auto&&action==='view')return view(i,auto);
+ if(auto)return act(i,actor,auto,action);
  return i.editReply({embeds:[embed('Choisir le candidat','Sélectionne la personne concernée par cette action.')],components:[row(new Menu().setCustomId(`qgr:select:${action}`).setPlaceholder('Candidat').addOptions(options.slice(0,25).map(x=>({label:(i.guild.members.cache.get(x.applicantId)?.displayName||x.applicantId).slice(0,100),value:x.caseId}))))]});
 }
 async function decision(i,actor,app,action){
@@ -255,22 +276,7 @@ async function handle(i){
  if(op==='ping')return ping(i,actor);
  if(op==='questions')return i.editReply({embeds:require('../config/qgInterviewGuide').sections(a.state().schoolChannels?.familyGuide).map(([title,text])=>embed('🎙️ '+title,text)),allowedMentions:{parse:[]}});
  if(op==='choose')return choose(i,actor,id);
- if(op==='select'){
-  const app=requireApp(i.values[0]),target=await i.guild.members.fetch({user:app.applicantId,force:true});
-  if(!officeIds().includes(actor.voice.channelId))throw Error('Rejoins un bureau d’entretien.');
-  if(id==='view'){if(target.voice.channelId!==actor.voice.channelId&&!recentlyFinished(app,actor))throw Error('Le candidat doit être dans ton bureau.');return view(i,app);}
-  if(['bring','wait'].includes(id)){
-   if(app.status!=='waiting_interview'||target.voice.channelId!==(id==='bring'?channels().interviewWaiting:actor.voice.channelId))throw Error('Le candidat a changé de vocal ou de statut.');
-   const bot=await i.guild.members.fetchMe(),destination=await i.guild.channels.fetch(id==='bring'?actor.voice.channelId:channels().interviewWaiting);
-   if(!destination.permissionsFor(actor)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.MoveMembers)||!destination.permissionsFor(bot)?.has(P.Connect))throw Error('Permission Déplacer les membres / Se connecter manquante.');
-   a.hierarchy(actor,target,bot);
-   if(id==='bring'&&target.voice.channelId===require('./qgRecruitmentLive').WAIT){await require('./qgRecruitmentLive').sync(i.guild);await require('./qgRecruitmentLive').claim(i.guild,actor,target.id);}else await target.voice.setChannel(destination,'Entretien QG');
-   return i.editReply('Candidat déplacé.');
-  }
-  if(!['oralaccept','oralrefuse'].includes(id))throw Error('Action inconnue.');
-  const token=session(i,app,id);
-  return i.editReply({embeds:[embed('Confirmer la décision',`${id==='oralaccept'?'Accepter':'Refuser'} l’entretien de <@${app.applicantId}> ?`)],components:[row(button(`qgr:confirm:${token}`,'Confirmer',B.Primary))],allowedMentions:{parse:[]}});
- }
+ if(op==='select')return act(i,actor,requireApp(i.values[0]),id);
  if(op==='confirm'||op==='crsave')return a.serial('qgr-session:'+id,async()=>{
   const s=getSession(i,id),app=requireApp(s.caseId);
   return a.serial('qgr-case:'+app.caseId,async()=>{

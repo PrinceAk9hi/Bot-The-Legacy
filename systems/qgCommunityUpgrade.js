@@ -36,6 +36,17 @@ function recruited(member){
  a.save(s=>{s.schoolFamilyMembership||={};const old=s.schoolFamilyMembership[member.id];if(old?.active)return;
   s.schoolFamilyMembership[member.id]={active:true,joinedAt:Date.now(),previous:old?.joinedAt||null};
  });
+ // Annonce tout de suite dans nouvelle-recrue, sans attendre le passage automatique (1 min).
+ announce(member.guild,member.id).catch(e=>console.error('Annonce recrutement QG :',e.code||e.name||e.message));
+}
+const RECRUIT_CHANNEL='1562193740079038515',RECRUIT_PING='1561363081018474626';
+function recruitPayload(id){
+ return{content:`<@&${RECRUIT_PING}>`,embeds:[embed('✦ Une nouvelle recrue rejoint le QG',`Bienvenue dans la famille, <@${id}> !\n\nRejoins régulièrement les membres **en vocal et en jeu** : les échanges et l’activité font vivre notre famille.\n\nPrends le temps de lire <#1561157212154372137> pour connaître nos repères et nos attentes.\n\n**Rejoins notre communauté Roblox** : [envoie ta demande ici](${config.robloxGroupUrl}). Elle restera en attente et sera acceptée automatiquement quand tu passeras **Membre Confirmé**.\n\nHeureux de te compter parmi nous !`)],allowedMentions:{parse:[],roles:[RECRUIT_PING]}};
+}
+// Une seule annonce par arrivée (clé recruit:id:date), même si l'appel direct et le passage automatique se croisent.
+async function announce(guild,id){
+ const v=a.state().schoolFamilyMembership?.[id];if(!v?.active||guild.id!==config.guildId)return;
+ return a.serial('qg-recruit:'+id,()=>deliver(guild,'recruit:'+id+':'+v.joinedAt,RECRUIT_CHANNEL,recruitPayload(id)));
 }
 function memberChanged(oldMember,newMember){
  if(!family(oldMember)&&family(newMember))recruited(newMember);
@@ -64,20 +75,55 @@ async function roster(guild){
  const list=[...members.values()].filter(m=>!m.user.bot&&family(m)).sort((x,y)=>{
   const rank=m=>familyKeys.reduce((n,k,j)=>m.roles.cache.has(r[k])?j:n,-1);return rank(y)-rank(x)||x.displayName.localeCompare(y.displayName,'fr');
  });
- const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[];
+ // Passage aux composants intégrés : les anciennes pages (embeds) sont remplacées une seule fois.
+ if(!a.state().schoolFamilyRosterV2){
+  for(const old of a.state().schoolFamilyRosterMessages||[])if(old)await ch.messages.delete(old).catch(e=>{if(e.code!==10008)throw e;});
+  a.save(s=>{s.schoolFamilyRosterMessages=[];s.schoolFamilyRosterV2=true;});
+ }
+ const pages=Math.max(1,Math.ceil(list.length/8)),saved=a.state().schoolFamilyRosterMessages||[],grades=gradeCounts(guild,list);
  for(let page=0;page<Math.max(pages,saved.length);page++){
   let message=saved[page]?await ch.messages.fetch(saved[page]).catch(e=>{if(e.code===10008)return null;throw e;}):null;
-  if(page>=pages){if(message)await message.edit({embeds:[embed('Effectifs • QG','Cette page est désormais vide.')],components:[],allowedMentions:{parse:[]}});continue;}
+  if(page>=pages){if(message)await message.edit(rosterPage({total:list.length,page,pages,lines:[],empty:true}));continue;}
   const lines=list.slice(page*8,page*8+8).map(m=>{
    const grade=familyKeys.filter(k=>r[k]!==excluded&&m.roles.cache.has(r[k])).map(k=>guild.roles.cache.get(r[k])?.name||k).join(', ');
    const application=a.state().schoolFamilyRecruitment?.[m.id];
    const date=a.state().schoolFamilyMembership?.[m.id]?.joinedAt||(application?.status==='accept'?(application.interviewFinishedAt||application.updatedAt):null),rankup=require('./qgMemberMetrics').lastRankup(m.id);
    return `**<@${m.id}>** • ${grade}\nArrivée dans la famille : ${date?`<t:${Math.floor(date/1000)}:D>`:'inconnue — non enregistrée'}\nDernier rankup : ${rankup?`<t:${Math.floor(rankup/1000)}:D>`:'non enregistré'}`;
   });
-  const payload={embeds:[embed('✦ Effectifs de la famille QG',`**${list.length} MEMBRES · PAGE ${page+1}/${pages}**\n━━━━━━━━━━━━━━━━━━━━\n\n${lines.join('\n\n')||'Aucun membre familial enregistré.'}`).setTimestamp()],allowedMentions:{parse:[]}};
+  const payload=rosterPage({total:list.length,page,pages,lines,grades:page===0?grades:null});
   if(message)await message.edit(payload);else message=await ch.send(payload);
   a.save(s=>{s.schoolFamilyRosterMessages||=[];s.schoolFamilyRosterMessages[page]=message.id;});
  }
+}
+// Grades de la famille : badge (icône ou emoji du rôle), rôle et nombre de membres qui l'ont.
+function gradeCounts(guild,list){
+ const r=a.state().schoolRoles||{};
+ return [...familyKeys].reverse().filter(k=>r[k]&&r[k]!==excluded).map(k=>{
+  const role=guild.roles.cache.get(r[k]);
+  return{id:r[k],count:list.filter(m=>m.roles.cache.has(r[k])).length,icon:role?.iconURL?.({size:64,extension:'png'})||null,emoji:role?.unicodeEmoji||null};
+ });
+}
+// Page d'effectif en composants intégrés (texte, badges et séparateurs dans le même cadre).
+function rosterPage({total,page,pages,lines,grades,empty}){
+ const {ContainerBuilder,SectionBuilder,TextDisplayBuilder,ThumbnailBuilder,SeparatorBuilder}=require('discord.js');
+ const text=content=>new TextDisplayBuilder().setContent(content);
+ const box=new ContainerBuilder().setAccentColor(0xffffff).addTextDisplayComponents(text(`## ✦ Effectifs de la famille QG\n**${total} MEMBRE${total>1?'S':''} · PAGE ${page+1}/${pages}**`));
+ if(empty)box.addTextDisplayComponents(text('Cette page est désormais vide.'));
+ if(grades?.length){
+  box.addSeparatorComponents(new SeparatorBuilder());
+  box.addTextDisplayComponents(text('### Grades'));
+  for(const g of grades){
+   const line=`${g.emoji?g.emoji+' ':''}<@&${g.id}> · **${g.count}** membre${g.count>1?'s':''}`;
+   if(g.icon)box.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text(line)).setThumbnailAccessory(new ThumbnailBuilder().setURL(g.icon)));
+   else box.addTextDisplayComponents(text(line));
+  }
+ }
+ if(!empty){
+  box.addSeparatorComponents(new SeparatorBuilder());
+  box.addTextDisplayComponents(text((lines.join('\n\n')||'Aucun membre familial enregistré.').slice(0,3000)));
+ }
+ box.addTextDisplayComponents(text(`-# Mis à jour <t:${Math.floor(Date.now()/1000)}:R>`));
+ return{components:[box],flags:F.IsComponentsV2,allowedMentions:{parse:[]}};
 }
 let busy=false,lastRoster=0;
 async function tick(guild){
@@ -90,7 +136,7 @@ async function tick(guild){
    await deliver(guild,'verify:'+key,'1562190797128990780',{embeds:[embed('✓ Vérification enregistrée',`Membre : <@${v.userId}>\nNom choisi : ${require('../utils/qgAiKnowledge').clean(v.discordName||'Non renseigné')}\nRoblox : ${/^\d+$/.test(String(v.robloxId))?`https://www.roblox.com/users/${v.robloxId}/profile`:'non renseigné'}\nRèglement accepté : <t:${Math.floor(v.acceptedAt/1000)}:F>\nVersion : ${v.version||'non enregistrée'}\nLe compte Roblox a été déclaré et confirmé par le membre.`)],allowedMentions:{parse:[]}},true).catch(e=>console.error('Archive vérification QG :',e.code||e.name));
   }
   for(const [id,v] of Object.entries(a.state().schoolFamilyMembership||{}))if(v.active){
-   await deliver(guild,'recruit:'+id+':'+v.joinedAt,'1562193740079038515',{content:`<@&1561363081018474626>`,embeds:[embed('✦ Une nouvelle recrue rejoint le QG',`Bienvenue dans la famille, <@${id}> !\n\nRejoins régulièrement les membres **en vocal et en jeu** : les échanges et l’activité font vivre notre famille.\n\nPrends le temps de lire <#1561157212154372137> pour connaître nos repères et nos attentes.\n\n**Rejoins notre communauté Roblox** : [envoie ta demande ici](${config.robloxGroupUrl}). Elle restera en attente et sera acceptée automatiquement quand tu passeras **Membre Confirmé**.\n\nHeureux de te compter parmi nous !`)],allowedMentions:{parse:[],roles:['1561363081018474626']}}).catch(e=>console.error('Annonce recrutement QG :',e.code||e.name));
+   await announce(guild,id).catch(e=>console.error('Annonce recrutement QG :',e.code||e.name));
   }
   if(Date.now()-lastRoster>300000){
    await roster(guild);lastRoster=Date.now();
@@ -113,4 +159,4 @@ async function execute(i){
  const missing=optional.filter(k=>!a.state().schoolRoles?.[k]);
  return i.editReply({embeds:[embed('QG actualisé',`Gestion RP disponible, panel des gestions actualisé, effectifs et niveaux mis à jour.\n${missing.length?'Séparateurs non retrouvés : '+missing.join(', ')+'. Associe tes rôles existants avec /sync associer-separateur.':'Séparateurs existants associés.'}\nLes dates historiques absentes restent indiquées comme inconnues.`)],allowedMentions:{parse:[]}});
 }
-module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family};
+module.exports={execute,discover,recordVerification,recruited,memberChanged,roster,tick,family,announce,recruitPayload,_test:{rosterPage,gradeCounts}};

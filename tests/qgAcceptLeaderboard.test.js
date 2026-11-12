@@ -161,8 +161,13 @@ test('panel recruteur : candidat choisi automatiquement s’il est seul dans le 
  office.members.clear();r=await interviews._test.candidatesFor(i,actor,'cr');assert.equal(r.auto.caseId,'case-c');
  // Deux candidats présents : liste de choix.
  office.members.set(B,{});office.members.set(C,{});r=await interviews._test.candidatesFor(i,actor,'view');assert.equal(r.auto,null);
- // Accepter / Refuser gardent la sélection + confirmation.
- office.members.delete(C);assert.equal((await interviews._test.candidatesFor(i,actor,'oralaccept')).auto,null);
+ // Accepter / Refuser / Attente : le seul candidat en attente d'entretien du bureau, sans liste.
+ office.members.delete(C);assert.equal((await interviews._test.candidatesFor(i,actor,'oralaccept')).auto.caseId,'case-b');
+ // Un candidat déjà accepté n'est pas proposé pour une décision.
+ office.members.delete(B);office.members.set(C,{});await assert.rejects(interviews._test.candidatesFor(i,actor,'oralrefuse'),/Aucun candidat/);
+ // Déplacer vers soi : le seul candidat du vocal d'attente.
+ const waiting={id:'wait',members:new Collection([[B,{}]])};i.guild.channels.fetch=async id=>id==='wait'?waiting:office;
+ assert.equal((await interviews._test.candidatesFor(i,actor,'bring')).auto.caseId,'case-b');
  await assert.rejects(interviews._test.candidatesFor(i,{id:A,voice:{channelId:'ailleurs'}},'view'),/Rejoins un bureau/);
 });
 

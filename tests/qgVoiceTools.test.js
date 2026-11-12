@@ -73,13 +73,13 @@ test('effectif complet : emoji du serveur, rôle et nombre pour chaque grade',()
  a.save(s=>{s.schoolRoles={test:'r-test',confirmed:'r-conf',senior:'r-sen',creator:'r-crea',referent:'r-ref',rpManagement:'r-rp'};});
  const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
  const parts=upgrade._test.fullRoster(guild,[m('r-test'),m('r-test'),m('r-conf'),m('r-crea'),m('r-ref'),m('r-rp')]);
- assert.deepEqual(parts.map(p=>p.title),['🛡️ Référent du QG','🎖️ Grades de la famille','🛠️ Exécutants']);
- assert.deepEqual(parts[0].lines,['<:referent:3> <@&r-ref> · **1**']);
+ assert.deepEqual(parts.map(p=>p.title),['👑 Direction','🎖️ Grades de la famille','🛠️ Exécutants']);
+ assert.deepEqual(parts[0].lines,['▫️ <@&r-crea> · **1**','<:referent:3> <@&r-ref> · **1**']);
  assert.deepEqual(parts[1].lines,['⭐ <@&r-sen> · **0**','<a:confirme:2> <@&r-conf> · **1**','<:membre_test:1> <@&r-test> · **2**']);
  assert.deepEqual(parts[2].lines,['▫️ <@&r-rp> · **1**']);
  const p=upgrade._test.rosterPage({total:3,page:0,pages:1,lines:['x'],summary:parts});
  assert.equal(p.flags,MessageFlags.IsComponentsV2);
  const json=JSON.stringify(p.components[0].toJSON());
  assert.match(json,/Grades de la famille/);assert.ok(json.includes('<:membre_test:1> <@&r-test> · **2**'));
- assert.doesNotMatch(JSON.stringify(upgrade._test.rosterPage({total:3,page:1,pages:2,lines:['x']}).components[0].toJSON()),/Référent/);
+ assert.doesNotMatch(JSON.stringify(upgrade._test.rosterPage({total:3,page:1,pages:2,lines:['x']}).components[0].toJSON()),/Direction/);
 });

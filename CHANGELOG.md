@@ -8,7 +8,7 @@ consulter l'historique Git.
 
 ## 63 — Effectif complet avec les emojis du serveur
 
-- Salon effectif : Référent du QG, grades de la famille et exécutants (responsables compris), chaque rôle
+- Salon effectif : direction (Créateur, Gérant Global, Référent du QG), grades de la famille et exécutants (responsables compris), chaque rôle
   avec son emoji du serveur, le rôle et le nombre de personnes qui l'ont. L'emoji est trouvé par son
   nom (le même que le rôle) ; `rosterEmojis` dans `config/qg.js` permet d'en imposer un par clé de rôle.
 - Modifiés : `systems/qgCommunityUpgrade.js`, `tests/qgVoiceTools.test.js`

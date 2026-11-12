@@ -6,6 +6,11 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 72 — Emojis du serveur dans les titres de l'effectif
+
+- Direction :crown~1: (deuxième emoji « crown »), Responsables :gavel:, Grades de la famille
+  :whitediamond:, Exécutants :support:. Repli sur les emojis Unicode si absents.
+
 ## 71 — Ordre des blocs de l'effectif
 
 - Direction, Responsables, Grades de la famille, Exécutants (salon effectifs et guide famille).

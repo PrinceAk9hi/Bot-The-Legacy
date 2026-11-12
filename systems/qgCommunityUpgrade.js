@@ -126,12 +126,19 @@ const teamKeys=()=>[...leadKeys(),...managerKeys()];
 // Emojis du serveur retrouvés d'après le badge de chaque rôle de l'effectif.
 async function badgeMap(guild){const r=a.state().schoolRoles||{};return require('../utils/qgRoleBadges').badgeEmojis(guild,rosterKeys().map(k=>guild.roles.cache.get(r[k])).filter(Boolean)).catch(e=>{console.error('Badges effectif QG :',e.message);return new Map();});}
 const rosterKeys=()=>{const r=a.state().schoolRoles||{};return[...DIRECTION_KEYS,...familyKeys,...teamKeys()].filter(k=>r[k]&&r[k]!==excluded);};
+// Emoji du serveur pour un titre de bloc. index : rang parmi les emojis de même nom, du plus ancien
+// au plus récent (« :crown~1: » dans Discord = le deuxième emoji « crown », index 1). Repli sur le premier.
+function titleEmoji(guild,name,index=0){
+ const list=[...(guild.emojis?.cache?.values()||[])].filter(e=>e.name===name&&e.available!==false).sort((x,y)=>(BigInt(x.id)<BigInt(y.id)?-1:1));
+ const e=list[index]||list[0];return e?`<${e.animated?'a':''}:${e.name}:${e.id}>`:null;
+}
 function fullRoster(guild,members,badges=new Map()){
  const r=a.state().schoolRoles||{},teams=teamKeys();
  const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const count=members.filter(m=>m.roles.cache.has(id)).length;return`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${count}**`;};
-return[['👑 Direction',DIRECTION_KEYS],['⭐ Responsables',leadKeys()],['🎖️ Grades de la famille',[...familyKeys].reverse()],['🛠️ Exécutants',managerKeys()]]
+const head=(name,index,fallback,label)=>`${titleEmoji(guild,name,index)||fallback} ${label}`;
+ return[[head('crown',1,'👑','Direction'),DIRECTION_KEYS],[head('gavel',0,'⭐','Responsables'),leadKeys()],[head('whitediamond',0,'🎖️','Grades de la famille'),[...familyKeys].reverse()],[head('support',0,'🛠️','Exécutants'),managerKeys()]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }
 // Effectif en composants intégrés : total de la famille et un bloc par catégorie de rôles.

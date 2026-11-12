@@ -165,3 +165,11 @@ test('effectif : ordre Direction, Responsables, Grades de la famille, Exécutant
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[]);
  assert.deepEqual(parts.map(p=>p.title),['👑 Direction','⭐ Responsables','🎖️ Grades de la famille','🛠️ Exécutants']);
 });
+
+test('effectif : emojis du serveur dans les titres des blocs (crown~1 = deuxième « crown »)',()=>{
+ const roles=new Collection([['c',{id:'c',name:'Créateur'}],['l',{id:'l',name:'Responsable RP'}],['t',{id:'t',name:'Membre Test'}],['e',{id:'e',name:'Exécutant RP'}]]);
+ a.save(s=>{s.schoolRoles={creator:'c',rpLead:'l',test:'t',rpManagement:'e'};});
+ const emojis=new Collection([['100',{id:'100',name:'crown'}],['200',{id:'200',name:'crown'}],['300',{id:'300',name:'gavel'}],['400',{id:'400',name:'whitediamond'}],['500',{id:'500',name:'support',animated:true}]]);
+ const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:emojis}},[]);
+ assert.deepEqual(parts.map(p=>p.title),['<:crown:200> Direction','<:gavel:300> Responsables','<:whitediamond:400> Grades de la famille','<a:support:500> Exécutants']);
+});

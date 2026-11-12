@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 61 — Panel recruteur direct et appel des candidats
+
+- Le message du panel recruteur affiche directement tous les boutons, chacun décrit dans l'embed.
+  Retirés : l'onglet « Entretiens et vocaux » et « Consulter les dossiers ».
+- Nouveau bouton **Ping les candidats** : mentionne Attente entretien dans le salon 1562136833104547871
+  et les invite à rejoindre le vocal d'attente (2 minutes minimum entre deux appels).
+- **Voir candidature** et **Compte rendu** prennent directement le candidat s'il est seul dans le bureau.
+- Modifiés : `systems/qgInterviews.js`, `systems/qgRecruitmentHub.js`, `tests/qgConferencesVoice.test.js`,
+  `tests/qgAcceptLeaderboard.test.js`
+
 ## 60 — Rappels de communauté en MP et rattrapage
 
 - Le rappel de bienvenue part en MP **et** dans le salon 1561157222032212059.

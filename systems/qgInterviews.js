@@ -58,13 +58,49 @@ function summary(app){
  names.forEach((name,n)=>{const text=clean(app.answers?.[n]||'Sans réponse');result.addFields({name,value:text.length>share?text.slice(0,share-1)+'…':text});});
  return result;
 }
-function panel(){const card=embed('ESPACE RECRUTEUR · QG','**Chaque candidature mérite un suivi clair et une décision expliquée.**\nRetrouve ici les outils de préparation, d’entretien et de compte rendu.').setColor(0xffffff).addFields(
- {name:'01 · Examiner le dossier',value:'Consulte la candidature écrite. Depuis son dossier, **Accepter** attribue Attente entretien ; **Refuser** attribue Membre refusé. **DDS** sollicite la Fondation. **Ouvrir un ticket** crée un échange privé.'},
- {name:'02 · Préparer l’entretien',value:'Rejoins un bureau, puis utilise **Déplacer vers soi** pour choisir un candidat en attente. **Questions** ouvre le guide et **Voir candidature** affiche les réponses en privé.'},
- {name:'03 · Décider et transmettre',value:'Après l’oral, **Accepter** attribue Membre Test et **Refuser** attribue Membre refusé. Les deux retirent Attente entretien. Une confirmation est demandée.'},
- {name:'Compte rendu',value:'Renseigne le bilan avec **Compte rendu**. Le rapport conserve la durée vocale mesurée et un accès sécurisé au dossier.',inline:true},
- {name:'Confidentialité',value:'Vérifie le candidat sélectionné. Les dossiers et les rapports restent réservés aux personnes habilitées.',inline:true});return {embeds:[card],
- components:[row(button('qgr:choose:oralaccept','Accepter',B.Success),button('qgr:choose:oralrefuse','Refuser',B.Danger),button('qgr:choose:wait','Attente')),row(button('qgr:choose:bring','Déplacer vers soi',B.Primary),button('qgr:choose:cr','Compte rendu'),button('qgr:choose:view','Voir candidature'),button('qgr:questions','Questions'))],allowedMentions:{parse:[]}};}
+// Panel recruteur : chaque bouton est décrit dans l'embed, dans l'ordre des boutons.
+function panel(){
+ const wait=require('./qgRecruitmentLive').WAIT;
+ const card=embed('ESPACE RECRUTEUR · QG',[
+  '**Chaque candidature mérite un suivi clair et une décision expliquée.** Rejoins un bureau d’entretien, puis utilise les boutons ci-dessous.',
+  '',
+  '**📥 Déplacer vers soi** — fait venir un candidat du vocal d’attente dans ton bureau.',
+  '**📋 Voir candidature** — affiche en privé les réponses du candidat présent dans ton bureau.',
+  '**✅ Accepter** — après l’oral : le candidat devient Membre Test (confirmation demandée).',
+  '**⛔ Refuser** — après l’oral : le candidat reçoit Membre refusé (confirmation demandée).',
+  '**⏸️ Attente** — renvoie le candidat de ton bureau dans le vocal d’attente.',
+  '**📄 Compte rendu** — ouvre le bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',
+  '**❓ Questions** — guide des questions d’entretien.',
+  `**📣 Ping les candidats** — mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,
+  '',
+  '*Voir candidature et Compte rendu choisissent automatiquement le candidat s’il est seul dans ton bureau ; sinon, une liste s’affiche. Les candidatures écrites se traitent depuis leur fiche (Accepter, Refuser, DDS, ticket).*'
+ ].join('\n')).setColor(0xffffff);
+ return {embeds:[card],components:[
+  row(button('qgr:choose:bring','Déplacer vers soi',B.Primary).setEmoji('📥'),button('qgr:choose:view','Voir candidature').setEmoji('📋'),button('qgr:questions','Questions').setEmoji('❓')),
+  row(button('qgr:choose:oralaccept','Accepter',B.Success).setEmoji('✅'),button('qgr:choose:oralrefuse','Refuser',B.Danger).setEmoji('⛔'),button('qgr:choose:wait','Attente').setEmoji('⏸️')),
+  row(button('qgr:choose:cr','Compte rendu').setEmoji('📄'),button('qgr:ping','Ping les candidats',B.Primary).setEmoji('📣'))],allowedMentions:{parse:[]}};
+}
+// Appel des candidats en attente d'entretien dans le salon dédié.
+const PING_CHANNEL='1562136833104547871',PING_COOLDOWN=120000;
+function pingPayload(roleId,waitId=require('./qgRecruitmentLive').WAIT){
+ const url=`https://discord.com/channels/${config.guildId}/${waitId}`;
+ return{content:`<@&${roleId}>`,embeds:[embed('🎙️ Les entretiens sont ouverts',
+  `Les recruteurs sont prêts à vous recevoir !\n\n👉 Rejoignez le salon vocal <#${waitId}> ([rejoindre l’attente](${url})).\n\n`+
+  `Vous serez déplacés assez rapidement dans un bureau d’entretien, **sauf si un entretien est déjà en cours avec un autre candidat** : dans ce cas, patientez, votre tour arrive.`)],
+  components:[row(new Button().setStyle(B.Link).setURL(url).setLabel('Rejoindre l’attente').setEmoji('🎙️'))],
+  allowedMentions:{parse:[],roles:[roleId]}};
+}
+async function ping(i,actor){
+ const roleId=roles().interviewWaiting;if(!roleId)throw Error('Rôle Attente entretien absent : lance /entretien installer.');
+ const last=a.state().schoolInterviewPing;
+ if(last&&Date.now()-last.at<PING_COOLDOWN)throw Error(`Les candidats ont déjà été appelés par <@${last.by}> <t:${Math.floor(last.at/1000)}:R>.`);
+ const ch=await i.guild.channels.fetch(PING_CHANNEL).catch(()=>null);
+ if(!ch?.isTextBased()||ch.guildId!==config.guildId)throw Error(`Salon <#${PING_CHANNEL}> indisponible.`);
+ await ch.send(pingPayload(roleId));
+ a.save(s=>{s.schoolInterviewPing={at:Date.now(),by:actor.id};});
+ await a.audit(i.guild,{action:'recruitment.ping',actorId:actor.id,after:PING_CHANNEL});
+ return i.editReply(`📣 Candidats en attente d’entretien appelés dans <#${PING_CHANNEL}>.`);
+}
 function overwrites(guild,extra=[]){
  return [{id:guild.id,deny:[P.ViewChannel]},{id:guild.client.user.id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.EmbedLinks,P.AttachFiles,P.Connect,P.MoveMembers]},
  ...[...new Set(staffKeys.map(k=>roles()[k]).filter(Boolean))].map(id=>({id,allow:[P.ViewChannel,P.SendMessages,P.ReadMessageHistory,P.Connect,P.Speak,P.MoveMembers]})),...extra];
@@ -142,13 +178,26 @@ function session(i,app,action){
 }
 function getSession(i,id){const s=a.state().schoolInterviewSessions?.[id];if(!s||s.actor!==i.user.id||s.expires<Date.now()||s.used)throw Error('Cette action a expiré ou a déjà été utilisée.');return s;}
 function form(id,title,fields){return new Modal().setCustomId(id).setTitle(title).addComponents(...fields.map(([key,label,long,value])=>row(new Input().setCustomId(key).setLabel(label).setStyle(long?T.Paragraph:T.Short).setMaxLength(long?900:120).setRequired(true).setValue(value||''))));}
-async function choose(i,actor,action){
+// Candidats possibles pour une action. Pour Voir candidature et Compte rendu, `auto` désigne
+// le candidat à prendre directement : le seul présent dans le bureau, sinon le seul possible.
+async function candidatesFor(i,actor,action){
  const office=actor.voice.channelId;
  if(!officeIds().includes(office))throw Error('Rejoins un bureau d’entretien configuré pour sélectionner un candidat.');
  const source=action==='bring'?channels().interviewWaiting:office;
  const ch=await i.guild.channels.fetch(source);
  const options=Object.values(a.state().schoolFamilyRecruitment||{}).filter(x=>x.caseId&&(ch.members.has(x.applicantId)||(['cr','view'].includes(action)&&recentlyFinished(x,actor)))&&(['waiting_interview','accept','refuse'].includes(x.status))&&(action!=='bring'||x.status==='waiting_interview'));
  if(!options.length)throw Error('Aucun candidat avec dossier disponible dans ce vocal.');
+ const here=options.filter(x=>ch.members.has(x.applicantId));
+ const auto=['view','cr'].includes(action)?(here.length===1?here[0]:options.length===1?options[0]:null):null;
+ return{options,auto};
+}
+function reportForm(i,app){
+ const token=session(i,app,'cr');
+ return i.showModal(form(`qgr:crsave:${token}`,'Compte-rendu recrutement',[['presentation','Présentation + Communication',true],['decision','Date arrivée / refus + décision',false],['trial','Durée PDT',false],['candidate','Discord du candidat',false,app.applicantId]]));
+}
+async function choose(i,actor,action){
+ const {options,auto}=await candidatesFor(i,actor,action);
+ if(auto&&action==='view')return view(i,auto);
  return i.editReply({embeds:[embed('Choisir le candidat','Sélectionne la personne concernée par cette action.')],components:[row(new Menu().setCustomId(`qgr:select:${action}`).setPlaceholder('Candidat').addOptions(options.slice(0,25).map(x=>({label:(i.guild.members.cache.get(x.applicantId)?.displayName||x.applicantId).slice(0,100),value:x.caseId}))))]});
 }
 async function decision(i,actor,app,action){
@@ -198,10 +247,12 @@ async function handle(i){
  if(op==='select'&&id==='cr'){
   const app=requireApp(i.values[0]);
   if(!recentlyFinished(app,actor)&&(!officeIds().includes(actor.voice.channelId)||actor.voice.channelId!==(await i.guild.members.fetch(app.applicantId)).voice.channelId))throw Error('Le candidat doit être dans ton bureau, ou avoir terminé son entretien avec toi depuis moins de 24 h.');
-  const token=session(i,app,'cr');
-  return i.showModal(form(`qgr:crsave:${token}`,'Compte-rendu recrutement',[['presentation','Présentation + Communication',true],['decision','Date arrivée / refus + décision',false],['trial','Durée PDT',false],['candidate','Discord du candidat',false,app.applicantId]]));
+  return reportForm(i,app);
  }
+ // Compte rendu : formulaire direct si un seul candidat (un formulaire doit être la première réponse).
+ if(op==='choose'&&id==='cr'){const {auto}=await candidatesFor(i,actor,'cr');if(auto)return reportForm(i,auto);}
  await i.deferReply({flags:F.Ephemeral});
+ if(op==='ping')return ping(i,actor);
  if(op==='questions')return i.editReply({embeds:require('../config/qgInterviewGuide').sections(a.state().schoolChannels?.familyGuide).map(([title,text])=>embed('🎙️ '+title,text)),allowedMentions:{parse:[]}});
  if(op==='choose')return choose(i,actor,id);
  if(op==='select'){
@@ -298,4 +349,4 @@ async function legacy(i){
  await authorize(i);
  return i.reply({content:'Ce bouton appartient à l’ancien parcours. Utilise /entretien installer puis le nouveau dossier ; aucune admission directe n’est exécutée.',flags:F.Ephemeral});
 }
-module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload};
+module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload,pingPayload,PING_CHANNEL,_test:{candidatesFor}};

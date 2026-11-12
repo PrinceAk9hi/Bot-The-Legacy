@@ -137,6 +137,35 @@ test('entretien accepté : rappel tag, communauté Roblox et activité',()=>{
  assert.match(dm.embeds[0].data.description,/pas encore demandé à rejoindre/);assert.ok(!dm.embeds[0].data.description.includes(`<@${A}>`));
 });
 
+test('panel recruteur : ping des candidats en attente d’entretien',()=>{
+ const interviews=require('../systems/qgInterviews'),WAIT=require('../systems/qgRecruitmentLive').WAIT;
+ assert.equal(interviews.PING_CHANNEL,'1562136833104547871');
+ const p=interviews.pingPayload('waiting');
+ assert.equal(p.content,'<@&waiting>');assert.deepEqual(p.allowedMentions,{parse:[],roles:['waiting']});
+ const text=p.embeds[0].data.description;
+ assert.ok(text.includes(`<#${WAIT}>`));assert.match(text,/déplacés assez rapidement/);assert.match(text,/entretien est déjà en cours/);
+ assert.equal(p.components[0].components[0].data.url,`https://discord.com/channels/${config.guildId}/${WAIT}`);
+});
+
+test('panel recruteur : candidat choisi automatiquement s’il est seul dans le bureau',async()=>{
+ const interviews=require('../systems/qgInterviews');
+ const office={id:'office',members:new Collection()},i={guild:{channels:{fetch:async()=>office}}};
+ a.save(s=>{s.schoolChannels={interview1:'office',interviewWaiting:'wait'};s.schoolFamilyRecruitment={
+  [B]:{applicantId:B,caseId:'case-b',status:'waiting_interview'},
+  [C]:{applicantId:C,caseId:'case-c',status:'accept',interviewFinishedAt:Date.now(),updatedBy:A}};});
+ const actor={id:A,voice:{channelId:'office'}};
+ office.members.set(B,{});
+ // B présent + C terminé avec ce recruteur : B, seul présent, est choisi.
+ let r=await interviews._test.candidatesFor(i,actor,'view');assert.equal(r.options.length,2);assert.equal(r.auto.caseId,'case-b');
+ // Personne dans le bureau : le seul entretien récent est choisi.
+ office.members.clear();r=await interviews._test.candidatesFor(i,actor,'cr');assert.equal(r.auto.caseId,'case-c');
+ // Deux candidats présents : liste de choix.
+ office.members.set(B,{});office.members.set(C,{});r=await interviews._test.candidatesFor(i,actor,'view');assert.equal(r.auto,null);
+ // Accepter / Refuser gardent la sélection + confirmation.
+ office.members.delete(C);assert.equal((await interviews._test.candidatesFor(i,actor,'oralaccept')).auto,null);
+ await assert.rejects(interviews._test.candidatesFor(i,{id:A,voice:{channelId:'ailleurs'}},'view'),/Rejoins un bureau/);
+});
+
 test('rattrapage communauté : rappel unique aux membres de la famille sans demande Roblox',async()=>{
  const T=C,OUT='555555555555555555';
  a.save(s=>{s.schoolEntryVerification={[A]:{robloxId:'1'},[B]:{robloxId:'2'},[T]:{robloxId:'3'},[OUT]:{robloxId:'4'}};});

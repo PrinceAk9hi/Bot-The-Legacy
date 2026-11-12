@@ -59,3 +59,22 @@ test('journal : réunion très longue découpée en plusieurs messages',()=>{
  assert.ok(pages.length>=2);for(const p of pages)assert.ok(desc(p).length<=4000);
  assert.equal(pages.map(desc).join('\n').match(/Note :/g).length,120);
 });
+
+test('journal : fiche de réunion dès la programmation, modifiée ensuite au lieu d’être republiée',async()=>{
+ const sent=[],edits=[],messages=new Map();
+ const ch={guildId:config.guildId,isTextBased:()=>true,send:async p=>{const m={id:'f'+(sent.length+1),edit:async q=>{edits.push(q);}};sent.push(p);messages.set(m.id,m);return m;},messages:{fetch:async id=>messages.get(id),delete:async()=>{}}};
+ const g={id:config.guildId,channels:{fetch:async id=>id===journal.CHANNEL?ch:null}};
+ const meetings=require('../systems/qgMeetings');
+ a.save(s=>{s.schoolMeetings={r3:{id:'r3',name:'Réunion de rentrée',start:Date.now()+86400000,duration:45,authorId:'dir',status:'waiting',roster:[],notes:{},actions:{},results:{}}};});
+ assert.equal(await journal.meetingSync(g,meetings.get('r3')),true);
+ assert.equal(sent.length,1);assert.match(desc(sent[0]),/Réunion de rentrée[\s\S]*Statut :\*\* 🗓️ Programmée/);
+ // Rien n'a changé : pas de modification.
+ assert.equal(await journal.meetingSync(g,meetings.get('r3')),false);
+ // Préparation : notes et décision ajoutées → la même fiche est modifiée.
+ meetings.save('r3',p=>{p.status='draft';p.roster=[{id:'m1'}];p.notes={m1:{value:9,detail:'Super'}};p.actions={m1:{action:'rankup',label:'Rankup',reason:'Très actif'}};});
+ await journal.meetingSync(g,meetings.get('r3'));
+ assert.equal(sent.length,1);assert.equal(edits.length,1);
+ assert.match(desc(edits[0]),/Préparation des notes[\s\S]*<@m1>\nNote : \*\*9\/10\*\* — Super\nDécision : \*\*Rankup\*\* — Très actif/);
+ meetings.save('r3',p=>{p.status='cancelled';});
+ await journal.meetingSync(g,meetings.get('r3'));assert.match(desc(edits.at(-1)),/Annulée/);assert.equal(sent.length,1);
+});

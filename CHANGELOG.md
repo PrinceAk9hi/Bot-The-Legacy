@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 79 — Fiche de réunion dès la programmation
+
+- Journal de la direction : une fiche par réunion publiée dès la programmation (titre, date, durée,
+  statut), puis modifiée à chaque étape (notes et décisions en préparation, validation, application,
+  annulation) au lieu d'être republiée. Réunions déjà programmées comprises.
+
 ## 78 — Journal de la direction
 
 - Salon 1570572219023630357 : actions importantes faites par une personne (rankup, derank, rétrogradation,

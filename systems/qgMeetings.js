@@ -171,6 +171,8 @@ async function handle(i){
     }return i.editReply(render(r,'grades',Number(value)));
    }
   }
+  // Fiche de la réunion dans le journal de la direction : créée ou mise à jour tout de suite.
+  await require('./qgDirectionJournal').meetingSync(i.guild,get(id)).catch(e=>console.error('Journal réunion QG :',e.code||e.message));
   return i.editReply(render(r));
  });
 }
@@ -202,6 +204,8 @@ async function tick(guild){
    }
   });
  }
+ // Fiches du journal de la direction : réunions programmées et récentes (notes et décisions en préparation comprises).
+ for(const r of Object.values(a.state().schoolMeetings||{}))if(r.status!=='setup'&&(r.start>Date.now()-7*86400000||!r.journalMessageIds))await a.serial('meeting:'+r.id,()=>require('./qgDirectionJournal').meetingSync(guild,get(r.id))).catch(e=>console.error('Journal réunion QG :',e.code||e.message));
  for(const r of Object.values(a.state().schoolMeetings||{}))if(r.status==='waiting'&&Date.now()>=r.prepareAt)await a.serial('meeting:'+r.id,async()=>{
  const prepared=await prepare(guild,get(r.id));if(prepared.status==='draft'){
   const ch=await require('./qgWeeklyReport').destination(guild);

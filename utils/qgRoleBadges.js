@@ -1,7 +1,7 @@
 // Badges de rôle → emojis du serveur.
 // Chaque rôle du QG a un badge (icône de rôle) dont l'image existe aussi en emoji sur le serveur.
 // On compare les images (réduites en 16 × 16) pour retrouver l'emoji de chaque badge.
-// Le résultat est mémorisé par rôle et recalculé seulement si le badge change.
+// Le résultat est mémorisé par rôle et recalculé si le badge du rôle ou la liste des emojis du serveur change.
 const a=require('./qgAdmin');
 const SIZE=16,THRESHOLD=28; // écart moyen maximal (0-255) pour accepter une correspondance
 
@@ -33,6 +33,8 @@ const show=e=>`<${e.animated?'a':''}:${e.name}:${e.id}>`;
 async function badgeEmojis(guild,roles,{print=fingerprint}={}){
  const emojis=[...(guild.emojis?.cache?.values()||[])].filter(e=>e.available!==false&&e.id&&e.name);
  const saved=a.state().schoolRoleBadgeEmojis||{},result=new Map(),changes={};
+ // Signature des emojis du serveur : un emoji ajouté, retiré ou remplacé relance la comparaison.
+ const set=emojis.map(e=>e.id).sort().join(',');
  let loaded=null;
  const all=async()=>{
   if(loaded)return loaded;
@@ -46,12 +48,12 @@ async function badgeEmojis(guild,roles,{print=fingerprint}={}){
  for(const role of roles){
   if(!role?.icon)continue;
   const known=saved[role.id];
-  let emojiId=known?.icon===role.icon?known.emojiId:undefined;
+  let emojiId=known?.icon===role.icon&&known?.set===set?known.emojiId:undefined;
   if(emojiId===undefined||(emojiId&&!emojis.some(e=>e.id===emojiId))){
    const badge=await print(role.iconURL({extension:'png',size:64})).catch(()=>null);
    if(!badge)continue;
    emojiId=closest(badge,await all());
-   changes[role.id]={icon:role.icon,emojiId};
+   changes[role.id]={icon:role.icon,emojiId,set};
   }
   const emoji=emojis.find(e=>e.id===emojiId);
   if(emoji)result.set(role.id,show(emoji));

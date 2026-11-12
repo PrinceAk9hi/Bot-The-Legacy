@@ -6,6 +6,11 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 68 — Nouveaux emojis de rôle pris en compte
+
+- La correspondance badge → emoji est recalculée quand un emoji est ajouté, retiré ou remplacé sur
+  le serveur (avant : seulement si le badge du rôle changeait). Modifiés : `utils/qgRoleBadges.js`, tests.
+
 ## 67 — Effectif sans liste détaillée, responsables séparés
 
 - Salon effectifs : un seul message (total, Direction, Grades, Responsables, Exécutants), sans la liste

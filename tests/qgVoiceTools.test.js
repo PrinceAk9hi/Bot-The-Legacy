@@ -126,3 +126,15 @@ test('effectif : responsables et exécutants séparés, sans liste détaillée d
  const json=JSON.stringify(upgrade._test.rosterPage({total:2,summary:parts}).components[0].toJSON());
  assert.match(json,/2 MEMBRES DANS LA FAMILLE/);assert.doesNotMatch(json,/Arrivée dans la famille|PAGE/);
 });
+
+test('badges : un nouvel emoji ajouté au serveur relance la comparaison',async()=>{
+ const badges=require('../utils/qgRoleBadges');badges._test.prints.clear();
+ const img=v=>new Uint8Array(768).fill(v);
+ const images={'emojis/1':img(10),'emojis/2':img(200),'role-icons/b':img(200)};
+ const print=async url=>images[Object.keys(images).find(k=>url.includes(k))];
+ const role={id:'r',icon:'b',iconURL:()=>'https://cdn.discordapp.com/role-icons/b.png'};
+ const emojis=new Collection([['1',{id:'1',name:'ancien'}]]);
+ assert.equal((await badges.badgeEmojis({emojis:{cache:emojis}},[role],{print})).has('r'),false);
+ emojis.set('2',{id:'2',name:'nouveau'});
+ assert.equal((await badges.badgeEmojis({emojis:{cache:emojis}},[role],{print})).get('r'),'<:nouveau:2>');
+});

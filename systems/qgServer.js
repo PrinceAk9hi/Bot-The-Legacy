@@ -396,6 +396,7 @@ async function message(m){
  if(await require('./qgSchoolGiveaways').message(m))return;
  if(await require('./qgSchoolNews').message(m))return;
  if(await require('./qgVoiceTools').message(m))return;
+ if(await require('./qgOtherFamilies').command(m))return;
  if(/^=mv(\s|$)/i.test(m.content.trim()))return moveCommand(m);
  if(await require('./qgExpel').message(m))return;
  if(await require('./qgAccept').command(m))return;
@@ -460,7 +461,7 @@ function register(client){
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgOtherFamilies').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

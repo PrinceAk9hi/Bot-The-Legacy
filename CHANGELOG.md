@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 75 — Autres familles School
+
+- Tous les membres du serveur dont le compte Roblox est connu sont vérifiés une fois par jour : une
+  communauté créée par « schoolfamily » (@colonelrqt2), autre que le QG, est signalée dans le journal
+  de modération avec le nom de la famille sans « SCHOOLRP » (`NOM | SCHOOLRP` → `NOM`).
+- `=familles` (direction, responsable recrutement) : liste actuelle et nombre de comptes vérifiés.
+- Données publiques Roblox, sans cookie. Nouveau : `systems/qgOtherFamilies.js`,
+  `tests/qgOtherFamilies.test.js`. Modifié : `systems/qgServer.js`.
+
 ## 74 — Panel recruteur groupé, décisions sans confirmation
 
 - Panel entretien en trois groupes : Déplacements (Déplacer vers soi, Attente, Ping), Décision

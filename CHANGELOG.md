@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 74 — Panel recruteur groupé, décisions sans confirmation
+
+- Panel entretien en trois groupes : Déplacements (Déplacer vers soi, Attente, Ping), Décision
+  (Accepter, Refuser), Dossier et entretien (Voir candidature, Compte rendu, Questions).
+- Accepter / Refuser s'appliquent tout de suite, sans bouton de confirmation.
+- Effectif : titre Responsables avec l'emoji :whitegavel:.
+
 ## 73 — Membres sous chaque grade dans l'effectif
 
 - Salon effectifs : sous chaque grade de la famille, une ligne en petit par membre `@membre - date`

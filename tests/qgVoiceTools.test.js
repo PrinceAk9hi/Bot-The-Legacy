@@ -122,7 +122,7 @@ test('effectif : responsables et exécutants séparés, sans liste détaillée d
  a.save(s=>{s.schoolRoles={rpLead:'lead',rpManagement:'team'};});
  const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[m('lead','team'),m('team')]);
- assert.deepEqual(parts,[{title:'⭐ Responsables',lines:['▫️ <@&lead> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&team> - **2**']}]);
+ assert.deepEqual(parts,[{title:'<:whitegavel:1570565044842922156> Responsables',lines:['▫️ <@&lead> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&team> - **2**']}]);
  const json=JSON.stringify(upgrade._test.rosterPage({total:2,summary:parts}).components[0].toJSON());
  assert.match(json,/2 MEMBRES DANS LA FAMILLE/);assert.doesNotMatch(json,/Arrivée dans la famille|PAGE/);
 });
@@ -144,7 +144,7 @@ test('effectif : le casino a son responsable et son exécutant',()=>{
  a.save(s=>{s.schoolRoles={casinoLead:'cl',casinoOperator:'co'};});
  const m=(...ids)=>({roles:{cache:new Collection(ids.map(id=>[id,{}]))}});
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[m('cl'),m('co'),m('co')]);
- assert.deepEqual(parts,[{title:'⭐ Responsables',lines:['▫️ <@&cl> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&co> - **2**']}]);
+ assert.deepEqual(parts,[{title:'<:whitegavel:1570565044842922156> Responsables',lines:['▫️ <@&cl> - **1**']},{title:'🛠️ Exécutants',lines:['▫️ <@&co> - **2**']}]);
 });
 
 test('responsabilité : le rôle d’exécutant de la même équipe est ajouté automatiquement',async()=>{
@@ -163,15 +163,15 @@ test('effectif : ordre Direction, Responsables, Grades de la famille, Exécutant
  const roles=new Collection([['c',{id:'c',name:'Créateur'}],['l',{id:'l',name:'Responsable RP'}],['t',{id:'t',name:'Membre Test'}],['e',{id:'e',name:'Exécutant RP'}]]);
  a.save(s=>{s.schoolRoles={creator:'c',rpLead:'l',test:'t',rpManagement:'e'};});
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:new Collection()}},[]);
- assert.deepEqual(parts.map(p=>p.title),['👑 Direction','⭐ Responsables','🎖️ Grades de la famille','🛠️ Exécutants']);
+ assert.deepEqual(parts.map(p=>p.title),['👑 Direction','<:whitegavel:1570565044842922156> Responsables','🎖️ Grades de la famille','🛠️ Exécutants']);
 });
 
 test('effectif : emojis du serveur dans les titres des blocs (crown~1 = deuxième « crown »)',()=>{
  const roles=new Collection([['c',{id:'c',name:'Créateur'}],['l',{id:'l',name:'Responsable RP'}],['t',{id:'t',name:'Membre Test'}],['e',{id:'e',name:'Exécutant RP'}]]);
  a.save(s=>{s.schoolRoles={creator:'c',rpLead:'l',test:'t',rpManagement:'e'};});
- const emojis=new Collection([['100',{id:'100',name:'crown'}],['200',{id:'200',name:'crown'}],['300',{id:'300',name:'gavel'}],['400',{id:'400',name:'whitediamond'}],['500',{id:'500',name:'support',animated:true}]]);
+ const emojis=new Collection([['100',{id:'100',name:'crown'}],['200',{id:'200',name:'crown'}],['300',{id:'300',name:'whitegavel'}],['400',{id:'400',name:'whitediamond'}],['500',{id:'500',name:'support',animated:true}]]);
  const parts=upgrade._test.fullRoster({roles:{cache:roles},emojis:{cache:emojis}},[]);
- assert.deepEqual(parts.map(p=>p.title),['<:crown:200> Direction','<:gavel:300> Responsables','<:whitediamond:400> Grades de la famille','<a:support:500> Exécutants']);
+ assert.deepEqual(parts.map(p=>p.title),['<:crown:200> Direction','<:whitegavel:300> Responsables','<:whitediamond:400> Grades de la famille','<a:support:500> Exécutants']);
 });
 
 test('effectif : sous chaque grade, les membres en petit avec leur date d’arrivée',()=>{

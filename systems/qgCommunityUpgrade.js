@@ -151,7 +151,7 @@ function fullRoster(guild,members,badges=new Map(),{details=false}={}){
   const rows=holders.map(m=>[m.id,arrival(m.id)]).sort((x,y)=>(x[1]||Infinity)-(y[1]||Infinity)||x[0].localeCompare(y[0]));
   return[head,...rows.map(([mid,at])=>`-# <@${mid}> - ${at?`<t:${Math.floor(at/1000)}:d>`:'date inconnue'}`)].join('\n');};
 const head=(name,index,fallback,label)=>`${titleEmoji(guild,name,index)||fallback} ${label}`;
- return[[head('crown',1,'👑','Direction'),DIRECTION_KEYS],[head('gavel',0,'⭐','Responsables'),leadKeys()],[head('whitediamond',0,'🎖️','Grades de la famille'),[...familyKeys].reverse()],[head('support',0,'🛠️','Exécutants'),managerKeys()]]
+ return[[head('crown',1,'👑','Direction'),DIRECTION_KEYS],[head('whitegavel',0,'<:whitegavel:1570565044842922156>','Responsables'),leadKeys()],[head('whitediamond',0,'🎖️','Grades de la famille'),[...familyKeys].reverse()],[head('support',0,'🛠️','Exécutants'),managerKeys()]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);
 }
 // Effectif en composants intégrés : total de la famille et un bloc par catégorie de rôles.

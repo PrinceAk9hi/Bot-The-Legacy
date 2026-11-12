@@ -66,18 +66,20 @@ function panel(stats=[]){
  const {ContainerBuilder,SectionBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
  const wait=require('./qgRecruitmentLive').WAIT,text=content=>new TextDisplayBuilder().setContent(content);
  const item=(label,description,btn)=>new SectionBuilder().addTextDisplayComponents(text(`**${label}**\n${description}`)).setButtonAccessory(btn);
+ const group=(title,...items)=>{box.addSeparatorComponents(new SeparatorBuilder()).addTextDisplayComponents(text(`### ${title}`)).addSectionComponents(...items);};
  const box=new ContainerBuilder().setAccentColor(0xffffff)
-  .addTextDisplayComponents(text('## ESPACE RECRUTEUR · QG\nRejoins un bureau d’entretien : chaque bouton agit directement sur le candidat en **Attente entretien** de ton vocal. Une liste n’apparaît que s’il y a plusieurs candidats.'))
-  .addSeparatorComponents(new SeparatorBuilder())
-  .addSectionComponents(
-   item('📥 Déplacer vers soi','Fait venir le candidat du vocal d’attente dans ton bureau.',button('qgr:choose:bring','Déplacer',B.Primary)),
-   item('📋 Voir candidature','Affiche en privé les réponses du candidat de ton bureau.',button('qgr:choose:view','Voir')),
-   item('✅ Accepter','Après l’oral : le candidat devient Membre Test (une confirmation).',button('qgr:choose:oralaccept','Accepter',B.Success)),
-   item('⛔ Refuser','Après l’oral : le candidat reçoit Membre refusé (une confirmation).',button('qgr:choose:oralrefuse','Refuser',B.Danger)),
-   item('⏸️ Attente','Renvoie le candidat de ton bureau dans le vocal d’attente.',button('qgr:choose:wait','Attente')),
-   item('📄 Compte rendu','Bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',button('qgr:choose:cr','Compte rendu')),
-   item('❓ Questions','Guide des questions d’entretien.',button('qgr:questions','Questions')),
-   item('📣 Ping les candidats',`Mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,button('qgr:ping','Ping',B.Primary)));
+  .addTextDisplayComponents(text('## ESPACE RECRUTEUR · QG\nRejoins un bureau d’entretien : chaque bouton agit directement sur le candidat en **Attente entretien** de ton vocal. Une liste n’apparaît que s’il y a plusieurs candidats.'));
+ group('🎙️ Déplacements',
+  item('📥 Déplacer vers soi','Fait venir le candidat du vocal d’attente dans ton bureau.',button('qgr:choose:bring','Déplacer',B.Primary)),
+  item('⏸️ Attente','Renvoie le candidat de ton bureau dans le vocal d’attente.',button('qgr:choose:wait','Attente')),
+  item('📣 Ping les candidats',`Mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,button('qgr:ping','Ping',B.Primary)));
+ group('⚖️ Décision',
+  item('✅ Accepter','Après l’oral : le candidat devient Membre Test, tout de suite.',button('qgr:choose:oralaccept','Accepter',B.Success)),
+  item('⛔ Refuser','Après l’oral : le candidat reçoit Membre refusé, tout de suite.',button('qgr:choose:oralrefuse','Refuser',B.Danger)));
+ group('📋 Dossier et entretien',
+  item('📋 Voir candidature','Affiche en privé les réponses du candidat de ton bureau.',button('qgr:choose:view','Voir')),
+  item('📄 Compte rendu','Bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',button('qgr:choose:cr','Compte rendu')),
+  item('❓ Questions','Guide des questions d’entretien.',button('qgr:questions','Questions')));
  if(stats.length)box.addSeparatorComponents(new SeparatorBuilder()).addTextDisplayComponents(text(stats.join(' · ')));
  box.addTextDisplayComponents(text('-# Les candidatures écrites se traitent depuis leur fiche : Accepter, Refuser, DDS, ticket.'));
  return {components:[box],flags:F.IsComponentsV2,allowedMentions:{parse:[]}};
@@ -209,8 +211,8 @@ async function act(i,actor,app,action){
   return i.editReply(`<@${target.id}> déplacé${action==='bring'?' dans ton bureau':' dans le vocal d’attente'}.`);
  }
  if(!['oralaccept','oralrefuse'].includes(action))throw Error('Action inconnue.');
- const token=session(i,app,action);
- return i.editReply({embeds:[embed('Confirmer la décision',`${action==='oralaccept'?'Accepter':'Refuser'} l’entretien de <@${app.applicantId}> ?`)],components:[row(button(`qgr:confirm:${token}`,'Confirmer',action==='oralaccept'?B.Success:B.Danger))],allowedMentions:{parse:[]}});
+ // Décision immédiate (plus de bouton de confirmation) ; une seule décision à la fois par dossier.
+ return a.serial('qgr-case:'+app.caseId,async()=>decision(i,actor,requireApp(app.caseId),action));
 }
 function reportForm(i,app){
  const token=session(i,app,'cr');

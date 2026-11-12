@@ -100,6 +100,21 @@ async function openMeeting(guild,r){
  }
  return r;
 }
+// Annonce dès la fin de la programmation (salon d'annonces, mention de la famille), une seule fois.
+const ANNOUNCE_CHANNEL='1561157213160996866';
+function scheduledPayload(r,cancelled=false){
+ const at=Math.floor(r.start/1000),end=Math.floor((r.start+r.duration*60000)/1000);
+ const text=cancelled?`~~**${clean(r.name)}**~~\nLa réunion prévue <t:${at}:F> est **annulée**.`
+  :`**${clean(r.name)}**${r.description?'\n'+clean(r.description):''}\n\n🗓️ <t:${at}:F> (<t:${at}:R>)\n⏱️ Jusqu’à <t:${end}:t> · ${r.duration} minutes\n🔊 <#${voiceId}>${r.eventId?`\n📌 [Événement Discord](https://discord.com/events/${config.guildId}/${r.eventId})`:''}\n\nLe salon de réunion s’ouvre à l’heure prévue.`;
+ return{content:cancelled?null:`<@&${familyRole}>`,embeds:[embed(cancelled?'📅 Réunion annulée':'📅 Réunion programmée',text).setFooter(require('../utils/qgBrand').footer(' • Réunion '+r.id))],allowedMentions:cancelled?{parse:[]}:{parse:[],roles:[familyRole]}};
+}
+async function announceScheduled(guild,r){
+ if(r.scheduledAnnouncementId||r.status==='cancelled')return r;
+ const ch=await guild.channels.fetch(ANNOUNCE_CHANNEL).catch(()=>null);
+ if(!ch?.isTextBased())throw Error('Salon d’annonces introuvable : réunion programmée sans annonce.');
+ const message=await ch.send(scheduledPayload(r));
+ return save(r.id,p=>{p.scheduledAnnouncementId=message.id;});
+}
 async function prepare(guild,r){
  if(r.status!=='waiting'||!r.eventId||Date.now()<r.prepareAt)return r;
  const members=await require('../utils/qgMembers')(guild),panel=require('./qgUserPanel');
@@ -138,9 +153,9 @@ async function handle(i){
   r=get(id);
   if(op==='open'||op==='refresh'){if(['creating','event_uncertain'].includes(r.status)||r.eventId&&!r.accessReady)r=await eventAndAccess(i.guild,r);r=await prepare(i.guild,r);return i.editReply(render(r));}
   if(op==='offset'){if(r.status!=='setup'||!['now','1','3','6'].includes(i.values[0]))throw Error('Choix indisponible.');r=save(id,p=>{p.offset=i.values[0];});}
-  else if(op==='configure'){if(r.status!=='setup')throw Error('Configuration déjà effectuée.');r=save(id,p=>{p.prepareAt=p.offset==='now'?Date.now():p.start-Number(p.offset)*3600000;});r=await eventAndAccess(i.guild,r);r=await prepare(i.guild,r);}
+  else if(op==='configure'){if(r.status!=='setup')throw Error('Configuration déjà effectuée.');r=save(id,p=>{p.prepareAt=p.offset==='now'?Date.now():p.start-Number(p.offset)*3600000;});r=await eventAndAccess(i.guild,r);r=await announceScheduled(i.guild,r).catch(e=>{console.error('Annonce réunion QG :',e.code||e.message);return get(id);});r=await prepare(i.guild,r);}
   else if(op==='edit'){if(r.status!=='approved')throw Error('Réunion non modifiable.');r=save(id,p=>{p.status='draft';delete p.approvedAt;});}
-  else if(op==='cancel'){if(!['waiting','approved'].includes(r.status))throw Error('Annulation indisponible.');if(r.eventId){const ev=await i.guild.scheduledEvents.fetch(r.eventId);await ev.delete('Réunion QG annulée');}r=save(id,p=>{p.status='cancelled';});}
+  else if(op==='cancel'){if(!['waiting','approved'].includes(r.status))throw Error('Annulation indisponible.');if(r.eventId){const ev=await i.guild.scheduledEvents.fetch(r.eventId);await ev.delete('Réunion QG annulée');}r=save(id,p=>{p.status='cancelled';});if(r.scheduledAnnouncementId){const ch=await i.guild.channels.fetch(ANNOUNCE_CHANNEL).catch(()=>null);const m=await ch?.messages.fetch(r.scheduledAnnouncementId).catch(()=>null);await m?.edit(scheduledPayload(r,true)).catch(()=>{});}}
   else if(op==='approve'){if(r.status!=='draft')throw Error('Réunion déjà validée.');r=save(id,p=>{p.status='approved';p.approvedAt=Date.now();p.approvedBy=actor.id;});}
   else if(op==='page'){const [stage,page]=extra.split('.');if(!['notes','grades','review'].includes(stage))throw Error('Page inconnue.');return i.editReply(render(r,stage,Number(page)||0));}
   else{
@@ -164,6 +179,8 @@ async function tick(guild){
   if(!snapshot.eventId||snapshot.status==='cancelled')continue;
   await a.serial('meeting:'+snapshot.id,async()=>{
    const r=get(snapshot.id);
+   // Annonce de programmation manquée (erreur, ou réunion programmée avant cette fonction) : nouvel essai.
+   if(r.status!=='setup'&&!r.scheduledAnnouncementId&&r.start>Date.now())await announceScheduled(guild,r).catch(e=>console.error('Annonce réunion QG :',e.code||e.message));
    if(r.start>Date.now()&&r.accessReady&&!r.openedAt){
     const active=Object.values(a.state().schoolMeetings||{}).some(x=>x.openedAt&&x.status!=='cancelled'&&x.start+x.duration*60000>Date.now());
     if(!active){
@@ -191,4 +208,4 @@ async function tick(guild){
   await ch.send({embeds:[embed('Préparation de réunion ouverte',`**${prepared.name}**\nUtilise \`/réunion reunion:${prepared.id}\` pour préparer les notes et les décisions.\nRien ne sera appliqué avant \`/notesmp\`.`)],allowedMentions:{parse:[]}});
  }
 });}
-module.exports={data,configData,notesData,execute,handle,tick,get,save,authorized,render};
+module.exports={data,configData,notesData,execute,handle,tick,get,save,authorized,render,_test:{scheduledPayload,announceScheduled}};

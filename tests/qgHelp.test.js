@@ -62,3 +62,18 @@ test('rejoindre une gestion : emoji du badge de chaque rôle d’exécutant, dan
  assert.deepEqual(options.find(o=>o.value==='rpManagement').emoji,{id:'77',name:'rp_badge',animated:false});
  assert.equal(options.length,6);assert.ok(options.some(o=>o.value==='casinoOperator'));
 });
+
+test('/réunion : annonce à la fin de la programmation, une seule fois, barrée si annulée',async()=>{
+ const meetings=require('../systems/qgMeetings'),sent=[];
+ const ch={isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'annonce1'};}};
+ const guild={channels:{fetch:async id=>id==='1561157213160996866'?ch:null}};
+ a.save(s=>{s.schoolMeetings={m1:{id:'m1',name:'Réunion mensuelle',description:'Bilan',start:Date.now()+86400000,duration:60,status:'waiting',eventId:'ev1'}};});
+ let r=await meetings._test.announceScheduled(guild,meetings.get('m1'));
+ assert.equal(sent.length,1);assert.equal(sent[0].content,'<@&1561363081018474626>');assert.deepEqual(sent[0].allowedMentions,{parse:[],roles:['1561363081018474626']});
+ const text=sent[0].embeds[0].data.description;
+ assert.match(text,/Réunion mensuelle/);assert.match(text,/<t:\d+:F> \(<t:\d+:R>\)/);assert.match(text,/60 minutes/);assert.match(text,/discord\.com\/events\/.+\/ev1/);
+ assert.equal(r.scheduledAnnouncementId,'annonce1');
+ await meetings._test.announceScheduled(guild,meetings.get('m1'));assert.equal(sent.length,1);
+ const cancelled=meetings._test.scheduledPayload(meetings.get('m1'),true);
+ assert.equal(cancelled.content,null);assert.match(cancelled.embeds[0].data.description,/annulée/);assert.deepEqual(cancelled.allowedMentions,{parse:[]});
+});

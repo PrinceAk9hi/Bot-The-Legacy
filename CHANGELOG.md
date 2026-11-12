@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 77 — Annonce de réunion programmée
+
+- Fin de la programmation /réunion : annonce dans le salon d'annonces avec mention de la famille (titre,
+  description, date et heure, durée, vocal, lien de l'événement Discord). Une seule fois ; barrée sans
+  mention si la réunion est annulée ; nouvel essai chaque minute si l'envoi échoue (couvre aussi les
+  réunions déjà programmées). Modifié : `systems/qgMeetings.js`, tests.
+
 ## 76 — Panel d'aide et emojis des gestions
 
 - Le centre de commandement (salon 1565484861660069978) est remplacé par un panel d'aide : toutes les

@@ -23,7 +23,10 @@ const PREFIX=[
  ['👑 Direction et responsable recrutement',[
   ['=acp @membre | ID | PseudoRoblox','Accepte la demande d’adhésion au groupe Roblox et donne le rang Membre confirmé.'],
   ['=derank @membre motif','Retire le membre de la famille (grades, rôles d’exécutant) et de la communauté Roblox.'],
-  ['=familles','Membres présents dans une autre famille School.']]]];
+  ['=familles','Membres présents dans une autre famille School.'],
+  ['=statsrecrutement [jours]','Statistiques de recrutement (7 jours par défaut).'],
+  ['=sauvegarde','Sauvegarde immédiate des données du bot (Direction).'],
+  ['=restore','Restaure une sauvegarde : en réponse au fichier, sinon la plus récente (Direction).']]]];
 
 // Commandes slash enregistrées sur le serveur : [nom, description, sous-commandes].
 async function slashCommands(guild){

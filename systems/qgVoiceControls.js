@@ -10,7 +10,20 @@ function panel(){return {embeds:[new EmbedBuilder().setFooter(require('../utils/
 function controls(id,rec){return {embeds:[new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle('Contrôles de mon vocal').setDescription(`<#${id}>\nAccès : **${rec.locked?'verrouillé':'ouvert'}**\nLes autorisations nominatives n’ouvrent pas un vocal famille aux personnes extérieures à la famille.`)],components:[
  row(button(`qgs:voice:rename:${id}`,'Renommer'),button(`qgs:voice:limit:${id}`,'Places'),button(`qgs:voice:${rec.locked?'unlock':'lock'}:${id}`,rec.locked?'Ouvrir':'Verrouiller',ButtonStyle.Primary)),
  row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:allow:${id}`).setPlaceholder('Autoriser un membre').setMaxValues(1)),
- row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:remove:${id}`).setPlaceholder('Retirer une autorisation').setMaxValues(1))],allowedMentions:{parse:[]}};}
+ row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:remove:${id}`).setPlaceholder('Retirer une autorisation').setMaxValues(1)),
+ row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:transfer:${id}`).setPlaceholder('Transférer la propriété (membre présent dans la voc)').setMaxValues(1))],allowedMentions:{parse:[]}};}
+// Transfert de propriété : accès propriétaire au nouveau, annonce et nouveau panel dans le tchat de la voc.
+async function transfer(room,target,{reason='Transfert de propriété'}={}){
+ const {PermissionFlagsBits:P}=require('discord.js'),policy=require('./qgCommunityPolicy');
+ const rec=state().schoolTemporaryVoices?.[room.id];if(!rec)throw Error('Ce vocal temporaire n’est plus suivi.');
+ const previous=rec.ownerId;
+ await room.permissionOverwrites.edit(target.id,{ViewChannel:true,Connect:true,Speak:true,UseVAD:true,...Object.fromEntries(policy.voiceDenied.map(k=>[k,false])),ReadMessageHistory:true},{reason});
+ if(previous&&previous!==target.id)await room.permissionOverwrites.edit(previous,{ReadMessageHistory:false},{reason}).catch(()=>{});
+ save(x=>{x.schoolTemporaryVoices[room.id].ownerId=target.id;x.schoolTemporaryVoices[room.id].transferredAt=Date.now();});
+ const p=controls(room.id,state().schoolTemporaryVoices[room.id]);
+ await room.send({...p,content:`<@${target.id}> tu es maintenant propriétaire de ce vocal${previous&&previous!==target.id?` (à la place de <@${previous}>)`:''}. Voici tes réglages.`,allowedMentions:{parse:[],users:[target.id]}}).catch(e=>console.error('Transfert du vocal temporaire :',e.code||e.message));
+ return previous;
+}
 function eligible(member,rec,s){const r=s.schoolRoles||{};return policy.exempt(member,s)||(rec.kind==='family'?require('../config/qgSchoolLayout').allFamily.some(k=>r[k]&&member.roles.cache.has(r[k])):!!r.community&&member.roles.cache.has(r.community));}
 const busy=new Set();
 async function handle(i){
@@ -46,6 +59,12 @@ async function handle(i){
     }else for(const [key,value] of Object.entries(current.previousConnect||{}))await room.permissionOverwrites.edit(key,{Connect:value});
     save(x=>{x.schoolTemporaryVoices[id].locked=locked;});
    }
+  }else if(action==='transfer'){
+   const target=await i.guild.members.fetch(i.values[0]);
+   if(target.user.bot||target.id===rec.ownerId)throw Error('Sélectionne un autre membre.');
+   if(target.voice.channelId!==id)throw Error('Le nouveau propriétaire doit être dans le vocal.');
+   await transfer(room,target,{reason:`Transfert par ${member.user.tag}`});
+   await i.editReply({content:`Propriété transférée à <@${target.id}>.`,embeds:[],components:[]});return true;
   }else if(['allow','remove'].includes(action)){
    const target=await i.guild.members.fetch(i.values[0]);if(target.user.bot)throw Error('Sélectionne un membre.');
    if(target.id===rec.ownerId||policy.exempt(target,s))throw Error('L’accès du propriétaire et de la Direction ne se modifie pas ici.');
@@ -55,4 +74,4 @@ async function handle(i){
   await i.editReply(controls(id,state().schoolTemporaryVoices[id]));return true;
  }catch(e){await i.editReply({content:e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message,embeds:[],components:[]});return true;}finally{busy.delete(id);}
 }
-module.exports={panel,controls,handle,eligible};
+module.exports={panel,controls,handle,eligible,transfer};

@@ -33,9 +33,16 @@ async function voice(oldState,newState,client){
   const fresh=await newState.guild.members.fetch(member.id);await fresh.voice.setChannel(room,'Création d’un vocal temporaire');return true;
  }
  const rec=oldState.channelId&&s.schoolTemporaryVoices?.[oldState.channelId];
- if(rec){const room=oldState.guild.channels.cache.get(oldState.channelId);if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}}
+ if(rec){
+  const room=oldState.guild.channels.cache.get(oldState.channelId);
+  if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}
+  // Le propriétaire part et d'autres restent : la voc passe automatiquement au membre suivant.
+  else if(room&&member.id===rec.ownerId){const next=heir(room,member.id);if(next)await require('./qgVoiceControls').transfer(room,next,{reason:'Le propriétaire a quitté le vocal'});}
+ }
  return false;
 }
+// Héritier : le membre (hors bots) arrivé le plus tôt dans la voc, d'après l'ordre de Discord.
+function heir(room,ownerId){return [...room.members.values()].find(m=>!m.user.bot&&m.id!==ownerId)||null;}
 // Panel du tchat de la voc : contrôles de la voc et mention du propriétaire.
 function roomPanel(id,rec,ownerId){const p=require('./qgVoiceControls').controls(id,rec);return{...p,content:`<@${ownerId}> voici les réglages de ton vocal.`,allowedMentions:{parse:[],users:[ownerId]}};}
 // Anciens panneaux « Mon vocal temporaire » des salons commandes : supprimés une fois.
@@ -62,4 +69,4 @@ async function modal(i){
 
 }
 async function clean(guild){const s=state();for(const [id] of Object.entries(s.schoolTemporaryVoices||{})){const room=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});if(!room||room.members.size===0){if(room)await room.delete('Nettoyage des vocaux temporaires après redémarrage');save(x=>{delete x.schoolTemporaryVoices[id];});}}}
-module.exports={voice,handle,modal,clean,retireCommandPanels,roomPanel,panel:require('./qgVoiceControls').panel,_test:{accessRoles,isFamily}};
+module.exports={voice,handle,modal,clean,retireCommandPanels,roomPanel,panel:require('./qgVoiceControls').panel,_test:{accessRoles,isFamily,heir}};

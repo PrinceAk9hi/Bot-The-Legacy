@@ -5,6 +5,9 @@
 // Les communautés d'un joueur sont publiques : aucun cookie Roblox n'est utilisé.
 // Vérification de chaque membre une fois par jour (10 membres par minute) ; chaque nouvelle
 // famille détectée est signalée dans le journal de modération. =familles affiche la liste actuelle.
+// Alerte Direction (journal de la direction) quand un membre déjà vérifié rejoint une nouvelle famille,
+// ou quand un membre arrivé sur le serveur depuis moins de 7 jours est déjà dans une autre famille.
+// Le premier passage sur les membres plus anciens n'alerte pas (pas de doublon avec l'existant).
 const a=require('../utils/qgAdmin'),config=require('../config/qg');
 const OWNER=()=>String(config.otherFamiliesOwner||'colonelrqt2').toLowerCase();
 const DAY=86400000,PER_TICK=10,RETRY=3600000;
@@ -67,6 +70,17 @@ async function report(guild,member,roblox,families){
  return true;
 }
 
+// Alerte dans le journal de la direction, en précisant si le membre fait partie de notre famille.
+async function alertDirection(guild,member,roblox,families,{joined}){
+ const ch=await guild.channels.fetch(require('./qgDirectionJournal').CHANNEL).catch(()=>null);
+ if(!ch?.isTextBased?.()||ch.guildId!==config.guildId)return false;
+ let ours=false;try{ours=require('./qgWeeklyReport').family(member);}catch{}
+ const {embed}=require('./qgPanels');
+ await ch.send({embeds:[embed('🚨 Membre dans une autre famille School',
+  `${joined?'Vient d’arriver sur le serveur et fait déjà partie':'A rejoint'} ${families.length>1?'des familles':'la famille'} ${families.map(f=>`**${f.name}**`).join(', ')}.\nMembre : <@${member.id}>${ours?' · ⚠️ **membre de notre famille**':''}\nRoblox : [${roblox.name}](https://www.roblox.com/users/${roblox.id}/profile)`).setTimestamp()],allowedMentions:{parse:[]}});
+ return true;
+}
+const NEW_MEMBER=7*DAY;
 let busy=false;
 async function tick(guild,{http=fetch,now=Date.now()}={}){
  if(busy||guild.id!==config.guildId)return 0;busy=true;
@@ -82,6 +96,8 @@ async function tick(guild,{http=fetch,now=Date.now()}={}){
    catch(e){a.save(s=>{s.schoolOtherFamilies||={};s.schoolOtherFamilies[m.id]={...(s.schoolOtherFamilies[m.id]||{}),next:now+RETRY};});continue;}
    const before=new Set((seen[m.id]?.families||[]).map(f=>f.id)),fresh=families.filter(f=>!before.has(f.id));
    if(fresh.length&&await report(guild,m,roblox,fresh).catch(e=>{console.error('Autres familles QG :',e.code||e.message);return false;}))reported++;
+   const known=!!seen[m.id]?.checkedAt,joined=!known&&now-(m.joinedTimestamp||0)<NEW_MEMBER;
+   if(fresh.length&&(known||joined))await alertDirection(guild,m,roblox,fresh,{joined}).catch(e=>console.error('Alerte autres familles QG :',e.code||e.message));
    a.save(s=>{s.schoolOtherFamilies||={};s.schoolOtherFamilies[m.id]={robloxId:roblox.id,robloxName:roblox.name,families,checkedAt:now,next:now+DAY};});
   }
   return reported;

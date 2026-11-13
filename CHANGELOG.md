@@ -6,6 +6,23 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 87 — Sauvegardes, stats de recrutement, transfert de voc, alerte autres familles
+
+- Sauvegarde quotidienne (à partir de 4 h, heure de Paris) de tous les fichiers .json de data/ dans le salon
+  privé « 💾・sauvegardes », créé à côté du journal de la direction avec les mêmes accès. 14 gardées.
+  =sauvegarde (immédiate) et =restore (en réponse au fichier, sinon la plus récente) avec bouton de
+  confirmation : l'état actuel est sauvegardé avant, puis le bot redémarre.
+- Statistiques de recrutement chaque lundi à partir de 9 h dans le journal de la direction, et
+  =statsrecrutement [jours] : candidatures reçues, décisions écrites et orales, taux d'acceptation,
+  attente moyenne avant l'entretien, décisions par recruteur, dossiers en cours.
+- Vocal temporaire : si le propriétaire part et que d'autres restent, la voc passe automatiquement au membre
+  suivant ; menu « Transférer la propriété » dans le panel (membre présent dans la voc).
+- Autres familles School : alerte dans le journal de la direction quand un membre déjà vérifié rejoint une
+  nouvelle famille, ou qu'un membre arrivé depuis moins de 7 jours en fait déjà partie.
+- Ajoutés : `systems/qgBackup.js`, `systems/qgRecruitmentStats.js`, `tests/qgBackupStats.test.js`.
+- Modifiés : `systems/qgServer.js`, `systems/qgSchoolVoice.js`, `systems/qgVoiceControls.js`,
+  `systems/qgOtherFamilies.js`, `systems/qgHelp.js`.
+
 ## 86 — Réglages du vocal dans le tchat de la voc
 
 - À la création d'un vocal temporaire, le panel de réglages (renommer, places, verrouiller, autoriser ou

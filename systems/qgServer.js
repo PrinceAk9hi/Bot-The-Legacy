@@ -275,6 +275,7 @@ async function interaction(i){
  if(!i.customId?.startsWith('qgs:help')&&await require('./qgProfileCatchup').blocked(i))return i.reply({content:'Complète ton profil depuis le bouton du MP ou du règlement pour retrouver tes accès.',flags:MessageFlags.Ephemeral});
  if(i.customId?.startsWith('botpanel:'))return i.client.botPanel.handle(i);
  if(i.customId?.startsWith('qgbk:'))return require('./qgBackup').handle(i);
+ if(i.customId?.startsWith('qgte'))return require('./qgTestPeriod').handle(i);
  if(i.customId?.startsWith('ownerDM:'))return require('./botOwnerTools').handle(i);
  if(i.isChatInputCommand?.()&&['mp','mpall'].includes(i.commandName))return require('./botOwnerTools').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='entretien')return require('./qgInterviews').execute(i);
@@ -464,7 +465,7 @@ function register(client){
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgOtherFamilies').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgBackup').tick,guild);await guarded(require('./qgRecruitmentStats').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgOtherFamilies').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgBackup').tick,guild);await guarded(require('./qgRecruitmentStats').tick,guild);await guarded(require('./qgTestPeriod').tick,guild);await guarded(require('./qgMemberOfWeek').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

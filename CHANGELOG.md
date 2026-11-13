@@ -6,6 +6,23 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 88 — Fin de PDT automatique, membre de la semaine, familles invitées aux animations
+
+- Fin de période de test : à l'échéance (PDT ouverte avec /pdt, sinon arrivée dans la famille + 7 jours,
+  `config.testPeriodDays`), une fiche est publiée dans le salon 1562090387588390942 avec l'activité de la
+  période et les observations. Boutons (Direction, responsable recrutement) : Valider → Membre Confirmé,
+  Prolonger 7 jours (nouvelle fiche à la nouvelle échéance), Retirer de la famille (motif, même retrait
+  que =derank). La fiche passe en vert, gris ou rouge et ses boutons sont désactivés.
+- Membre de la semaine : chaque lundi à partir de 10 h, annonce dans le salon 1561157222032212059 du membre
+  de la famille le plus actif (1 pt/min de vocal, 2 par message, 30 par animation présente ; Direction
+  exclue), podium, et rôle « ⭐ Membre de la semaine » (créé si besoin, retiré au gagnant précédent).
+- Animations : bouton « Familles invitées » à la création/modification ; les membres du serveur dont le
+  compte Roblox est dans ces familles reçoivent les rappels comme les inscrits et apparaissent dans les
+  participants. Nouveau rappel 15 minutes avant (en plus de celui d'une heure) ; au début, l'organisateur
+  reçoit en MP la liste des inscrits et des invités.
+- Ajoutés : `systems/qgTestPeriod.js`, `systems/qgMemberOfWeek.js`, `tests/qgTestWeekAnimations.test.js`.
+- Modifiés : `systems/qgAnimations.js`, `systems/qgExpel.js` (retrait réutilisable), `systems/qgServer.js`.
+
 ## 87 — Sauvegardes, stats de recrutement, transfert de voc, alerte autres familles
 
 - Sauvegarde quotidienne (à partir de 4 h, heure de Paris) de tous les fichiers .json de data/ dans le salon

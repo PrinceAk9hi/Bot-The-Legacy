@@ -56,17 +56,24 @@ async function handle(i) {
     const actor = await i.guild.members.fetch({ user: p.actorId, force: true });
     if (!a.can(actor, 'derank')) throw Error('Tu n’es plus autorisé à effectuer cette action.');
     const target = await i.guild.members.fetch({ user: p.targetId, force: true });
-    const remove = rolesToRemove(target);
-    a.hierarchy(actor, target, await i.guild.members.fetchMe(), remove.map(r => i.guild.roles.cache.get(r)));
-    if (remove.length) await target.roles.remove(remove, `=derank par ${actor.user.tag} : ${p.reason}`.slice(0, 400));
-    let warning = '';
-    try { await require('./qgSchoolSeparators').syncMember(await i.guild.members.fetch({ user: target.id, force: true })); } catch { warning += '\nSéparateurs à vérifier.'; }
-    const roblox = await require('../utils/qgRoblox').exile(target.id);
-    const robloxText = { exiled: 'expulsé du groupe', request_declined: 'demande d’adhésion refusée', not_member: 'n’était pas dans le groupe', no_roblox: 'aucun compte Roblox enregistré', protected: 'rang protégé (Manager ou plus) : non modifié' }[roblox.status] || `échec (${roblox.error || 'erreur inconnue'})`;
-    await a.audit(i.guild, { action: 'derank.family', actorId: actor.id, targetId: target.id, before: { roles: remove }, after: { roblox: roblox.status }, reason: p.reason, result: roblox.status === 'failed' ? 'Roblox : ' + (roblox.error || 'échec') : 'success' });
-    await target.send({ embeds: [embed('Retrait de la famille • QG', `Tu ne fais plus partie de la famille QG.\n\n**Motif** : ${p.reason}`)], allowedMentions: { parse: [] } }).catch(() => { warning += '\nMP non remis.'; });
-    return i.editReply({ embeds: [embed('Derank effectué', `<@${target.id}> a été retiré de la famille.\nRôles retirés : ${remove.length}\nCommunauté Roblox : ${robloxText}${warning}`)], components: [] });
+    const r = await expel(i.guild, actor, target, p.reason);
+    return i.editReply({ embeds: [embed('Derank effectué', `<@${target.id}> a été retiré de la famille.\nRôles retirés : ${r.removed}\nCommunauté Roblox : ${r.robloxText}${r.warning}`)], components: [] });
   });
 }
 
-module.exports = { message, handle };
+// Retrait de la famille : rôles familiaux, séparateurs, communauté Roblox, journal et MP.
+// Aussi utilisé par la fin de période de test (bouton « Retirer »).
+async function expel(guild, actor, target, reason) {
+  const remove = rolesToRemove(target);
+  a.hierarchy(actor, target, await guild.members.fetchMe(), remove.map(r => guild.roles.cache.get(r)));
+  if (remove.length) await target.roles.remove(remove, `Retrait par ${actor.user.tag} : ${reason}`.slice(0, 400));
+  let warning = '';
+  try { await require('./qgSchoolSeparators').syncMember(await guild.members.fetch({ user: target.id, force: true })); } catch { warning += '\nSéparateurs à vérifier.'; }
+  const roblox = await require('../utils/qgRoblox').exile(target.id);
+  const robloxText = { exiled: 'expulsé du groupe', request_declined: 'demande d’adhésion refusée', not_member: 'n’était pas dans le groupe', no_roblox: 'aucun compte Roblox enregistré', protected: 'rang protégé (Manager ou plus) : non modifié' }[roblox.status] || `échec (${roblox.error || 'erreur inconnue'})`;
+  await a.audit(guild, { action: 'derank.family', actorId: actor.id, targetId: target.id, before: { roles: remove }, after: { roblox: roblox.status }, reason, result: roblox.status === 'failed' ? 'Roblox : ' + (roblox.error || 'échec') : 'success' });
+  await target.send({ embeds: [embed('Retrait de la famille • QG', `Tu ne fais plus partie de la famille QG.\n\n**Motif** : ${reason}`)], allowedMentions: { parse: [] } }).catch(() => { warning += '\nMP non remis.'; });
+  return { removed: remove.length, robloxText, warning };
+}
+
+module.exports = { message, handle, expel };

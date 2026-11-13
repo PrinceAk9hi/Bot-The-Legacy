@@ -6,6 +6,23 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 90 — Sécurité du serveur
+
+- Anti-phishing / token grab (tout le monde sauf le propriétaire) : liens qui imitent Discord, Steam ou Roblox,
+  liens d'arnaque (appât + promesse + lien inconnu), domaines interdits et fichiers exécutables → message
+  supprimé, pause 6 h, MP « compte peut-être piraté ».
+- Compte piraté : même message dans 3 salons en 30 secondes → tous supprimés, pause 6 h, MP.
+- Hors Direction : @everyone / @here, mentions de masse (5 membres ou 3 rôles), invitations vers un autre
+  serveur → supprimés, pause 10 minutes.
+- Anti-raid : 10 arrivées en 60 secondes → mode raid 30 minutes (prolongé à chaque vague), comptes de moins
+  de 7 jours expulsés. =raid on / =raid off (Direction).
+- Anti-nuke (journal d'audit) : salons / rôles supprimés ou créés, bans, expulsions, webhooks en masse →
+  l'auteur perd ses rôles (un bot est expulsé) ; bot ajouté hors propriétaire → expulsé ; Administrateur donné
+  → retiré. Exemptés : propriétaire, le bot, `config.securityTrustedIds`.
+- Alertes dans le journal de la direction (mention du propriétaire pour raid et nuke). =securite : état.
+- Ajoutés : `systems/qgSecurity.js`, `tests/qgSecurity.test.js`. Modifiés : `systems/qgServer.js`,
+  `systems/qgHelp.js`.
+
 ## 89 — Compte rendu obligatoire après l'entretien
 
 - « Accepter » et « Refuser » du panel recruteur ouvrent d'abord le formulaire de compte rendu, pré-rempli

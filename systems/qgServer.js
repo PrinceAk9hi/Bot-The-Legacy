@@ -393,6 +393,7 @@ async function message(m){
  await require('./qgPublicThreads').message(m);
  if(await require('./botOwnerTools').message(m))return;
  if(m.author.bot)return;
+ if(await require('./qgSecurity').message(m))return;
  require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
@@ -400,6 +401,7 @@ async function message(m){
  if(await require('./qgVoiceTools').message(m))return;
  if(await require('./qgOtherFamilies').command(m))return;
  if(await require('./qgBackup').command(m))return;
+ if(await require('./qgSecurity').command(m))return;
  if(await require('./qgRecruitmentStats').command(m))return;
  if(/^=mv(\s|$)/i.test(m.content.trim()))return moveCommand(m);
  if(await require('./qgExpel').message(m))return;
@@ -427,6 +429,8 @@ function register(client){
  client.on(Events.ShardResume,()=>{const g=client.guilds.cache.get(config.guildId);if(g)require('./qgConferences').recover(g).catch(report);});
  const guarded=(fn,...args)=>Promise.resolve().then(()=>fn(...args)).catch(report);
  // Route only QG events here: handlers belonging to other servers must never moderate QG members.
+ // Anti-nuke : journal d'audit du QG (permission « Voir les logs du serveur » nécessaire).
+ client.on(Events.GuildAuditLogEntryCreate,(entry,guild)=>{if(guild?.id===config.guildId)guarded(require('./qgSecurity').audit,entry,guild);});
  client.on(Events.UserUpdate,(_old,user)=>{const guild=client.guilds.cache.get(config.guildId),member=guild?.members.cache.get(user.id);if(member)guarded(require('./qgTagWatch').inspect,member);});
  const emit=client.emit;
  client.emit=function(event,...args){
@@ -437,10 +441,10 @@ function register(client){
   if(event===Events.MessageCreate){require('./qgMessageGuard').remember(first);guarded(message,first);return true;}
   if(event===Events.InteractionCreate){interaction(first).catch(async e=>{report(e);const p={content:'❌ '+e.message,flags:MessageFlags.Ephemeral};await(first.deferred&&first.isChatInputCommand?.()&&!first.replied?first.editReply({content:p.content}):first.deferred||first.replied?first.followUp(p):first.reply(p)).catch(report);});return true;}
   if(event===Events.MessageReactionAdd||event===Events.MessageReactionRemove){guarded(()=>serial('reaction:'+args[1].id,async()=>{if(event===Events.MessageReactionAdd&&await require('./qgCommunityPolicy').reaction(first,args[1]))return;await reaction(first,args[1],event===Events.MessageReactionAdd);}));return true;}
-  if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd)require('./qgInvites').joined(first);guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
+  if(event===Events.GuildMemberAdd||event===Events.GuildMemberRemove){if(event===Events.GuildMemberAdd){require('./qgInvites').joined(first);guarded(require('./qgSecurity').joined,first);}guarded(memberEvent,first,event===Events.GuildMemberAdd);return true;}
   if(event===Events.VoiceStateUpdate){guarded(require('./qgConferences').voice,...args);guarded(require('./qgVoiceTools').voice,...args);guarded(require('./qgVoiceReception').voice,...args);guarded(require('./qgInterviews').tick,first.guild);guarded(require('./qgMemberMetrics').voice,...args);require('./qgLevels').resetVoice(first.id);guarded(voice,...args);guarded(voiceLog,...args);return true;}
   if(event===Events.GuildMemberUpdate){guarded(memberUpdate,...args);return true;}
-  if(event===Events.MessageUpdate){guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
+  if(event===Events.MessageUpdate){guarded(require('./qgSecurity').message,args[1],{edited:true});guarded(require('./qgCommunityPolicy').message,args[1],true);guarded(messageChange,args[0],args[1],'edit');return true;}
   if(event===Events.MessageDelete){guarded(async()=>messageChange(first,null,'delete',await require('./qgMessageGuard').onDelete(first)));return true;}
   if(event===Events.MessageBulkDelete){guarded(async()=>messageChange(first.first(),first,'bulk',await require('./qgMessageGuard').onBulk(first,args[1])));return true;}
   if(event===Events.InviteCreate)require('./qgInvites').created(first);
@@ -465,7 +469,7 @@ function register(client){
    process.once('SIGTERM',()=>require('./qgVoiceReception').shutdown());
   }catch(e){report(e);}
 
-  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgOtherFamilies').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgBackup').tick,guild);await guarded(require('./qgRecruitmentStats').tick,guild);await guarded(require('./qgTestPeriod').tick,guild);await guarded(require('./qgMemberOfWeek').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
+  const meetingTick=async()=>{await guarded(require('./qgProfileCatchup').tick,guild);await guarded(require('./qgCommunityUpgrade').tick,guild);await guarded(require('./qgOtherFamilies').tick,guild);await guarded(require('./qgInterviews').tick,guild);await guarded(require('./qgMeetings').tick,guild);await guarded(require('./qgWeeklyReport').tick,guild);await guarded(require('./qgBackup').tick,guild);await guarded(require('./qgSecurity').tick,guild);await guarded(require('./qgRecruitmentStats').tick,guild);await guarded(require('./qgTestPeriod').tick,guild);await guarded(require('./qgMemberOfWeek').tick,guild);await guarded(require('./qgFamilyAdmin').tick,guild);await guarded(require('./qgAnimations').tick,guild);await guarded(require('../utils/qgRoblox').tick,guild);await guarded(require('./qgReferent').tick,guild);};
   await meetingTick();setInterval(()=>guarded(meetingTick),60000).unref();
   setInterval(()=>guarded(require('./qgSupportDashboard').refresh,guild),60000).unref();
   require('./qgMemberMetrics').start(guild);

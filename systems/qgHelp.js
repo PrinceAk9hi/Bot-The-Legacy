@@ -26,7 +26,9 @@ const PREFIX=[
   ['=familles','Membres présents dans une autre famille School.'],
   ['=statsrecrutement [jours]','Statistiques de recrutement (7 jours par défaut).'],
   ['=sauvegarde','Sauvegarde immédiate des données du bot (Direction).'],
-  ['=restore','Restaure une sauvegarde : en réponse au fichier, sinon la plus récente (Direction).']]]];
+  ['=restore','Restaure une sauvegarde : en réponse au fichier, sinon la plus récente (Direction).'],
+  ['=securite','État de la protection du serveur et dernières alertes (Direction).'],
+  ['=raid on / off','Active ou arrête le mode anti-raid : comptes de moins de 7 jours expulsés (Direction).']]]];
 
 // Commandes slash enregistrées sur le serveur : [nom, description, sous-commandes].
 async function slashCommands(guild){

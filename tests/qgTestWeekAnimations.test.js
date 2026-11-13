@@ -106,3 +106,31 @@ test('entretien : Accepter / Refuser ouvre le compte rendu pré-rempli, lié à 
  let modal;interviews._test.reportForm({user:{id:'rec'},showModal:m=>{modal=m.toJSON();}},app);
  assert.equal(a.state().schoolInterviewSessions[modal.custom_id.split(':')[2]].decision,undefined);
 });
+
+test('relance candidats : MP à 48 h, dernier rappel la veille, dossier fermé à 7 jours ; la réponse remet à zéro',async()=>{
+ const interviews=require('../systems/qgInterviews'),WAIT=require('../systems/qgRecruitmentLive').WAIT;
+ const t0=1e12,H=3600000,ID='999999999999999999';
+ a.save(s=>{s.schoolRoles={interviewWaiting:'attente'};s.schoolChannels={interviewAvailability:'dispo'};
+  s.schoolFamilyRecruitment={[ID]:{applicantId:ID,caseId:'c9',status:'waiting_interview',submittedAt:t0-H,updatedAt:t0}};});
+ const dms=[],removed=[];
+ const cand={id:ID,voice:{channelId:null},send:async p=>dms.push(p.embeds[0].data.description),roles:{remove:async r=>removed.push(r)}};
+ const guild={id:config.guildId,client:{user:{id:'bot'}},members:{fetch:async()=>cand},channels:{fetch:async()=>null}};
+ assert.equal(await interviews.followups(guild,{now:t0+47*H}),0);
+ assert.equal(await interviews.followups(guild,{now:t0+48*H}),1);assert.match(dms[0],/toujours \*\*en attente d’entretien\*\*/);
+ assert.equal(await interviews.followups(guild,{now:t0+50*H}),0);
+ // Le candidat écrit ses disponibilités : le délai repart.
+ assert.equal(interviews.availability({guildId:config.guildId,channelId:'dispo',author:{id:ID,bot:false}}),true);
+ const news=a.state().schoolFamilyRecruitment[ID].lastAvailabilityAt;
+ assert.equal(await interviews.followups(guild,{now:news+47*H}),0);
+ assert.equal(await interviews.followups(guild,{now:news+48*H}),1);
+ assert.equal(await interviews.followups(guild,{now:news+6*24*H}),1);assert.match(dms[2],/Dernier rappel/);
+ // Dans le vocal d'attente : nouvelle activité, pas de fermeture.
+ cand.voice.channelId=WAIT;assert.equal(await interviews.followups(guild,{now:news+7*24*H}),0);
+ const seen=a.state().schoolFamilyRecruitment[ID].lastWaitingAt;assert.equal(seen,news+7*24*H);
+ cand.voice.channelId=null;
+ assert.equal(await interviews.followups(guild,{now:seen+7*24*H}),1);
+ const app=a.state().schoolFamilyRecruitment[ID];
+ assert.equal(app.status,'expired');assert.deepEqual(removed,['attente']);assert.match(dms.at(-1),/\*\*fermé\*\*/);
+ assert.equal(interviews.summary(app).toJSON().color,0x95a5a6);assert.match(interviews.summary(app).toJSON().description,/sans réponse/);
+ assert.equal(await interviews.followups(guild,{now:seen+8*24*H}),0);
+});

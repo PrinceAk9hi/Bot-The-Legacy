@@ -51,8 +51,8 @@ function requireApp(id){const app=appFor(id);if(!app)throw Error('Ce dossier a �
 const pending=app=>['submitted','in_review'].includes(app.status);
 function controls(app){const done=!pending(app);return [row(button(`qgr:written:${app.caseId}:accept`,'Accepter',B.Success).setDisabled(done),button(`qgr:written:${app.caseId}:refuse`,'Refuser',B.Danger).setDisabled(done),button(`qgr:dds:${app.caseId}`,'DDS').setDisabled(done),button(`qgr:ticket:${app.caseId}`,'Ouvrir un ticket').setDisabled(done))];}
 // Statut lisible et couleur de la fiche : vert si acceptée, rouge si refusée, blanc en attente.
-const STATUS={submitted:'📥 À examiner',in_review:'🔎 En cours d’examen',waiting_interview:'✅ Acceptée — en attente d’entretien',accept:'✅ Acceptée — Membre Test',refuse:'⛔ Refusée'};
-const statusColor=app=>['waiting_interview','accept'].includes(app.status)?0x2ecc71:app.status==='refuse'?0xd62f2f:0xffffff;
+const STATUS={submitted:'📥 À examiner',in_review:'🔎 En cours d’examen',waiting_interview:'✅ Acceptée — en attente d’entretien',accept:'✅ Acceptée — Membre Test',refuse:'⛔ Refusée',expired:'⌛ Fermée — sans réponse du candidat'};
+const statusColor=app=>['waiting_interview','accept'].includes(app.status)?0x2ecc71:app.status==='refuse'?0xd62f2f:app.status==='expired'?0x95a5a6:0xffffff;
 function summary(app){
  const result=embed('📋 Candidature • QG',`Candidat : <@${app.applicantId}>\nStatut : **${STATUS[app.status]||app.status}**\nDossier : ${app.caseId}\nDéposée <t:${Math.floor((app.submittedAt||app.createdAt)/1000)}:f>\n${app.updatedBy?`Dernier traitement : <@${app.updatedBy}>\n`:''}Les réponses complètes sont jointes au dossier.`);
  result.setColor(statusColor(app));
@@ -376,8 +376,64 @@ async function tick(guild){
   if(app.caseId&&app.status==='submitted'&&!app.messageId)await submitApplication(guild,app);
  }
 }
+// ---------- Relance des candidats en attente d'entretien ----------
+// Le délai part de la dernière nouvelle du candidat : acceptation écrite, passage dans le vocal d'attente
+// ou un bureau, message dans le salon des disponibilités.
+// - 48 h sans nouvelles : MP de relance (vocal d'attente, disponibilités, date de fermeture).
+// - 24 h avant la fermeture : dernier rappel.
+// - config.interviewExpiryDays (7 jours par défaut) sans nouvelles : dossier fermé (« Fermée — sans réponse »),
+//   rôle d'attente retiré, MP ; le candidat peut recandidater.
+const FOLLOW_DAY=86400000,FIRST=2*FOLLOW_DAY;
+const expiryMs=()=>(Number(config.interviewExpiryDays)||7)*FOLLOW_DAY;
+const lastNews=app=>Math.max(app.updatedAt||0,app.submittedAt||0,app.lastWaitingAt||0,app.lastAvailabilityAt||0);
+const byApplicant=id=>a.state().schoolFamilyRecruitment?.[id];
+// Message dans le salon des disponibilités : le candidat a répondu.
+function availability(m){
+ if(m.guildId!==config.guildId||m.author?.bot||m.channelId!==channels().interviewAvailability)return false;
+ const app=byApplicant(m.author.id);
+ if(app?.status!=='waiting_interview')return false;
+ a.save(s=>{s.schoolFamilyRecruitment[m.author.id].lastAvailabilityAt=Date.now();});
+ return true;
+}
+async function followups(guild,{now=Date.now()}={}){
+ if(guild.id!==config.guildId)return 0;
+ const WAIT=require('./qgRecruitmentLive').WAIT,places=new Set([WAIT,...officeIds()]);
+ let done=0;
+ for(const app of Object.values(a.state().schoolFamilyRecruitment||{})){
+  if(!app.caseId||app.status!=='waiting_interview')continue;
+  // Membre parti : null (dossier fermé à l'échéance) ; erreur Discord : on réessaie plus tard.
+  const member=await guild.members.fetch(app.applicantId).catch(e=>e.code===10007?null:undefined);
+  if(member===undefined)continue;
+  if(member&&places.has(member.voice?.channelId)){a.save(s=>{s.schoolFamilyRecruitment[app.applicantId].lastWaitingAt=now;});continue;}
+  const since=lastNews(app),closeAt=since+expiryMs(),f=app.followup?.since===since?app.followup:{since};
+  if(now>=closeAt){
+   await a.serial('qgr-case:'+app.caseId,async()=>{
+    const current=byApplicant(app.applicantId);
+    if(current?.caseId!==app.caseId||current.status!=='waiting_interview'||lastNews(current)!==since)return;
+    if(member&&roles().interviewWaiting)await member.roles.remove(roles().interviewWaiting,'Dossier de recrutement fermé sans réponse').catch(()=>{});
+    current.status='expired';current.updatedAt=now;current.expiredAt=now;current.followup={...f,closedAt:now};put(current);
+    if(member)await member.send({embeds:[embed('Ta candidature au QG',`Sans nouvelles de ta part depuis <t:${Math.floor(since/1000)}:D>, ton dossier en attente d’entretien a été **fermé**.\nTu peux déposer une nouvelle candidature quand tu veux.`)],allowedMentions:{parse:[]}}).catch(()=>{});
+    await a.audit(guild,{action:'recruitment.expired',actorId:guild.client.user.id,targetId:app.applicantId,before:'waiting_interview',after:'expired',reason:'Aucune nouvelle du candidat'}).catch(()=>{});
+    if(current.channelId&&current.messageId)await refresh(guild,current);
+    done++;
+   });
+   continue;
+  }
+  if(!member)continue;
+  const stage=now>=closeAt-FOLLOW_DAY?'last':now>=since+FIRST?'first':null;
+  if(!stage||f[stage])continue;
+  const avail=channels().interviewAvailability;
+  const text=stage==='first'
+   ?`Tu es toujours **en attente d’entretien** au QG 👋\nRejoins <#${WAIT}> quand tu es disponible : un recruteur viendra te chercher.${avail?`\nTu peux aussi indiquer tes disponibilités dans <#${avail}>.`:''}\n\nSans nouvelles de ta part, ton dossier sera fermé <t:${Math.floor(closeAt/1000)}:R>.`
+   :`⏰ **Dernier rappel** : ton dossier en attente d’entretien sera fermé <t:${Math.floor(closeAt/1000)}:R>.\nRejoins <#${WAIT}>${avail?` ou écris tes disponibilités dans <#${avail}>`:''} pour le garder ouvert.`;
+  const sent=await member.send({embeds:[embed('Ta candidature au QG',text)],allowedMentions:{parse:[]}}).then(()=>true,()=>false);
+  a.save(s=>{s.schoolFamilyRecruitment[app.applicantId].followup={...f,[stage]:now,[stage+'Sent']:sent};});
+  done++;
+ }
+ return done;
+}
 async function legacy(i){
  await authorize(i);
  return i.reply({content:'Ce bouton appartient à l’ancien parcours. Utilise /entretien installer puis le nouveau dossier ; aucune admission directe n’est exécutée.',flags:F.Ephemeral});
 }
-module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload,pingPayload,PING_CHANNEL,_test:{candidatesFor,reportForm}};
+module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload,pingPayload,PING_CHANNEL,followups,availability,_test:{candidatesFor,reportForm,lastNews}};

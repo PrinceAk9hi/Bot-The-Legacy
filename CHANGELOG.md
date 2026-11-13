@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 91 — Relance des candidats en attente d'entretien
+
+- Le délai part de la dernière nouvelle du candidat : acceptation écrite, passage dans le vocal d'attente ou
+  un bureau, message dans le salon des disponibilités.
+- 48 h sans nouvelles : MP de relance. 24 h avant la fermeture : dernier rappel. Après
+  `config.interviewExpiryDays` (7 jours par défaut) : dossier « Fermée — sans réponse du candidat » (fiche
+  grise), rôle d'attente retiré, MP ; le candidat peut recandidater. Journal : `recruitment.expired`.
+- Modifiés : `systems/qgInterviews.js`, `systems/qgServer.js`, tests.
+
 ## 90 — Sécurité du serveur
 
 - Anti-phishing / token grab (tout le monde sauf le propriétaire) : liens qui imitent Discord, Steam ou Roblox,

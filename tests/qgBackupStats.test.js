@@ -75,14 +75,16 @@ test('stats de recrutement : décisions, taux, attente moyenne et décisions par
   {action:'rankup',actorId:'r1',targetId:'c1',at:6*day},
  ];
  const applications={a:{caseId:'a',submittedAt:4*day,status:'accept'},b:{caseId:'b',submittedAt:2*day,status:'waiting_interview',updatedAt:2*day},c:{caseId:'c',submittedAt:6*day,status:'submitted'}};
- const s=stats._test.compute({history,applications,from,to});
+ const reports=[{candidateId:'c1',at:4*day+10*H+60000}]; // c2 : entretien sans compte rendu
+ const s=stats._test.compute({history,applications,reports,from,to});
+ assert.equal(s.missing,1);
  assert.equal(s.received,2);
  assert.deepEqual(s.written,{accept:2,refuse:1});assert.deepEqual(s.oral,{accept:1,refuse:1});
  assert.equal(s.averageWait,20*H);
- assert.deepEqual(s.recruiters,[['r1',{written:3,oral:0}],['r2',{written:0,oral:2}]]);
+ assert.deepEqual(s.recruiters,[['r1',{written:3,oral:0,missing:0}],['r2',{written:0,oral:2,missing:1}]]);
  assert.equal(s.pending,1);assert.equal(s.waiting,1);
  const text=stats._test.payload(s,{days:7,to}).embeds[0].data.description;
- assert.match(text,/67 % d’acceptation/);assert.match(text,/50 % d’acceptation/);assert.match(text,/20 h/);assert.match(text,/<@r1> — 3 écrites · 0 entretien/);
+ assert.match(text,/67 % d’acceptation/);assert.match(text,/50 % d’acceptation/);assert.match(text,/20 h/);assert.match(text,/<@r1> — 3 écrites · 0 entretien\n/);assert.match(text,/<@r2> — 0 écrite · 2 entretiens · ⚠️ 1 CR manquant/);assert.match(text,/Comptes rendus manquants : \*\*1\*\* ⚠️/);
 });
 
 test('stats de recrutement : rapport le lundi à partir de 9 h dans le journal, une fois',async()=>{

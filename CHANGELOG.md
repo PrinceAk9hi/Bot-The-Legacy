@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 89 — Compte rendu obligatoire après l'entretien
+
+- « Accepter » et « Refuser » du panel recruteur ouvrent d'abord le formulaire de compte rendu, pré-rempli
+  (« Accepté — arrivée le JJ/MM/AAAA » + durée de PDT, ou « Refusé le JJ/MM/AAAA » + « Aucune »). La
+  décision n'est appliquée qu'à l'envoi du formulaire, avec les mêmes contrôles qu'avant, puis le compte rendu
+  est publié. Le salon des comptes rendus est vérifié avant la décision. Le bouton « Compte rendu » reste pour
+  compléter un dossier.
+- Statistiques de recrutement : nombre de comptes rendus manquants, au total et par recruteur.
+- Modifiés : `systems/qgInterviews.js`, `systems/qgRecruitmentStats.js`, tests.
+
 ## 88 — Fin de PDT automatique, membre de la semaine, familles invitées aux animations
 
 - Fin de période de test : à l'échéance (PDT ouverte avec /pdt, sinon arrivée dans la famille + 7 jours,

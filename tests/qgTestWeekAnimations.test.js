@@ -89,3 +89,20 @@ test('animations : familles invitées reconnues, membres de ces familles ajouté
  const t=anim.rosterText(e,['g1']);
  assert.match(t,/Inscrits \(1\) :\n<@p1>/);assert.match(t,/Familles invitées \(Dynasty\) : 1 membre\n<@g1>/);
 });
+
+test('entretien : Accepter / Refuser ouvre le compte rendu pré-rempli, lié à la décision',()=>{
+ const interviews=require('../systems/qgInterviews');
+ const app={applicantId:'111111111111111111',caseId:'case-x',status:'waiting_interview'};
+ for(const [verdict,title,decision,trial] of [['oralaccept','Compte rendu · Acceptation',/^Accepté — arrivée le \d{2}\/\d{2}\/\d{4}$/,'7 jours'],['oralrefuse','Compte rendu · Refus',/^Refusé le /,'Aucune']]){
+  let modal;interviews._test.reportForm({user:{id:'rec'},showModal:m=>{modal=m.toJSON();}},app,verdict);
+  assert.equal(modal.title,title);
+  const fields=Object.fromEntries(modal.components.map(r=>[r.components[0].custom_id,r.components[0]]));
+  assert.match(fields.decision.value,decision);assert.equal(fields.trial.value,trial);assert.equal(fields.candidate.value,app.applicantId);
+  assert.equal(fields.presentation.value??'','');
+  const token=modal.custom_id.split(':')[2],session=a.state().schoolInterviewSessions[token];
+  assert.equal(session.action,'cr');assert.equal(session.decision,verdict);assert.equal(session.caseId,'case-x');
+ }
+ // Compte rendu seul (bouton « Compte rendu ») : aucune décision attachée.
+ let modal;interviews._test.reportForm({user:{id:'rec'},showModal:m=>{modal=m.toJSON();}},app);
+ assert.equal(a.state().schoolInterviewSessions[modal.custom_id.split(':')[2]].decision,undefined);
+});

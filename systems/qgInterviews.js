@@ -80,8 +80,8 @@ function panel(stats=[]){
   item('⏸️ Attente','Renvoie le candidat de ton bureau dans le vocal d’attente.',button('qgr:choose:wait','Attente')),
   item('📣 Ping les candidats',`Mentionne Attente entretien dans <#${PING_CHANNEL}> et les invite à rejoindre <#${wait}>.`,button('qgr:ping','Ping',B.Primary)));
  group('⚖️ Décision',
-  item('✅ Accepter','Après l’oral : le candidat devient Membre Test, tout de suite.',button('qgr:choose:oralaccept','Accepter',B.Success)),
-  item('⛔ Refuser','Après l’oral : le candidat reçoit Membre refusé, tout de suite.',button('qgr:choose:oralrefuse','Refuser',B.Danger)));
+  item('✅ Accepter','Après l’oral : remplis le compte rendu, le candidat devient Membre Test à l’envoi.',button('qgr:choose:oralaccept','Accepter',B.Success)),
+  item('⛔ Refuser','Après l’oral : remplis le compte rendu, le candidat est refusé à l’envoi.',button('qgr:choose:oralrefuse','Refuser',B.Danger)));
  group('📋 Dossier et entretien',
   item('📋 Voir candidature','Affiche en privé les réponses du candidat de ton bureau.',button('qgr:choose:view','Voir')),
   item('📄 Compte rendu','Bilan du candidat de ton bureau, ou de ton dernier entretien (24 h).',button('qgr:choose:cr','Compte rendu')),
@@ -220,16 +220,21 @@ async function act(i,actor,app,action){
  // Décision immédiate (plus de bouton de confirmation) ; une seule décision à la fois par dossier.
  return a.serial('qgr-case:'+app.caseId,async()=>decision(i,actor,requireApp(app.caseId),action));
 }
-function reportForm(i,app){
+function reportForm(i,app,verdict){
  const token=session(i,app,'cr');
- return i.showModal(form(`qgr:crsave:${token}`,'Compte-rendu recrutement',[['presentation','Présentation + Communication',true],['decision','Date arrivée / refus + décision',false],['trial','Durée PDT',false],['candidate','Discord du candidat',false,app.applicantId]]));
+ if(verdict)a.save(x=>{x.schoolInterviewSessions[token].decision=verdict;});
+ const today=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',year:'numeric'}).format(Date.now());
+ const accepted=verdict==='oralaccept';
+ const title=verdict?(accepted?'Compte rendu · Acceptation':'Compte rendu · Refus'):'Compte-rendu recrutement';
+ return i.showModal(form(`qgr:crsave:${token}`,title,[['presentation','Présentation + Communication',true],['decision','Date arrivée / refus + décision',false,verdict?(accepted?`Accepté — arrivée le ${today}`:`Refusé le ${today}`):''],['trial','Durée PDT',false,verdict?(accepted?`${Number(config.testPeriodDays)||7} jours`:'Aucune'):''],['candidate','Discord du candidat',false,app.applicantId]]));
 }
+const ORAL=['oralaccept','oralrefuse'];
 async function choose(i,actor,action){
  const {options,auto}=await candidatesFor(i,actor,action);
  if(auto)return act(i,actor,auto,action);
  return i.editReply({embeds:[embed('Choisir le candidat','Sélectionne la personne concernée par cette action.')],components:[row(new Menu().setCustomId(`qgr:select:${action}`).setPlaceholder('Candidat').addOptions(options.slice(0,25).map(x=>({label:(i.guild.members.cache.get(x.applicantId)?.displayName||x.applicantId).slice(0,100),value:x.caseId}))))]});
 }
-async function decision(i,actor,app,action){
+async function decision(i,actor,app,action,{silent=false}={}){
  if(!['writtenaccept','writtenrefuse','oralaccept','oralrefuse'].includes(action))throw Error('Décision invalide.');
  const oral=action.startsWith('oral');
  if(oral?app.status!=='waiting_interview':!['submitted','in_review'].includes(app.status))throw Error('Cette étape a déjà été traitée.');
@@ -255,6 +260,7 @@ async function decision(i,actor,app,action){
  // Rappels (tag, communauté Roblox, activité) : MP juste après la décision + message dans le salon.
  const reminded=oral&&accepted?(await welcomeReminder(i.guild,target.id)).channel:true;
  await refresh(i.guild,app);
+ if(silent)return`${dm?'':' MP non remis : le candidat doit être prévenu par l’équipe.'}${reminded?'':` Rappel de bienvenue non publié dans <#${WELCOME_REMINDER}> : vérifie les permissions du bot.`}`;
  return i.editReply({content:`Décision enregistrée.${dm?'':' MP non remis : le candidat doit être prévenu par l’équipe.'}${reminded?'':` Rappel de bienvenue non publié dans <#${WELCOME_REMINDER}> : vérifie les permissions du bot.`}`,embeds:[],components:[]});
 }
 async function ticket(i,app){
@@ -280,6 +286,9 @@ async function handle(i){
  }
  // Compte rendu : formulaire direct si un seul candidat (un formulaire doit être la première réponse).
  if(op==='choose'&&id==='cr'){const {auto}=await candidatesFor(i,actor,'cr');if(auto)return reportForm(i,auto);}
+ // Accepter / refuser après l'entretien : le compte rendu s'ouvre d'abord, la décision part avec lui.
+ if(op==='choose'&&ORAL.includes(id)){const {auto}=await candidatesFor(i,actor,id);if(auto){if(auto.status!=='waiting_interview')throw Error('Cette étape a déjà été traitée.');return reportForm(i,auto,id);}}
+ if(op==='select'&&ORAL.includes(id)){const app=requireApp(i.values[0]);if(app.status!=='waiting_interview')throw Error('Cette étape a déjà été traitée.');return reportForm(i,app,id);}
  await i.deferReply({flags:F.Ephemeral});
  if(op==='ping')return ping(i,actor);
  if(op==='questions')return i.editReply({embeds:require('../config/qgInterviewGuide').sections(a.state().schoolChannels?.familyGuide).map(([title,text])=>embed('🎙️ '+title,text)),allowedMentions:{parse:[]}});
@@ -296,10 +305,18 @@ async function handle(i){
    }
    if(s.action!=='cr')throw Error('Formulaire invalide.');
    if(i.fields.getTextInputValue('candidate').trim()!==current.applicantId)throw Error('Ne modifie pas l’identifiant du candidat : le compte-rendu est lié à ce dossier.');
-   const target=await i.guild.members.fetch(current.applicantId);
-   if(!recentlyFinished(current,actor)&&(!officeIds().includes(actor.voice.channelId)||target.voice.channelId!==actor.voice.channelId))throw Error('Le candidat doit être présent, ou avoir terminé son entretien avec toi depuis moins de 24 h.');
+   // Décision jointe : appliquée d'abord (mêmes contrôles que le bouton), le compte rendu suit.
+   // Salon vérifié avant : une décision ne part jamais sans que son compte rendu puisse être publié.
    const ch=await i.guild.channels.fetch(REPORT);
    if(!ch||ch.permissionsFor(i.guild.roles.everyone)?.has(P.ViewChannel))throw Error('Le salon de comptes-rendus doit être privé.');
+   let decided='';
+   if(s.decision){
+    if(!ORAL.includes(s.decision))throw Error('Décision invalide.');
+    decided=await decision(i,actor,current,s.decision,{silent:true});
+    Object.assign(current,requireApp(current.caseId));
+   }
+   const target=await i.guild.members.fetch(current.applicantId);
+   if(!s.decision&&!recentlyFinished(current,actor)&&(!officeIds().includes(actor.voice.channelId)||target.voice.channelId!==actor.voice.channelId))throw Error('Le candidat doit être présent, ou avoir terminé son entretien avec toi depuis moins de 24 h.');
    await tick(i.guild);
    const timer=a.state().schoolInterviewTimers?.[current.caseId];
    const ms=timer?.totalMs||0;
@@ -307,7 +324,7 @@ async function handle(i){
    a.save(x=>{x.schoolInterviewSessions[id].used=true;x.schoolInterviewReports||={};x.schoolInterviewReports[id]=report;});
    const message=await ch.send({embeds:[embed('📄 Compte-rendu de recrutement',`Candidat : <@${current.applicantId}>\nRecruteur : <@${actor.id}>\nDurée vocale observée : ${timer?`${Math.floor(ms/60000)} min ${Math.floor(ms/1000)%60} s`:'non mesurée'}\nStatut du dossier : ${current.status}\n\n**Présentation + Communication**\n${report.fields.presentation}\n\n**Date / décision déclarée**\n${report.fields.decision}\n\n**Période de test**\n${report.fields.trial}`).setTimestamp()],components:[row(button(`qgr:reportview:${id}`,'Voir candidature'))],allowedMentions:{parse:[]}});
    a.save(x=>{x.schoolInterviewReports[id].messageId=message.id;});
-   return i.editReply('Compte-rendu transmis. Les champs du formulaire ne modifient aucun grade ni statut.');
+   return i.editReply(s.decision?`Décision enregistrée (${s.decision==='oralaccept'?'acceptée':'refusée'}) et compte rendu transmis.${decided}`:'Compte-rendu transmis. Les champs du formulaire ne modifient aucun grade ni statut.');
   });
  });
  if(op==='reportview'){const report=a.state().schoolInterviewReports?.[id];if(!report)throw Error('Compte-rendu introuvable.');return view(i,report.application);}
@@ -363,4 +380,4 @@ async function legacy(i){
  await authorize(i);
  return i.reply({content:'Ce bouton appartient à l’ancien parcours. Utilise /entretien installer puis le nouveau dossier ; aucune admission directe n’est exécutée.',flags:F.Ephemeral});
 }
-module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload,pingPayload,PING_CHANNEL,_test:{candidatesFor}};
+module.exports={panel,summary,attachment,controls,data,execute,handle,install,submitApplication,tick,legacy,welcomeReminder,welcomeReminderPayload,pingPayload,PING_CHANNEL,_test:{candidatesFor,reportForm}};

@@ -1,5 +1,6 @@
 // Statistiques de recrutement : candidatures reçues, décisions écrites et orales, taux d'acceptation,
-// attente moyenne entre l'acceptation écrite et l'entretien, et décisions par recruteur.
+// attente moyenne entre l'acceptation écrite et l'entretien, décisions par recruteur et comptes rendus
+// manquants (décision d'entretien sans compte rendu du même candidat dans les 24 h).
 // - Rapport chaque lundi à partir de 9 h (heure de Paris) dans le journal de la direction (7 derniers jours).
 // - =statsrecrutement [jours] : rapport à la demande (Direction et responsable recrutement), 7 jours par défaut.
 const a=require('../utils/qgAdmin'),config=require('../config/qg');
@@ -11,7 +12,7 @@ function duration(ms){
  return h<48?`${h} h`:`${Math.round(h/24)} j`;
 }
 
-function compute({history=[],applications={},from,to}){
+function compute({history=[],applications={},reports=[],from,to}){
  const decisions=history.filter(e=>DECISION.test(e.action)&&e.result!=='failed');
  const inWindow=decisions.filter(e=>e.at>=from&&e.at<to);
  const count=k=>inWindow.filter(e=>e.action==='recruitment.'+k).length;
@@ -23,7 +24,9 @@ function compute({history=[],applications={},from,to}){
   return w?e.at-w.at:null;
  }).filter(x=>x!==null);
  const byRecruiter={};
- for(const e of inWindow){const r=byRecruiter[e.actorId]||={written:0,oral:0};r[e.action.includes('.oral')?'oral':'written']++;}
+ const hasReport=e=>reports.some(r=>r.candidateId===e.targetId&&r.at>=e.at-12*3600000&&r.at<=e.at+DAY);
+ let missing=0;
+ for(const e of inWindow){const r=byRecruiter[e.actorId]||={written:0,oral:0,missing:0};const oral=e.action.includes('.oral');r[oral?'oral':'written']++;if(oral&&!hasReport(e)){r.missing++;missing++;}}
  const waiting=apps.filter(x=>x.status==='waiting_interview'),pending=apps.filter(x=>['submitted','in_review'].includes(x.status));
  return{
   received,
@@ -31,6 +34,7 @@ function compute({history=[],applications={},from,to}){
   oral:{accept:count('oralaccept'),refuse:count('oralrefuse')},
   averageWait:waits.length?waits.reduce((s,x)=>s+x,0)/waits.length:NaN,
   recruiters:Object.entries(byRecruiter).sort(([,x],[,y])=>y.written+y.oral-x.written-x.oral),
+  missing,
   pending:pending.length,waiting:waiting.length,
   oldestWaiting:waiting.length?Math.min(...waiting.map(x=>x.updatedAt||x.submittedAt||to)):null,
  };
@@ -43,12 +47,13 @@ function payload(s,{days,to}){
   `📝 Écrit : **${s.written.accept}** acceptée${s.written.accept>1?'s':''} · **${s.written.refuse}** refusée${s.written.refuse>1?'s':''} (${pct(s.written.accept,w)} d’acceptation)`,
   `🎙️ Entretien : **${s.oral.accept}** accepté${s.oral.accept>1?'s':''} · **${s.oral.refuse}** refusé${s.oral.refuse>1?'s':''} (${pct(s.oral.accept,o)} d’acceptation)`,
   `⏱️ Attente moyenne avant l’entretien : **${duration(s.averageWait)}**`,
+  `📄 Comptes rendus manquants : **${s.missing}**${s.missing?' ⚠️':''}`,
   '',
   `**En ce moment**`,
   `📂 ${s.pending} candidature${s.pending>1?'s':''} à traiter · ⏳ ${s.waiting} en attente d’entretien${s.oldestWaiting?` (la plus ancienne depuis <t:${Math.floor(s.oldestWaiting/1000)}:R>)`:''}`,
   '',
   `**Décisions par recruteur**`,
-  s.recruiters.length?s.recruiters.map(([id,r])=>`<@${id}> — ${r.written} écrite${r.written>1?'s':''} · ${r.oral} entretien${r.oral>1?'s':''}`).join('\n'):'Aucune décision sur la période.',
+  s.recruiters.length?s.recruiters.map(([id,r])=>`<@${id}> — ${r.written} écrite${r.written>1?'s':''} · ${r.oral} entretien${r.oral>1?'s':''}${r.missing?` · ⚠️ ${r.missing} CR manquant${r.missing>1?'s':''}`:''}`).join('\n'):'Aucune décision sur la période.',
  ];
  const {embed}=require('./qgPanels');
  return{embeds:[embed(`📊 Statistiques de recrutement · ${days} derniers jours`,lines.join('\n').slice(0,4000)).setTimestamp(to)],allowedMentions:{parse:[]}};
@@ -56,7 +61,7 @@ function payload(s,{days,to}){
 
 function report(days=7,to=Date.now()){
  const s=a.state();
- return payload(compute({history:s.schoolAdminHistory||[],applications:s.schoolFamilyRecruitment||{},from:to-days*DAY,to}),{days,to});
+ return payload(compute({history:s.schoolAdminHistory||[],applications:s.schoolFamilyRecruitment||{},reports:Object.values(s.schoolInterviewReports||{}),from:to-days*DAY,to}),{days,to});
 }
 
 // Chaque lundi à partir de 9 h (Paris), une fois.

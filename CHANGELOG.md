@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 85 — Musique de fond dans le vocal d'attente entretien
+
+- Quand un candidat attend, le bot diffuse en boucle `assets/audio/qg/attente-entretien.mp3`
+  (Kingdom Beat, Slowed) à plein volume ; la musique baisse pendant l'annonce puis remonte à fond.
+- Une seule annonce : « accueil », à l'arrivée puis toutes les 30 secondes. Les annonces « recruteurs
+  absents » et « recruteurs en bureau » ne sont plus diffusées.
+- Modifiés : `systems/qgVoiceReception.js`, `tests/qgConferencesVoice.test.js`.
+
 ## 84 — Présentation du QG dans son salon
 
 - La présentation (histoire, fondateurs, inspiration, valeurs, repères, rejoindre la famille) est publiée

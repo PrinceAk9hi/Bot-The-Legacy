@@ -197,3 +197,21 @@ test('effectif : découpé en plusieurs messages sous la limite Discord',()=>{
  assert.equal((all.match(/-# <@/g)||[]).length,150);
  assert.match(texts[0][0],/150 MEMBRES/);assert.match(texts.at(-1).at(-1),/Mis à jour/);
 });
+
+test('voc temporaire : panel posté dans le tchat de la voc, historique visible par le propriétaire seulement',async()=>{
+ const voiceMod=require('../systems/qgSchoolVoice'),{PermissionFlagsBits:P,ChannelType}=require('discord.js');
+ a.save(s=>{s.schoolChannels={createCommunityVoice:'create'};s.schoolCategories={communityVoice:'cat'};s.schoolRoles={community:'comm'};});
+ const sent=[];let created;
+ const member={id:AUTHOR,displayName:'Sakura',user:{bot:false},roles:{cache:new Collection([['comm',{}]])},voice:{channelId:'create',setChannel:async ch=>{member.voice.channelId=ch.id;},disconnect:async()=>{}}};
+ const guild={id:config.guildId,members:{fetch:async()=>member},channels:{fetch:async()=>null,create:async opts=>{created=opts;return{id:'room1',send:async p=>{sent.push(p);}};}}};
+ const client={user:{id:'bot'}};
+ await voiceMod.voice({channelId:null},{channelId:'create',member,guild},client);
+ assert.equal(created.type,ChannelType.GuildVoice);
+ const owner=created.permissionOverwrites.find(o=>o.id===AUTHOR);
+ assert.ok(owner.allow.includes(P.ReadMessageHistory));assert.ok(!owner.deny.includes(P.ReadMessageHistory));
+ assert.ok(created.permissionOverwrites.filter(o=>o.id!==AUTHOR&&o.id!=='bot').every(o=>!(o.allow||[]).includes(P.ReadMessageHistory)));
+ assert.equal(sent.length,1);assert.equal(sent[0].content,`<@${AUTHOR}> voici les réglages de ton vocal.`);
+ const ids=sent[0].components.flatMap(r=>r.toJSON().components.map(c=>c.custom_id));
+ assert.ok(ids.includes('qgs:voice:rename:room1')&&ids.includes('qgs:voice:lock:room1'));
+ assert.equal(member.voice.channelId,'room1');
+});

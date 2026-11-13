@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 86 — Réglages du vocal dans le tchat de la voc
+
+- À la création d'un vocal temporaire, le panel de réglages (renommer, places, verrouiller, autoriser ou
+  retirer un membre) est posté dans le tchat du vocal, avec mention du propriétaire. Le propriétaire voit
+  l'historique de ce tchat ; les autres membres restent sans historique.
+- Les panneaux « Mon vocal temporaire » des salons commandes sont supprimés et ne sont plus republiés.
+- Modifiés : `systems/qgSchoolVoice.js`, `systems/qgSchoolSetup.js`, `systems/qgMaintenance.js`, tests.
+
 ## 85 — Musique de fond dans le vocal d'attente entretien
 
 - Quand un candidat attend, le bot diffuse en boucle `assets/audio/qg/attente-entretien.mp3`

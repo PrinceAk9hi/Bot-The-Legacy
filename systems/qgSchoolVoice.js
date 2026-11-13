@@ -24,10 +24,11 @@ async function voice(oldState,newState,client){
    const overwrites=layout.overwrites(newState.guild.id,client.user.id,roles,scope,{channelKey:'temporaryVoice'});
    const denied=require('./qgCommunityPolicy').voiceDenied.map(k=>P[k]);
    for(const item of overwrites)if(item.id!==client.user.id){item.allow=(item.allow||[]).filter(bit=>!denied.includes(bit));item.deny=[...(item.deny||[]),...denied];}
-   overwrites.push({id:member.id,allow:[P.ViewChannel,P.Connect,P.Speak,P.UseVAD],deny:denied});
+   overwrites.push({id:member.id,allow:[P.ViewChannel,P.Connect,P.Speak,P.UseVAD,P.ReadMessageHistory],deny:denied.filter(bit=>bit!==P.ReadMessageHistory)});
    room=await newState.guild.channels.create({name:`🔊・Vocal de ${member.displayName}`.slice(0,95),type:ChannelType.GuildVoice,parent:parentId,permissionOverwrites:overwrites,reason:'Création d’un vocal temporaire SchoolRP'});
    save(x=>{x.schoolTemporaryVoices||={};x.schoolTemporaryVoices[room.id]={ownerId:member.id,kind,createdAt:Date.now(),locked:false};x.schoolVoiceCreation||={};x.schoolVoiceCreation[member.id]=Date.now();});
-   // Controls are available in the commands channel, outside the disabled voice chat.
+   // Panel de gestion posté directement dans le tchat de la nouvelle voc.
+   await room.send(roomPanel(room.id,state().schoolTemporaryVoices[room.id],member.id)).catch(e=>console.error('Panel du vocal temporaire :',e.code||e.message));
   }
   const fresh=await newState.guild.members.fetch(member.id);await fresh.voice.setChannel(room,'Création d’un vocal temporaire');return true;
  }
@@ -35,16 +36,30 @@ async function voice(oldState,newState,client){
  if(rec){const room=oldState.guild.channels.cache.get(oldState.channelId);if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}}
  return false;
 }
+// Panel du tchat de la voc : contrôles de la voc et mention du propriétaire.
+function roomPanel(id,rec,ownerId){const p=require('./qgVoiceControls').controls(id,rec);return{...p,content:`<@${ownerId}> voici les réglages de ton vocal.`,allowedMentions:{parse:[],users:[ownerId]}};}
+// Anciens panneaux « Mon vocal temporaire » des salons commandes : supprimés une fois.
+async function retireCommandPanels(guild){
+ const panels=state().schoolPanels||{};let removed=0;
+ for(const key of ['communityCommands','familyCommands']){
+  const rec=panels[key];if(!rec)continue;
+  const ch=await guild.channels.fetch(rec.channelId).catch(()=>null);
+  const msg=ch?.isTextBased?.()?await ch.messages.fetch(rec.messageId).catch(()=>null):null;
+  if(msg&&msg.author?.id===guild.client.user.id){await msg.delete().catch(()=>{});removed++;}
+  save(x=>{if(x.schoolPanels)delete x.schoolPanels[key];});
+ }
+ return{detail:removed?removed+' ancien(s) panneau(x) vocal retiré(s) des salons commandes':'Aucun panneau vocal dans les salons commandes'};
+}
 async function handle(i){
  if(await require('./qgVoiceControls').handle(i))return true;
  if(!i.customId?.startsWith('qgs:temp:'))return false;
- await i.reply({content:'Utilise le nouveau panneau « Mon vocal temporaire » dans le salon commandes.',flags:MessageFlags.Ephemeral});return true;
+ await i.reply({content:'Les réglages de ton vocal sont dans le tchat de ton vocal temporaire.',flags:MessageFlags.Ephemeral});return true;
 
 }
 async function modal(i){
  if(!i.customId?.startsWith('qgs:temp-modal:'))return false;
- await i.reply({content:'Ce formulaire a expiré. Utilise le panneau vocal du salon commandes.',flags:MessageFlags.Ephemeral});return true;
+ await i.reply({content:'Ce formulaire a expiré. Utilise les réglages dans le tchat de ton vocal.',flags:MessageFlags.Ephemeral});return true;
 
 }
 async function clean(guild){const s=state();for(const [id] of Object.entries(s.schoolTemporaryVoices||{})){const room=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});if(!room||room.members.size===0){if(room)await room.delete('Nettoyage des vocaux temporaires après redémarrage');save(x=>{delete x.schoolTemporaryVoices[id];});}}}
-module.exports={voice,handle,modal,clean,panel:require('./qgVoiceControls').panel,_test:{accessRoles,isFamily}};
+module.exports={voice,handle,modal,clean,retireCommandPanels,roomPanel,panel:require('./qgVoiceControls').panel,_test:{accessRoles,isFamily}};

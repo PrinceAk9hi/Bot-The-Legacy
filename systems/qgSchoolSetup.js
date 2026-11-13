@@ -202,8 +202,6 @@ async function updateIncremental(guild, client) {
       ['familyApplications', 'familyApplications', 'Candidature — Famille SchoolRP'],
       ['foundationReports', 'foundationReports', 'Rapports de la Fondation'],
       ['managementFollowup', 'managementFollowup', 'Classement et suivi des gestions'],
-      ['communityCommands', 'communityCommands', 'Mon vocal temporaire'],
-      ['familyCommands', 'familyCommands', 'Mon vocal temporaire'],
       ['joinManagement','joinManagement','Rejoindre une gestion'],
       ['absences','absences','Signaler une absence'],
       ['familyGuide','familyGuide','Guide de la famille'],

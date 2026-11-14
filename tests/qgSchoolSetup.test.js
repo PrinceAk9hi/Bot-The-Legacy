@@ -126,7 +126,7 @@ test('family rank progression is ordered from test to senior', () => {
 });
 
 test('family recruitment asks ten questions and management applications require the five requested fields', () => {
-  assert.equal(apps.familyQuestions.length, 10);
+  assert.equal(apps.familyQuestions.length, 12);
   const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'systems', 'qgSchoolApplications.js'), 'utf8');
   for (const key of ['motivation', 'experience', 'availability', 'skills', 'contribution']) assert.ok(source.includes(key));
 });

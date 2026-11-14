@@ -12,7 +12,7 @@ test('guide d’entretien : 8 questions, 5 situations, fin d’entretien, sous l
 });
 test('fiche de réception : les 10 questions et réponses apparaissent, même longues',()=>{
  const app={applicantId:'1',caseId:'abc',status:'submitted',createdAt:Date.now(),questions:familyQuestions,answers:familyQuestions.map((_,n)=>'Réponse '+(n+1)+' '+'x'.repeat(900))};
- const e=interviews.summary(app).toJSON();assert.equal(e.fields.length,10);
+ const e=interviews.summary(app).toJSON();assert.equal(e.fields.length,familyQuestions.length);
  familyQuestions.forEach((q,n)=>{assert.ok(e.fields[n].name.includes(q.slice(0,40)));assert.match(e.fields[n].value,new RegExp('^Réponse '+(n+1)+' '));});
  const len=(e.title||'').length+(e.description||'').length+(e.footer?.text||'').length+e.fields.reduce((n,f)=>n+f.name.length+f.value.length,0);assert.ok(len<=6000,'longueur '+len);
 });

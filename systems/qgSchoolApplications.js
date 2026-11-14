@@ -4,6 +4,21 @@ const layout = require('../config/qgSchoolLayout');
 const { read, update } = require('../utils/recruitmentData');
 
 const familyQuestions = [
+  'Quel est ton pseudo Roblox ?',
+  'Présente-toi en quelques lignes.',
+  'As-tu des sanctions dans ton casier SchoolRP ? (Si oui, explique-les.)',
+  'Pourquoi souhaites-tu rejoindre la famille ? (3 à 5 lignes attendues.)',
+  'Quelle expérience as-tu en roleplay ?',
+  'As-tu déjà fait partie d’une famille ? (Si oui, explique la raison de ton départ de chacune.)',
+  'Quelles sont tes disponibilités au quotidien ?',
+  'As-tu la possibilité d’adapter ton quotidien pour le QG ?',
+  'Quel point aimerais-tu améliorer chez toi ?',
+  'Comment réagirais-tu à un désaccord avec un autre membre ? (3 à 5 lignes attendues.)',
+  'Quel engagement souhaites-tu prendre envers la famille ? (3 à 5 lignes attendues.)',
+  'Acceptes-tu que ton activité au sein de la famille soit primordiale, et qu’une inactivité puisse entraîner ton derank ? (Réponds par oui ou non.)'
+];
+// Anciennes questions : pour les candidatures commencées avant le changement (elles gardent leur liste).
+const previousQuestions = [
   'Quel est ton pseudo Roblox ?', 'Présente-toi en quelques lignes.', 'Pourquoi souhaites-tu rejoindre la famille ?',
   'Quelle expérience as-tu en roleplay ?', 'As-tu déjà fait partie d’une famille ? Que peux-tu en dire ?',
   'Quelles sont tes disponibilités habituelles ?', 'Quelles sont tes principales qualités ?',
@@ -55,9 +70,9 @@ async function beginFamilyRecruitment(i) {
   const dm = await i.user.createDM().catch(() => null);
   if (!dm) return i.editReply('Je ne peux pas t’envoyer de MP. Active les messages privés du serveur et réessaie.');
   if (!require('./qgRecruitmentControl').status().open) return i.editReply(require('./qgRecruitmentControl').CLOSED);
-  const app = { applicantId: i.user.id, status: 'in_progress', step: 0, answers: [], answerDurations: [], questionStartedAt: Date.now(), createdAt: Date.now(), guildId: i.guildId };
+  const app = { applicantId: i.user.id, status: 'in_progress', step: 0, questions: familyQuestions, answers: [], answerDurations: [], questionStartedAt: Date.now(), createdAt: Date.now(), guildId: i.guildId };
   save(s => { s.schoolFamilyRecruitment ||= {}; const previous=s.schoolFamilyRecruitment[i.user.id]; if(previous){s.schoolFamilyRecruitmentArchive||={};s.schoolFamilyRecruitmentArchive[i.user.id+':'+previous.createdAt]=previous;} s.schoolFamilyRecruitment[i.user.id] = app; });
-  await dm.send({ embeds: [embed('Candidature famille • 1/10', require('../config/qgFamily').conditions + '\n\n' + familyQuestions[0] + '\n\nRéponds directement à ce message. Écris `annuler` pour arrêter la candidature.')] });
+  await dm.send({ embeds: [embed(`Candidature famille • 1/${familyQuestions.length}`, require('../config/qgFamily').conditions + '\n\n' + familyQuestions[0] + '\n\nRéponds directement à ce message. Écris `annuler` pour arrêter la candidature.')] });
   return i.editReply('📩 Je t’ai envoyé la première question en message privé.');
 }
 
@@ -172,18 +187,19 @@ async function directMessage(message) {
   const member = await guild.members.fetch({ user: message.author.id, force: true }).catch(() => null);
   if (!member || !verifiedForRecruitment(member)) { await message.reply(verificationRequired(member)); return true; }
   if (!text && !message.attachments.size) return message.reply('Envoie une réponse écrite pour continuer.');
+  const questions = app.questions ||= previousQuestions;
   app.answers[app.step] = (text || '[Pièce jointe fournie]').slice(0, 1500);
   app.answerDurations ||= [];
   app.answerDurations[app.step] = app.questionStartedAt ? Math.max(0, Date.now() - app.questionStartedAt) : null;
   app.questionStartedAt = Date.now();
   app.step++;
-  if (app.step >= familyQuestions.length) {
+  if (app.step >= questions.length) {
     app.status = 'submitted';
     await submitFamily(message.author.id, app, message.client);
     return true;
   }
   save(s => { s.schoolFamilyRecruitment[message.author.id] = app; });
-  await message.reply({ embeds: [embed(`Candidature famille • ${app.step + 1}/10`, familyQuestions[app.step] + '\n\nRéponds directement. Écris `annuler` pour arrêter.')] });
+  await message.reply({ embeds: [embed(`Candidature famille • ${app.step + 1}/${questions.length}`, questions[app.step] + '\n\nRéponds directement. Écris `annuler` pour arrêter.')] });
   return true;
 }
 

@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 93 — Nouvelles questions de candidature
+
+- 12 questions au lieu de 10 : casier SchoolRP, raison du départ des anciennes familles, disponibilités au
+  quotidien, adaptation du quotidien pour le QG, longueur attendue (3 à 5 lignes) pour la motivation, le
+  désaccord et l'engagement, et accord sur l'activité obligatoire (inactivité = derank possible).
+- Chaque candidature garde sa liste de questions : celles commencées avant le changement finissent avec
+  les anciennes. Compteur « x/12 » calculé automatiquement.
+- Modifiés : `systems/qgSchoolApplications.js`, tests.
+
 ## 92 — Musique moins forte et second salon d'attente
 
 - Musique de fond baissée : 60 % (12 % pendant la voix) au lieu de 100 % (20 %), réglages remplacés une fois ;

@@ -8,8 +8,9 @@
 const u=require('../utils/qgModuleUi'),{a}=u,live=require('./qgRecruitmentLive'),{Mixer}=require('../utils/qgAudioMixer'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'../assets/audio/qg'),defaults={enabled:true,normal:.6,duck:.12,voice:1,downMs:1500,upMs:2000,interval:30000};
 const MUSIC='attente-entretien',ANNOUNCEMENTS=['accueil','deplacement'],MOVE_ROOM='1561466341989425273';
-// Salons servis, par priorité : l'attente entretien (candidats), puis le salon de déplacement (tout membre).
-const ROOMS=[{id:live.WAIT,announcement:'accueil',need:g=>live.state().queue.length>0||listeners(g,live.WAIT).some(live.candidate)},{id:MOVE_ROOM,announcement:'deplacement',need:g=>listeners(g,MOVE_ROOM).length>0}];
+// Salons servis, par priorité : l'attente entretien, puis le salon de déplacement. Aucun rôle requis :
+// n'importe quel membre (hors bots) présent dans le salon suffit.
+const ROOMS=[{id:live.WAIT,announcement:'accueil',need:g=>live.state().queue.length>0||listeners(g,live.WAIT).length>0},{id:MOVE_ROOM,announcement:'deplacement',need:g=>listeners(g,MOVE_ROOM).length>0}];
 const target=g=>ROOMS.find(r=>r.need(g))||null;
 let room=null;
 const config=()=>({...defaults,...a.state().voiceReception});

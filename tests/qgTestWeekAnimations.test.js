@@ -144,7 +144,8 @@ test('musique d’attente : salon de déplacement servi, attente entretien prior
  const guild={channels:{cache:new Map([[audio.MOVE_ROOM,move],[live.WAIT,wait]])}};
  assert.equal(audio.MOVE_ROOM,'1561466341989425273');
  assert.equal(audio.target(guild).id,audio.MOVE_ROOM);assert.equal(audio.choice(guild),'deplacement');
- wait.members.set('c1',person('c1',['attente']));
+ // Aucun rôle requis : un simple membre dans l'attente entretien suffit.
+ wait.members.set('c1',person('c1'));
  assert.equal(audio.target(guild).id,live.WAIT);assert.equal(audio.choice(guild),'accueil');
  wait.members.clear();move.members.delete('m1');
  assert.equal(audio.target(guild),null);

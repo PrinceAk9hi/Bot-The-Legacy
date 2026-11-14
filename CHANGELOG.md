@@ -12,6 +12,7 @@ consulter l'historique Git.
   toujours modifiables avec /accueil-vocal volume.
 - Salon 1561466341989425273 : même musique dès qu'un membre s'y trouve, avec l'annonce « Merci de patienter.
   Vous allez bientôt être déplacés. » (`assets/audio/qg/deplacement.mp3`) toutes les 30 secondes.
+- Annonce de déplacement remplacée par la voix Jessica (ElevenLabs) fournie, comme l'accueil.
 - Aucun rôle requis : n'importe quel membre présent dans l'un des deux salons fait venir le bot.
 - Le bot ne peut occuper qu'un vocal par serveur : l'attente entretien est prioritaire ; le bot passe d'un
   salon à l'autre selon qui attend.

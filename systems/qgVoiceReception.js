@@ -3,20 +3,26 @@
 // - L'annonce « accueil » passe à l'arrivée puis toutes les 30 secondes : la musique baisse pendant
 //   qu'elle parle, puis remonte à fond.
 // - Plus personne en attente : le bot quitte le vocal.
+// Second salon (1561466341989425273) : même musique, annonce « vous allez bientôt être déplacés », dès qu'un
+// membre s'y trouve. Le bot ne peut occuper qu'un vocal par serveur : l'attente entretien est prioritaire.
 const u=require('../utils/qgModuleUi'),{a}=u,live=require('./qgRecruitmentLive'),{Mixer}=require('../utils/qgAudioMixer'),fs=require('node:fs'),path=require('node:path');
-const root=path.join(__dirname,'../assets/audio/qg'),defaults={enabled:true,normal:1,duck:.20,voice:1,downMs:1500,upMs:2000,interval:30000};
-const MUSIC='attente-entretien',ANNOUNCEMENTS=['accueil'];
+const root=path.join(__dirname,'../assets/audio/qg'),defaults={enabled:true,normal:.6,duck:.12,voice:1,downMs:1500,upMs:2000,interval:30000};
+const MUSIC='attente-entretien',ANNOUNCEMENTS=['accueil','deplacement'],MOVE_ROOM='1561466341989425273';
+// Salons servis, par priorité : l'attente entretien (candidats), puis le salon de déplacement (tout membre).
+const ROOMS=[{id:live.WAIT,announcement:'accueil',need:g=>live.state().queue.length>0||listeners(g,live.WAIT).some(live.candidate)},{id:MOVE_ROOM,announcement:'deplacement',need:g=>listeners(g,MOVE_ROOM).length>0}];
+const target=g=>ROOMS.find(r=>r.need(g))||null;
+let room=null;
 const config=()=>({...defaults,...a.state().voiceReception});
 const files=[...ANNOUNCEMENTS,MUSIC];
-const labels={accueil:'Bienvenue'};
+const labels={accueil:'Bienvenue',deplacement:'Déplacement imminent'};
 let announcementVersion=0;let connection,player,mixer=null,busy=false,current=null,nextAt=0,welcome=false,lastError=null,reconnectAt=0,guildRef,stopped=false,testing=false,decoder=null;
 function persist(patch){a.save(s=>{s.voiceReception={...config(),...patch};});}
 function checkFiles(){const absent=files.filter(n=>!fs.existsSync(path.join(root,n+'.mp3')));if(absent.length)throw Error('Ajoute les fichiers suivants dans assets/audio/qg : '+absent.map(x=>x+'.mp3').join(', '));const ffmpeg=process.env.FFMPEG_PATH||require('ffmpeg-static');if(!ffmpeg||!fs.existsSync(ffmpeg))throw Error('FFmpeg absent. Réinstalle les dépendances.');}
 // Une seule annonce : l'accueil (plus d'annonce sur les recruteurs en bureau).
-function choice(){return 'accueil';}
+function choice(guild){return(guild&&target(guild)?.announcement)||'accueil';}
 function stopAudio(){announcementVersion++;try{decoder?.process?.kill();}catch{}decoder=null;try{mixer?.destroy();}catch{}mixer=null;player?.stop(true);player=null;current=null;}
 function disconnect(){stopAudio();if(connection&&connection.state.status!=='destroyed')connection.destroy();connection=null;reconnectAt=0;}
-async function connect(guild,voice=require('@discordjs/voice')){if(Date.now()<reconnectAt)return;if(connection?.state.status===voice.VoiceConnectionStatus.Ready)return;const ch=await guild.channels.fetch(live.WAIT),bot=await guild.members.fetchMe();if(!ch?.isVoiceBased()||!ch.permissionsFor(bot)?.has([u.PermissionFlagsBits.ViewChannel,u.PermissionFlagsBits.Connect,u.PermissionFlagsBits.Speak]))throw Error('Accès au vocal d’accueil insuffisant.');const other=voice.getVoiceConnection(guild.id);if(other&&other!==connection&&other.joinConfig.channelId!==live.WAIT)throw Error('Le bot utilise déjà un autre vocal. Libère cette connexion avant activation.');reconnectAt=Date.now()+15000;if(connection&&connection.state.status!=='destroyed'){connection.rejoin({channelId:live.WAIT});}else{connection=voice.joinVoiceChannel({channelId:live.WAIT,guildId:guild.id,adapterCreator:guild.voiceAdapterCreator,selfDeaf:true,selfMute:false});connection.on('error',e=>{lastError=e.message;});connection.on('stateChange',(_,next)=>{if(next.status==='disconnected'||next.status==='destroyed'){stopAudio();nextAt=Date.now()+15000;}});}await voice.entersState(connection,voice.VoiceConnectionStatus.Ready,20000);lastError=null;}
+async function connect(guild,voice=require('@discordjs/voice'),id=room?.id||live.WAIT){if(Date.now()<reconnectAt)return;if(connection?.state.status===voice.VoiceConnectionStatus.Ready&&connection.joinConfig?.channelId===id)return;const ch=await guild.channels.fetch(id),bot=await guild.members.fetchMe();if(!ch?.isVoiceBased()||!ch.permissionsFor(bot)?.has([u.PermissionFlagsBits.ViewChannel,u.PermissionFlagsBits.Connect,u.PermissionFlagsBits.Speak]))throw Error('Accès au vocal d’accueil insuffisant.');const other=voice.getVoiceConnection(guild.id);if(other&&other!==connection&&!ROOMS.some(r=>r.id===other.joinConfig.channelId))throw Error('Le bot utilise déjà un autre vocal. Libère cette connexion avant activation.');reconnectAt=Date.now()+15000;if(connection&&connection.state.status!=='destroyed'){connection.rejoin({channelId:id});}else{connection=voice.joinVoiceChannel({channelId:id,guildId:guild.id,adapterCreator:guild.voiceAdapterCreator,selfDeaf:true,selfMute:false});connection.on('error',e=>{lastError=e.message;});connection.on('stateChange',(_,next)=>{if(next.status==='disconnected'||next.status==='destroyed'){stopAudio();nextAt=Date.now()+15000;}});}await voice.entersState(connection,voice.VoiceConnectionStatus.Ready,20000);lastError=null;}
 // Musique de fond en boucle, mixée avec les annonces (baisse pendant la voix, puis remontée).
 function ensureMusic(){
  const voice=require('@discordjs/voice');
@@ -31,37 +37,40 @@ async function announce(name,{replace=false}={}){if(!ANNOUNCEMENTS.includes(name
  catch(e){if(e.code!=='ANNOUNCEMENT_REPLACED')lastError=e.message;}finally{if(version===announcementVersion){current=null;nextAt=Date.now()+config().interval;}}}
 async function playNow(guild,name='context'){return a.serial('voice-manual',async()=>{
  if(!config().enabled)throw Error('L’accueil vocal est désactivé.');
- if(!listeners(guild).some(live.candidate))throw Error('Aucun candidat n’attend dans le vocal.');
- if(name==='context')name=choice(guild);
+ const r=target(guild);if(!r)throw Error('Personne n’attend dans les vocaux d’attente.');
+ if(room?.id!==r.id){disconnect();room=r;}
+ if(name==='context')name=r.announcement;
  if(!ANNOUNCEMENTS.includes(name))throw Error('Annonce inconnue.');
  checkFiles();await connect(guild);if(connection?.state.status!=='ready')throw Error('Connexion en cours. Réessaie dans quelques secondes.');
  welcome=false;nextAt=Infinity;
  void announce(name,{replace:true});
  return 'Annonce lancée : '+labels[name]+'.';
 });}
-function listeners(guild){return [...(guild.channels.cache.get(live.WAIT)?.members?.values()||[])].filter(m=>!m.user.bot);}
-function migrateAutoJoin(){if(a.state().voiceReception?.musicVersion!==1)persist({normal:1,duck:.2,interval:30000,musicVersion:1});const old=a.state().voiceReception;if(old?.autoJoinVersion===1)return;const disabled=old?.enabled===false&&(a.state().schoolAdminHistory||[]).some(x=>x.action==='voice-reception.desactiver');persist({enabled:!disabled,autoJoinVersion:1});}
+function listeners(guild,id=live.WAIT){return [...(guild.channels.cache.get(id)?.members?.values()||[])].filter(m=>!m.user.bot);}
+function migrateAutoJoin(){if((a.state().voiceReception?.musicVersion||0)<2)persist({normal:.6,duck:.12,interval:30000,musicVersion:2});const old=a.state().voiceReception;if(old?.autoJoinVersion===1)return;const disabled=old?.enabled===false&&(a.state().schoolAdminHistory||[]).some(x=>x.action==='voice-reception.desactiver');persist({enabled:!disabled,autoJoinVersion:1});}
 async function tick(guild,{force=false}={}){if(busy||stopped||held)return;busy=true;guildRef=guild;try{
  migrateAutoJoin();if(!config().enabled){disconnect();lastError='Accueil désactivé. Utilise /accueil-vocal activer.';return;}
  let arrivals=[];try{arrivals=await live.sync(guild);}catch(e){lastError='Suivi des candidats : '+e.message;}
  if(arrivals.length)welcome=true;
- const waiting=live.state().queue.length||listeners(guild).some(live.candidate);
- // Plus personne en attente d'entretien : le bot quitte le vocal.
- if(!waiting&&!testing){welcome=false;if(connection)disconnect();return;}
+ const next=target(guild);
+ // Plus personne en attente : le bot quitte le vocal.
+ if(!next&&!testing){welcome=false;room=null;if(connection)disconnect();return;}
+ // Changement de salon (l'attente entretien passe devant) : on quitte puis on rejoint l'autre.
+ if(next&&room?.id!==next.id){if(connection)disconnect();room=next;welcome=true;}
  await connect(guild);
  if(connection?.state.status!=='ready')return;
  checkFiles();
  ensureMusic();
- if(!current){if(welcome||Date.now()>=nextAt){welcome=false;announce('accueil').catch(e=>{lastError=e.message;});}}
+ if(!current){if(welcome||Date.now()>=nextAt){welcome=false;announce(room?.announcement||'accueil').catch(e=>{lastError=e.message;});}}
  }catch(e){lastError=e.message;reconnectAt=Date.now()+15000;}finally{busy=false;}}
-async function voice(old,next){if(old.channelId===next.channelId)return;if(next.channelId===live.WAIT&&!next.member?.user.bot){reconnectAt=0;return tick(next.guild,{force:true});}if(old.channelId===live.WAIT)return tick(next.guild);}
+async function voice(old,next){if(old.channelId===next.channelId)return;const ids=ROOMS.map(r=>r.id);if(ids.includes(next.channelId)&&!next.member?.user.bot){reconnectAt=0;return tick(next.guild,{force:true});}if(ids.includes(old.channelId))return tick(next.guild);}
 function status(guild){const c=config(),snap=live.snapshot(guild),next=choice(guild);
  const p=u.payload('🎧 ACCUEIL VOCAL · QG','Le bot rejoint le vocal d’attente quand un candidat attend, diffuse la musique de fond et l’annonce d’accueil (la musique baisse pendant la voix), puis quitte le vocal quand plus personne n’attend.',[
  u.row(u.button('qgv:play:context','Annoncer maintenant',u.ButtonStyle.Primary),u.button('qgv:play:accueil','Dire bienvenue'),u.button('qgv:status','Actualiser'))]);
  p.embeds[0].addFields(
- {name:'Connexion',value:`${c.enabled?'🟢 Activé':'🔴 Désactivé'} · ${connection?.state.status==='ready'?'Connecté':'Non connecté'}\nSalon : <#${live.WAIT}>`},
+ {name:'Connexion',value:`${c.enabled?'🟢 Activé':'🔴 Désactivé'} · ${connection?.state.status==='ready'?'Connecté':'Non connecté'}\nSalons : <#${live.WAIT}> (prioritaire) · <#${MOVE_ROOM}>${room?`\nEn cours : <#${room.id}>`:''}`},
  {name:'Annonce en cours',value:labels[current]||'Aucune',inline:true},
- {name:'Prochaine annonce',value:!c.enabled||!live.state().queue.length?'En attente d’un candidat':`${labels[next]} (toutes les ${Math.round(c.interval/1000)} s)`,inline:true},
+ {name:'Prochaine annonce',value:!c.enabled||!target(guild)?'En attente d’un membre':`${labels[next]} (toutes les ${Math.round(c.interval/1000)} s)`,inline:true},
  {name:'Recruteurs en bureau',value:String(snap.staff.length)});
  if(lastError)p.embeds[0].addFields({name:'À résoudre',value:lastError.slice(0,1024)});return p;}
 async function monitor(guild){return require('./qgRecruitmentHub').install(guild);}
@@ -77,4 +86,4 @@ function shutdown(){stopped=true;disconnect();}
 let held=false;
 async function pause(){held=true;for(let n=0;n<50&&busy;n++)await new Promise(r=>setTimeout(r,100));disconnect();}
 function resume(){held=false;reconnectAt=0;}
-module.exports={MUSIC,ANNOUNCEMENTS,choice,labels,pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};
+module.exports={MUSIC,ANNOUNCEMENTS,ROOMS,MOVE_ROOM,target,choice,labels,pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};

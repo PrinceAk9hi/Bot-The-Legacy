@@ -134,3 +134,22 @@ test('relance candidats : MP à 48 h, dernier rappel la veille, dossier fermé �
  assert.equal(interviews.summary(app).toJSON().color,0x95a5a6);assert.match(interviews.summary(app).toJSON().description,/sans réponse/);
  assert.equal(await interviews.followups(guild,{now:seen+8*24*H}),0);
 });
+
+test('musique d’attente : salon de déplacement servi, attente entretien prioritaire',()=>{
+ const audio=require('../systems/qgVoiceReception'),live=require('../systems/qgRecruitmentLive');
+ a.save(s=>{s.schoolRoles={interviewWaiting:'attente'};s.schoolFamilyRecruitment={};});
+ live.save(s=>{s.queue=[];});
+ const person=(id,roles=[])=>({id,user:{bot:false},roles:{cache:new Map(roles.map(r=>[r,{}]))}});
+ const move={members:new Map([['m1',person('m1')],['bot',{id:'bot',user:{bot:true}}]])},wait={members:new Map()};
+ const guild={channels:{cache:new Map([[audio.MOVE_ROOM,move],[live.WAIT,wait]])}};
+ assert.equal(audio.MOVE_ROOM,'1561466341989425273');
+ assert.equal(audio.target(guild).id,audio.MOVE_ROOM);assert.equal(audio.choice(guild),'deplacement');
+ wait.members.set('c1',person('c1',['attente']));
+ assert.equal(audio.target(guild).id,live.WAIT);assert.equal(audio.choice(guild),'accueil');
+ wait.members.clear();move.members.delete('m1');
+ assert.equal(audio.target(guild),null);
+ // Musique moins forte : réglages remplacés une fois.
+ audio.persist({normal:1,duck:.2,musicVersion:1,autoJoinVersion:1});audio.migrateAutoJoin();
+ assert.equal(audio.config().normal,.6);assert.equal(audio.config().duck,.12);
+ audio.persist({normal:.8});audio.migrateAutoJoin();assert.equal(audio.config().normal,.8,'un réglage choisi ensuite est gardé');
+});

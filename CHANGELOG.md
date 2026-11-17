@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 97 — Effectif : date à laquelle le rôle a été mis
+
+- Sous chaque rôle de l'effectif, la date affichée est celle où le membre a reçu ce rôle : enregistrée à
+  chaque ajout de rôle, et reprise une fois du journal d'audit Discord pour le passé (Discord garde
+  45 jours). Sinon : arrivée dans la famille, puis arrivée sur le serveur. Plus de « date inconnue ».
+- Ajouté : `systems/qgRoleSince.js`. Modifiés : `systems/qgCommunityUpgrade.js`, `systems/qgServer.js`,
+  `systems/qgMaintenance.js`, tests.
+
 ## 96 — Annonces dans le salon rank-up
 
 - Le salon rank-up n'affichait que son panneau : aucun changement de grade n'y était publié. Désormais, chaque

@@ -141,6 +141,7 @@ async function memberEvent(member,joined){
  await logTo(member.guild,'logsMembers',joined?joinLog(member):await leaveLog(member)).catch(()=>{});
 }
 async function memberUpdate(oldMember,newMember){
+ try{require('./qgRoleSince').record(oldMember,newMember);}catch(e){console.error('Dates des rôles :',e.message);}
  require('./qgCommunityUpgrade').memberChanged(oldMember,newMember);
  require('../utils/qgRoblox').memberChanged(oldMember,newMember);
  await require('./qgUserTools').enforce(oldMember,newMember).catch(e=>console.error('Verrou pseudo QG :',e.code||e.name));

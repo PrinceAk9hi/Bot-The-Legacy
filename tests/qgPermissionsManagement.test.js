@@ -113,3 +113,23 @@ test('rattrapage rank-up : décisions de la dernière réunion, avec sa date, un
  assert.equal(sent[0].embeds[0].data.timestamp,new Date(start).toISOString());
  assert.match((await ann.backfill(guild)).detail,/déjà fait/);assert.equal(sent.length,3);
 });
+
+test('effectif : date à laquelle le rôle a été mis (événement, journal d’audit), sinon arrivée',async()=>{
+ const since=require('../systems/qgRoleSince'),upgrade=require('../systems/qgCommunityUpgrade');
+ a.save(s=>{s.schoolRoles={test:'t',rpLead:'l'};s.schoolRoleSince={};delete s.schoolRoleSinceBackfill;});
+ // Journal d'audit : du plus récent au plus ancien ; le plus récent ajout est gardé.
+ const entry=(id,target,role,at)=>[id,{id,targetId:target,createdTimestamp:at,changes:[{key:'$add',new:[{id:role}]}]}];
+ const pages=[new Collection([entry('3','B1','t',3000),entry('2','B1','t',2000),entry('1','B2','l',1000)])];
+ const guild={id:config.guildId,fetchAuditLogs:async()=>({entries:pages.shift()||new Collection()})};
+ assert.match((await since.backfill(guild)).detail,/2 reprise/);
+ assert.equal(since.since('B1','t'),3000);assert.equal(since.since('B2','l'),1000);
+ assert.match((await since.backfill(guild)).detail,/déjà/);
+ // Nouvel ajout : date de l'événement.
+ const old={roles:{cache:new Map()}},neu={id:'B3',guild:{id:config.guildId},roles:{cache:new Map([['t',{}]])}};
+ assert.equal(since.record(old,neu,5000),1);assert.equal(since.since('B3','t'),5000);
+ const m=(id,joined,...ids)=>({id,joinedTimestamp:joined,roles:{cache:new Collection(ids.map(x=>[x,{}]))}});
+ const g={roles:{cache:new Collection([['t',{id:'t',name:'Membre Test'}],['l',{id:'l',name:'Responsable RP'}]])},emojis:{cache:new Collection()}};
+ const parts=upgrade._test.fullRoster(g,[m('B1',9e12,'t'),m('B3',9e12,'t'),m('B4',7000,'t')],new Map(),{details:true});
+ const lines=parts.find(p=>p.title.includes('Grades')).lines[0].split('\n').slice(1);
+ assert.deepEqual(lines,['-# <@B1> - <t:3:d>','-# <@B3> - <t:5:d>','-# <@B4> - <t:7:d>']);
+});

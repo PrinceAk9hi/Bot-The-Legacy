@@ -149,7 +149,8 @@ function fullRoster(guild,members,badges=new Map(),{details=false}={}){
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const holders=members.filter(m=>m.roles.cache.has(id)),head=`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${holders.length}**`;
   if(!details)return head;
-  const rows=holders.map(m=>[m.id,arrival(m.id)]).sort((x,y)=>(x[1]||Infinity)-(y[1]||Infinity)||x[0].localeCompare(y[0]));
+  // Date : quand le membre a reçu ce rôle, sinon arrivée dans la famille, sinon arrivée sur le serveur.
+  const rows=holders.map(m=>[m.id,require('./qgRoleSince').since(m.id,id)||arrival(m.id)||m.joinedTimestamp||null]).sort((x,y)=>(x[1]||Infinity)-(y[1]||Infinity)||x[0].localeCompare(y[0]));
   return[head,...rows.map(([mid,at])=>{const age=require('./qgAgeProfiles').bracket(mid);return`-# <@${mid}> - ${at?`<t:${Math.floor(at/1000)}:d>`:'date inconnue'}${age?` · +${age}`:''}`;})].join('\n');};
 const head=(name,index,fallback,label)=>`${titleEmoji(guild,name,index)||fallback} ${label}`;
  return[[head('crown',1,'👑','Direction'),DIRECTION_KEYS],[head('whitegavel',0,'<:whitegavel:1570565044842922156>','Responsables'),leadKeys()],[head('whitediamond',0,'🎖️','Grades de la famille'),[...familyKeys].reverse()],[head('support',0,'🛠️','Exécutants'),managerKeys()]]

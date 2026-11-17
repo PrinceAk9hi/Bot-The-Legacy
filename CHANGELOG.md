@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 94 — Prise en charge automatique des tickets
+
+- Le premier membre de l'équipe autorisée qui écrit dans un ticket sans responsable le prend en charge
+  automatiquement (même message que le bouton « Prendre en charge »). L'auteur du ticket ne le prend jamais.
+- Modifiés : `systems/qgServer.js`, tests.
+
 ## 93 — Nouvelles questions de candidature
 
 - 12 questions au lieu de 10 : casier SchoolRP, raison du départ des anciennes familles, disponibilités au

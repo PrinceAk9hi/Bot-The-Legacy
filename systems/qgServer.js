@@ -253,6 +253,20 @@ function ticketOverwrites(guildId,userId,botId,type,schoolRoles,fallbackRoles={}
  if(overwrites.length>100)throw Error('Trop de rôles pour verrouiller ce ticket Fondation avec les limites de permissions Discord.');
  return overwrites;
 }
+// Ticket sans responsable : le premier membre de l'équipe qui y écrit le prend en charge automatiquement
+// (même effet que le bouton « Prendre en charge »). L'auteur du ticket ne le prend jamais.
+async function autoClaim(m){
+ const t=saved().tickets?.[m.channelId];
+ if(!t||t.claimedBy||m.author.id===t.ownerId)return false;
+ const member=m.member||await m.guild.members.fetch(m.author.id).catch(()=>null);
+ if(!member||!ticketStaff(member,t.type))return false;
+ return serial('channel:'+m.channelId,async()=>{
+  const fresh=saved().tickets?.[m.channelId];if(!fresh||fresh.claimedBy)return false;
+  store(s=>{s.tickets[m.channelId].claimedBy=m.author.id;s.tickets[m.channelId].claimedAt=Date.now();s.tickets[m.channelId].autoClaimed=true;});
+  await m.channel.send({embeds:[layout.embed('Ticket pris en charge',`<@${m.author.id}> s’occupe de ta demande.`)],allowedMentions:{parse:[]}}).catch(()=>{});
+  return true;
+ });
+}
 function ticketStaff(member,type){const roles=saved().schoolRoles||{};return member.id===config.ownerId||member.id===member.guild.ownerId||require('./qgTicketRouting').team(type).some(k=>roles[k]&&member.roles.cache.has(roles[k]));}
 async function ticket(i,type='questions'){
  const s=saved(),member=await i.guild.members.fetch({user:i.user.id,force:true}),schoolRoles=s.schoolRoles||{},schoolMember=schoolRoles.community&&member.roles.cache.has(schoolRoles.community);
@@ -395,6 +409,7 @@ async function message(m){
  if(m.author.bot)return;
  if(await require('./qgSecurity').message(m))return;
  require('./qgInterviews').availability(m);
+ await autoClaim(m).catch(e=>console.error('Prise en charge automatique :',e.code||e.message));
  require('./qgMemberMetrics').message(m);
  if(await require('./qgCommunityPolicy').message(m))return;
  if(await require('./qgSchoolGiveaways').message(m))return;
@@ -512,4 +527,4 @@ function register(client){
  }));
  // GuildCreate does not mutate the QG; the owner runs the preview/install command explicitly.
 }
-module.exports=register;module.exports.setup=(client,guild)=>require('./qgSchoolSetup').install(guild,client);module.exports._test={reaction,transcript,staff,stats,message,voice,interaction,ticketTypes,ticketOverwrites,parseQGTicketTopic};
+module.exports=register;module.exports.setup=(client,guild)=>require('./qgSchoolSetup').install(guild,client);module.exports._test={autoClaim,reaction,transcript,staff,stats,message,voice,interaction,ticketTypes,ticketOverwrites,parseQGTicketTopic};

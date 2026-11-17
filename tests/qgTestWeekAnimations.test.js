@@ -154,3 +154,20 @@ test('musique d’attente : salon de déplacement servi, attente entretien prior
  assert.equal(audio.config().normal,.6);assert.equal(audio.config().duck,.12);
  audio.persist({normal:.8});audio.migrateAutoJoin();assert.equal(audio.config().normal,.8,'un réglage choisi ensuite est gardé');
 });
+
+test('ticket : le premier membre de l’équipe qui écrit le prend en charge, pas l’auteur ni un membre lambda',async()=>{
+ const {autoClaim}=require('../systems/qgServer')._test;
+ a.save(s=>{s.schoolRoles={};s.tickets={t1:{ownerId:'auteur',type:'questions',createdAt:1}};});
+ const sent=[],guild={id:config.guildId,ownerId:'proprio'};
+ const m=(id)=>({guild,channelId:'t1',author:{id},member:{id,guild,roles:{cache:new Map()}},channel:{send:async p=>sent.push(p)}});
+ assert.equal(await autoClaim(m('auteur')),false);
+ assert.equal(await autoClaim(m('lambda')),false);
+ assert.equal(a.state().tickets.t1.claimedBy,undefined);
+ assert.equal(await autoClaim(m(config.ownerId)),true);
+ assert.equal(a.state().tickets.t1.claimedBy,config.ownerId);assert.equal(a.state().tickets.t1.autoClaimed,true);
+ assert.match(sent[0].embeds[0].data.description,new RegExp(`<@${config.ownerId}> s’occupe de ta demande`));
+ // Déjà pris : rien ne change, pas de second message.
+ assert.equal(await autoClaim(m('proprio')),false);assert.equal(sent.length,1);
+ // Hors ticket : ignoré.
+ assert.equal(await autoClaim({...m(config.ownerId),channelId:'autre'}),false);
+});

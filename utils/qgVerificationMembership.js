@@ -21,6 +21,7 @@ function invalidate(member,{read,update},departed=false){
    stage:'profile',joinedAt:member.joinedTimestamp||0,departed,
    robloxId:profile.robloxId,robloxName:profile.robloxName,
    displayName:profile.displayName,discordName:profile.discordName,
+   ...(profile.ageBracket?{ageBracket:profile.ageBracket}:{}),
    resetAt:Date.now()
   };
  });

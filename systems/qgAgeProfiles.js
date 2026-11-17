@@ -1,6 +1,13 @@
 const a=require('../utils/qgAdmin'),{guildId}=require('../config/qg');
 const legacy={'18':'1562838566487326781','13':'1562838771538468956'};
-function bracket(id){const s=a.state(),v=s.schoolEntryVerification?.[id]?.ageBracket||s.schoolAgeProfiles?.[id]?.ageBracket;return ['13','18'].includes(v)?v:null;}
+// Tranche d'âge : fiche de vérification actuelle, sinon la vérification la plus récente de l'historique (la fiche
+// est réécrite sans l'âge quand le membre revient sur le serveur ou complète son profil), sinon l'ancien rôle.
+function bracket(id){
+ const s=a.state(),ok=v=>['13','18'].includes(v)?v:null;
+ const current=ok(s.schoolEntryVerification?.[id]?.ageBracket);if(current)return current;
+ const past=Object.values(s.schoolVerificationHistory||{}).filter(h=>h.userId===id&&ok(h.ageBracket)).sort((x,y)=>(y.acceptedAt||0)-(x.acceptedAt||0))[0];
+ return ok(past?.ageBracket)||ok(s.schoolAgeProfiles?.[id]?.ageBracket);
+}
 async function migrate(guild){
  if(guild.id!==guildId)throw Error('Serveur QG requis.');require('../utils/qgDurability').assertDurable();
  return a.serial('age-role-migration',async()=>{

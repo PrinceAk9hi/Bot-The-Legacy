@@ -116,7 +116,8 @@ async function finish(member,rec){
  await member.roles.add(role,'Rétablissement des accès après complément du profil QG');
  await require('./qgSchoolSeparators').syncMember(await member.guild.members.fetch(member.id));
  await restore(member,rec);
- const profile={...rec.draft,joinedAt:member.joinedTimestamp||0,stage:'accepted',acceptedAt:rec.previousProfile?.acceptedAt||rec.createdAt,acceptanceSource:rec.previousProfile?.acceptedAt?'previous-record':'legacy-role-observed',confirmedAt:rec.confirmedAt,updatedAt:Date.now(),version:rec.previousProfile?.version||2};
+ const knownAge=require('./qgAgeProfiles').bracket(member.id);
+ const profile={...(knownAge?{ageBracket:knownAge}:{}),...rec.draft,joinedAt:member.joinedTimestamp||0,stage:'accepted',acceptedAt:rec.previousProfile?.acceptedAt||rec.createdAt,acceptanceSource:rec.previousProfile?.acceptedAt?'previous-record':'legacy-role-observed',confirmedAt:rec.confirmedAt,updatedAt:Date.now(),version:rec.previousProfile?.version||2};
  a.save(s=>{s.schoolEntryVerification||={};s.schoolEntryVerification[member.id]=profile;});
  require('./qgCommunityUpgrade').recordVerification(member.id,profile);
  rec.status='complete';rec.completedAt=Date.now();delete rec.error;delete rec.draft;put(member.id,rec);

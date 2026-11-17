@@ -133,3 +133,14 @@ test('effectif : date à laquelle le rôle a été mis (événement, journal d�
  const lines=parts.find(p=>p.title.includes('Grades')).lines[0].split('\n').slice(1);
  assert.deepEqual(lines,['-# <@B1> - <t:3:d>','-# <@B3> - <t:5:d>','-# <@B4> - <t:7:d>']);
 });
+
+test('tranche d’âge : reprise de la dernière vérification quand la fiche actuelle l’a perdue',()=>{
+ const {bracket}=require('../systems/qgAgeProfiles');
+ a.save(s=>{s.schoolEntryVerification={x:{stage:'profile',resetAt:1},y:{ageBracket:'13'},z:{stage:'accepted'}};
+  s.schoolVerificationHistory={'x:1':{userId:'x',acceptedAt:1,ageBracket:'13'},'x:2':{userId:'x',acceptedAt:2,ageBracket:'18'},'y:1':{userId:'y',acceptedAt:1,ageBracket:'18'}};
+  s.schoolAgeProfiles={z:{ageBracket:'18'}};});
+ assert.equal(bracket('x'),'18','la vérification la plus récente');
+ assert.equal(bracket('y'),'13','la fiche actuelle passe en premier');
+ assert.equal(bracket('z'),'18','ancien rôle de vérification');
+ assert.equal(bracket('inconnu'),null);
+});

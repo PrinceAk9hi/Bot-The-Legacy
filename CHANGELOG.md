@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 98 — Tranche d'âge retrouvée pour tous les membres vérifiés
+
+- La fiche de vérification était réécrite sans la tranche d'âge quand un membre quittait puis revenait sur le
+  serveur, ou complétait son profil après coup : +18 / +13 manquait dans l'effectif. La tranche est maintenant
+  reprise de la vérification la plus récente de l'historique, et conservée lors de ces réécritures.
+- Modifiés : `systems/qgAgeProfiles.js`, `systems/qgProfileCatchup.js`, `utils/qgVerificationMembership.js`, tests.
+
 ## 97 — Effectif : date à laquelle le rôle a été mis
 
 - Sous chaque rôle de l'effectif, la date affichée est celle où le membre a reçu ce rôle : enregistrée à

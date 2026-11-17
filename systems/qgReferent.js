@@ -41,7 +41,8 @@ async function ensureAccess(guild) {
     if (!cat) continue;
     for (const ch of [cat, ...guild.channels.cache.filter(c => c.parentId === catId).values()]) {
       const allow = wanted(ch, kind), current = ch.permissionOverwrites.cache.get(ROLE_ID);
-      if (current && current.allow.bitfield === allow && current.deny.bitfield === 0n) continue;
+      // Accès déjà réglé sur ce salon (par le bot ou à la main) : on n'y touche plus.
+      if (current) continue;
       await ch.permissionOverwrites.create(ROLE_ID, Object.fromEntries(Object.entries(P).filter(([, bit]) => typeof bit === 'bigint' && (allow & bit) === bit && bit !== 0n).map(([k]) => [k, true])), { reason: 'Accès du rôle Référente du QG' });
       // create() remplace entièrement l'accès du rôle sur ce salon (aucun refus résiduel).
       changed++;

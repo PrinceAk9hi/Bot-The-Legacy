@@ -31,6 +31,9 @@ function payload(top){
 async function role(guild){
  const id=a.state().schoolRoles?.memberOfWeek;
  let r=id&&(guild.roles.cache.get(id)||await guild.roles.fetch(id).catch(()=>null));
+ // Rôle réglé à la main (nom, couleur, position, permissions) : jamais modifié par le bot ; s'il a été
+ // recréé, on reprend celui dont le nom contient « membre de la semaine » au lieu d'en créer un autre.
+ if(!r){r=guild.roles.cache.find(x=>!x.managed&&/membre de la semaine/i.test(x.name))||null;if(r)a.save(s=>{s.schoolRoles||={};s.schoolRoles.memberOfWeek=r.id;});}
  if(!r){r=await guild.roles.create({name:ROLE_NAME,color:0xf1c40f,hoist:false,mentionable:false,permissions:[],reason:'Membre de la semaine'});a.save(s=>{s.schoolRoles||={};s.schoolRoles.memberOfWeek=r.id;});}
  return r;
 }

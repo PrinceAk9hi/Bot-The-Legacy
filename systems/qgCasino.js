@@ -27,15 +27,29 @@ function channelGrants(guild,key,parent,type,closed=closedNow()){
 const CHANNELS=[['casinoHome','🎰・casino','casino',T.GuildText],['casinoRules','📜・règlement-casino','casino',T.GuildText],['casinoBoard','🏆・classement-casino','casino',T.GuildText],['casinoSupportPanel','🎫・support-casino','casino',T.GuildText],['casinoLounge','🔊・salon-du-casino','casino',T.GuildVoice],
  ['casinoControl','🛠・pilotage-casino','casinoStaff',T.GuildText],['casinoTeam','💬・équipe-casino','casinoStaff',T.GuildText],['casinoOffice','🔊・bureau-casino','casinoStaff',T.GuildVoice]];
 // Applique l'état ouvert/fermé à toute la catégorie publique du casino.
+// Valeur d'une permission dans une liste d'autorisations : true (accordée), false (refusée), null (neutre).
+function flag(list,id,bit){const o=list.find(x=>x.id===id);if(!o)return null;const has=(v,b)=>(Array.isArray(v)?v.reduce((n,x)=>n|BigInt(x),0n):BigInt(v||0))&b;return has(o.allow,bit)?true:has(o.deny,bit)?false:null;}
+// Applique seulement la différence entre l'état ouvert et l'état fermé (le reste, réglé à la main, ne bouge pas).
+async function toggle(ch,open,closed,isClosed,reason){
+ const target=isClosed?closed:open,ids=new Set([...open,...closed].map(o=>o.id));
+ for(const id of ids){
+  const patch={};
+  for(const [name,bit] of Object.entries(P)){if(typeof bit!=='bigint')continue;const x=flag(open,id,bit),y=flag(closed,id,bit);if(x!==y)patch[name]=flag(target,id,bit);}
+  if(Object.keys(patch).length)await ch.permissionOverwrites.edit(id,patch,{reason});
+ }
+}
 async function applyStatus(guild){
  const closed=closedNow(),s=a.state(),cat=await guild.channels.fetch(s.schoolCategories?.casino).catch(e=>{if(e.code===10003)return null;throw e;});
  if(!cat)throw Error('Catégorie casino introuvable : relance l’installation du casino.');
- await cat.edit({name:closed?CATEGORY_CLOSED:CATEGORY_OPEN,permissionOverwrites:overwrites(guild,'public',closed),reason:closed?'Casino fermé':'Casino ouvert'});
+ const reason=closed?'Casino fermé':'Casino ouvert';
+ if(cat.name!==(closed?CATEGORY_CLOSED:CATEGORY_OPEN))await cat.setName(closed?CATEGORY_CLOSED:CATEGORY_OPEN,reason);
+ await toggle(cat,overwrites(guild,'public',false),overwrites(guild,'public',true),closed,reason);
  for(const [key,,parent,type]of CHANNELS.filter(c=>c[2]==='casino')){
   const ch=await guild.channels.fetch(s.schoolChannels?.[key]).catch(e=>{if(e.code===10003)return null;throw e;});if(!ch)continue;
-  await ch.permissionOverwrites.set(channelGrants(guild,key,parent,type,closed),closed?'Casino fermé':'Casino ouvert');
+  await toggle(ch,channelGrants(guild,key,parent,type,false),channelGrants(guild,key,parent,type,true),closed,reason);
   if(closed&&type===T.GuildVoice)for(const m of ch.members.values())if(!access.staff(m))await m.voice.disconnect('Casino fermé').catch(()=>{});
  }
+ a.save(x=>{x.schoolCasino||={};x.schoolCasino.appliedClosed=closed;});
 }
 const art=name=>require('../utils/discordPanelImage').localImage(require('node:path').join(__dirname,'..','assets','casino','qg',name),name);
 const GOLD=0xd4bd86;
@@ -84,15 +98,17 @@ async function install(guild){return a.serial('casino-install',async()=>{
   a.save(s=>{s.schoolRoles||={};s.schoolRoles[key]=role.id;});
  }
  const categories=[['casino','🎰〃CASINO','public'],['casinoStaff','🎲〃GESTION CASINO','staff'],['casinoSupport','🎫〃TICKETS CASINO','staff']];
- for(const [key,name,kind]of categories){let ch=guild.channels.cache.get(a.state().schoolCategories?.[key]);ch||=guild.channels.cache.find(c=>c.type===T.GuildCategory&&(c.name===name||key==='casino'&&c.name===CATEGORY_CLOSED));if(ch&&ch.type!==T.GuildCategory)throw Error('Catégorie casino incompatible : '+key);const closed=kind==='public'&&closedNow();if(!ch)ch=await guild.channels.create({name,type:T.GuildCategory,permissionOverwrites:overwrites(guild,kind,closed),reason:'Espace casino QG'});else await ch.permissionOverwrites.set(overwrites(guild,kind,closed));a.save(s=>{s.schoolCategories||={};s.schoolCategories[key]=ch.id;});}
+ for(const [key,name,kind]of categories){let ch=guild.channels.cache.get(a.state().schoolCategories?.[key]);ch||=guild.channels.cache.find(c=>c.type===T.GuildCategory&&(c.name===name||key==='casino'&&c.name===CATEGORY_CLOSED));if(ch&&ch.type!==T.GuildCategory)throw Error('Catégorie casino incompatible : '+key);const closed=kind==='public'&&closedNow();if(!ch)ch=await guild.channels.create({name,type:T.GuildCategory,permissionOverwrites:overwrites(guild,kind,closed),reason:'Espace casino QG'});a.save(s=>{s.schoolCategories||={};s.schoolCategories[key]=ch.id;});}
  for(const [key,name,parent,type]of CHANNELS){
   const parentId=a.state().schoolCategories[parent];let ch=guild.channels.cache.get(a.state().schoolChannels?.[key]);ch||=guild.channels.cache.find(c=>c.parentId===parentId&&c.name===name&&compatible(c,type));if(ch&&!compatible(ch,type))throw Error('Salon casino incompatible : '+key);
   const grants=channelGrants(guild,key,parent,type);
-  if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});else await ch.edit({parent:parentId,permissionOverwrites:grants});
+  if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});else if(ch.parentId!==parentId)await ch.setParent(parentId,{lockPermissions:false});
   a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});
  }
  a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled??=true;s.schoolCasino.installedAt??=Date.now();});
- await applyStatus(guild);
+ // Au démarrage, l'état ouvert/fermé n'est réappliqué que s'il a changé depuis la dernière fois.
+ if(a.state().schoolCasino.appliedClosed===undefined)a.save(s=>{s.schoolCasino.appliedClosed=closedNow();});
+ else if(a.state().schoolCasino.appliedClosed!==closedNow())await applyStatus(guild);
  for(const [key,kind]of [['casinoHome','home'],['casinoRules','rules'],['casinoBoard','board'],['casinoSupportPanel','support'],['casinoControl','control']])await publish(guild,key,kind);
  return {detail:'2 rôles, 3 catégories, 8 salons et 5 panels prêts'};
  });}
@@ -126,4 +142,4 @@ async function tick(guild){
   await publish(guild,'casinoBoard','board');a.save(s=>{s.schoolCasino.boardSignature=signature;});
  });
 }
-module.exports={install,handle,payload,publish,tick,applyStatus,overwrites,channelGrants};
+module.exports={install,handle,payload,publish,tick,applyStatus,overwrites,channelGrants,_test:{toggle}};

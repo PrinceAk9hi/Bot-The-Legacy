@@ -141,15 +141,16 @@ function arrival(id){
  const st=a.state(),app=st.schoolFamilyRecruitment?.[id];
  return st.schoolFamilyMembership?.[id]?.joinedAt||(app?.status==='accept'?(app.interviewFinishedAt||app.updatedAt):null);
 }
-// details : sous chaque grade de la famille, une ligne en petit par membre « @membre - date ».
+// details : sous chaque rôle (Direction, responsables, grades, exécutants), une ligne en petit par membre
+// « @membre - date · +18 » (tranche d’âge Roblox de la vérification, si connue).
 function fullRoster(guild,members,badges=new Map(),{details=false}={}){
  const r=a.state().schoolRoles||{},teams=teamKeys();
  const all=[...DIRECTION_KEYS,...familyKeys,...teams].map(k=>normalizeName(guild.roles.cache.get(r[k])?.name)).filter(Boolean);
  const line=key=>{const id=r[key];if(!id||id===excluded)return null;const role=guild.roles.cache.get(id);if(!role)return null;
   const holders=members.filter(m=>m.roles.cache.has(id)),head=`${roleEmoji(guild,role,key,all,badges)} <@&${id}> - **${holders.length}**`;
-  if(!details||!familyKeys.includes(key))return head;
+  if(!details)return head;
   const rows=holders.map(m=>[m.id,arrival(m.id)]).sort((x,y)=>(x[1]||Infinity)-(y[1]||Infinity)||x[0].localeCompare(y[0]));
-  return[head,...rows.map(([mid,at])=>`-# <@${mid}> - ${at?`<t:${Math.floor(at/1000)}:d>`:'date inconnue'}`)].join('\n');};
+  return[head,...rows.map(([mid,at])=>{const age=require('./qgAgeProfiles').bracket(mid);return`-# <@${mid}> - ${at?`<t:${Math.floor(at/1000)}:d>`:'date inconnue'}${age?` · +${age}`:''}`;})].join('\n');};
 const head=(name,index,fallback,label)=>`${titleEmoji(guild,name,index)||fallback} ${label}`;
  return[[head('crown',1,'👑','Direction'),DIRECTION_KEYS],[head('whitegavel',0,'<:whitegavel:1570565044842922156>','Responsables'),leadKeys()],[head('whitediamond',0,'🎖️','Grades de la famille'),[...familyKeys].reverse()],[head('support',0,'🛠️','Exécutants'),managerKeys()]]
   .map(([title,keys])=>({title,lines:keys.map(line).filter(Boolean)})).filter(x=>x.lines.length);

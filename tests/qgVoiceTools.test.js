@@ -174,16 +174,16 @@ test('effectif : emojis du serveur dans les titres des blocs (crown~1 = deuxièm
  assert.deepEqual(parts.map(p=>p.title),['<:crown:200> Direction','<:whitegavel:300> Responsables','<:whitediamond:400> Grades de la famille','<a:support:500> Exécutants']);
 });
 
-test('effectif : sous chaque grade, les membres en petit avec leur date d’arrivée',()=>{
+test('effectif : sous chaque rôle, les membres en petit avec leur date d’arrivée et leur tranche d’âge',()=>{
  const roles=new Collection([['t',{id:'t',name:'Membre Test'}],['l',{id:'l',name:'Responsable RP'}]]);
- a.save(s=>{s.schoolRoles={test:'t',rpLead:'l'};s.schoolFamilyMembership={A1:{active:true,joinedAt:Date.UTC(2026,1,3)},A2:{active:true,joinedAt:Date.UTC(2026,0,5)}};});
+ a.save(s=>{s.schoolRoles={test:'t',rpLead:'l'};s.schoolFamilyMembership={A1:{active:true,joinedAt:Date.UTC(2026,1,3)},A2:{active:true,joinedAt:Date.UTC(2026,0,5)}};s.schoolEntryVerification={A1:{ageBracket:'18'},A3:{ageBracket:'13'}};});
  const m=(id,...ids)=>({id,roles:{cache:new Collection(ids.map(x=>[x,{}]))}});
  const guild={roles:{cache:roles},emojis:{cache:new Collection()}};
  const parts=upgrade._test.fullRoster(guild,[m('A1','t'),m('A2','t'),m('A3','t','l')],new Map(),{details:true});
  const grades=parts.find(p=>p.title.includes('Grades')).lines[0].split('\n');
- assert.deepEqual(grades,['▫️ <@&t> - **3**',`-# <@A2> - <t:${Date.UTC(2026,0,5)/1000}:d>`,`-# <@A1> - <t:${Date.UTC(2026,1,3)/1000}:d>`,'-# <@A3> - date inconnue']);
- // Les responsables n'ont pas le détail ; sans details (guide famille), aucun détail.
- assert.deepEqual(parts.find(p=>p.title.includes('Responsables')).lines,['▫️ <@&l> - **1**']);
+ assert.deepEqual(grades,['▫️ <@&t> - **3**',`-# <@A2> - <t:${Date.UTC(2026,0,5)/1000}:d>`,`-# <@A1> - <t:${Date.UTC(2026,1,3)/1000}:d> · +18`,'-# <@A3> - date inconnue · +13']);
+ // Les responsables ont aussi le détail ; sans details (guide famille), aucun détail.
+ assert.deepEqual(parts.find(p=>p.title.includes('Responsables')).lines,['▫️ <@&l> - **1**\n-# <@A3> - date inconnue · +13']);
  assert.equal(upgrade._test.fullRoster(guild,[m('A1','t')]).find(p=>p.title.includes('Grades')).lines[0],'▫️ <@&t> - **1**');
 });
 

@@ -87,6 +87,8 @@ async function confirm(i){
  }finally{migrating=false;}
 }
 async function refresh(ch){
+ // Réglages manuels conservés : la maintenance par séparateurs est coupée une fois (voir qgVoiceStatus).
+ require('./qgVoiceStatus').preserve();
  if(migrating||ch?.guild?.id!==config.guildId||!ch.permissionOverwrites||!a.state().schoolSeparatorPermissions?.enabled)return;
  return a.serial('separator-acl:'+ch.id,async()=>{
   ch=await ch.guild.channels.fetch({channel:ch.id,force:true}).catch(e=>{if(e.code===10003)return null;throw e;});

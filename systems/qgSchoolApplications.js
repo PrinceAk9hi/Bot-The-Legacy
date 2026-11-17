@@ -106,23 +106,27 @@ async function submitManagement(i, team) {
   if (existing && ['submitted', 'in_review'].includes(existing.status)) throw new Error('Tu as déjà une candidature active pour cette gestion.');
   const lead = roles[managerFor[team]], managementRole = roles[team];
   if(!lead||!managementRole)throw Error('Cette gestion doit être configurée par la direction avec /setup-serveur actualiser-qg.');
-  // La catégorie « managementPlus » a été supprimée : repli sur l'espace des responsables (qui traitent ces dossiers).
-  let parent = null;
-  for (const id of [categories.managementPlus, categories.responsibles].filter(Boolean)) {
-    const category = await guild.channels.fetch(id).catch(() => null);
-    if (category?.type === 4) { parent = category.id; break; }
-  }
-  if (!parent) throw new Error('Aucune catégorie disponible pour les candidatures aux postes d’exécutant : préviens la direction.');
-  const ch = await guild.channels.create({ name: `candidature-${team.replace('Management', '')}-${i.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 90), type: 0, parent, topic: `qgs-management-application:${team}:${i.user.id}`,
-    permissionOverwrites: [{ id: guild.id, deny: [P.ViewChannel] }, { id: i.client.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.EmbedLinks, P.ManageChannels] }, { id: i.user.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }, ...[roles.creator, roles.globalManager, lead, managementRole].filter(Boolean).map(id => ({ id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory] }))] });
+  // Toutes les candidatures de gestion arrivent dans un seul salon, réservé aux responsables : le candidat n'y a pas accès.
+  const ch = await guild.channels.fetch(MANAGEMENT_CHANNEL).catch(() => null);
+  if (!ch?.isTextBased?.()) throw new Error('Le salon des candidatures de gestion est introuvable : préviens la direction.');
   const labels = { motivation: 'Motivation', experience: 'Expérience', availability: 'Disponibilités', skills: 'Compétences', contribution: 'Contribution envisagée' };
   const fields = Object.entries(labels).map(([id, label]) => ({ name:label,value:trim(i.fields.getTextInputValue(id))||'Non renseigné' }));
-  const row = new ActionRowBuilder().addComponents(...[
-    ['accept', 'Accepter', ButtonStyle.Success], ['refuse', 'Refuser', ButtonStyle.Danger], ['interview', 'Entretien', ButtonStyle.Primary], ['details', 'Précisions', ButtonStyle.Secondary]
-  ].map(([action, label, style]) => new ButtonBuilder().setCustomId(`qgs:management-decision:${team}:${i.user.id}:${action}`).setLabel(label).setStyle(style)));
-  await ch.send({ embeds: [embed(`Candidature • ${teamLabels[team]}`, `Candidat : <@${i.user.id}>`).addFields(fields)], components: [row], allowedMentions: { parse: [], users: [i.user.id] } });
-  save(s => { s.schoolManagementApplications ||= {}; s.schoolManagementApplications[i.user.id] ||= {}; s.schoolManagementApplications[i.user.id][team] = { applicantId: i.user.id, team, status: 'submitted', channelId: ch.id, createdAt: Date.now() }; });
+  const app = { applicantId: i.user.id, team, status: 'submitted', channelId: ch.id, createdAt: Date.now(), fields };
+  const message = await ch.send(managementPayload(app, { ping: lead }));
+  save(s => { s.schoolManagementApplications ||= {}; s.schoolManagementApplications[i.user.id] ||= {}; s.schoolManagementApplications[i.user.id][team] = { ...app, messageId: message.id }; });
   await i.editReply({ content: `✅ Ta candidature pour **${teamLabels[team]}** a été transmise au responsable concerné.` });
+}
+// Candidatures de gestion : salon des responsables (1572378216960757971) ; acceptation annoncée dans 1561157222032212059.
+const MANAGEMENT_CHANNEL = '1572378216960757971', MANAGEMENT_NEWS = '1561157222032212059';
+const MANAGEMENT_STATUS = { submitted: ['📥 En attente de décision', 0xffffff], accept: ['✅ Acceptée', 0x2ecc71], refuse: ['⛔ Refusée', 0xd62f2f] };
+function managementPayload(app, { ping = null } = {}) {
+  const [label, color] = MANAGEMENT_STATUS[app.status] || MANAGEMENT_STATUS.submitted;
+  const done = app.status !== 'submitted';
+  const card = embed(`Candidature • ${teamLabels[app.team]}`, `Candidat : <@${app.applicantId}>\nStatut : **${label}**${app.updatedBy ? `\nTraitée par <@${app.updatedBy}> • <t:${Math.floor(app.updatedAt / 1000)}:f>` : ''}`).setColor(color).addFields(app.fields || []);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`qgs:management-decision:${app.team}:${app.applicantId}:accept`).setLabel('Accepter').setStyle(ButtonStyle.Success).setDisabled(done),
+    new ButtonBuilder().setCustomId(`qgs:management-decision:${app.team}:${app.applicantId}:refuse`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setDisabled(done));
+  return { content: ping ? `<@&${ping}>` : null, embeds: [card], components: [row], allowedMentions: { parse: [], roles: ping ? [ping] : [] } };
 }
 
 const decisionQueues = new Map();
@@ -141,7 +145,7 @@ async function decisionInternal(i) {
   if (!require('../utils/qgAdmin').isDirection(reviewer) && !reviewer.roles.cache.has(roles[leadKey]) && !reviewer.roles.cache.has(roles[isFamily ? 'recruitmentManagement' : team])) return i.followUp({ content: 'Seule la gestion concernée peut traiter cette candidature.', flags: MessageFlags.Ephemeral });
   const table = isFamily ? 'schoolFamilyRecruitment' : 'schoolManagementApplications';
   const app = isFamily ? state()[table]?.[memberId] : state()[table]?.[memberId]?.[team];
-  if (!app || app.channelId !== i.channelId || !['submitted', 'in_review'].includes(app.status)) return i.followUp({ content: 'Cette candidature a déjà été traitée ou son dossier est introuvable.', flags: MessageFlags.Ephemeral });
+  if (!app || app.channelId !== i.channelId || (app.messageId && app.messageId !== i.message?.id) || !['submitted', 'in_review'].includes(app.status)) return i.followUp({ content: 'Cette candidature a déjà été traitée ou son dossier est introuvable.', flags: MessageFlags.Ephemeral });
   const status = { accept: 'acceptée', refuse: 'refusée', interview: 'entretien demandé', details: 'précisions demandées' }[action];
   if (!status) return i.followUp({ content: 'Action invalide.', flags: MessageFlags.Ephemeral });
   if (isFamily && action === 'accept') {
@@ -163,6 +167,18 @@ async function decisionInternal(i) {
   }
   app.status = action === 'interview' || action === 'details' ? 'in_review' : action;
   app.updatedAt = Date.now(); app.updatedBy = i.user.id;
+  if (!isFamily && app.messageId) {
+    save(s => { s[table][memberId][team] = app; });
+    await i.editReply(managementPayload(app));
+    const user = await i.client.users.fetch(memberId);
+    if (action === 'accept') {
+      const leads = [...(await require('../utils/qgMembers')(i.guild)).values()].filter(m => !m.user.bot && m.roles.cache.has(roles[managerFor[team]])).map(m => m.id);
+      const news = await i.guild.channels.fetch(MANAGEMENT_NEWS).catch(() => null);
+      const contact = leads.length ? leads.map(id => `<@${id}>`).join(', ') : `le <@&${roles[managerFor[team]]}>`;
+      await news?.send({ content: `<@${memberId}>`, embeds: [embed('🎉 Candidature acceptée', `Félicitations <@${memberId}>, ta candidature **${teamLabels[team]}** est acceptée !\n\nConviens d’un horaire avec ${contact} pour ta prise de poste.`).setColor(0x2ecc71)], allowedMentions: { parse: [], users: [memberId, ...leads] } }).catch(() => {});
+    } else await user.send(`Ta candidature pour ${teamLabels[team]} a été **refusée** par l’équipe.`).catch(() => {});
+    return;
+  }
   if (isFamily) save(s => { s[table][memberId] = app; }); else save(s => { s[table][memberId][team] = app; });
   const user = await i.client.users.fetch(memberId);
   await user.send(`Ta candidature${team ? ` pour ${teamLabels[team]}` : ''} a été **${status}** par l’équipe. ${action === 'interview' ? 'La gestion te contactera pour organiser un entretien.' : action === 'details' ? 'Réponds à l’équipe via le dossier pour fournir les précisions demandées.' : ''}`).catch(() => {});
@@ -203,4 +219,4 @@ async function directMessage(message) {
   return true;
 }
 
-module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, _test: { inFamily, managerFor, verifiedForRecruitment, verificationProblem } };
+module.exports = { handle, directMessage, beginFamilyRecruitment, beginManagementApplication, familyQuestions, MANAGEMENT_CHANNEL, _test: { managementPayload, submitManagement, decisionInternal, inFamily, managerFor, verifiedForRecruitment, verificationProblem } };

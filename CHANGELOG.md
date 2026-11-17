@@ -6,6 +6,25 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 95 — Candidatures de gestion, effectif détaillé, permissions manuelles, statut vocal
+
+- Candidatures de gestion : une fiche par candidature dans le salon 1572378216960757971 (le candidat n'y a pas
+  accès, plus de salon privé créé), avec ping du rôle responsable de la gestion et deux boutons, Accepter et
+  Refuser. La fiche passe en vert ou rouge, boutons désactivés. Acceptée : rôle d'exécutant donné et annonce
+  dans 1561157222032212059 qui mentionne le candidat et lui dit de convenir d'un horaire avec le responsable.
+  Refusée : MP au candidat.
+- Effectif : le détail des membres apparaît sous chaque rôle (Direction, Responsables, grades, Exécutants),
+  avec la tranche d'âge après la date : « @membre - date · +18 ».
+- Permissions réglées à la main conservées : maintenance par séparateurs coupée une fois, le casino ne
+  réécrit plus les catégories et salons existants (ouverture / fermeture : seules les permissions qui changent),
+  le rôle Référent n'est ajouté que là où il n'a pas encore d'accès. Rôle « Membre de la semaine » jamais modifié.
+- « Définir le statut du salon vocal » : retiré à tous les rôles et salons, sauf Direction et Responsables ;
+  autorisé à tous dans les vocaux dont le nom contient « bureau ». Au démarrage et à chaque nouveau vocal.
+- Ajoutés : `systems/qgVoiceStatus.js`, `tests/qgPermissionsManagement.test.js`. Modifiés :
+  `systems/qgSchoolApplications.js`, `systems/qgCommunityUpgrade.js`, `systems/qgCasino.js`,
+  `systems/qgReferent.js`, `systems/qgSeparatorPermissions.js`, `systems/qgMemberOfWeek.js`,
+  `systems/qgMaintenance.js`, `systems/qgServer.js`, tests.
+
 ## 94 — Prise en charge automatique des tickets
 
 - Le premier membre de l'équipe autorisée qui écrit dans un ticket sans responsable le prend en charge

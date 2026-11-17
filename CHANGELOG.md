@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 96 — Annonces dans le salon rank-up
+
+- Le salon rank-up n'affichait que son panneau : aucun changement de grade n'y était publié. Désormais, chaque
+  rankup, derank et avertissement (et sa levée) y est annoncé avec mention du membre, quelle que soit l'origine :
+  /rankup, /derank, décisions de réunion (« décidé en réunion »), fin de période de test, sanctions.
+  Le motif n'est pas affiché (il reste dans les logs et le journal de la direction).
+- Ajouté : `systems/qgRankAnnounce.js`. Modifiés : `utils/qgAdmin.js`, tests.
+
 ## 95 — Candidatures de gestion, effectif détaillé, permissions manuelles, statut vocal
 
 - Candidatures de gestion : une fiche par candidature dans le salon 1572378216960757971 (le candidat n'y a pas

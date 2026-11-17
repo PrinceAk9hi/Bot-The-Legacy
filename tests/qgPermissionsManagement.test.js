@@ -79,3 +79,22 @@ test('casino ouvert / fermé : seules les permissions qui changent sont modifié
  edits.length=0;await toggle(ch,open,closed,false,'Casino ouvert');
  assert.deepEqual(edits,[['joueurs',{ViewChannel:true,ReadMessageHistory:true,Connect:null}]]);
 });
+
+test('salon rank-up : rankup, derank de réunion et avertissements annoncés, sans motif',async()=>{
+ const ann=require('../systems/qgRankAnnounce'),sent=[];
+ a.save(s=>{s.schoolChannels={rankUp:'rk'};s.schoolRoles={expert:'r-exp'};});
+ const member={id:'m1',roles:{cache:new Map([['r-exp',{}]])}};
+ const guild={id:config.guildId,members:{fetch:async()=>member},channels:{fetch:async id=>id==='rk'?{isTextBased:()=>true,send:async p=>sent.push(p)}:null}};
+ const base={result:'success',targetId:'m1',actorId:'chef',at:1,reason:'Motif privé'};
+ assert.equal(await ann.fromAudit(guild,{...base,action:'rankup',before:'test',after:{grade:'confirmed'}}),true);
+ assert.match(sent[0].embeds[0].data.description,/<@m1> passe \*\*Membre Confirmé\*\*\.$/);assert.equal(sent[0].content,'<@m1>');
+ assert.equal(await ann.fromAudit(guild,{...base,action:'meeting.derank',after:{meetingId:'x'}}),true);
+ assert.match(sent[1].embeds[0].data.title,/Derank/);assert.match(sent[1].embeds[0].data.description,/Membre Expert\*\* · décidé en réunion/);
+ assert.equal(await ann.fromAudit(guild,{...base,action:'discipline',before:0,after:1}),true);
+ assert.match(sent[2].embeds[0].data.description,/reçoit \*\*Avertissement 1\*\*/);
+ assert.equal(await ann.fromAudit(guild,{...base,action:'discipline',before:2,after:0}),true);
+ assert.match(sent[3].embeds[0].data.title,/levé/);
+ // Ignorés : avertissement de réunion (déjà annoncé par la sanction), échec, autre action.
+ for(const e of [{...base,action:'meeting.warn'},{...base,action:'rankup',result:'failed'},{...base,action:'note.add'}])assert.equal(await ann.fromAudit(guild,e),false);
+ assert.ok(sent.every(p=>!JSON.stringify(p).includes('Motif privé')));
+});

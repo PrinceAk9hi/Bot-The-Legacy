@@ -33,6 +33,8 @@ async function audit(guild,{action,actorId,targetId,before,after,reason,result='
  save(s=>{s.schoolAdminHistory||=[];s.schoolAdminHistory.push(e);s.schoolAdminHistory=s.schoolAdminHistory.slice(-5000);});
  // Actions importantes faites par une personne : aussi dans le journal de la direction (sans attendre).
  require('../systems/qgDirectionJournal').fromAudit(guild,e).catch(err=>console.error('Journal direction QG :',err.code||err.message));
+ // Grades et avertissements : annonce publique dans le salon rank-up.
+ require('../systems/qgRankAnnounce').fromAudit(guild,e).catch(err=>console.error('Annonce rank-up QG :',err.code||err.message));
  try{
   const key=action.startsWith('cd')?'logsBot':/rank|management|responsibility/.test(action)?'logsMembers':'logsModeration';
   const id=state().schoolChannels?.[key];if(!id)throw Error('missing_destination');

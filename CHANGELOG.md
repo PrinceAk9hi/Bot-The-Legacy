@@ -12,7 +12,9 @@ consulter l'historique Git.
   rankup, derank et avertissement (et sa levée) y est annoncé avec mention du membre, quelle que soit l'origine :
   /rankup, /derank, décisions de réunion (« décidé en réunion »), fin de période de test, sanctions.
   Le motif n'est pas affiché (il reste dans les logs et le journal de la direction).
-- Ajouté : `systems/qgRankAnnounce.js`. Modifiés : `utils/qgAdmin.js`, tests.
+- Rattrapage unique au démarrage : les décisions de la dernière réunion appliquée (rankups, deranks,
+  avertissements) sont publiées dans le salon rank-up avec la date de la réunion (« décidé en réunion du … »).
+- Ajouté : `systems/qgRankAnnounce.js`. Modifiés : `utils/qgAdmin.js`, `systems/qgMaintenance.js`, tests.
 
 ## 95 — Candidatures de gestion, effectif détaillé, permissions manuelles, statut vocal
 

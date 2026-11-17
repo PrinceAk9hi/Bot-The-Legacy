@@ -29,12 +29,39 @@ async function describe(guild,e){
  }
  return null;
 }
-async function fromAudit(guild,e){
+async function fromAudit(guild,e,{meetingDate=null}={}){
  if(guild?.id!==config.guildId)return false;
  const d=await describe(guild,e);if(!d)return false;
+ // Rattrapage : date de la réunion à la place de « décidé en réunion ».
+ if(meetingDate)d.text=d.text.replace(' · décidé en réunion','').replace(/.$/,'')+` · décidé en réunion du <t:${Math.floor(meetingDate/1000)}:D>.`;
  const id=a.state().schoolChannels?.rankUp;if(!id)return false;
  const ch=await guild.channels.fetch(id).catch(()=>null);if(!ch?.isTextBased?.())return false;
  await ch.send({content:`<@${e.targetId}>`,embeds:[new EmbedBuilder().setColor(d.color).setTitle(d.title).setDescription(d.text).setFooter(require('../utils/qgBrand').footer()).setTimestamp(e.at||Date.now())],allowedMentions:{parse:[],users:[e.targetId]}});
  return true;
 }
-module.exports={fromAudit,_test:{describe}};
+// Rattrapage, une seule fois : décisions de la dernière réunion appliquée avant l'ouverture des annonces,
+// publiées avec la date de la réunion.
+async function backfill(guild){
+ if(guild.id!==config.guildId||a.state().schoolRankAnnounce?.backfilled)return{detail:'Rattrapage rank-up déjà fait'};
+ const meetings=Object.values(a.state().schoolMeetings||{}).filter(r=>r.status==='finished').sort((x,y)=>(y.start||0)-(x.start||0));
+ const r=meetings[0];let sent=0;
+ if(r&&a.state().schoolChannels?.rankUp){
+  const history=a.state().schoolAdminHistory||[],cases=Object.values(a.state().discipline?.cases||{});
+  for(const [memberId,decision] of Object.entries(r.actions||{})){
+   if(r.results?.[memberId]?.status!=='done')continue;
+   let e=null;
+   if(['rankup','derank','demote'].includes(decision.action)){
+    // Grade enregistré au moment de la réunion (le grade actuel a pu changer depuis).
+    const logged=history.filter(x=>x.action==='meeting.'+decision.action&&x.targetId===memberId&&x.after?.meetingId===r.id).at(-1);
+    e={action:decision.action,targetId:memberId,result:'success',after:{grade:logged?.after?.grade||decision.choice||null}};
+   }else if(decision.action==='warn'){
+    const c=cases.find(x=>x.sourceKey===`meeting:${r.id}:${memberId}`);
+    if(c&&Number.isInteger(c.level))e={action:'discipline',targetId:memberId,result:'success',before:Number.isInteger(c.before)?c.before:0,after:c.level};
+   }
+   if(e&&await fromAudit(guild,{...e,at:r.start},{meetingDate:r.start}).catch(()=>false))sent++;
+  }
+ }
+ a.save(s=>{s.schoolRankAnnounce={...(s.schoolRankAnnounce||{}),backfilled:Date.now(),meetingId:r?.id||null,sent};});
+ return{detail:`Rattrapage rank-up : ${sent} annonce(s) de la réunion ${r?.name||'—'}`};
+}
+module.exports={fromAudit,backfill,_test:{describe}};

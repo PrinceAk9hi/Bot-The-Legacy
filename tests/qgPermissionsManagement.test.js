@@ -98,3 +98,18 @@ test('salon rank-up : rankup, derank de réunion et avertissements annoncés, sa
  for(const e of [{...base,action:'meeting.warn'},{...base,action:'rankup',result:'failed'},{...base,action:'note.add'}])assert.equal(await ann.fromAudit(guild,e),false);
  assert.ok(sent.every(p=>!JSON.stringify(p).includes('Motif privé')));
 });
+
+test('rattrapage rank-up : décisions de la dernière réunion, avec sa date, une seule fois',async()=>{
+ const ann=require('../systems/qgRankAnnounce'),sent=[],start=Date.UTC(2026,10,10,19);
+ a.save(s=>{s.schoolChannels={rankUp:'rk'};s.schoolRoles={};
+  s.schoolMeetings={old:{id:'old',status:'finished',start:start-30*86400000,actions:{z:{action:'rankup'}},results:{z:{status:'done'}}},
+   m1:{id:'m1',name:'Réunion',status:'finished',start,actions:{a1:{action:'rankup'},a2:{action:'warn'},a3:{action:'derank',choice:'test'},a4:{action:'rankup'}},results:{a1:{status:'done'},a2:{status:'done'},a3:{status:'done'},a4:{status:'blocked'}}}};
+  s.schoolAdminHistory=[{action:'meeting.rankup',targetId:'a1',result:'success',after:{meetingId:'m1',grade:'expert'}}];
+  s.discipline={cases:{c:{sourceKey:'meeting:m1:a2',level:1,before:0}}};});
+ const guild={id:config.guildId,members:{fetch:async()=>null},channels:{fetch:async id=>id==='rk'?{isTextBased:()=>true,send:async p=>sent.push(p)}:null}};
+ assert.match((await ann.backfill(guild)).detail,/3 annonce/);
+ const texts=sent.map(p=>p.embeds[0].data.description),date=`<t:${start/1000}:D>`;
+ assert.deepEqual(texts,[`<@a1> passe **Membre Expert** · décidé en réunion du ${date}.`,`<@a2> reçoit **Avertissement 1** · décidé en réunion du ${date}.`,`<@a3> passe **Membre Test** · décidé en réunion du ${date}.`]);
+ assert.equal(sent[0].embeds[0].data.timestamp,new Date(start).toISOString());
+ assert.match((await ann.backfill(guild)).detail,/déjà fait/);assert.equal(sent.length,3);
+});

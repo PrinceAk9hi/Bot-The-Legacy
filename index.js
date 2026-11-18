@@ -549,8 +549,9 @@ client.reloadCommands =
                 client.user.id
             ),
             {
+                // Seule commande globale : /journal (installable sur un compte, « User Install »).
                 body:
-                    []
+                    [require("./systems/journal").data.toJSON()]
             }
         );
 
@@ -2275,6 +2276,7 @@ client.on(
     Events.InteractionCreate,
     async interaction => {
         try {
+            if (require('./systems/journal').owns(interaction)) return await require('./systems/journal').handle(interaction);
             if (interaction.customId?.startsWith('qgp:')) return await require('./systems/qgProfileCatchup').handle(interaction);
             if (interaction.customId?.startsWith('ownerDM:')) return await require('./systems/botOwnerTools').handle(interaction);
             if (interaction.isChatInputCommand() && ['mp','mpall'].includes(interaction.commandName)) return await require('./systems/botOwnerTools').execute(interaction);

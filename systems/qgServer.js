@@ -332,6 +332,7 @@ async function interaction(i){
  if(i.isChatInputCommand?.()&&i.commandName==='animation')return require('./qgAnimations').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='testanim')return require('./qgAnimationLive').test(i);
  if(i.customId?.startsWith('qgal:'))return require('./qgAnimationLive').handle(i);
+ if(i.customId?.startsWith('qgan:'))return require('./qgAnimations').newsHandle(i);
  if(i.customId?.startsWith('qga:'))return require('./qgAnimations').handle(i);
  if(i.isChatInputCommand?.()&&i.commandName==='cd')return require('./qgRecruitmentControl').execute(i);
  if(i.isChatInputCommand?.()&&i.commandName==='user')return require('./qgUserPanel').execute(i);

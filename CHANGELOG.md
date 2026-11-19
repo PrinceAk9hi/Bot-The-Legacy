@@ -13,6 +13,8 @@ consulter l'historique Git.
   clair) avec trois boutons : Publier l'annonce, Modifier la description (courte et détaillée), Ne pas annoncer.
   L'aperçu suit les modifications de l'animation tant qu'elle n'est pas publiée. Publication : mention du rôle
   « A / Sanctions / Grade » et lien ajouté dans le planning. S'applique aussi aux animations déjà créées.
+- L'aperçu s'affiche aussi sur Discord (message privé visible par l'animateur seul) juste après la création, et le
+  bouton « 📣 Annonce » de la fiche d'une animation le réaffiche à tout moment (utile si les MP sont fermés).
 - Bouton « S'inscrire » (planning et annonce) avec l'emoji :statusonline: du serveur.
 - Modifiés : `systems/qgAnimations.js`, `systems/qgServer.js`, tests.
 

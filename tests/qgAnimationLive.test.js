@@ -114,19 +114,41 @@ test('panel animations : « Créer » depuis le panel public, le formulaire rép
  assert.ok(!calls.some(c=>c[0]==='deferUpdate'));
 });
 
-test('annonce d’une nouvelle animation : mention du rôle Sanctions/Grade, détails, emojis du serveur, une seule fois',async()=>{
+test('annonce : aperçu en MP à l’animateur, publication avec mention seulement après confirmation',async()=>{
  const anim=require('../systems/qgAnimations');
- a.save(s=>{s.schoolRoles={separatorGrade:'sg'};s.schoolAnimations={events:{},posts:{},suggestions:{},calendar:[],deliveries:{},newsSince:1};});
- const e=anim.newEvent({title:'Course de karts',summary:'Une course folle',startAt:Date.now()+86400000,minutes:90,type:'Jeu',organizerId:'org',coorganizers:[],capacity:8,signups:true,format:'teams',teamSize:4,randomTeams:true,families:['Dynasty']},'org');
+ a.save(s=>{s.schoolRoles={separatorGrade:'sg',animationLead:'resp'};s.schoolAnimations={events:{},posts:{},suggestions:{},calendar:[],deliveries:{}};});
+ // Animation déjà créée avant la mise à jour : elle reçoit aussi son aperçu.
+ const e={...anim.newEvent({title:'Course de karts',summary:'Une course folle',description:'Rendez-vous sur la piste',startAt:Date.now()+86400000,minutes:90,type:'Jeu',organizerId:'org',coorganizers:[],capacity:8,signups:true,format:'teams',teamSize:4,randomTeams:true,families:['Dynasty']},'org'),createdAt:1};
  anim.save(s=>{s.events[e.id]=e;});
- const sent=[],emojis=new Collection([['1',{id:'1',name:'calendar_qg',available:true}]]);
- const ch={id:anim.NEWS,guildId:config.guildId,isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'n1'};},messages:{fetch:async()=>({edit:async p=>sent.push(['edit',p])})}};
- const guild={id:config.guildId,emojis:{cache:emojis},channels:{fetch:async id=>id===anim.NEWS?ch:null}};
+ const dms=[],news=[],emojis=new Collection([['1',{id:'1',name:'calendar_qg',available:true}]]);
+ const dm={id:'dm',send:async p=>{dms.push(p);return{id:'p1',channelId:'dm'};},messages:{fetch:async()=>({id:'p1',edit:async p=>dms.push(p)})}};
+ const ch={id:anim.NEWS,guildId:config.guildId,isTextBased:()=>true,send:async p=>{news.push(p);return{id:'n1'};},messages:{fetch:async()=>null}};
+ const member={id:'org',roles:{cache:new Map()},guild:{id:config.guildId,ownerId:'x'}};
+ const guild={id:config.guildId,emojis:{cache:emojis},roles:{cache:new Map([['sg',{name:'A / Sanctions / Grade'}]])},channels:{fetch:async id=>id===anim.NEWS?ch:null},
+  members:{fetch:async()=>member},client:{users:{fetch:async()=>({createDM:async()=>dm})}}};
  assert.equal(await anim.announceEvent(guild,e.id),true);
- const text=JSON.stringify(sent[0].components[0].toJSON());
- assert.match(text,/<@&sg>/);assert.deepEqual(sent[0].allowedMentions.roles,['sg']);
- for(const x of ['Course de karts','Une course folle','<:calendar_qg:1>','90 min','équipes de 4 joueurs, tirées au sort','Dynasty','0/8 places','S’inscrire'])assert.ok(text.includes(x),x);
- assert.match(text,/https:\/\/discord\.com\/channels\/\d+\/1562845037799280650/);
- assert.equal(await anim.announceEvent(guild,e.id),false,'pas de doublon');
- assert.equal(anim.event(e.id).news.messageId,'n1');
+ assert.equal(news.length,0,'rien de publié sans confirmation');
+ const text=JSON.stringify(dms[0].components.map(c=>c.toJSON()));
+ for(const x of ['Aperçu de l’annonce','Course de karts','Une course folle','Rendez-vous sur la piste','<:calendar_qg:1>','équipes de 4 joueurs, tirées au sort','Dynasty','@A / Sanctions / Grade','qgan:publish:','qgan:edit:','qgan:skip:'])assert.ok(text.includes(x),x);
+ assert.ok(!text.includes('<@&sg>'),'pas de mention dans l’aperçu');
+ assert.equal(await anim.announceEvent(guild,e.id),false,'aperçu envoyé une seule fois');
+ // Modifier la description puis publier, depuis le MP.
+ const replies=[];const click=(customId,extra={})=>anim.newsHandle({customId,user:{id:'org'},client:{guilds:{cache:new Map([[config.guildId,guild]])}},deferUpdate:async()=>{},editReply:async p=>replies.push(p),reply:async p=>replies.push(p),...extra});
+ await click('qgan:save:'+e.id,{fields:{getTextInputValue:k=>k==='summary'?'Nouvelle description':'Détails'}});
+ assert.equal(anim.event(e.id).summary,'Nouvelle description');assert.ok(JSON.stringify(replies[0].components.map(c=>c.toJSON())).includes('Nouvelle description'));
+ await click('qgan:publish:'+e.id);
+ assert.equal(news.length,1);assert.ok(JSON.stringify(news[0].components[0].toJSON()).includes('<@&sg>'));assert.deepEqual(news[0].allowedMentions.roles,['sg']);
+ assert.match(JSON.stringify(replies.at(-1).components[0].toJSON()),/publiée/);
+ await click('qgan:publish:'+e.id);assert.equal(news.length,1,'pas de doublon');
+ // Quelqu’un d’autre ne peut pas valider.
+ member.id='autre';const before=replies.length;await click('qgan:skip:'+e.id);assert.match(replies[before].content,/Seul l’animateur/);
+});
+
+test('bouton S’inscrire : emoji :statusonline: du serveur, sinon ✋',()=>{
+ const anim=require('../systems/qgAnimations');
+ const e={...anim.newEvent({title:'X',startAt:Date.now()+86400000,minutes:30,organizerId:'o',coorganizers:[],capacity:null,signups:true},'o')};
+ const guild={id:config.guildId,emojis:{cache:new Collection([['9',{id:'9',name:'statusonline',available:true}]])},roles:{cache:new Map()}};
+ const btn=JSON.stringify(anim.newsPayload(guild,e).components[0].toJSON());
+ assert.match(btn,/"emoji":\{"id":"9","name":"statusonline","animated":false\}/);
+ assert.match(JSON.stringify(anim.newsPayload({emojis:{cache:new Collection()},roles:{cache:new Map()}},e).components[0].toJSON()),/✋/);
 });

@@ -472,6 +472,8 @@ function register(client){
   if(event===Events.PresenceUpdate)return true;
   return emit.call(this,event,...args);
  };
+ // Aperçu d'annonce d'animation, validé en MP.
+ client.on(Events.InteractionCreate,i=>{if(!i.guildId&&i.customId?.startsWith('qgan:'))require('./qgAnimations').newsHandle(i).catch(async e=>{await(i.deferred||i.replied?i.followUp({content:'❌ '+e.message}):i.reply({content:'❌ '+e.message})).catch(report);});});
  client.on(Events.InteractionCreate,i=>{if(!i.guildId&&i.customId?.startsWith('qgd:appeal'))require('./qgDiscipline').handle(i).catch(async e=>{await i.reply({content:e.message}).catch(report);});});
  client.on(Events.MessageCreate,m=>{if(!m.guildId)guarded(require('./qgSchoolApplications').directMessage,m);});
  client.once(Events.ClientReady,()=>guarded(async()=>{

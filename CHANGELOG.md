@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 102 — Aperçu de l'annonce en MP avant publication
+
+- L'annonce d'une animation est préparée automatiquement, mais n'est plus publiée d'office : l'animateur reçoit en
+  MP l'aperçu exact (description, date, format, places, familles, emojis du serveur ; mention du rôle écrite en
+  clair) avec trois boutons : Publier l'annonce, Modifier la description (courte et détaillée), Ne pas annoncer.
+  L'aperçu suit les modifications de l'animation tant qu'elle n'est pas publiée. Publication : mention du rôle
+  « A / Sanctions / Grade » et lien ajouté dans le planning. S'applique aussi aux animations déjà créées.
+- Bouton « S'inscrire » (planning et annonce) avec l'emoji :statusonline: du serveur.
+- Modifiés : `systems/qgAnimations.js`, `systems/qgServer.js`, tests.
+
 ## 101 — Annonce des nouvelles animations, planning simplifié
 
 - À la création d'une animation : annonce dans 1562191460873404436 avec mention du rôle « A / Sanctions / Grade »,

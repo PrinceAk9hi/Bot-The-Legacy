@@ -81,3 +81,11 @@ test('MP : 15 minutes avant, lien du vocal d’attente et déplacement à l’he
  const t=live.soonText('Course',Date.UTC(2026,10,20,20));
  assert.match(t,new RegExp(`<#${live.WAIT_ROOM}>`));assert.match(t,/discord\.com\/channels\/\d+\/1561466341989425273/);assert.match(t,/déplacé automatiquement à l’heure prévue/);
 });
+
+test('chat d’équipe : pseudo Roblox à copier et lien du profil de chaque joueur',()=>{
+ a.save(s=>{s.schoolEntryVerification={a:{robloxId:'123',robloxName:'JoueurA'}};});
+ assert.equal(live._test.playerLine('a'),'<@a> · Roblox : `JoueurA` · [profil](https://www.roblox.com/users/123/profile)');
+ assert.equal(live._test.playerLine('b'),'<@b> · Roblox non relié');
+ const t=live._test.teamMessage('Équipe 1',['a','b']);
+ assert.match(t,/^<@a> <@b>\nVous êtes l’\*\*Équipe 1\*\*/);assert.match(t,/pseudo Roblox à copier[\s\S]*`JoueurA`[\s\S]*Roblox non relié/);
+});

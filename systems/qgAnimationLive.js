@@ -33,6 +33,12 @@ const embed=(title,text,color=0xffffff)=>new EmbedBuilder().setColor(color).setT
 const reminderText=(title,startAt)=>`**${title}** commence <t:${Math.floor(startAt/1000)}:R> (<t:${Math.floor(startAt/1000)}:t>).`;
 const soonText=(title,startAt)=>`⏰ **${title}** commence dans 15 minutes (<t:${Math.floor(startAt/1000)}:t>).\n\nRejoins le vocal <#${WAIT_ROOM}> ([rejoindre](${waitUrl()})) : tu seras **déplacé automatiquement à l’heure prévue**.`;
 
+// Ligne d'un joueur dans le chat de son équipe : mention, pseudo Roblox à copier et lien du profil.
+function playerLine(id){
+ const r=require('./qgOtherFamilies')._test.robloxOf(id);
+ return r?`<@${id}> · Roblox : \`${r.name}\` · [profil](https://www.roblox.com/users/${r.id}/profile)`:`<@${id}> · Roblox non relié`;
+}
+const teamMessage=(name,ids)=>`${ids.map(x=>`<@${x}>`).join(' ')}\nVous êtes l’**${name}** ! Vous pouvez aussi discuter ici, dans le chat de votre vocal.\n\n**Joueurs de l’équipe** (pseudo Roblox à copier pour vous ajouter) :\n${ids.map(playerLine).join('\n')}`;
 // Répartition : équipes aléatoires de teamSize joueurs au plus (équipes équilibrées).
 function shuffle(list,random=Math.random){const x=[...list];for(let n=x.length-1;n>0;n--){const k=Math.floor(random()*(n+1));[x[n],x[k]]=[x[k],x[n]];}return x;}
 function teams(players,teamSize,random=Math.random){
@@ -115,7 +121,7 @@ async function start(guild,spec){
  // Chaque équipe est mentionnée dans le chat de son vocal.
  if(teamMode)for(const v of voices.filter(x=>!x.lobby&&x.members.length)){
   const ch=await guild.channels.fetch(v.id).catch(()=>null);
-  await ch?.send({content:`${v.members.map(x=>`<@${x}>`).join(' ')}\nVous êtes l’**${v.name}** ! Vous pouvez aussi discuter ici, dans le chat de votre vocal.`,allowedMentions:{parse:[],users:v.members}}).catch(()=>{});
+  await ch?.send({content:teamMessage(v.name,v.members).slice(0,2000),flags:MessageFlags.SuppressEmbeds,allowedMentions:{parse:[],users:v.members}}).catch(()=>{});
  }
  await announce.send({embeds:[embed(`🎉 ${spec.title}`,`L’animation commence !${teamMode?`\n${voices.filter(v=>!v.lobby).map(v=>`**${v.name}** : ${v.members.map(x=>`<@${x}>`).join(', ')||'à compléter'}`).join('\n')}`:''}`)],allowedMentions:{parse:[]}}).catch(()=>{});
  const missing=(spec.invitees||[]).filter(x=>!players.includes(x));
@@ -216,6 +222,7 @@ async function lateArrivals(guild,id){
    const ch=await guild.channels.fetch(target.id).catch(()=>null);
    await ch?.permissionOverwrites.edit(m.id,{ViewChannel:true,Connect:true,Speak:true,UseVAD:true,SendMessages:true,ReadMessageHistory:true}).catch(()=>{});
    put(id,x=>{x.voices.find(v=>v.id===target.id).members.push(m.id);});
+   if(rec.format==='teams'&&!target.lobby)await ch?.send({content:`${playerLine(m.id)}\nrejoint l’**${target.name}** ! Tu peux aussi discuter ici.`,flags:MessageFlags.SuppressEmbeds,allowedMentions:{parse:[],users:[m.id]}}).catch(()=>{});
   }
   await m.voice.setChannel(target.id,'Arrivée en retard à l’animation').then(()=>n++,()=>{});
  }
@@ -274,4 +281,4 @@ async function test(i){
  const rec=await start(i.guild,spec);
  return i.editReply([`🧪 Test lancé : **${spec.title}**.`,`MP 1 h et 15 min : ${dms.every(Boolean)?'envoyés':'non remis (MP fermés ?)'}.`,`Déplacés : ${rec.moved.length} · Salons : <#${rec.voices[0].id}>.`,`Confirmation dans <#${CONFIRM_CHANNEL}>, panneau en direct dans <#${PANEL_CHANNEL}>.`,'Le test se termine avec le bouton « Terminer l’animation », sinon tout seul après 45 minutes.'].join('\n'));
 }
-module.exports={WAIT_ROOM,CONFIRM_CHANNEL,PANEL_CHANNEL,data,test,prepare,start,end,tick,voice,handle,specOf,setMute,reminderText,soonText,_test:{teams,shuffle,voiceOverwrites,textOverwrites,livePayload,lateArrivals}};
+module.exports={WAIT_ROOM,CONFIRM_CHANNEL,PANEL_CHANNEL,data,test,prepare,start,end,tick,voice,handle,specOf,setMute,reminderText,soonText,_test:{playerLine,teamMessage,teams,shuffle,voiceOverwrites,textOverwrites,livePayload,lateArrivals}};

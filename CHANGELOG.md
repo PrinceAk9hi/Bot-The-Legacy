@@ -23,6 +23,8 @@ consulter l'historique Git.
 - Panneau « en direct » sous le panel animations : Mute all / Unmute all (sauf Direction, Responsable et
   Exécutants animation, depuis un vocal de l'animation) et Terminer. Nettoyage 30 min après la fin prévue.
 - /testanim (équipes aléatoires ou animation groupée) : tout le déroulé immédiatement, MP compris.
+- Chat de chaque vocal d'équipe : pour chaque joueur, pseudo Roblox à copier et lien de son profil (aperçus de
+  liens masqués) ; un retardataire est présenté de la même façon en arrivant.
 - Ajoutés : `systems/qgAnimationLive.js`, `commandes/testanim.js`, `tests/qgAnimationLive.test.js`. Modifiés :
   `systems/qgAnimations.js`, `systems/qgPanels.js`, `systems/qgServer.js`, `index.js`.
 

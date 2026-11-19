@@ -26,6 +26,8 @@ consulter l'historique Git.
 - Chat de chaque vocal d'équipe : pour chaque joueur, pseudo Roblox à copier et lien de son profil (aperçus de
   liens masqués) ; un retardataire est présenté de la même façon en arrivant.
 - Salons de l'animation : fils, messages vocaux et soundboard interdits aux joueurs, à @everyone et à Hors du QG.
+- Correctif : « Créer » depuis le panel animations provoquait l'erreur MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2
+  (le formulaire tentait de modifier le panel). La suite s'affiche désormais en message privé.
 - Ajoutés : `systems/qgAnimationLive.js`, `commandes/testanim.js`, `tests/qgAnimationLive.test.js`. Modifiés :
   `systems/qgAnimations.js`, `systems/qgPanels.js`, `systems/qgServer.js`, `index.js`.
 

@@ -97,3 +97,19 @@ test('salons de l’animation : fils, messages vocaux et soundboard interdits au
  for(const o of [v.find(x=>x.id==='g'),v.find(x=>x.id==='hors'),v.find(x=>x.id==='m1'),t.find(x=>x.id==='g'),t.find(x=>x.id==='m1')])for(const bit of blocked)assert.ok(o.deny.includes(bit),o.id+' '+bit);
  assert.ok(!(v.find(x=>x.id==='resp').deny||[]).length,'l’équipe animation garde ses droits');
 });
+
+test('panel animations : « Créer » depuis le panel public, le formulaire répond en privé sans toucher au panel',async()=>{
+ const anim=require('../systems/qgAnimations'),{MessageFlags,MessageFlagsBitField}=require('discord.js');
+ a.save(s=>{s.schoolRoles={animationLead:'resp'};});
+ const member={id:'u1',roles:{cache:new Map([['resp',{}]])},guild:{id:config.guildId,ownerId:'x'}};
+ const base={user:{id:'u1'},guildId:config.guildId,guild:{id:config.guildId,ownerId:'x',members:{fetch:async()=>member}}};
+ let modal;await anim.handle({...base,customId:'qga:p:new',showModal:async m=>{modal=m.toJSON();}});
+ const calls=[];
+ const submit={...base,customId:modal.custom_id,isModalSubmit:()=>true,message:{flags:new MessageFlagsBitField(MessageFlags.IsComponentsV2)},
+  fields:{getTextInputValue:k=>({title:'Course',summary:'Résumé',start:'20/11/2030 21:00',minutes:'60',type:'Jeu'})[k]},
+  deferReply:async o=>calls.push(['deferReply',o.flags]),deferUpdate:async()=>calls.push(['deferUpdate']),editReply:async p=>calls.push(['editReply',!!p.embeds])};
+ await anim.handle(submit);
+ assert.deepEqual(calls[0],['deferReply',MessageFlags.Ephemeral]);
+ assert.deepEqual(calls.at(-1),['editReply',true]);
+ assert.ok(!calls.some(c=>c[0]==='deferUpdate'));
+});

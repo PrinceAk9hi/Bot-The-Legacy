@@ -167,7 +167,9 @@ async function handle(i){const [,op,id,extra]=i.customId.split(':');
   if(op==='report'){if(!e||['Annulée','Supprimée','Archivée'].includes(e.status)||Date.now()<e.startAt)throw Error('Compte rendu disponible après le début prévu d’une animation non annulée.');return i.showModal(u.form('qga:save-report:'+id,'Compte rendu · bilan',[['participants','Nombre réel de participants'],['duration','Durée réelle en minutes'],['rating','Note globale sur 5'],['proceedings','Déroulement','',true,true],['results','Résultats et récompenses distribuées','',false,true]]));}
   return i.showModal(u.form('qga:save-report-detail:'+id,'Compte rendu · retour d’expérience',[['positive','Points positifs','',false,true],['issues','Problèmes rencontrés','',false,true],['suggestions','Suggestions d’amélioration','',false,true]]));
  }
- await i.deferUpdate();
+ // Formulaire ouvert directement depuis le panel public (ex. « Créer ») : réponse privée, le panel n'est jamais modifié.
+ if(i.isModalSubmit?.()&&i.message&&!i.message.flags?.has?.(u.MessageFlags.Ephemeral))await i.deferReply({flags:u.MessageFlags.Ephemeral});
+ else await i.deferUpdate();
  if(op.startsWith('save-')||op==='replace-posttext'||op.startsWith('reason-'))u.claimForm(id,i.customId);
  if(op==='home'||op==='page')return home(i,id,op==='page'?Number(extra)||0:0);
  if(op==='open'){u.patch(id,x=>{x.eventId=i.values[0];delete x.draft;delete x.sourceVersion;});return show(i,id);}

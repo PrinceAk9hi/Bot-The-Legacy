@@ -5,7 +5,8 @@ async function panels(guild){return a.serial('maintenance-panels',async()=>{
  for(const [key,record] of Object.entries(saved)){
   try{
    const payload=key==='managementFollowup'?await require('./qgSchoolManagementBoard').buildPanel(guild):await require('./qgSchoolSetup').panelPayload(key,guild);
-   if(!payload){notices.push(key+' : ancien panneau ignoré');continue;}
+   // Panneau retiré du bot (ex. notifications) : son message est supprimé et il n'est plus suivi.
+   if(!payload){const old=await guild.channels.fetch(record.channelId).catch(()=>null);const m=old?.isTextBased?.()?await old.messages.fetch(record.messageId).catch(()=>null):null;if(m&&m.author.id===guild.client.user.id)await m.delete().catch(()=>{});a.save(s=>{delete s.schoolPanels[key];});notices.push(key+' : ancien panneau retiré');continue;}
    const current=a.state().schoolChannels?.[key]||record.channelId;
    const ch=await guild.channels.fetch(current).catch(e=>{if(e.code===10003)return null;throw e;});
    if(!ch){a.save(s=>{s.schoolPanelArchives||={};s.schoolPanelArchives[key]={...record,archivedAt:Date.now(),reason:'Salon supprimé'};delete s.schoolPanels[key];});notices.push(key+' : référence au salon supprimé archivée');continue;}
@@ -13,7 +14,9 @@ async function panels(guild){return a.serial('maintenance-panels',async()=>{
    let msg=current===record.channelId?await ch.messages.fetch(record.messageId).catch(e=>{if(e.code===10008)return null;throw e;}):null;
    if(!msg){const recent=await ch.messages.fetch({limit:100});const ids=(payload.components||[]).flatMap(r=>(r.toJSON?.()||r).components||[]).map(c=>c.custom_id).filter(Boolean);const title=payload.embeds?.[0]?.toJSON?.().title;msg=recent.find(m=>m.author.id===guild.client.user.id&&(ids.length?m.components?.some(r=>r.components?.some(c=>ids.includes(c.customId))):title&&m.embeds?.[0]?.title===title));}
    if(msg&&msg.author.id!==guild.client.user.id)throw Error('Le message appartient à un autre compte');
-   if(msg)await msg.edit({...payload,attachments:[]});else msg=await ch.send(payload);
+   // Supprimé à la main : on respecte ce choix, le panneau n'est plus republié ni suivi.
+   if(!msg){a.save(s=>{s.schoolPanelArchives||={};s.schoolPanelArchives[key]={...record,archivedAt:Date.now(),reason:'Supprimé à la main'};delete s.schoolPanels[key];});notices.push(key+' : supprimé à la main, non republié');continue;}
+   await msg.edit({...payload,attachments:[]});
    a.save(s=>{s.schoolPanels[key]={channelId:ch.id,messageId:msg.id};});count++;
   }catch(e){notices.push(key+' : '+readable(e));}
  }

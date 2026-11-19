@@ -19,7 +19,6 @@ async function install(guild){return a.serial('support-install',async()=>{
   // Un salon d'annonces reste un salon textuel valable.
   channel ||= guild.channels.cache.find(ch=>ch.parentId===categoryId&&ch.name===name&&[T.GuildText,T.GuildAnnouncement].includes(ch.type));
   if(channel&&![T.GuildText,T.GuildAnnouncement].includes(channel.type))throw Error('Le salon '+name+' doit être un salon textuel.');
-  if(channel&&channel.parentId!==categoryId)await channel.edit({parent:categoryId,permissionOverwrites:overwrites,reason:'Rétablissement de l’espace privé Support QG'});
   if(!channel)channel=await guild.channels.create({name,type:T.GuildText,parent:categoryId,permissionOverwrites:overwrites,reason:'Espace Gestion Support QG'});
   a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=channel.id;s.schoolCategories||={};s.schoolCategories.supportManagement=categoryId;});
  }

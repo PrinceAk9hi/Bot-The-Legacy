@@ -102,7 +102,7 @@ async function install(guild){return a.serial('casino-install',async()=>{
  for(const [key,name,parent,type]of CHANNELS){
   const parentId=a.state().schoolCategories[parent];let ch=guild.channels.cache.get(a.state().schoolChannels?.[key]);ch||=guild.channels.cache.find(c=>c.parentId===parentId&&c.name===name&&compatible(c,type));if(ch&&!compatible(ch,type))throw Error('Salon casino incompatible : '+key);
   const grants=channelGrants(guild,key,parent,type);
-  if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});else if(ch.parentId!==parentId)await ch.setParent(parentId,{lockPermissions:false});
+  if(!ch)ch=await guild.channels.create({name,type,parent:parentId,permissionOverwrites:grants,reason:'Installation casino QG'});
   a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});
  }
  a.save(s=>{s.schoolCasino||={};s.schoolCasino.enabled??=true;s.schoolCasino.installedAt??=Date.now();});

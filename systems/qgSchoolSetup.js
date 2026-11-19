@@ -44,7 +44,8 @@ const ruleText = `Bienvenue dans la famille SchoolRP. L’accès au serveur impl
 
 function panelPayload(key, guild) {
   if (key === 'tickets') return require('./qgPanels').tickets(guild);
-  if (key === 'notifications') return require('./qgPanels').notifications();
+  // Panneau des notifications retiré (rôles supprimés) : plus jamais publié.
+  if (key === 'notifications') return null;
   if (key === 'joinManagement') return require('./qgPanels').management(guild);
   if (['communityCommands','familyCommands'].includes(key)) return require('./qgSchoolVoice').panel();
   if (['absences', 'rankUp'].includes(key)) return require('./qgSchoolFamily').panel(key);
@@ -139,7 +140,7 @@ async function install(guild, client) {
       chs[key] = ch.id; store(s => { s.schoolChannels ||= {}; s.schoolChannels[key] = ch.id; });
     }
     await require('./qgTicketRouting').ensure(guild);
-    for (const [key, channelKey] of Object.entries({ rules: 'rules', notifications: 'notifications', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityCommands: 'communityCommands', familyCommands: 'familyCommands', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
+    for (const [key, channelKey] of Object.entries({ rules: 'rules', tickets: 'tickets', help: 'help', familyApplications: 'familyApplications', joinManagement: 'joinManagement', absences: 'absences', rankUp: 'rankUp', levelsInfo: 'levelsInfo', familyGuide: 'familyGuide', familyChart: 'familyChart', giveawaysInfo: 'giveawaysInfo', communityCommands: 'communityCommands', familyCommands: 'familyCommands', familyGiveaways: 'familyGiveaways', foundationReports: 'foundationReports', managementFollowup: 'managementFollowup' })) {
       let payload = await panelPayload(key, guild); if (key === 'managementFollowup') payload = await require('./qgSchoolManagementBoard').buildPanel(guild);
       if (!payload) continue;
       const channel = await guild.channels.fetch(chs[channelKey]);

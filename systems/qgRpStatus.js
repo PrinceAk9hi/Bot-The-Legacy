@@ -15,7 +15,6 @@ async function ensureRole(guild,kind){return a.serial('rp-roles',async()=>{
  if(!role&&kind==='prison')role=guild.roles.cache.find(r=>r.name==='Prison RP'&&!r.managed);
  if(!role)role=await guild.roles.create({name:names[kind],permissions:[],color:0x999999,reason:'Rôle de gestion QG'});
  if(role.permissions.bitfield!==0n||!role.editable)throw Error('Le rôle doit être modifiable et sans permission globale.');
- if(kind==='prison'&&role.name!==names.prison)await role.setName(names.prison,'Prison Discord QG');
  a.save(s=>{s.schoolRoles||={};s.schoolRoles[keys[kind]]=role.id;});return role;
 });}
 async function channels(guild){return [...(await guild.channels.fetch()).values()].filter(c=>c&&!c.isThread()&&c.permissionOverwrites).sort((x,y)=>Number(!!x.parentId)-Number(!!y.parentId));}

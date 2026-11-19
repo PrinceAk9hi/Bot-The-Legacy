@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 99 — Réglages faits à la main respectés, panneau des notifications supprimé
+
+- Au démarrage, l'espace recruteur et l'espace Support remettaient l'emplacement et les permissions de leurs
+  salons ; le casino replaçait ses salons ; la prison renommait son rôle toutes les minutes. Les salons et
+  rôles existants ne sont plus touchés : seuls les éléments manquants sont créés.
+- Panneaux : un panneau supprimé à la main n'est plus republié (il est archivé). Le panneau des notifications
+  est retiré pour de bon : son message est supprimé et il ne revient plus.
+- Modifiés : `systems/qgMaintenance.js`, `systems/qgSchoolSetup.js`, `systems/qgInterviews.js`,
+  `systems/qgSupportWorkspace.js`, `systems/qgCasino.js`, `systems/qgRpStatus.js`, tests.
+
 ## 98 — Tranche d'âge retrouvée pour tous les membres vérifiés
 
 - La fiche de vérification était réécrite sans la tranche d'âge quand un membre quittait puis revenait sur le

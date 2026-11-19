@@ -144,3 +144,17 @@ test('tranche d’âge : reprise de la dernière vérification quand la fiche ac
  assert.equal(bracket('z'),'18','ancien rôle de vérification');
  assert.equal(bracket('inconnu'),null);
 });
+
+test('panneaux : supprimé à la main → jamais republié ; panneau des notifications retiré → message supprimé',async()=>{
+ const {panels}=require('../systems/qgMaintenance'),sent=[],deleted=[];
+ a.save(s=>{s.schoolChannels={rules:'c1',notifications:'c2'};s.schoolPanels={rules:{channelId:'c1',messageId:'gone'},notifications:{channelId:'c2',messageId:'n1'}};});
+ const notif={id:'n1',author:{id:'bot'},delete:async()=>deleted.push('n1')};
+ const ch=id=>({id,guildId:config.guildId,isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'new'};},messages:{fetch:async x=>{if(typeof x==='object')return new Collection();if(x==='n1')return notif;const e=Error('Unknown Message');e.code=10008;throw e;}}});
+ const guild={id:config.guildId,client:{user:{id:'bot'}},channels:{fetch:async id=>ch(id)}};
+ const r=await panels(guild);
+ assert.equal(sent.length,0,'aucun panneau republié');
+ assert.deepEqual(deleted,['n1']);
+ assert.deepEqual(Object.keys(a.state().schoolPanels),[]);
+ assert.equal(a.state().schoolPanelArchives.rules.reason,'Supprimé à la main');
+ assert.ok(r.notices.some(n=>/supprimé à la main/.test(n)));
+});

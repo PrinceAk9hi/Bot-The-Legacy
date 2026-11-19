@@ -54,7 +54,9 @@ test('the regulation fits a single Discord embed description', () => {
 });
 
 test('persistent panels use stable custom IDs and the six configured management teams (casino included)', async () => {
-  for (const key of ['rules', 'notifications', 'familyApplications', 'joinManagement', 'absences', 'rankUp']) assert.ok(setup.panelPayload(key));
+  for (const key of ['rules', 'familyApplications', 'joinManagement', 'absences', 'rankUp']) assert.ok(await setup.panelPayload(key));
+  // Panneau des notifications retiré : plus jamais publié.
+  assert.equal(await setup.panelPayload('notifications'), null);
   const management = (await setup.panelPayload('joinManagement')).components[0].components[0];
   assert.equal(management.toJSON().options.length, 6);
   assert.deepEqual(management.toJSON().options.map(x => x.value), ['rpManagement', 'ticketsManagement', 'recruitmentManagement', 'animationManagement', 'networksManagement', 'casinoOperator']);

@@ -138,7 +138,6 @@ async function install(guild){
    // Les bureaux sont visibles aux candidats en attente, mais seul un recruteur peut les y déplacer.
    if(key.match(/^interview[1-5]$/))access.push({id:roles().interviewWaiting,allow:[P.ViewChannel],deny:[P.Connect]});
    if(!ch)ch=await guild.channels.create({name,type,parent:category.id,permissionOverwrites:overwrites(guild,access)});
-   else await ch.edit({parent:category.id,permissionOverwrites:overwrites(guild,access),reason:'Installation explicite de l’espace recruteur'});
    a.save(s=>{s.schoolChannels||={};s.schoolChannels[key]=ch.id;});
   }
   const ch=await require('./qgRecruitmentHub').install(guild);

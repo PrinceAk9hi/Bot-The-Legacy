@@ -6,6 +6,26 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 100 — Animations en direct, panel animations, familles invitées, /testanim
+
+- Salon help-qg : l'effectif n'y est plus affiché.
+- Panel du salon des animations présenté comme le panel recruteur (boutons directs : Créer, Mes animations,
+  Publications, Statistiques, Propositions, Proposer).
+- Création : format « Animation groupée » ou « Équipes » (joueurs max par équipe, équipes aléatoires ou non) et
+  familles invitées choisies dans la liste des familles actives (deux menus). Les membres du serveur dont le compte
+  Roblox est dans ces familles sont invités comme les inscrits.
+- MP personne par personne 1 h avant (avec accès au vocal d'attente) et 15 min avant, avec le lien du vocal
+  1561466341989425273 : déplacement automatique à l'heure prévue.
+- À l'heure prévue : catégorie au-dessus des vocaux communautaires (vocal commun ou un vocal par équipe, chat
+  réservé à l'équipe avec mention de ses membres, rassemblement si équipes non aléatoires, annonces réservées à
+  l'équipe animation, discussion commune) ; tout le monde voit les vocaux sans y entrer. Invités déplacés
+  (aléatoirement en équipes), retardataires déplacés ensuite ; confirmation à l'animateur dans 1561461409080934440.
+- Panneau « en direct » sous le panel animations : Mute all / Unmute all (sauf Direction, Responsable et
+  Exécutants animation, depuis un vocal de l'animation) et Terminer. Nettoyage 30 min après la fin prévue.
+- /testanim (équipes aléatoires ou animation groupée) : tout le déroulé immédiatement, MP compris.
+- Ajoutés : `systems/qgAnimationLive.js`, `commandes/testanim.js`, `tests/qgAnimationLive.test.js`. Modifiés :
+  `systems/qgAnimations.js`, `systems/qgPanels.js`, `systems/qgServer.js`, `index.js`.
+
 ## 99 — Réglages faits à la main respectés, panneau des notifications supprimé
 
 - Au démarrage, l'espace recruteur et l'espace Support remettaient l'emplacement et les permissions de leurs

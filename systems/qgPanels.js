@@ -48,15 +48,9 @@ async function guide(guild){
  const roleName=(key,fallback)=>guild?.roles?.cache?.get(r[key])?.name?.replace(/^«\s*I\s*/,'')||fallback;
  // 1. Présentation + communauté Roblox
  const intro=embed('⛩️ Guide de la famille QG',`${b}Bienvenue dans le guide de la famille ! Retrouve ici nos salons, nos grades et le lien de notre communauté Roblox.\n\n🎮 **Communauté Roblox**\n${link}\nEnvoie ta demande d’adhésion : elle est acceptée quand tu passes **Membre Confirmé**.\n\n🏛️ **Direction**\n${['creator','globalManager','referent'].map(k=>r[k]?`<@&${r[k]}>`:null).filter(Boolean).join(' → ')||'Créateur → Gérant Global → Référent du QG'}\nLa Direction encadre la famille et valide les décisions importantes.`);
- // 2. Grades et effectifs
- const lines=grades.map(([key,emoji])=>{const n=count(r[key]);return `${emoji} **${roleName(key,key)}** — ${n===null?'?':n} membre${n>1?'s':''}`;});
- const total=humans?humans.filter(m=>grades.some(([k])=>r[k]&&m.roles.cache.has(r[k]))).length:null;
- // Effectif complet (direction, grades, exécutants) : EMOJI @Rôle - NOMBRE, emoji retrouvé d'après le badge du rôle.
- let full=null;
- if(guild&&humans){const up=require('./qgCommunityUpgrade');full=up.fullRoster(guild,humans,await up.badgeMap(guild)).map(p=>`**${p.title}**\n${p.lines.join('\n')}`).join('\n\n');}
- const gradesEmbed=embed('📈 Grades et effectifs',`${full||lines.join('\n')}\n\n**Total famille : ${total===null?'?':total}**\n\nLes promotions sont décidées par les responsables habilités selon l’activité, l’investissement et le comportement. Aucune promotion n’est automatique.\n-# Effectifs mis à jour automatiquement.`);
+ // L’effectif n’est plus affiché dans ce guide (il a son propre salon).
  // 3. Les salons de la famille (catégories contenant « FAMILLE » + celle de ce guide)
- const embeds=[intro,gradesEmbed];
+ const embeds=[intro];
  if(guild){
   await guild.channels.fetch().catch(()=>null);
   const guideParent=guild.channels.cache.get(s.schoolChannels?.familyGuide)?.parentId;

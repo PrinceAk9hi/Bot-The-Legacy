@@ -1,0 +1,83 @@
+const {test,beforeEach,after}=require('node:test');
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const data=require('../utils/recruitmentData'),a=require('../utils/qgAdmin'),config=require('../config/qg'),{Collection,PermissionFlagsBits:P,ChannelType:T}=require('discord.js');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qg-anim-live-'));data.setDataDirectory(dir);
+after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+beforeEach(()=>{for(const f of fs.readdirSync(dir))fs.rmSync(path.join(dir,f),{force:true});});
+const live=require('../systems/qgAnimationLive');
+
+test('équipes aléatoires : équilibrées, sans doublon, au plus N joueurs par équipe',()=>{
+ const players=Array.from({length:7},(_,n)=>'p'+n),t=live._test.teams(players,3,()=>0.5);
+ assert.equal(t.length,3);assert.deepEqual(t.map(x=>x.length).sort(),[2,2,3]);
+ assert.deepEqual(t.flat().sort(),[...players].sort());
+ assert.equal(live._test.teams([],3).length,1);
+});
+
+test('permissions : tout le monde voit les vocaux sans y entrer ; l’équipe entre et parle ; textes cachés',()=>{
+ a.save(s=>{s.schoolRoles={outsideQG:'hors',animationLead:'resp',animationManagement:'exec',creator:'dir'};});
+ const guild={id:'g',client:{user:{id:'bot'}}};
+ const v=live._test.voiceOverwrites(guild,['m1']),find=id=>v.find(o=>o.id===id);
+ for(const id of ['g','hors']){assert.deepEqual(find(id).allow,[P.ViewChannel]);for(const bit of [P.Connect,P.Speak,P.SendMessages,P.ReadMessageHistory])assert.ok(find(id).deny.includes(bit));}
+ assert.ok(find('m1').allow.includes(P.Connect)&&find('m1').allow.includes(P.SendMessages)&&find('m1').type===1);
+ assert.ok(find('resp').allow.includes(P.MuteMembers));
+ const ann=live._test.textOverwrites(guild,['m1'],{write:false}),t=id=>ann.find(o=>o.id===id);
+ assert.deepEqual(t('g').deny,[P.ViewChannel]);assert.ok(t('m1').deny.includes(P.SendMessages));assert.ok(t('exec').allow.includes(P.SendMessages));
+ assert.ok(live._test.textOverwrites(guild,['m1'],{write:true}).find(o=>o.id==='m1').allow.includes(P.SendMessages));
+});
+
+// Faux serveur : salons créés, déplacements, messages.
+function fakeGuild(){
+ const channels=new Collection(),members=new Collection(),sent=[],created=[];let n=0;
+ const mkMember=(id,voiceId,roles=[])=>{const m={id,user:{id,bot:false},roles:{cache:new Map(roles.map(r=>[r,{}]))},guild:{id:config.guildId,ownerId:'owner'},send:async p=>sent.push(['dm',id,p]),
+  voice:{get channelId(){return m._voice;},serverMute:false,setChannel:async to=>{const old=channels.get(m._voice);old?.members.delete(id);m._voice=typeof to==='string'?to:to.id;channels.get(m._voice)?.members.set(id,m);},setMute:async v=>{m.voice.serverMute=v;}}};
+  m._voice=voiceId;members.set(id,m);if(voiceId)channels.get(voiceId)?.members.set(id,m);return m;};
+ const mkChannel=(id,o={})=>{const ch={id,...o,members:new Collection(),position:o.position||0,permissionOverwrites:{edit:async()=>{},delete:async()=>{}},isTextBased:()=>true,send:async p=>{sent.push(['ch',id,p]);return{id:'msg'+(++n),edit:async()=>{}};},messages:{fetch:async()=>null,delete:async()=>{}},setPosition:async()=>{},delete:async()=>{channels.delete(id);}};channels.set(id,ch);return ch;};
+ mkChannel(live.WAIT_ROOM,{type:T.GuildVoice});mkChannel(live.CONFIRM_CHANNEL);mkChannel(live.PANEL_CHANNEL);mkChannel('comvoice',{type:T.GuildCategory,position:4});
+ const guild={id:config.guildId,ownerId:'owner',client:{user:{id:'bot'}},
+  channels:{cache:channels,fetch:async id=>channels.get(id)||null,create:async o=>{const ch=mkChannel('c'+(++n),o);created.push(o);return ch;}},
+  members:{cache:members,fetch:async x=>members.get(typeof x==='string'?x:x.user)||null}};
+ return{guild,channels,members,sent,created,mkMember};
+}
+
+test('démarrage en équipes aléatoires : catégorie, vocaux d’équipe, déplacements, mention, confirmation, panneau',async()=>{
+ a.save(s=>{s.schoolRoles={animationLead:'resp'};s.schoolCategories={communityVoice:'comvoice'};});
+ const {guild,channels,sent,created,mkMember}=fakeGuild();
+ for(const id of ['a','b','c'])mkMember(id,live.WAIT_ROOM);
+ mkMember('intrus',live.WAIT_ROOM);mkMember('absent',null);
+ const spec={id:'event:e1',eventId:'e1',title:'Course',organizerId:'org',format:'teams',teamSize:2,randomTeams:true,invitees:['a','b','c','absent'],startAt:0,endAt:3600000};
+ const rec=await live.start(guild,spec);
+ assert.match(created[0].name,/^🎉〃COURSE$/);
+ assert.deepEqual(created.slice(1).map(o=>o.name),['📢・annonces-animation','💬・discussion-animation','🔊・Équipe 1','🔊・Équipe 2']);
+ assert.deepEqual(rec.moved.sort(),['a','b','c']);assert.deepEqual(rec.missing,['absent']);
+ assert.equal(channels.get(live.WAIT_ROOM).members.has('intrus'),true,'non invité : pas déplacé');
+ const teamPings=sent.filter(([k,id,p])=>k==='ch'&&rec.voices.some(v=>v.id===id)&&/Vous êtes l’\*\*Équipe/.test(p.content));
+ assert.equal(teamPings.length,2);
+ const conf=sent.find(([k,id])=>k==='ch'&&id===live.CONFIRM_CHANNEL)[2];
+ assert.equal(conf.content,'<@org>');assert.match(conf.embeds[0].data.description,/3\*\* déplacés[\s\S]*Absents du vocal d’attente : <@absent>/);
+ assert.ok(sent.some(([k,id,p])=>k==='ch'&&id===live.PANEL_CHANNEL&&p.components[0].toJSON().components.length===3));
+ // Retardataire invité : placé dans l’équipe la moins remplie.
+ mkMember('absent',live.WAIT_ROOM);
+ assert.equal(await live._test.lateArrivals(guild,'event:e1'),1);
+ assert.ok(live._test.teams&&a.state().schoolAnimationLive['event:e1'].voices.some(v=>v.members.includes('absent')));
+});
+
+test('mute all : tout le monde sauf l’équipe animation ; unmute ; fin : voix rétablies et salons supprimés',async()=>{
+ a.save(s=>{s.schoolRoles={animationManagement:'exec'};s.schoolCategories={};});
+ const {guild,channels,mkMember}=fakeGuild();
+ const p1=mkMember('p1',live.WAIT_ROOM),staff=mkMember('st',live.WAIT_ROOM,['exec']);
+ await live.start(guild,{id:'test:1',test:true,title:'Test',organizerId:'st',format:'group',invitees:[],startAt:0,endAt:0});
+ const rec=a.state().schoolAnimationLive['test:1'];
+ assert.equal(rec.voices.length,1);assert.equal(p1.voice.channelId,rec.voices[0].id);
+ assert.equal(await live.setMute(guild,'test:1',true),1);assert.equal(p1.voice.serverMute,true);assert.equal(staff.voice.serverMute,false);
+ assert.equal(await live.setMute(guild,'test:1',false),1);assert.equal(p1.voice.serverMute,false);
+ await live.setMute(guild,'test:1',true);
+ assert.equal(await live.end(guild,'test:1'),true);
+ assert.equal(p1.voice.serverMute,false,'voix rétablie à la fin');
+ assert.ok(!channels.has(rec.categoryId)&&!channels.has(rec.voices[0].id));
+ assert.equal(await live.end(guild,'test:1'),false);
+});
+
+test('MP : 15 minutes avant, lien du vocal d’attente et déplacement à l’heure prévue',()=>{
+ const t=live.soonText('Course',Date.UTC(2026,10,20,20));
+ assert.match(t,new RegExp(`<#${live.WAIT_ROOM}>`));assert.match(t,/discord\.com\/channels\/\d+\/1561466341989425273/);assert.match(t,/déplacé automatiquement à l’heure prévue/);
+});

@@ -50,21 +50,23 @@ function teams(players,teamSize,random=Math.random){
 
 // Permissions des salons de l'animation.
 const VOICE_FULL=[P.ViewChannel,P.Connect,P.Speak,P.UseVAD,P.Stream,P.SendMessages,P.ReadMessageHistory];
+// Interdit à tous les joueurs (et à @everyone / Hors du QG) : fils, messages vocaux, soundboard.
+const BLOCKED=[P.CreatePublicThreads,P.CreatePrivateThreads,P.SendMessagesInThreads,P.SendVoiceMessages,P.UseSoundboard,P.UseExternalSounds];
 function voiceOverwrites(guild,members){
- const r=a.state().schoolRoles||{},deny=[P.Connect,P.Speak,P.SendMessages,P.ReadMessageHistory];
+ const r=a.state().schoolRoles||{},deny=[P.Connect,P.Speak,P.SendMessages,P.ReadMessageHistory,...BLOCKED];
  return[
   {id:guild.id,allow:[P.ViewChannel],deny},
   ...(r.outsideQG?[{id:r.outsideQG,allow:[P.ViewChannel],deny}]:[]),
   ...staffRoles().map(id=>({id,allow:[...VOICE_FULL,P.MoveMembers,P.MuteMembers]})),
   {id:guild.client.user.id,allow:[...VOICE_FULL,P.MoveMembers,P.MuteMembers,P.ManageChannels]},
-  ...members.map(id=>({id,type:1,allow:VOICE_FULL}))];
+  ...members.map(id=>({id,type:1,allow:VOICE_FULL,deny:BLOCKED}))];
 }
 function textOverwrites(guild,members,{write}){
  return[
-  {id:guild.id,deny:[P.ViewChannel]},
+  {id:guild.id,deny:[P.ViewChannel,...BLOCKED]},
   ...staffRoles().map(id=>({id,allow:[P.ViewChannel,P.ReadMessageHistory,P.SendMessages]})),
   {id:guild.client.user.id,allow:[P.ViewChannel,P.ReadMessageHistory,P.SendMessages,P.ManageChannels]},
-  ...members.map(id=>({id,type:1,allow:[P.ViewChannel,P.ReadMessageHistory,...(write?[P.SendMessages]:[])],deny:write?[]:[P.SendMessages]}))];
+  ...members.map(id=>({id,type:1,allow:[P.ViewChannel,P.ReadMessageHistory,...(write?[P.SendMessages]:[])],deny:[...BLOCKED,...(write?[]:[P.SendMessages])]}))];
 }
 
 // 1 h avant : accès au vocal d'attente pour les invités qui n'y ont pas accès.
@@ -220,7 +222,7 @@ async function lateArrivals(guild,id){
    const pool=rec.voices.filter(v=>rec.format!=='teams'||(rec.randomTeams?!v.lobby:v.lobby));
    target=pool.sort((x,y)=>x.members.length-y.members.length)[0];if(!target)continue;
    const ch=await guild.channels.fetch(target.id).catch(()=>null);
-   await ch?.permissionOverwrites.edit(m.id,{ViewChannel:true,Connect:true,Speak:true,UseVAD:true,SendMessages:true,ReadMessageHistory:true}).catch(()=>{});
+   await ch?.permissionOverwrites.edit(m.id,{ViewChannel:true,Connect:true,Speak:true,UseVAD:true,SendMessages:true,ReadMessageHistory:true,CreatePublicThreads:false,CreatePrivateThreads:false,SendMessagesInThreads:false,SendVoiceMessages:false,UseSoundboard:false,UseExternalSounds:false}).catch(()=>{});
    put(id,x=>{x.voices.find(v=>v.id===target.id).members.push(m.id);});
    if(rec.format==='teams'&&!target.lobby)await ch?.send({content:`${playerLine(m.id)}\nrejoint l’**${target.name}** ! Tu peux aussi discuter ici.`,flags:MessageFlags.SuppressEmbeds,allowedMentions:{parse:[],users:[m.id]}}).catch(()=>{});
   }
@@ -281,4 +283,4 @@ async function test(i){
  const rec=await start(i.guild,spec);
  return i.editReply([`🧪 Test lancé : **${spec.title}**.`,`MP 1 h et 15 min : ${dms.every(Boolean)?'envoyés':'non remis (MP fermés ?)'}.`,`Déplacés : ${rec.moved.length} · Salons : <#${rec.voices[0].id}>.`,`Confirmation dans <#${CONFIRM_CHANNEL}>, panneau en direct dans <#${PANEL_CHANNEL}>.`,'Le test se termine avec le bouton « Terminer l’animation », sinon tout seul après 45 minutes.'].join('\n'));
 }
-module.exports={WAIT_ROOM,CONFIRM_CHANNEL,PANEL_CHANNEL,data,test,prepare,start,end,tick,voice,handle,specOf,setMute,reminderText,soonText,_test:{playerLine,teamMessage,teams,shuffle,voiceOverwrites,textOverwrites,livePayload,lateArrivals}};
+module.exports={WAIT_ROOM,CONFIRM_CHANNEL,PANEL_CHANNEL,data,test,prepare,start,end,tick,voice,handle,specOf,setMute,reminderText,soonText,_test:{BLOCKED,playerLine,teamMessage,teams,shuffle,voiceOverwrites,textOverwrites,livePayload,lateArrivals}};

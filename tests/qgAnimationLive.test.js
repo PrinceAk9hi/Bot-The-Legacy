@@ -21,7 +21,7 @@ test('permissions : tout le monde voit les vocaux sans y entrer ; l’équipe en
  assert.ok(find('m1').allow.includes(P.Connect)&&find('m1').allow.includes(P.SendMessages)&&find('m1').type===1);
  assert.ok(find('resp').allow.includes(P.MuteMembers));
  const ann=live._test.textOverwrites(guild,['m1'],{write:false}),t=id=>ann.find(o=>o.id===id);
- assert.deepEqual(t('g').deny,[P.ViewChannel]);assert.ok(t('m1').deny.includes(P.SendMessages));assert.ok(t('exec').allow.includes(P.SendMessages));
+ assert.ok(t('g').deny.includes(P.ViewChannel));assert.ok(t('m1').deny.includes(P.SendMessages));assert.ok(t('exec').allow.includes(P.SendMessages));
  assert.ok(live._test.textOverwrites(guild,['m1'],{write:true}).find(o=>o.id==='m1').allow.includes(P.SendMessages));
 });
 
@@ -88,4 +88,12 @@ test('chat d’équipe : pseudo Roblox à copier et lien du profil de chaque jou
  assert.equal(live._test.playerLine('b'),'<@b> · Roblox non relié');
  const t=live._test.teamMessage('Équipe 1',['a','b']);
  assert.match(t,/^<@a> <@b>\nVous êtes l’\*\*Équipe 1\*\*/);assert.match(t,/pseudo Roblox à copier[\s\S]*`JoueurA`[\s\S]*Roblox non relié/);
+});
+
+test('salons de l’animation : fils, messages vocaux et soundboard interdits aux joueurs',()=>{
+ a.save(s=>{s.schoolRoles={outsideQG:'hors',animationLead:'resp'};});
+ const guild={id:'g',client:{user:{id:'bot'}}},blocked=[P.CreatePublicThreads,P.CreatePrivateThreads,P.SendVoiceMessages,P.UseSoundboard,P.UseExternalSounds];
+ const v=live._test.voiceOverwrites(guild,['m1']),t=live._test.textOverwrites(guild,['m1'],{write:true});
+ for(const o of [v.find(x=>x.id==='g'),v.find(x=>x.id==='hors'),v.find(x=>x.id==='m1'),t.find(x=>x.id==='g'),t.find(x=>x.id==='m1')])for(const bit of blocked)assert.ok(o.deny.includes(bit),o.id+' '+bit);
+ assert.ok(!(v.find(x=>x.id==='resp').deny||[]).length,'l’équipe animation garde ses droits');
 });

@@ -25,6 +25,7 @@ consulter l'historique Git.
 - /testanim (équipes aléatoires ou animation groupée) : tout le déroulé immédiatement, MP compris.
 - Chat de chaque vocal d'équipe : pour chaque joueur, pseudo Roblox à copier et lien de son profil (aperçus de
   liens masqués) ; un retardataire est présenté de la même façon en arrivant.
+- Salons de l'animation : fils, messages vocaux et soundboard interdits aux joueurs, à @everyone et à Hors du QG.
 - Ajoutés : `systems/qgAnimationLive.js`, `commandes/testanim.js`, `tests/qgAnimationLive.test.js`. Modifiés :
   `systems/qgAnimations.js`, `systems/qgPanels.js`, `systems/qgServer.js`, `index.js`.
 

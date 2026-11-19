@@ -113,3 +113,20 @@ test('panel animations : « Créer » depuis le panel public, le formulaire rép
  assert.deepEqual(calls.at(-1),['editReply',true]);
  assert.ok(!calls.some(c=>c[0]==='deferUpdate'));
 });
+
+test('annonce d’une nouvelle animation : mention du rôle Sanctions/Grade, détails, emojis du serveur, une seule fois',async()=>{
+ const anim=require('../systems/qgAnimations');
+ a.save(s=>{s.schoolRoles={separatorGrade:'sg'};s.schoolAnimations={events:{},posts:{},suggestions:{},calendar:[],deliveries:{},newsSince:1};});
+ const e=anim.newEvent({title:'Course de karts',summary:'Une course folle',startAt:Date.now()+86400000,minutes:90,type:'Jeu',organizerId:'org',coorganizers:[],capacity:8,signups:true,format:'teams',teamSize:4,randomTeams:true,families:['Dynasty']},'org');
+ anim.save(s=>{s.events[e.id]=e;});
+ const sent=[],emojis=new Collection([['1',{id:'1',name:'calendar_qg',available:true}]]);
+ const ch={id:anim.NEWS,guildId:config.guildId,isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'n1'};},messages:{fetch:async()=>({edit:async p=>sent.push(['edit',p])})}};
+ const guild={id:config.guildId,emojis:{cache:emojis},channels:{fetch:async id=>id===anim.NEWS?ch:null}};
+ assert.equal(await anim.announceEvent(guild,e.id),true);
+ const text=JSON.stringify(sent[0].components[0].toJSON());
+ assert.match(text,/<@&sg>/);assert.deepEqual(sent[0].allowedMentions.roles,['sg']);
+ for(const x of ['Course de karts','Une course folle','<:calendar_qg:1>','90 min','équipes de 4 joueurs, tirées au sort','Dynasty','0/8 places','S’inscrire'])assert.ok(text.includes(x),x);
+ assert.match(text,/https:\/\/discord\.com\/channels\/\d+\/1562845037799280650/);
+ assert.equal(await anim.announceEvent(guild,e.id),false,'pas de doublon');
+ assert.equal(anim.event(e.id).news.messageId,'n1');
+});

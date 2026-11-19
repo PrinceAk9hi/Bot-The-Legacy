@@ -6,6 +6,17 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 101 — Annonce des nouvelles animations, planning simplifié
+
+- À la création d'une animation : annonce dans 1562191460873404436 avec mention du rôle « A / Sanctions / Grade »,
+  présentée comme un panel (pas comme un log) : titre, description, date, durée, format, animateur, places,
+  familles invitées, récompenses, avec les emojis du serveur dont le nom correspond (sinon emojis standard), et
+  un bouton « S'inscrire » à droite qui mène au planning 1562845037799280650. L'annonce suit les modifications
+  et annulations ; supprimée à la main, elle n'est pas republiée. Les animations créées avant ne sont pas annoncées.
+- Planning : seulement le titre et le lien vers l'annonce, avec « S'inscrire » à droite (un second appui
+  désinscrit).
+- Modifiés : `systems/qgAnimations.js`, tests.
+
 ## 100 — Animations en direct, panel animations, familles invitées, /testanim
 
 - Salon help-qg : l'effectif n'y est plus affiché.

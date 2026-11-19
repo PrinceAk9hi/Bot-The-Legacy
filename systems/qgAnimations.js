@@ -50,15 +50,15 @@ async function deliver(guild,channelId,key,payload){const ch=await channel(guild
  save(s=>{s.deliveries[key]={id:message.id,channelId,at:Date.now()};});return message;
 }
 // ---------- Planning (#planning-animations) ----------
-// Chaque animation a sa carte : date, places et bouton « Participer » juste à côté,
-// puis « Détails » (fiche complète rédigée par l'animateur) et « Participants ».
+// Planning : pour chaque animation, son titre et le lien vers son annonce, avec « S’inscrire » juste à droite
+// (un second appui désinscrit).
 const PER_PAGE=4;
 function joinButton(e){
  const d=require('discord.js');
  if(!e.signups)return u.button('qga:info:'+e.id,'Sans inscription').setDisabled(true);
  if(Date.now()>=e.startAt)return u.button('qga:info:'+e.id,'Inscriptions closes').setDisabled(true);
  if(full(e))return u.button('qga:join:'+e.id,'Complet',d.ButtonStyle.Danger).setDisabled(true);
- return u.button('qga:join:'+e.id,'Participer',d.ButtonStyle.Success).setEmoji('✋');
+ return u.button('qga:join:'+e.id,'S’inscrire',d.ButtonStyle.Success).setEmoji('✋');
 }
 function places(e){
  if(!e.signups)return 'Sans inscription';
@@ -66,14 +66,60 @@ function places(e){
  return e.capacity?`${n}/${e.capacity} place${e.capacity>1?'s':''}${full(e)?' · **complet**':''}`:`${n} inscrit${n>1?'s':''} · places illimitées`;
 }
 function card(e){
- const d=require('discord.js');
- const text=`### 🎉 ${e.title}\n📅 <t:${Math.floor(e.startAt/1000)}:F> · <t:${Math.floor(e.startAt/1000)}:R>\n⏱️ ${e.minutes} min · 👥 ${places(e)}\n🎙️ <@${e.organizerId}>${e.status==='En cours'?' · 🔴 **En cours**':''}${e.summary?'\n'+e.summary.slice(0,300):''}`;
- // Seul bouton du planning : « Détails », juste à côté. L'inscription se fait depuis la fiche.
- return new d.SectionBuilder().addTextDisplayComponents(new d.TextDisplayBuilder().setContent(text)).setButtonAccessory(u.button('qga:info:'+e.id,'Détails').setEmoji('📖'));
+ const d=require('discord.js'),news=e.news?.messageId&&!e.news.deleted?`https://discord.com/channels/${config.guildId}/${e.news.channelId}/${e.news.messageId}`:null;
+ const text=`### 🎉 ${e.title}${e.status==='En cours'?' · 🔴 En cours':''}\n${news?`[Voir l’annonce de l’animation](${news})`:`<t:${Math.floor(e.startAt/1000)}:F>`}`;
+ return new d.SectionBuilder().addTextDisplayComponents(new d.TextDisplayBuilder().setContent(text)).setButtonAccessory(joinButton(e));
 }
+// Annonce publique d'une nouvelle animation (salon 1562191460873404436), avec mention du rôle « A / Sanctions / Grade ».
+const NEWS='1562191460873404436';
+// Emoji du serveur dont le nom contient l'un des mots (dans l'ordre), sinon l'emoji standard.
+function serverEmoji(guild,words,fallback){
+ const list=[...(guild?.emojis?.cache?.values()||[])].filter(x=>x.available!==false&&x.name);
+ for(const w of words){const x=list.find(e=>e.name.toLowerCase().includes(w));if(x)return`<${x.animated?'a':''}:${x.name}:${x.id}>`;}
+ return fallback;
+}
+function newsPayload(guild,e){
+ const d=require('discord.js'),text=c=>new d.TextDisplayBuilder().setContent(c),em=(w,f)=>serverEmoji(guild,w,f),ts=Math.floor(e.startAt/1000);
+ const role=a.state().schoolRoles?.separatorGrade,off=['Annulée','Supprimée'].includes(e.status);
+ const box=new d.ContainerBuilder().setAccentColor(off?0x95a5a6:0xf1c40f);
+ box.addTextDisplayComponents(text(`${role?`<@&${role}>\n`:''}## ${em(['tada','party','fete','fête','event','anim'],'🎉')} ${e.title}${off?` · ${e.status.toLowerCase()}`:''}${e.summary?`\n${e.summary}`:''}`));
+ if(e.description)box.addTextDisplayComponents(text(e.description.slice(0,1500)));
+ const lines=[`${em(['calendar','calendrier','agenda','date'],'📅')} **Date** : <t:${ts}:F> (<t:${ts}:R>)`,
+  `${em(['clock','horloge','timer','sablier','time'],'⏱️')} **Durée** : ${e.minutes} min`,
+  `${em(['manette','controller','gamepad','game','jeu','dice'],'🎮')} **Format** : ${e.format==='teams'?`équipes de ${e.teamSize} joueurs${e.randomTeams?', tirées au sort':''}`:'animation groupée'}${e.type?` · ${e.type}`:''}`,
+  e.location&&`📍 **Lieu** : ${e.location}`,
+  `${em(['micro','mic','host','crown','star'],'🎙️')} **Animateur** : <@${e.organizerId}>${e.coorganizers?.length?' · avec '+e.coorganizers.map(x=>'<@'+x+'>').join(', '):''}`,
+  `${em(['members','member','people','users','group','team'],'👥')} **Places** : ${places(e)}`,
+  e.families?.length&&`${em(['flag','drapeau','famille','family'],'🏴')} **Familles invitées** : ${e.families.join(', ')}`,
+  e.rewards&&`${em(['gift','cadeau','reward','trophy','trophee'],'🎁')} **Récompenses** : ${e.rewards}`].filter(Boolean);
+ box.addSeparatorComponents(new d.SeparatorBuilder()).addTextDisplayComponents(text(lines.join('\n')));
+ const planning=`https://discord.com/channels/${config.guildId}/${CALENDAR}`;
+ box.addSeparatorComponents(new d.SeparatorBuilder()).addSectionComponents(new d.SectionBuilder()
+  .addTextDisplayComponents(text(`**${em(['ticket','check','valid','yes'],'✅')} Inscriptions**\n${off?'Cette animation n’aura pas lieu.':e.signups?`Rends-toi dans <#${CALENDAR}> et appuie sur **S’inscrire** à côté de l’animation.`:'Pas d’inscription : rejoins simplement le vocal le jour J.'}\n-# Rappel en MP 1 h et 15 min avant le début.`))
+  .setButtonAccessory(new d.ButtonBuilder().setStyle(d.ButtonStyle.Link).setURL(planning).setLabel('S’inscrire').setEmoji('📅')));
+ return{components:[box],flags:d.MessageFlags.IsComponentsV2,allowedMentions:{parse:[],roles:role?[role]:[]}};
+}
+// Publie (une fois, avec mention) puis tient l'annonce à jour ; une annonce supprimée à la main n'est pas republiée.
+async function announceEvent(guild,id){return a.serial('animation-news:'+id,async()=>{
+ const e=event(id);if(!e||['Archivée'].includes(e.status))return false;
+ save(s=>{s.newsSince||=Date.now();});
+ const p=newsPayload(guild,e),hash=createHash('sha256').update(JSON.stringify(p)).digest('hex');
+ if(e.news?.deleted||e.news?.hash===hash)return false;
+ const ch=await channel(guild,NEWS);
+ if(e.news?.messageId){
+  const msg=await ch.messages.fetch(e.news.messageId).catch(()=>null);
+  if(!msg){edit(id,r=>{r.news={...r.news,deleted:true};});return false;}
+  await msg.edit({...p,allowedMentions:{parse:[]}});edit(id,r=>{r.news.hash=hash;});return true;
+ }
+ // Seulement les animations créées après la mise en place des annonces, pas encore commencées ni annulées.
+ if((e.createdAt||0)<state().newsSince||closed(e)||Date.now()>=e.startAt)return false;
+ const msg=await ch.send(p);
+ edit(id,r=>{r.news={channelId:ch.id,messageId:msg.id,hash};});
+ return true;
+});}
 function planningPayload(list,page,pages){
  const d=require('discord.js'),box=new d.ContainerBuilder().setAccentColor(0xffffff);
- box.addTextDisplayComponents(new d.TextDisplayBuilder().setContent(`## 📅 Planning des animations${pages>1?` · ${page+1}/${pages}`:''}\nClique sur **Détails** pour voir la fiche de l’animateur et t’inscrire.`));
+ box.addTextDisplayComponents(new d.TextDisplayBuilder().setContent(`## 📅 Planning des animations${pages>1?` · ${page+1}/${pages}`:''}\nAppuie sur **S’inscrire** à côté d’une animation (appuie de nouveau pour te désinscrire). Tous les détails sont dans son annonce.`));
  const part=list.slice(page*PER_PAGE,page*PER_PAGE+PER_PAGE);
  if(!part.length)box.addSeparatorComponents(new d.SeparatorBuilder()).addTextDisplayComponents(new d.TextDisplayBuilder().setContent(page<pages?'Aucune animation prévue pour le moment. Propose une idée à l’équipe !':'Cette page est désormais vide.'));
  for(const e of part)box.addSeparatorComponents(new d.SeparatorBuilder()).addSectionComponents(card(e));
@@ -145,7 +191,7 @@ async function handle(i){const [,op,id,extra]=i.customId.split(':');
   if(!a.isDirection(m)&&!a.has(m,['community',...require('./qgGrades').ranks]))throw Error('Termine ta vérification pour participer.');
   const e=event(id);if(!e)throw Error('Animation introuvable.');
   if(op==='participants'){const lines=[`Confirmés (${e.participants.length})`,...e.participants.map(x=>'<@'+x+'>'),`\nAttente (${e.waitlist.length})`,...e.waitlist.map(x=>'<@'+x+'>'),...(e.families?.length?(g=>[`\nFamilles invitées · ${e.families.join(', ')} (${g.length})`,...g.map(x=>'<@'+x+'>')])(guestIds(i.guild,e)):[])],pages=u.chunks(lines.join('\n'));return i.editReply({...u.payload('Participants · '+e.title,pages[0]),...(pages.length>1?{files:[new u.AttachmentBuilder(Buffer.from(lines.join('\n')),{name:'participants.txt'})]}:{})});}
-  const result=await a.serial('animation:'+id,async()=>{let result;edit(id,r=>{result=sign(r,m.id,op==='join');});return result;});await i.editReply({content:`${op==='join'?'✅':'👋'} ${result} — **${e.title}**`,embeds:[],components:[]});await refresh(i.guild);return;
+  const result=await a.serial('animation:'+id,async()=>{let result;edit(id,r=>{const already=(r.participants||[]).includes(m.id)||(r.waitlist||[]).includes(m.id);result=sign(r,m.id,op==='join'&&!already);});return result;});await i.editReply({content:`${op==='join'?'✅':'👋'} ${result} — **${e.title}**`,embeds:[],components:[]});await refresh(i.guild);return;
  }
  const s=u.get(i,id,'animation'),m=await member(i),e=s.eventId?event(s.eventId):null,field=k=>i.fields.getTextInputValue(k).trim();
  // Équipes : nombre de joueurs par équipe et tirage aléatoire (formulaire, avant toute réponse).
@@ -193,7 +239,7 @@ async function handle(i){const [,op,id,extra]=i.customId.split(':');
  if(op==='confirm-event')return a.serial('animations-edit',async()=>{const fresh=u.get(i,id,'animation'),d=fresh.draft;if(!d)throw Error('Brouillon déjà enregistré.');validateDraft(d);const old=fresh.eventId?event(fresh.eventId):null;await authorize(i,old);if(old&&old.version!==fresh.sourceVersion)throw Error('L’animation a changé. Rouvre-la avant de la modifier.');const organizer=await i.guild.members.fetch(d.organizerId);if(!animator(organizer)||!lead(m)&&d.organizerId!==m.id)throw Error('Organisateur non autorisé.');let rec;
   if(old){if(closed(old))throw Error('Animation clôturée.');rec={...old,...d,id:old.id,participants:old.participants,waitlist:old.waitlist,attendance:old.attendance,report:old.report,deliveries:old.deliveries,version:old.version+1,history:[...old.history,{at:Date.now(),actorId:m.id,action:'modification',before:{startAt:old.startAt,title:old.title,organizerId:old.organizerId}}]};if(d.startAt!==old.startAt){rec.status='Programmée';rec.dateChangedAt=Date.now();rec.deliveries={};}if(rec.capacity&&rec.participants.length>rec.capacity)throw Error('Capacité inférieure au nombre d’inscrits. Désinscris explicitement les participants concernés.');}
   else rec=newEvent(d,m.id);
-  save(x=>{x.events[rec.id]=rec;if(d.suggestionId){const p=x.suggestions[d.suggestionId];if(!p||p.status==='Convertie')throw Error('Proposition déjà convertie.');p.status='Convertie';p.eventId=rec.id;}});u.patch(id,x=>{x.eventId=rec.id;delete x.draft;delete x.sourceVersion;});await audit(i.guild,m,rec,old?'edit':'create',old?{startAt:old.startAt}:null);await refresh(i.guild);return show(i,id);
+  save(x=>{x.events[rec.id]=rec;if(d.suggestionId){const p=x.suggestions[d.suggestionId];if(!p||p.status==='Convertie')throw Error('Proposition déjà convertie.');p.status='Convertie';p.eventId=rec.id;}});u.patch(id,x=>{x.eventId=rec.id;delete x.draft;delete x.sourceVersion;});await audit(i.guild,m,rec,old?'edit':'create',old?{startAt:old.startAt}:null);await announceEvent(i.guild,rec.id).catch(err=>console.error('Annonce animation :',err.code||err.message));await refresh(i.guild);return show(i,id);
  });
  if(op==='reason-cancel'||op==='reason-delete'){if(op==='reason-delete')await deleteActor(i,e);const reason=field('reason');if(!reason)throw Error('Motif requis.');u.patch(id,x=>{x.pending={action:op==='reason-delete'?'Supprimée':'Annulée',reason,version:e.version};});return i.editReply(u.payload('Confirmer',`${e.title}\n${reason.slice(0,2500)}`,[u.row(u.button('qga:confirm-cancel:'+id,'Confirmer',u.ButtonStyle.Danger),u.button('qga:home:'+id,'Retour'))]));}
  if(op==='confirm-cancel')return a.serial('animations-edit',async()=>{const p=u.get(i,id,'animation').pending,current=event(s.eventId);if(!p||current.version!==p.version)throw Error('Confirmation expirée ou animation modifiée.');if(p.action==='Supprimée')await deleteActor(i,current);else await authorize(i,current);edit(current.id,r=>{r.history.push({at:Date.now(),actorId:m.id,action:p.action,reason:p.reason,before:{status:r.status}});r.status=p.action;r.version++;});u.patch(id,x=>{delete x.pending;});save(x=>{for(const post of Object.values(x.posts))if(post.eventId===current.id&&post.status==='scheduled')post.status='cancelled';});await audit(i.guild,m,event(current.id),'cancel',current.status,p.reason);await refresh(i.guild);return show(i,id);});
@@ -231,6 +277,7 @@ async function tick(guild,now=Date.now()){if(ticking||guild.id!==config.guildId)
   }
  }
  await require('./qgAnimationLive').tick(guild).catch(()=>{});
+ for(const x of Object.values(state().events))if(x.news?.messageId||!closed(x))await announceEvent(guild,x.id).catch(()=>{});
  await refresh(guild);await ensureControl(guild);
  }finally{ticking=false;}}
 function rosterText(e,guests){
@@ -264,4 +311,4 @@ async function ensureControl(guild){return a.serial('animation-control',async()=
  if(msg)await msg.edit(payload);else msg=await ch.send(payload);
  save(s=>{s.control={id:msg.id,channelId:ch.id,hash};});
  });}
-module.exports={guestIds,parseFamilies,rosterText,ensureControl,canDelete,data,execute,handle,tick,refresh,state,save,event,sign,newEvent,conflicts,validateDraft,mayEdit,lead,announcePayload,publish,statistics,nextDate};
+module.exports={newsPayload,announceEvent,NEWS,guestIds,parseFamilies,rosterText,ensureControl,canDelete,data,execute,handle,tick,refresh,state,save,event,sign,newEvent,conflicts,validateDraft,mayEdit,lead,announcePayload,publish,statistics,nextDate};

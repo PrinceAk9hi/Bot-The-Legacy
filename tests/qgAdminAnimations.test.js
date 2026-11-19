@@ -29,15 +29,15 @@ test('planning : seuls Détails (à côté) et Proposer ; fiche avec Participer 
  const json=sent.at(-1).p.components[0].toJSON(),sections=json.components.filter(c=>c.type===9);
  assert.equal(sections.length,2);
  const byTitle=t=>sections.find(s=>s.components[0].content.includes(t));
- assert.equal(byTitle('Ouverte').accessory.custom_id,'qga:info:'+open.id);assert.match(byTitle('Ouverte').components[0].content,/0\/3 places/);
- assert.match(byTitle('Pleine').components[0].content,/complet/);
- // Aucun autre bouton que « Détails » et « Proposer une animation ».
+ // Planning : titre seulement (le détail est dans l'annonce), « S'inscrire » à droite ; « Complet » désactivé.
+ assert.equal(byTitle('Ouverte').accessory.custom_id,'qga:join:'+open.id);assert.equal(byTitle('Ouverte').accessory.label,'S’inscrire');
+ assert.equal(byTitle('Pleine').accessory.label,'Complet');assert.equal(byTitle('Pleine').accessory.disabled,true);
  const ids=[];const walk=c=>{if(c.custom_id)ids.push(c.custom_id);if(c.accessory)walk(c.accessory);for(const x of c.components||[])walk(x);};walk(json);
- assert.deepEqual(ids.sort(),['qga:info:'+full.id,'qga:info:'+open.id,'qga:suggest'].sort());
+ assert.deepEqual(ids.sort(),['qga:join:'+full.id,'qga:join:'+open.id,'qga:suggest'].sort());
  let reply;const view=async(eventId,who)=>{const i=interaction('qga:info:'+eventId,who);i.editReply=async p=>{validate(p);reply=p;};await animations.handle(i);return reply;};
  const r=await view(full.id,TARGET),d=r.embeds[0].data.description;assert.match(d,/Fiche détaillée/);assert.match(d,/Un badge/);assert.match(d,/Être en vocal/);assert.match(d,/1\/1 place/);
  const joinBtn=r.components[0].toJSON().components[0];assert.equal(joinBtn.label,'Complet');assert.equal(joinBtn.disabled,true);
- assert.equal((await view(open.id,TARGET)).components[0].toJSON().components[0].label,'Participer');
+ assert.equal((await view(open.id,TARGET)).components[0].toJSON().components[0].label,'S’inscrire');
  await assert.rejects(animations.handle(interaction('qga:join:'+full.id,TARGET)),/Plus aucune place/);
 });
 test('proposition : jeu, description et joueurs max repris à l’acceptation',async()=>{

@@ -12,6 +12,8 @@ consulter l'historique Git.
   question sur la provocation devient une mise en situation précise ; la question « Si tu es accepté… » est
   posée en dernier, après les mises en situation. Situation 2 : « Deux membres du QG » ; situation 3 : « Ton
   meilleur ami, membre du QG » ; situation 5 : « Que fais-tu ? ».
+- Nouvelle première question : se présenter brièvement (prénom, âge, qualité et défaut, activité dans la vie).
+  La mise en situation sur le manque de respect passe dans les situations (situation 2, 6 situations au total).
 - L'aperçu de l'annonce est renvoyé une fois en MP pour les animations à venir pas encore publiées.
 - Modifiés : `config/qgInterviewGuide.js`, `systems/qgAnimations.js`, tests.
 

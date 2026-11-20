@@ -73,7 +73,7 @@ function card(e,guild){
  return new d.SectionBuilder().addTextDisplayComponents(new d.TextDisplayBuilder().setContent(text)).setButtonAccessory(joinButton(e,guild));
 }
 // Annonce publique d'une nouvelle animation (salon 1562191460873404436), avec mention du rôle « A / Sanctions / Grade ».
-const NEWS='1562191460873404436';
+const NEWS='1562191460873404436',ANIMATION_PING_ROLE='1561363081018474626';
 // Emoji du serveur dont le nom contient l'un des mots (dans l'ordre), sinon l'emoji standard.
 function serverEmoji(guild,words,fallback){
  const list=[...(guild?.emojis?.cache?.values()||[])].filter(x=>x.available!==false&&x.name);
@@ -82,9 +82,10 @@ function serverEmoji(guild,words,fallback){
 }
 function newsPayload(guild,e,{preview=false}={}){
  const d=require('discord.js'),text=c=>new d.TextDisplayBuilder().setContent(c),em=(w,f)=>serverEmoji(guild,w,f),ts=Math.floor(e.startAt/1000);
- const role=a.state().schoolRoles?.separatorGrade,off=['Annulée','Supprimée'].includes(e.status);
+ // Rôle mentionné par les annonces d'animation (choisi par la direction).
+ const role=ANIMATION_PING_ROLE,off=['Annulée','Supprimée'].includes(e.status);
  const box=new d.ContainerBuilder().setAccentColor(off?0x95a5a6:0xf1c40f);
- const roleName=guild?.roles?.cache?.get(role)?.name||'A / Sanctions / Grade';
+ const roleName=guild?.roles?.cache?.get(role)?.name||'rôle de la famille';
  box.addTextDisplayComponents(text(`${role?(preview?`-# Mention à la publication : **@${roleName}**\n`:`<@&${role}>\n`):''}## ${em(['tada','party','fete','fête','event','anim'],'🎉')} ${e.title}${off?` · ${e.status.toLowerCase()}`:''}${e.summary?`\n${e.summary}`:''}`));
  if(e.description)box.addTextDisplayComponents(text(e.description.slice(0,1500)));
  const lines=[`${em(['calendar','calendrier','agenda','date'],'📅')} **Date** : <t:${ts}:F> (<t:${ts}:R>)`,

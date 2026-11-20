@@ -6,6 +6,13 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 105 — Rôle mentionné par les annonces d'animation, musique remplaçable
+
+- Les annonces d'animation mentionnent le rôle 1561363081018474626 (au lieu du séparateur « A / Sanctions / Grade »).
+- La musique d'attente (`assets/audio/qg/attente-entretien.mp3`) peut être remplacée librement : les tests ne
+  vérifient plus son empreinte, seulement qu'elle se lit.
+- Modifiés : `systems/qgAnimations.js`, tests.
+
 ## 104 — Panel des gestions : exécutants et places libres
 
 - Sous chaque équipe du panel « Devenir exécutant » : le rôle d'exécutant, puis chaque membre en petit et

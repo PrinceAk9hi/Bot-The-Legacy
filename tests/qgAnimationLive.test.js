@@ -124,20 +124,20 @@ test('annonce : aperçu en MP à l’animateur, publication avec mention seuleme
  const dm={id:'dm',send:async p=>{dms.push(p);return{id:'p1',channelId:'dm'};},messages:{fetch:async()=>({id:'p1',edit:async p=>dms.push(p)})}};
  const ch={id:anim.NEWS,guildId:config.guildId,isTextBased:()=>true,send:async p=>{news.push(p);return{id:'n1'};},messages:{fetch:async()=>null}};
  const member={id:'org',roles:{cache:new Map()},guild:{id:config.guildId,ownerId:'x'}};
- const guild={id:config.guildId,emojis:{cache:emojis},roles:{cache:new Map([['sg',{name:'A / Sanctions / Grade'}]])},channels:{fetch:async id=>id===anim.NEWS?ch:null},
+ const guild={id:config.guildId,emojis:{cache:emojis},roles:{cache:new Map([['1561363081018474626',{name:'A / Sanctions / Grade'}]])},channels:{fetch:async id=>id===anim.NEWS?ch:null},
   members:{fetch:async()=>member},client:{users:{fetch:async()=>({createDM:async()=>dm})}}};
  assert.equal(await anim.announceEvent(guild,e.id),true);
  assert.equal(news.length,0,'rien de publié sans confirmation');
  const text=JSON.stringify(dms[0].components.map(c=>c.toJSON()));
  for(const x of ['Aperçu de l’annonce','Course de karts','Une course folle','Rendez-vous sur la piste','<:calendar_qg:1>','équipes de 4 joueurs, tirées au sort','Dynasty','@A / Sanctions / Grade','qgan:publish:','qgan:edit:','qgan:skip:'])assert.ok(text.includes(x),x);
- assert.ok(!text.includes('<@&sg>'),'pas de mention dans l’aperçu');
+ assert.ok(!text.includes('<@&1561363081018474626>'),'pas de mention dans l’aperçu');
  assert.equal(await anim.announceEvent(guild,e.id),false,'aperçu envoyé une seule fois');
  // Modifier la description puis publier, depuis le MP.
  const replies=[];const click=(customId,extra={})=>anim.newsHandle({customId,user:{id:'org'},client:{guilds:{cache:new Map([[config.guildId,guild]])}},deferUpdate:async()=>{},editReply:async p=>replies.push(p),reply:async p=>replies.push(p),...extra});
  await click('qgan:save:'+e.id,{fields:{getTextInputValue:k=>k==='summary'?'Nouvelle description':'Détails'}});
  assert.equal(anim.event(e.id).summary,'Nouvelle description');assert.ok(JSON.stringify(replies[0].components.map(c=>c.toJSON())).includes('Nouvelle description'));
  await click('qgan:publish:'+e.id);
- assert.equal(news.length,1);assert.ok(JSON.stringify(news[0].components[0].toJSON()).includes('<@&sg>'));assert.deepEqual(news[0].allowedMentions.roles,['sg']);
+ assert.equal(news.length,1);assert.ok(JSON.stringify(news[0].components[0].toJSON()).includes('<@&1561363081018474626>'));assert.deepEqual(news[0].allowedMentions.roles,['1561363081018474626']);
  assert.match(JSON.stringify(replies.at(-1).components[0].toJSON()),/publiée/);
  await click('qgan:publish:'+e.id);assert.equal(news.length,1,'pas de doublon');
  // Quelqu’un d’autre ne peut pas valider.

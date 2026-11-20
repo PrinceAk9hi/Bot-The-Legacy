@@ -1,7 +1,11 @@
 const {randomUUID}=require('node:crypto');
 const {SlashCommandBuilder,ContainerBuilder,TextDisplayBuilder,ActionRowBuilder:Row,ButtonBuilder:Button,ButtonStyle:S,StringSelectMenuBuilder:Menu,ModalBuilder:Modal,TextInputBuilder:Input,TextInputStyle:T,MessageFlags:F,ChannelType:CT,PermissionFlagsBits:P,GuildScheduledEventEntityType:ET,GuildScheduledEventPrivacyLevel:EP}=require('discord.js');
 const a=require('../utils/qgAdmin'),config=require('../config/qg'),{parseParis}=require('../utils/convocationTime'),{embed}=require('./qgPanels'),clean=require('../utils/qgAiKnowledge').clean;
-const voiceId='1562077941469552680',familyRole='1561363081018474626';
+// Salon vocal de réunion (enregistré par la maintenance, sinon celui d'origine) et rôle de la famille.
+const DEFAULT_VOICE='1562077941469552680',familyRole='1561363081018474626';
+const voiceId=()=>require('../utils/qgAdmin').state().schoolChannels?.meetingVoice||DEFAULT_VOICE;
+// Les salons de réunion ouvrent 5 minutes avant l'heure prévue.
+const OPEN_BEFORE=5*60000;
 const data=new SlashCommandBuilder().setName('réunion').setDescription('Préparer les notes et décisions de réunion du QG').setDMPermission(false).addStringOption(o=>o.setName('reunion').setDescription('Identifiant de réunion facultatif'));
 const configData=new SlashCommandBuilder().setName('config').setDescription('Configurer les réunions QG').setDMPermission(false).addChannelOption(o=>o.setName('rapports').setDescription('Salon privé du récap hebdomadaire').addChannelTypes(CT.GuildText));
 const notesData=new SlashCommandBuilder().setName('notesmp').setDescription('Appliquer les décisions validées et envoyer les notes en MP').setDMPermission(false).addStringOption(o=>o.setName('reunion').setDescription('Identifiant de la réunion validée').setRequired(true));
@@ -53,7 +57,7 @@ function summary(r,page,b){
  return[text(`### Récapitulatif • ${page+1}/${max+1}\n${ids.slice(page*2,page*2+2).map(m=>{const n=r.notes[m.id],d=r.actions[m.id],result=r.results?.[m.id],dm=r.deliveries?.[m.id];return `<@${m.id}>${n?` • ${n.value}/10 ★\n${clean(n.detail||'Sans détail.')}`:''}${d?`\n${d.label}${d.reason?' — '+clean(d.reason):''}`:''}${result?`\nApplication : ${result.status} — ${result.detail}`:''}${dm?`\nMP : ${dm.status}${dm.detail?' — '+dm.detail:''}`:''}`;}).join('\n\n')||'Aucune décision.'}`),row(b('page','◀',`review.${page-1}`,S.Secondary,page===0),b('page','▶',`review.${page+1}`,S.Secondary,page===max))];
 }
 async function eventAndAccess(guild,r){
- const channel=await guild.channels.fetch(voiceId),role=await guild.roles.fetch(familyRole);
+ const channel=await guild.channels.fetch(voiceId()),role=await guild.roles.fetch(familyRole);
  if(!channel||!role)throw Error('Salon ou rôle de réunion introuvable.');
  const marker=`[QG réunion ${r.id}]`;
  if(!r.eventId){
@@ -68,7 +72,7 @@ async function eventAndAccess(guild,r){
   }
  }
  if(Date.now()<r.start&&!Object.values(a.state().schoolMeetings||{}).some(x=>x.openedAt&&!x.closedAt&&x.status!=='cancelled'&&Date.now()<x.start+x.duration*60000)){
-  for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+  for(const id of [voiceId(),a.state().schoolChannels?.meetingChat].filter(Boolean)){
    const ch=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});
    if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Accès réservé à l’heure programmée de réunion'});
   }
@@ -76,8 +80,8 @@ async function eventAndAccess(guild,r){
  return r;
 }
 async function openMeeting(guild,r){
- if(Date.now()<r.start||r.status==='cancelled')return r;
- const channel=await guild.channels.fetch(voiceId);
+ if(Date.now()<r.start-OPEN_BEFORE||r.status==='cancelled')return r;
+ const channel=await guild.channels.fetch(voiceId());
  await channel.permissionOverwrites.edit(familyRole,{ViewChannel:true}, {reason:'Ouverture programmée de la réunion QG'});
  let discussion=a.state().schoolChannels?.meetingChat&&await guild.channels.fetch(a.state().schoolChannels.meetingChat).catch(()=>null);
  if(!discussion){await guild.channels.fetch();discussion=guild.channels.cache.find(c=>c.type===CT.GuildText&&c.parentId===channel.parentId&&c.name==='🖋️・discu-réunion');}
@@ -94,7 +98,7 @@ async function openMeeting(guild,r){
    if(!message)throw Error('Annonce de réunion incertaine : vérification manuelle nécessaire dans le salon d’annonces.');
   }else{
    save(r.id,p=>{p.announcementPending=true;});
-   message=await ch.send({embeds:[embed('📅 La réunion du QG commence',`**${clean(r.name)}**\n${clean(r.description||'')}\nRejoignez <#${voiceId}>. Discussion : <#${discussion.id}>.\nDurée prévue : ${r.duration} minutes.`).setFooter(require('../utils/qgBrand').footer(' • '+marker))],allowedMentions:{parse:[]}});
+   message=await ch.send({embeds:[embed('📅 La réunion du QG va commencer',`**${clean(r.name)}**\n${clean(r.description||'')}\nRejoignez <#${voiceId()}>. Discussion : <#${discussion.id}>.\nDurée prévue : ${r.duration} minutes.`).setFooter(require('../utils/qgBrand').footer(' • '+marker))],allowedMentions:{parse:[]}});
   }
   r=save(r.id,p=>{p.announcementId=message.id;p.announcementPending=false;});
  }
@@ -105,7 +109,7 @@ const ANNOUNCE_CHANNEL='1561157213160996866';
 function scheduledPayload(r,cancelled=false){
  const at=Math.floor(r.start/1000),end=Math.floor((r.start+r.duration*60000)/1000);
  const text=cancelled?`~~**${clean(r.name)}**~~\nLa réunion prévue <t:${at}:F> est **annulée**.`
-  :`**${clean(r.name)}**${r.description?'\n'+clean(r.description):''}\n\n🗓️ <t:${at}:F> (<t:${at}:R>)\n⏱️ Jusqu’à <t:${end}:t> · ${r.duration} minutes\n🔊 <#${voiceId}>${r.eventId?`\n📌 [Événement Discord](https://discord.com/events/${config.guildId}/${r.eventId})`:''}\n\nLe salon de réunion s’ouvre à l’heure prévue.`;
+  :`**${clean(r.name)}**${r.description?'\n'+clean(r.description):''}\n\n🗓️ <t:${at}:F> (<t:${at}:R>)\n⏱️ Jusqu’à <t:${end}:t> · ${r.duration} minutes\n🔊 <#${voiceId()}>${r.eventId?`\n📌 [Événement Discord](https://discord.com/events/${config.guildId}/${r.eventId})`:''}\n\nLe salon de réunion s’ouvre à l’heure prévue.`;
  return{content:cancelled?null:`<@&${familyRole}>`,embeds:[embed(cancelled?'📅 Réunion annulée':'📅 Réunion programmée',text).setFooter(require('../utils/qgBrand').footer(' • Réunion '+r.id))],allowedMentions:cancelled?{parse:[]}:{parse:[],roles:[familyRole]}};
 }
 async function announceScheduled(guild,r){
@@ -186,17 +190,23 @@ async function tick(guild){
    if(r.start>Date.now()&&r.accessReady&&!r.openedAt){
     const active=Object.values(a.state().schoolMeetings||{}).some(x=>x.openedAt&&x.status!=='cancelled'&&x.start+x.duration*60000>Date.now());
     if(!active){
-     for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+     for(const id of [voiceId(),a.state().schoolChannels?.meetingChat].filter(Boolean)){
       const ch=await guild.channels.fetch(id).catch(()=>null);
       if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Attente de l’heure programmée'});
      }
      save(r.id,p=>{p.accessReady=false;});
     }
    }
-   if(Date.now()>=r.start&&Date.now()<r.start+r.duration*60000&&!r.announcementId)await openMeeting(guild,r);
-   if(r.openedAt&&!r.closedAt&&Date.now()>=r.start+r.duration*60000){
+   if(Date.now()>=r.start-OPEN_BEFORE&&Date.now()<r.start+r.duration*60000&&!r.announcementId)await openMeeting(guild,r);
+   // Fin automatique : la réunion a commencé, du monde est venu, et la conférence est vide depuis 2 minutes.
+   if(r.openedAt&&!r.closedAt&&Date.now()>=r.start){
+    const room=await guild.channels.fetch(voiceId()).catch(()=>null),humans=room?[...room.members.values()].filter(m=>!m.user.bot).length:0;
+    if(humans)save(r.id,p=>{p.voiceSeenAt=Date.now();delete p.emptySince;});
+    else if(get(r.id).voiceSeenAt){const since=get(r.id).emptySince||Date.now();if(!get(r.id).emptySince)save(r.id,p=>{p.emptySince=since;});if(Date.now()-since>=2*60000)save(r.id,p=>{p.endedEarlyAt=Date.now();});}
+   }
+   if(r.openedAt&&!r.closedAt&&(Date.now()>=r.start+r.duration*60000||get(r.id).endedEarlyAt)){
     const otherActive=Object.values(a.state().schoolMeetings||{}).some(x=>x.id!==r.id&&x.openedAt&&!x.closedAt&&x.status!=='cancelled'&&Date.now()<x.start+x.duration*60000);
-    if(!otherActive)for(const id of [voiceId,a.state().schoolChannels?.meetingChat].filter(Boolean)){
+    if(!otherActive)for(const id of [voiceId(),a.state().schoolChannels?.meetingChat].filter(Boolean)){
      const ch=await guild.channels.fetch(id).catch(e=>{if(e.code===10003)return null;throw e;});
      if(ch)await ch.permissionOverwrites.edit(familyRole,{ViewChannel:false},{reason:'Fin du créneau de réunion'});
     }
@@ -212,4 +222,6 @@ async function tick(guild){
   await ch.send({embeds:[embed('Préparation de réunion ouverte',`**${prepared.name}**\nUtilise \`/réunion reunion:${prepared.id}\` pour préparer les notes et les décisions.\nRien ne sera appliqué avant \`/notesmp\`.`)],allowedMentions:{parse:[]}});
  }
 });}
-module.exports={data,configData,notesData,execute,handle,tick,get,save,authorized,render,_test:{scheduledPayload,announceScheduled}};
+// Salon vocal de la réunion en cours (ouverte, pas encore close), sinon null.
+function openVoice(){return Object.values(a.state().schoolMeetings||{}).some(r=>r.openedAt&&!r.closedAt&&r.status!=='cancelled')?voiceId():null;}
+module.exports={voiceId,openVoice,OPEN_BEFORE,data,configData,notesData,execute,handle,tick,get,save,authorized,render,_test:{scheduledPayload,announceScheduled}};

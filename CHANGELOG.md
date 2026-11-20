@@ -6,6 +6,16 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 108 — /musique par salon, réunions ouvertes 5 min avant et fin automatique
+
+- /accueil-vocal devient /musique ; /musique changer salon:(Attente entretien | Attente aide | Réunion) fichier:… pour
+  une musique par salon (ou origine:Vrai). Le statut montre la musique de chaque salon.
+- Réunion : les salons ouvrent 5 minutes avant l'heure prévue (annonce « La réunion du QG va commencer »). Le bot
+  joue la musique dans la réunion tant qu'aucun membre de la Direction n'y est, puis s'en va. La réunion se
+  termine toute seule (salons refermés) quand la conférence est vide depuis 2 minutes après le début.
+- /conference retirée des commandes du serveur (on garde /réunion).
+- Modifiés : `systems/qgVoiceReception.js`, `systems/qgMeetings.js`, `systems/qgServer.js`, `index.js`, tests.
+
 ## 107 — Présentation du QG plus republiée au démarrage
 
 - Correctif : la maintenance prenait la présentation du QG (publiée par son propre module) pour un panneau retiré,

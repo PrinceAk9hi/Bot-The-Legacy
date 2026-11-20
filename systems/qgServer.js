@@ -309,7 +309,7 @@ async function interaction(i){
   if(sub==='fermer')return i.reply({content:'Archiver puis fermer ce ticket ? Cette action supprime son salon après archivage.',components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('qg:close').setLabel('Confirmer la fermeture').setStyle(ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
   i.customId='qg:'+({prendre:'claim',renommer:'rename'}[sub]);
  }
- if(i.isChatInputCommand?.()&&['conference','sc','accueil-vocal'].includes(i.commandName)){require('../utils/qgDurability').assertDurable();return require('./'+({conference:'qgConferences',sc:'qgDiscipline','accueil-vocal':'qgVoiceReception'})[i.commandName]).execute(i);}
+ if(i.isChatInputCommand?.()&&['conference','sc','accueil-vocal','musique'].includes(i.commandName)){require('../utils/qgDurability').assertDurable();return require('./'+({conference:'qgConferences',sc:'qgDiscipline','accueil-vocal':'qgVoiceReception',musique:'qgVoiceReception'})[i.commandName]).execute(i);}
  if(i.customId?.startsWith('qgc:'))return require('./qgConferences').handle(i);
  if(i.customId?.startsWith('qgd:')){const d=require('./qgDiscipline');return i.customId.startsWith('qgd:edit:')?d.editHandle(i):i.customId.startsWith('qgd:revise:')?d.revise(i):d.handle(i);}
  if(i.customId?.startsWith('qgl:'))return require('./qgRecruitmentHub').action(i,require('./qgRecruitmentLive').handle,'voice');

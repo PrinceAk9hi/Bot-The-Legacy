@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
 const data=require('../utils/recruitmentData'),a=require('../utils/qgAdmin'),config=require('../config/qg'),{Collection,PermissionFlagsBits:P,ChannelType:T}=require('discord.js');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qg-anim-live-'));data.setDataDirectory(dir);
 after(()=>fs.rmSync(dir,{recursive:true,force:true}));
-beforeEach(()=>{for(const f of fs.readdirSync(dir))fs.rmSync(path.join(dir,f),{force:true});});
+beforeEach(()=>{for(const f of fs.readdirSync(dir))fs.rmSync(path.join(dir,f),{recursive:true,force:true});});
 const live=require('../systems/qgAnimationLive');
 
 test('équipes aléatoires : équilibrées, sans doublon, au plus N joueurs par équipe',()=>{
@@ -153,16 +153,32 @@ test('bouton S’inscrire : emoji :statusonline: du serveur, sinon ✋',()=>{
  assert.match(JSON.stringify(anim.newsPayload({emojis:{cache:new Collection()},roles:{cache:new Map()}},e).components[0].toJSON()),/✋/);
 });
 
-test('/accueil-vocal musique : fichier vérifié puis utilisé, fichier illisible refusé, retour à l’origine',async()=>{
+test('/musique changer : fichier vérifié puis utilisé pour le bon salon, fichier illisible refusé, retour à l’origine',async()=>{
  const audio=require('../systems/qgVoiceReception');
  const good=fs.readFileSync(path.join(audio.root,'deplacement.mp3'));
  assert.ok(audio.musicPath().endsWith('attente-entretien.mp3')&&!audio.musicPath().startsWith(dir));
  assert.equal(await audio.setMusic({name:'ma-musique.mp3',size:good.length,url:'x'},{download:async()=>good}),'ma-musique.mp3');
  assert.equal(audio.musicPath(),audio.customMusic());assert.ok(audio.musicPath().startsWith(dir));
- assert.equal(audio.config().customMusic.name,'ma-musique.mp3');
+ assert.equal(audio.config().musics.entretien.name,'ma-musique.mp3');
+ // Autre salon : sa propre musique, sans toucher à celle de l’entretien.
+ await audio.setMusic({name:'aide.mp3',size:good.length,url:'x'},{key:'aide',download:async()=>good});
+ assert.ok(audio.musicPath('aide').endsWith('attente-aide.mp3'));assert.ok(audio.musicPath('reunion').startsWith(audio.root));
+ audio.resetMusic('aide');assert.ok(audio.musicPath('aide').startsWith(audio.root));assert.equal(audio.musicPath('entretien'),audio.customMusic());
  await assert.rejects(audio.setMusic({name:'faux.mp3',size:10,url:'x'},{download:async()=>Buffer.from('pas du son')}),/Musique refusée/);
  assert.equal(audio.musicPath(),audio.customMusic(),'l’ancienne musique reste en place');
  await assert.rejects(audio.setMusic({name:'image.png',size:10,url:'x'}),/Format accepté/);
  await assert.rejects(audio.setMusic({name:'gros.mp3',size:30*1024*1024,url:'x'}),/25 Mo/);
  audio.resetMusic();assert.ok(!audio.musicPath().startsWith(dir));
+});
+
+test('musique en réunion : tant qu’aucun membre de la Direction n’est dans la réunion ouverte',()=>{
+ const audio=require('../systems/qgVoiceReception'),meetings=require('../systems/qgMeetings'),live2=require('../systems/qgRecruitmentLive');
+ a.save(s=>{s.schoolRoles={creator:'dir'};s.schoolMeetings={m1:{id:'m1',openedAt:1,status:'waiting'}};s.schoolFamilyRecruitment={};});live2.save(s=>{s.queue=[];});
+ const person=(id,roles=[])=>({id,user:{bot:false},guild:{id:config.guildId,ownerId:'owner'},roles:{cache:new Map(roles.map(r=>[r,{}]))}});
+ const meet={members:new Map([['p1',person('p1')]])};
+ const guild={channels:{cache:new Map([[meetings.voiceId(),meet]])}};
+ assert.equal(audio.target(guild).key,'reunion');assert.equal(audio.ROOMS[0].announcement,null);
+ meet.members.set('d1',person('d1',['dir']));assert.equal(audio.target(guild),null,'la Direction est là : le bot part');
+ meet.members.delete('d1');a.save(s=>{s.schoolMeetings.m1.closedAt=2;});assert.equal(audio.target(guild),null,'réunion close');
+ assert.equal(audio.data.name,'musique');
 });

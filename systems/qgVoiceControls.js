@@ -69,6 +69,23 @@ async function refreshPanel(guild,id){
  await msg.edit({...controls(id,rec,{guild,limit:room.userLimit}),allowedMentions:{parse:[]}}).catch(()=>{});
  return true;
 }
+// Vocaux déjà ouverts : le panel est remis à la version actuelle (au démarrage du bot). Un ancien panel (embed ou
+// ancienne version) est supprimé et remplacé par le nouveau, sans mentionner personne.
+const current=msg=>msg?.flags?.has?.(MessageFlags.IsComponentsV2)&&JSON.stringify((msg.components||[]).map(c=>c.toJSON?.()||c)).includes('qgs:voice:members:');
+async function refreshAll(guild){
+ let updated=0,replaced=0;
+ for(const [id,rec] of Object.entries(state().schoolTemporaryVoices||{})){
+  const room=await guild.channels.fetch(id).catch(()=>null);if(!room?.isVoiceBased?.())continue;
+  const p={...controls(id,rec,{guild,limit:room.userLimit}),allowedMentions:{parse:[]}};
+  const known=rec.panelId?await room.messages.fetch(rec.panelId).catch(()=>null):null;
+  if(current(known)){await known.edit(p).catch(()=>{});updated++;continue;}
+  const recent=await room.messages.fetch({limit:25}).catch(()=>null);
+  for(const m of recent?.values?.()||[])if(m.author?.id===guild.client.user.id&&/qgs:voice/.test(JSON.stringify((m.components||[]).map(c=>c.toJSON?.()||c))))await m.delete().catch(()=>{});
+  const msg=await room.send(p).catch(()=>null);
+  if(msg){save(x=>{if(x.schoolTemporaryVoices[id])x.schoolTemporaryVoices[id].panelId=msg.id;});replaced++;}
+ }
+ return{detail:`Panels des vocaux temporaires : ${updated} actualisé(s), ${replaced} remplacé(s)`};
+}
 // Transfert de propriété : accès propriétaire au nouveau, et nouveau panel dans le tchat du vocal.
 async function transfer(room,target,{reason='Transfert de propriété'}={}){
  const rec=state().schoolTemporaryVoices?.[room.id];if(!rec)throw Error('Ce vocal temporaire n’est plus suivi.');
@@ -128,7 +145,7 @@ async function answer(i){
  return true;
 }
 
-const busy=new Set();
+
 async function handle(i){
  if(i.customId?.startsWith('qgs:vcall:'))return answer(i);
  if(i.customId!=='qgs:voice-controls'&&!i.customId?.startsWith('qgs:voice:')&&!i.customId?.startsWith('qgs:voice-form:'))return false;
@@ -148,15 +165,19 @@ async function handle(i){
  const legacy=i.customId==='qgs:voice-controls';
  if(legacy)await i.deferReply({flags:MessageFlags.Ephemeral});else await i.deferUpdate();
  const fail=content=>legacy?i.editReply({content,embeds:[],components:[]}):i.followUp({content,flags:MessageFlags.Ephemeral});
- if(busy.has(id)){await fail('Une modification est déjà en cours. Réessaie dans un instant.');return true;}
- busy.add(id);
+ // Les actions d'un même vocal passent l'une après l'autre (plus de refus « modification en cours »).
+ return require('../utils/qgAdmin').serial('voice-panel:'+id,async()=>{
+ const rec=state().schoolTemporaryVoices?.[id];if(!rec){await fail('Ce vocal n’existe plus.');return true;}
  try {
   const room=await i.guild.channels.fetch(id);if(!room?.isVoiceBased())throw Error('Ce vocal n’existe plus.');
   if(!legacy&&i.message?.id)save(x=>{x.schoolTemporaryVoices[id].panelId=i.message.id;});
   if(legacy){await i.editReply(controls(id,rec,{guild:i.guild,limit:room.userLimit}));return true;}
   if(i.customId.startsWith('qgs:voice-form:')){
    const value=i.fields.getTextInputValue('value').trim();
-   if(action==='rename'){const name=voiceName(value);if(name===PREFIX||/@(?:everyone|here)/i.test(value))throw Error('Nom invalide.');await room.setName(name);}
+   if(action==='rename'){const name=voiceName(value);if(name===PREFIX||/@(?:everyone|here)/i.test(value))throw Error('Nom invalide.');
+    // Discord limite les renommages (2 toutes les 10 minutes) : on n'attend pas plus de 4 s, le nom suit ensuite.
+    const done=await Promise.race([room.setName(name).then(()=>true,e=>{console.error('Renommage du vocal :',e.code||e.message);return true;}),new Promise(r=>setTimeout(()=>r(false),4000))]);
+    if(!done)await i.followUp({content:'⏳ Discord limite les changements de nom (2 toutes les 10 minutes) : ton vocal sera renommé dès que possible.',flags:MessageFlags.Ephemeral});}
    else if(action==='limit'){if(!/^\d{1,2}$/.test(value))throw Error('Indique un nombre entre 0 et 99.');await room.setUserLimit(Number(value));}
    else if(action==='call'){if(!value)throw Error('Indique la raison de l’appel.');await call(i,id,state().schoolTemporaryVoices[id],value);}
   }else if(['lock','unlock'].includes(action)){
@@ -226,6 +247,7 @@ async function handle(i){
   const fresh=await i.guild.channels.fetch(id).catch(()=>room);
   await i.editReply({...controls(id,state().schoolTemporaryVoices[id],{guild:i.guild,limit:fresh.userLimit}),allowedMentions:{parse:[]}});
   return true;
- }catch(e){await fail(e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message);return true;}finally{busy.delete(id);}
+ }catch(e){await fail(e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message);return true;}
+ });
 }
-module.exports={panel,controls,handle,eligible,transfer,refreshPanel,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles}};
+module.exports={panel,controls,handle,eligible,transfer,refreshPanel,refreshAll,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles}};

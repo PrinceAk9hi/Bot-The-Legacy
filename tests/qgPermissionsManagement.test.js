@@ -281,3 +281,28 @@ test('appel d’un gérant : mention des rôles Directeur et Superviseur',async(
  await vc.handle({customId:'qgs:voice-form:call:v1',guildId:config.guildId,guild,user:{id:'own'},message:{id:'p'},fields:{getTextInputValue:()=>'Bruit'},deferUpdate:async()=>{},editReply:async()=>{},followUp:async()=>{}});
  assert.equal(sent[0].content,'<@&r1> <@&r2>');assert.deepEqual(sent[0].allowedMentions,{parse:[],roles:['r1','r2']});
 });
+
+test('vocaux déjà ouverts : ancien panel remplacé, panel récent actualisé ; actions mises en file',async()=>{
+ const vc=require('../systems/qgVoiceControls'),{MessageFlags:F,MessageFlagsBitField}=require('discord.js');
+ a.save(s=>{s.schoolRoles={};s.schoolTemporaryVoices={old:{ownerId:'o',kind:'community'},fresh:{ownerId:'o',kind:'community',panelId:'pf'}};});
+ const deleted=[],sent=[],edited=[];
+ const oldMsg={author:{id:'bot'},components:[{toJSON:()=>({components:[{custom_id:'qgs:voice:rename:old'}]})}],delete:async()=>deleted.push('oldpanel')};
+ const freshMsg={flags:new MessageFlagsBitField(F.IsComponentsV2),components:vc.controls('fresh',{ownerId:'o'}).components,edit:async()=>edited.push('pf')};
+ const room=id=>({id,userLimit:0,isVoiceBased:()=>true,send:async p=>{sent.push(id);return{id:'new'};},messages:{fetch:async x=>typeof x==='object'?new Collection([['m',oldMsg]]):x==='pf'?freshMsg:null}});
+ const guild={id:config.guildId,client:{user:{id:'bot'}},emojis:{cache:new Collection()},channels:{fetch:async id=>room(id)}};
+ assert.match((await vc.refreshAll(guild)).detail,/1 actualisé\(s\), 1 remplacé\(s\)/);
+ assert.deepEqual(deleted,['oldpanel']);assert.deepEqual(sent,['old']);assert.deepEqual(edited,['pf']);
+ assert.equal(a.state().schoolTemporaryVoices.old.panelId,'new');
+});
+
+test('panel du vocal : deux actions rapprochées passent l’une après l’autre, sans refus',async()=>{
+ const vc=require('../systems/qgVoiceControls');
+ a.save(s=>{s.schoolRoles={community:'comm'};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false}};});
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{await new Promise(r=>setTimeout(r,30));},delete:async()=>{}},setUserLimit:async n=>{room.userLimit=n;}};
+ const own={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map([['comm',{}]])},voice:{channelId:'v1'}};
+ const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room},members:{fetch:async()=>own}};
+ const errors=[],edits=[];
+ const i=(customId,extra)=>({customId,guildId:config.guildId,guild,user:{id:'own'},message:{id:'p'},deferUpdate:async()=>{},editReply:async()=>edits.push(customId),followUp:async p=>errors.push(p.content),...extra});
+ await Promise.all([vc.handle(i('qgs:voice:lock:v1')),vc.handle(i('qgs:voice-form:limit:v1',{fields:{getTextInputValue:()=>'5'}}))]);
+ assert.deepEqual(errors,[]);assert.equal(edits.length,2);assert.equal(room.userLimit,5);assert.equal(a.state().schoolTemporaryVoices.v1.locked,true);
+});

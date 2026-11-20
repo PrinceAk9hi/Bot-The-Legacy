@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 112 — Panel des vocaux : actions en file, renommage non bloquant, anciens panels remplacés
+
+- Plus de « Une modification est déjà en cours » : les actions d'un même vocal sont exécutées l'une après l'autre.
+- Renommage : Discord limite à 2 changements de nom toutes les 10 minutes ; le bot n'attend plus, il prévient et le
+  nom change dès que possible.
+- Au démarrage, les vocaux déjà ouverts reçoivent le panel actuel (l'ancien panel est supprimé et remplacé).
+- Modifiés : `systems/qgVoiceControls.js`, `systems/qgMaintenance.js`, tests.
+
 ## 111 — Vocaux temporaires : bloquer, expulser, caméra et stream, récupérer la propriété
 
 - Menu « Membres bloqués » : ils ne peuvent jamais entrer, même si le vocal est public, et sont déconnectés.

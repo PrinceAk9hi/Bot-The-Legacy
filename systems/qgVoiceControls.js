@@ -95,12 +95,19 @@ function requestPayload(id,call){
   button(`qgs:vcall:busy:${id}`,'Pas disponible').setDisabled(done),
   button(`qgs:vcall:abuse:${id}`,'Abus · exclure 6 h',ButtonStyle.Danger).setDisabled(done))],allowedMentions:{parse:[]}};
 }
+const plain=t=>String(t||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase();
+function callRoles(guild){
+ if(Array.isArray(config.voiceCallRoles)&&config.voiceCallRoles.length)return config.voiceCallRoles;
+ return[...(guild?.roles?.cache?.values()||[])].filter(r=>!r.managed&&/directeur|directrice|superviseur|superviseuse/.test(plain(r.name))).map(r=>r.id);
+}
 async function call(i,id,rec,reason){
  const prior=rec.call;
  if(prior&&!prior.closed&&Date.now()-prior.at<CALL_COOLDOWN)throw Error('Un gérant a déjà été appelé il y a moins de 10 minutes.');
  const ch=await i.guild.channels.fetch(REQUEST_CHANNEL).catch(()=>null);if(!ch?.isTextBased?.())throw Error('Salon des requêtes introuvable : préviens la direction.');
  const c={requesterId:i.user.id,reason:reason.slice(0,500),at:Date.now(),unavailable:[]};
- const msg=await ch.send(requestPayload(id,c));
+ // Mention des rôles Directeur et Superviseur (config.voiceCallRoles, sinon retrouvés par leur nom).
+ const pings=callRoles(i.guild);
+ const msg=await ch.send({...requestPayload(id,c),content:pings.length?pings.map(r=>`<@&${r}>`).join(' '):null,allowedMentions:{parse:[],roles:pings}});
  save(x=>{x.schoolTemporaryVoices[id].call={...c,messageId:msg.id};});
 }
 async function answer(i){
@@ -221,4 +228,4 @@ async function handle(i){
   return true;
  }catch(e){await fail(e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message);return true;}finally{busy.delete(id);}
 }
-module.exports={panel,controls,handle,eligible,transfer,refreshPanel,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji}};
+module.exports={panel,controls,handle,eligible,transfer,refreshPanel,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles}};

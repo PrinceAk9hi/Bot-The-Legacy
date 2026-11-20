@@ -11,6 +11,7 @@ consulter l'historique Git.
 - Menu « Membres bloqués » : ils ne peuvent jamais entrer, même si le vocal est public, et sont déconnectés.
 - Menu « Expulser » : déconnecte un membre ; en vocal privé, il perd aussi son autorisation.
 - Bouton caméra et stream : désactivés pour tous sauf le propriétaire, puis réautorisés.
+- Appel d'un gérant : mention des rôles Directeur et Superviseur (retrouvés par leur nom, ou config.voiceCallRoles).
 - Bouton « Récupérer la propriété » : un membre présent peut la reprendre si le propriétaire a quitté le vocal
   depuis 5 minutes (jamais automatique ; le retour du propriétaire annule l'absence).
 - Modifiés : `systems/qgVoiceControls.js`, `systems/qgSchoolVoice.js`, tests.

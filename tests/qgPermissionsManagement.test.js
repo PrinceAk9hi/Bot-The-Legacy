@@ -268,3 +268,16 @@ test('vocal temporaire : bloquer, expulser, caméra et stream, récupérer la pr
  await vc.handle(i('qgs:voice:claim:v1','troll'));
  assert.equal(a.state().schoolTemporaryVoices.v1.ownerId,'troll');assert.equal(a.state().schoolTemporaryVoices.v1.ownerLeftAt,undefined);
 });
+
+test('appel d’un gérant : mention des rôles Directeur et Superviseur',async()=>{
+ const vc=require('../systems/qgVoiceControls');
+ const roles=new Collection([['r1',{id:'r1',name:'👔・Directeur',managed:false}],['r2',{id:'r2',name:'Superviseur',managed:false}],['r3',{id:'r3',name:'✦・DIRECTION',managed:false}],['r4',{id:'r4',name:'Membre',managed:false}]]);
+ assert.deepEqual(vc._test.callRoles({roles:{cache:roles}}),['r1','r2']);
+ a.save(s=>{s.schoolRoles={};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false}};});
+ const sent=[];const req={isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'n1'};}};
+ const member={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map()},voice:{channelId:'v1'}};
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection()}};
+ const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:roles},channels:{fetch:async id=>id===vc.REQUEST_CHANNEL?req:room},members:{fetch:async()=>member}};
+ await vc.handle({customId:'qgs:voice-form:call:v1',guildId:config.guildId,guild,user:{id:'own'},message:{id:'p'},fields:{getTextInputValue:()=>'Bruit'},deferUpdate:async()=>{},editReply:async()=>{},followUp:async()=>{}});
+ assert.equal(sent[0].content,'<@&r1> <@&r2>');assert.deepEqual(sent[0].allowedMentions,{parse:[],roles:['r1','r2']});
+});

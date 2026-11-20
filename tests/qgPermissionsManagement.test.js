@@ -158,3 +158,16 @@ test('panneaux : supprimé à la main → jamais republié ; panneau des notific
  assert.equal(a.state().schoolPanelArchives.rules.reason,'Supprimé à la main');
  assert.ok(r.notices.some(n=>/supprimé à la main/.test(n)));
 });
+
+test('panel des gestions : rôle d’exécutant puis ses membres et les places libres',async()=>{
+ const panels=require('../systems/qgPanels');
+ a.save(s=>{s.schoolRoles={rpManagement:'exec-rp',rpLead:'resp-rp'};s.schoolRoleBadgeEmojis={};});
+ const m=(id,...r)=>({id,user:{bot:false},roles:{cache:new Map(r.map(x=>[x,{}]))}});
+ const members=new Collection([['m1',m('m1','exec-rp')],['chef',m('chef','exec-rp','resp-rp')]]);
+ const guild={id:config.guildId,roles:{cache:new Collection([['exec-rp',{id:'exec-rp',icon:null}]])},emojis:{cache:new Collection()},members:{cache:members,fetch:async()=>members}};
+ const p=await panels.management(guild);
+ const rp=p.embeds[0].toJSON().fields.find(f=>f.name.includes('Exécutant du RP'));
+ assert.match(rp.value,/<@&exec-rp>\n> -# <@m1>\n> -# Place libre$/);
+ assert.ok(!rp.value.includes('<@chef>'),'le responsable n’occupe pas de place');
+ assert.deepEqual(p.allowedMentions,{parse:[]});
+});

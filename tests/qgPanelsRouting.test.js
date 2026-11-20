@@ -14,8 +14,8 @@ test('ticket panel order, supplied emojis, white branding and verification help 
  const buttons=require('../systems/qgEntryVerification').panel().components[0].toJSON().components;assert.ok(buttons.some(x=>x.custom_id==='qgs:help-open'));
 });
 test('management capacity uses real members and excludes the responsible',async()=>{
- reset();const members=new Collection([['a',{user:{bot:false},roles:{cache:new Map([['animation',true]])}}],['lead',{user:{bot:false},roles:{cache:new Map([['animation',true],['animation-lead',true]])}}]]);
- const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.fields.find(f=>f.name==='🎉 Exécutant des Animations').value,/●○  \*\*1\*\* place libre/);
+ reset();const members=new Collection([['a',{id:'a',user:{bot:false},roles:{cache:new Map([['animation',true]])}}],['lead',{id:'lead',user:{bot:false},roles:{cache:new Map([['animation',true],['animation-lead',true]])}}]]);
+ const p=await panels.management({members:{cache:members,fetch:async()=>members}});assert.match(p.embeds[0].data.fields.find(f=>f.name==='🎉 Exécutant des Animations').value,/<@&animation>\n> -# <@a>\n> -# Place libre$/);
  const unknown=await panels.management();assert.match(unknown.embeds[0].data.fields[0].value,/non mesurées/);
 });
 test('reports and Foundation are private from Support and Administrator roles',()=>{

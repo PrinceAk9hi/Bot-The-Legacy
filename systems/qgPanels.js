@@ -24,7 +24,10 @@ async function management(guild){
  const seats=teams.map(([key,lead])=>members?[...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(roles[key])&&!m.roles.cache.has(roles[lead])).length:null);
  // Deux places par équipe : ● occupée, ○ libre.
  const status=n=>n===null?'Places non mesurées':`${'●'.repeat(Math.min(n,2))}${'○'.repeat(Math.max(0,2-n))}  ${n>=2?'**Complet**':`**${2-n}** place${2-n>1?'s':''} libre${2-n>1?'s':''}`}`;
- const fields=teams.map(([key,,label,desc,emoji],n)=>({name:`${teamEmoji(key,emoji)} ${label}`,value:`${desc}\n${status(seats[n])}`}));
+ // Sous chaque équipe : le rôle d'exécutant, puis ses membres (hors responsable) et les places libres.
+ const holders=teams.map(([key,lead])=>members?[...members.values()].filter(m=>!m.user.bot&&m.roles.cache.has(roles[key])&&!m.roles.cache.has(roles[lead])).map(m=>m.id):null);
+ const roster=n=>{const ids=holders[n];if(!ids)return'';const lines=[...ids.map(id=>`> -# <@${id}>`),...Array.from({length:Math.max(0,2-ids.length)},()=>'> -# Place libre')];return`\n\n${roles[teams[n][0]]?`<@&${roles[teams[n][0]]}>\n`:''}${lines.join('\n')}`;};
+ const fields=teams.map(([key,,label,desc,emoji],n)=>({name:`${teamEmoji(key,emoji)} ${label}`,value:`${desc}${roster(n)||'\n'+status(seats[n])}`.slice(0,1024)}));
  const e=embed('🛡️ Devenir exécutant',`${brand(guild)}Six équipes d’exécutants font vivre le QG au quotidien.\nDécouvre leurs missions, puis choisis celle qui te ressemble.\n​`).addFields(...fields,{name:'​',value:'📝 **Avant de candidater**\nÊtre membre de la famille et disposer de temps. Ton dossier présentera tes motivations, ton expérience, tes disponibilités et ce que tu souhaites apporter.\n\n🎮 **Sur Roblox**\nUn exécutant reçoit le rang **Membre gestion** dans la communauté.\n\n*Deux places par équipe, hors responsable · Dossiers étudiés par le responsable concerné.*'});
  const menu=new StringSelectMenuBuilder().setCustomId('qgs:management-apply').setPlaceholder('Choisir une équipe').addOptions(teams.map(([value,,label,,emoji],n)=>({value,label,emoji:menuEmoji(teamEmoji(value,emoji)),description:seats[n]===null?undefined:seats[n]>=2?'Complet':`${2-seats[n]} place${2-seats[n]>1?'s':''} libre${2-seats[n]>1?'s':''}`})));
  return {embeds:[e],components:[new ActionRowBuilder().addComponents(menu)],allowedMentions:{parse:[]}};

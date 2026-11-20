@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 103 — Questions d'entretien revues, récap de l'annonce renvoyé
+
+- Guide d'entretien : questions 1, 4 et 7 supprimées ; « Qu'est-ce que signifie, pour toi, le respect… » ; la
+  question sur la provocation devient une mise en situation précise ; la question « Si tu es accepté… » est
+  posée en dernier, après les mises en situation. Situation 2 : « Deux membres du QG » ; situation 3 : « Ton
+  meilleur ami, membre du QG » ; situation 5 : « Que fais-tu ? ».
+- L'aperçu de l'annonce est renvoyé une fois en MP pour les animations à venir pas encore publiées.
+- Modifiés : `config/qgInterviewGuide.js`, `systems/qgAnimations.js`, tests.
+
 ## 102 — Aperçu de l'annonce en MP avant publication
 
 - L'annonce d'une animation est préparée automatiquement, mais n'est plus publiée d'office : l'animateur reçoit en

@@ -325,6 +325,7 @@ async function tick(guild,now=Date.now()){if(ticking||guild.id!==config.guildId)
   }
  }
  await require('./qgAnimationLive').tick(guild).catch(()=>{});
+ if(!state().previewResent){save(s=>{s.previewResent=Date.now();for(const x of Object.values(s.events))if(!x.news&&!closed(x)&&x.startAt>now)delete x.newsPreview;});}
  for(const x of Object.values(state().events))if(x.news?.messageId||!closed(x))await announceEvent(guild,x.id).catch(()=>{});
  await refresh(guild);await ensureControl(guild);
  }finally{ticking=false;}}

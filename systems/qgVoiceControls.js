@@ -166,7 +166,8 @@ async function handle(i){
  if(legacy)await i.deferReply({flags:MessageFlags.Ephemeral});else await i.deferUpdate();
  const fail=content=>legacy?i.editReply({content,embeds:[],components:[]}):i.followUp({content,flags:MessageFlags.Ephemeral});
  // Les actions d'un même vocal passent l'une après l'autre (plus de refus « modification en cours »).
- return require('../utils/qgAdmin').serial('voice-panel:'+id,async()=>{
+ // Une action que Discord fait attendre plus de 12 s ne bloque pas les suivantes : elle finit en arrière-plan.
+ const step=async()=>{
  const rec=state().schoolTemporaryVoices?.[id];if(!rec){await fail('Ce vocal n’existe plus.');return true;}
  try {
   const room=await i.guild.channels.fetch(id);if(!room?.isVoiceBased())throw Error('Ce vocal n’existe plus.');
@@ -245,9 +246,21 @@ async function handle(i){
    if(refused.length)await i.followUp({content:`Non autorisés (propriétaire, Direction, bot ou sans l’accès requis) : ${refused.map(x=>`<@${x}>`).join(', ')}`,flags:MessageFlags.Ephemeral,allowedMentions:{parse:[]}});
   }
   const fresh=await i.guild.channels.fetch(id).catch(()=>room);
-  await i.editReply({...controls(id,state().schoolTemporaryVoices[id],{guild:i.guild,limit:fresh.userLimit}),allowedMentions:{parse:[]}});
+  const p={...controls(id,state().schoolTemporaryVoices[id],{guild:i.guild,limit:fresh.userLimit}),allowedMentions:{parse:[]}};
+  // Panel impossible à modifier (ancienne version) : un panel neuf le remplace dans le tchat du vocal.
+  await i.editReply(p).catch(async err=>{
+   console.error('Panel du vocal (mise à jour) :',err.code||err.message);
+   const msg=await fresh.send?.(p).catch(()=>null);
+   if(msg){save(x=>{if(x.schoolTemporaryVoices[id])x.schoolTemporaryVoices[id].panelId=msg.id;});await i.message?.delete?.().catch(()=>{});}
+   else throw err;
+  });
   return true;
- }catch(e){await fail(e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message);return true;}
+ }catch(e){console.error('Panel du vocal :',action,e.code||e.message);await fail(e.code?`Action impossible (code ${e.code}). Vérifie les permissions du bot.`:e.message).catch(()=>{});return true;}
+ };
+ return require('../utils/qgAdmin').serial('voice-panel:'+id,()=>{
+  let timer;
+  const slow=new Promise(r=>{timer=setTimeout(()=>{fail('⏳ Discord met du temps à appliquer ce réglage : il sera fait dans un instant.').catch(()=>{});r(true);},12000);timer.unref?.();});
+  return Promise.race([step().finally(()=>clearTimeout(timer)),slow]);
  });
 }
 module.exports={panel,controls,handle,eligible,transfer,refreshPanel,refreshAll,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles}};

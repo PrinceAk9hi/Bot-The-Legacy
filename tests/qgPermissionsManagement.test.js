@@ -306,3 +306,19 @@ test('panel du vocal : deux actions rapprochées passent l’une après l’autr
  await Promise.all([vc.handle(i('qgs:voice:lock:v1')),vc.handle(i('qgs:voice-form:limit:v1',{fields:{getTextInputValue:()=>'5'}}))]);
  assert.deepEqual(errors,[]);assert.equal(edits.length,2);assert.equal(room.userLimit,5);assert.equal(a.state().schoolTemporaryVoices.v1.locked,true);
 });
+
+test('panel du vocal : panel impossible à modifier remplacé par un neuf ; erreur toujours signalée',async()=>{
+ const vc=require('../systems/qgVoiceControls');
+ a.save(s=>{s.schoolRoles={};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false}};});
+ const sent=[],deleted=[],notes=[];
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{}},send:async p=>{sent.push(p);return{id:'np'};}};
+ const own={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map()},voice:{channelId:'v1'}};
+ const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room},members:{fetch:async()=>own}};
+ const base={guildId:config.guildId,guild,user:{id:'own'},deferUpdate:async()=>{},followUp:async p=>notes.push(p.content)};
+ await vc.handle({...base,customId:'qgs:voice:lock:v1',message:{id:'oldpanel',delete:async()=>deleted.push('oldpanel')},editReply:async()=>{throw Object.assign(Error('Cannot edit'),{code:50035});}});
+ assert.equal(sent.length,1);assert.deepEqual(deleted,['oldpanel']);assert.equal(a.state().schoolTemporaryVoices.v1.panelId,'np');assert.deepEqual(notes,[]);
+ // Erreur réelle : message privé à l’utilisateur.
+ room.isVoiceBased=()=>false;
+ await vc.handle({...base,customId:'qgs:voice:unlock:v1',message:{id:'np'},editReply:async()=>{}});
+ assert.match(notes.at(-1),/n’existe plus/);
+});

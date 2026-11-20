@@ -12,6 +12,8 @@ consulter l'historique Git.
 - Renommage : Discord limite à 2 changements de nom toutes les 10 minutes ; le bot n'attend plus, il prévient et le
   nom change dès que possible.
 - Au démarrage, les vocaux déjà ouverts reçoivent le panel actuel (l'ancien panel est supprimé et remplacé).
+- Une action que Discord fait attendre plus de 12 s ne bloque plus les suivantes (message « Discord met du temps… »).
+  Un panel impossible à modifier est remplacé par un panel neuf ; chaque erreur est signalée et écrite dans les logs.
 - Modifiés : `systems/qgVoiceControls.js`, `systems/qgMaintenance.js`, tests.
 
 ## 111 — Vocaux temporaires : bloquer, expulser, caméra et stream, récupérer la propriété

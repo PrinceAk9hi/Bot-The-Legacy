@@ -7,11 +7,26 @@ const save=fn=>update('qgServer',fn);
 const row=(...items)=>new ActionRowBuilder().addComponents(items);
 const button=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 function panel(){return {embeds:[new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle('Mon vocal temporaire').setDescription('Rejoins « Créer sa voc », puis ouvre tes contrôles ici.\nRenomme ton salon, règle les places, verrouille l’accès et choisis les membres autorisés.')],components:[row(button('qgs:voice-controls','Gérer mon vocal',ButtonStyle.Primary))],allowedMentions:{parse:[]}};}
-function controls(id,rec){return {embeds:[new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle('Contrôles de mon vocal').setDescription(`<#${id}>\nAccès : **${rec.locked?'verrouillé':'ouvert'}**\nLes autorisations nominatives n’ouvrent pas un vocal famille aux personnes extérieures à la famille.`)],components:[
- row(button(`qgs:voice:rename:${id}`,'Renommer'),button(`qgs:voice:limit:${id}`,'Places'),button(`qgs:voice:${rec.locked?'unlock':'lock'}:${id}`,rec.locked?'Ouvrir':'Verrouiller',ButtonStyle.Primary)),
- row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:allow:${id}`).setPlaceholder('Autoriser un membre').setMaxValues(1)),
- row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:remove:${id}`).setPlaceholder('Retirer une autorisation').setMaxValues(1)),
- row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:transfer:${id}`).setPlaceholder('Transférer la propriété (membre présent dans la voc)').setMaxValues(1))],allowedMentions:{parse:[]}};}
+// Panel du vocal, présenté comme le panel recruteur : chaque bouton à côté de sa fonction, puis les menus des membres.
+// lead : texte facultatif en tête (ex. mention du propriétaire), dans le panel lui-même.
+function controls(id,rec,{lead=null,mention=null}={}){
+ const d=require('discord.js'),text=c=>new d.TextDisplayBuilder().setContent(c);
+ const item=(label,description,btn)=>new d.SectionBuilder().addTextDisplayComponents(text(`**${label}**\n${description}`)).setButtonAccessory(btn);
+ const box=new d.ContainerBuilder().setAccentColor(0xffffff)
+  .addTextDisplayComponents(text(`${lead?lead+'\n':''}## 🔊 TON VOCAL · <#${id}>\nAccès : **${rec.locked?'🔒 verrouillé':'🔓 ouvert'}**`))
+  .addSeparatorComponents(new d.SeparatorBuilder())
+  .addSectionComponents(
+   item('✏️ Renommer','Change le nom de ton vocal.',button(`qgs:voice:rename:${id}`,'Renommer')),
+   item('👥 Places','Nombre de places (0 = illimité).',button(`qgs:voice:limit:${id}`,'Places')),
+   item(rec.locked?'🔓 Ouvrir':'🔒 Verrouiller',rec.locked?'Rouvre ton vocal aux membres qui y ont accès.':'Plus personne ne peut entrer, sauf les membres autorisés.',button(`qgs:voice:${rec.locked?'unlock':'lock'}:${id}`,rec.locked?'Ouvrir':'Verrouiller',ButtonStyle.Primary)))
+  .addSeparatorComponents(new d.SeparatorBuilder())
+  .addTextDisplayComponents(text('### 👥 Membres\n-# Les autorisations n’ouvrent pas un vocal famille aux personnes extérieures à la famille.'))
+  .addActionRowComponents(
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:allow:${id}`).setPlaceholder('✅ Autoriser un membre').setMaxValues(1)),
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:remove:${id}`).setPlaceholder('⛔ Retirer une autorisation').setMaxValues(1)),
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:transfer:${id}`).setPlaceholder('👑 Transférer la propriété (membre dans la voc)').setMaxValues(1)));
+ return {components:[box],flags:d.MessageFlags.IsComponentsV2,allowedMentions:{parse:[],users:mention?[mention]:[]}};
+}
 // Transfert de propriété : accès propriétaire au nouveau, annonce et nouveau panel dans le tchat de la voc.
 async function transfer(room,target,{reason='Transfert de propriété'}={}){
  const {PermissionFlagsBits:P}=require('discord.js'),policy=require('./qgCommunityPolicy');
@@ -20,8 +35,8 @@ async function transfer(room,target,{reason='Transfert de propriété'}={}){
  await room.permissionOverwrites.edit(target.id,{ViewChannel:true,Connect:true,Speak:true,UseVAD:true,...Object.fromEntries(policy.voiceDenied.map(k=>[k,false])),ReadMessageHistory:true},{reason});
  if(previous&&previous!==target.id)await room.permissionOverwrites.edit(previous,{ReadMessageHistory:false},{reason}).catch(()=>{});
  save(x=>{x.schoolTemporaryVoices[room.id].ownerId=target.id;x.schoolTemporaryVoices[room.id].transferredAt=Date.now();});
- const p=controls(room.id,state().schoolTemporaryVoices[room.id]);
- await room.send({...p,content:`<@${target.id}> tu es maintenant propriétaire de ce vocal${previous&&previous!==target.id?` (à la place de <@${previous}>)`:''}. Voici tes réglages.`,allowedMentions:{parse:[],users:[target.id]}}).catch(e=>console.error('Transfert du vocal temporaire :',e.code||e.message));
+ const p=controls(room.id,state().schoolTemporaryVoices[room.id],{lead:`<@${target.id}> tu es maintenant propriétaire de ce vocal${previous&&previous!==target.id?` (à la place de <@${previous}>)`:''}. Voici tes réglages.`,mention:target.id});
+ await room.send(p).catch(e=>console.error('Transfert du vocal temporaire :',e.code||e.message));
  return previous;
 }
 function eligible(member,rec,s){const r=s.schoolRoles||{};return policy.exempt(member,s)||(rec.kind==='family'?require('../config/qgSchoolLayout').allFamily.some(k=>r[k]&&member.roles.cache.has(r[k])):!!r.community&&member.roles.cache.has(r.community));}

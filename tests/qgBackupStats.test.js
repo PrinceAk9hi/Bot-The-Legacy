@@ -104,22 +104,22 @@ function voiceRoom(ids){
  return{edits,sent,room:{id:'v1',members,permissionOverwrites:{edit:async(id,p)=>edits.push([id,p])},send:async p=>sent.push(p)}};
 }
 
-test('vocal temporaire : le propriétaire part, la voc passe au membre suivant avec son panel',async()=>{
+const v2ids=p=>{const out=[];const walk=c=>{if(c.custom_id)out.push(c.custom_id);if(c.accessory)walk(c.accessory);for(const x of c.components||[])walk(x);};for(const c of p.components)walk(c.toJSON());return out;};
+const v2text=p=>JSON.stringify(p.components.map(c=>c.toJSON()));
+test('vocal temporaire : le propriétaire garde sa voc en partant ; le transfert manuel poste le nouveau panel',async()=>{
  const voice=require('../systems/qgSchoolVoice');
  a.save(s=>{s.schoolTemporaryVoices={v1:{ownerId:'o',kind:'community',locked:false}};});
  const {room,edits,sent}=voiceRoom(['bot','m2','m3']);
  const guild={id:config.guildId,channels:{cache:new Map([['v1',room]])}};
  const member={id:'o',user:{bot:false}};
  await voice.voice({channelId:'v1',guild},{channelId:null,guild,member},{user:{id:'bot'}});
+ assert.equal(a.state().schoolTemporaryVoices.v1.ownerId,'o','pas de transfert automatique');assert.equal(sent.length,0);
+ await require('../systems/qgVoiceControls').transfer(room,{id:'m2'});
  assert.equal(a.state().schoolTemporaryVoices.v1.ownerId,'m2');
  assert.equal(edits[0][0],'m2');assert.equal(edits[0][1].ReadMessageHistory,true);
  assert.deepEqual(edits[1],['o',{ReadMessageHistory:false}]);
- assert.match(sent[0].content,/<@m2> tu es maintenant propriétaire/);assert.deepEqual(sent[0].allowedMentions.users,['m2']);
- const ids=sent[0].components.flatMap(r=>r.toJSON().components.map(c=>c.custom_id));
- assert.ok(ids.includes('qgs:voice:transfer:v1'));
- // Un autre membre part : pas de transfert.
- await voice.voice({channelId:'v1',guild},{channelId:null,guild,member:{id:'m3',user:{bot:false}}},{user:{id:'bot'}});
- assert.equal(sent.length,1);
+ assert.match(v2text(sent[0]),/<@m2> tu es maintenant propriétaire/);assert.deepEqual(sent[0].allowedMentions.users,['m2']);
+ assert.ok(v2ids(sent[0]).includes('qgs:voice:transfer:v1'));
 });
 
 test('autres familles : alerte Direction pour un membre déjà vérifié ou nouvel arrivant, pas au premier passage',async()=>{

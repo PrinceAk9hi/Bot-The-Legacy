@@ -35,16 +35,15 @@ async function voice(oldState,newState,client){
  const rec=oldState.channelId&&s.schoolTemporaryVoices?.[oldState.channelId];
  if(rec){
   const room=oldState.guild.channels.cache.get(oldState.channelId);
+  // Le propriétaire garde sa voc même s'il s'absente : la propriété ne change qu'avec le menu « Transférer ».
   if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}
-  // Le propriétaire part et d'autres restent : la voc passe automatiquement au membre suivant.
-  else if(room&&member.id===rec.ownerId){const next=heir(room,member.id);if(next)await require('./qgVoiceControls').transfer(room,next,{reason:'Le propriétaire a quitté le vocal'});}
  }
  return false;
 }
 // Héritier : le membre (hors bots) arrivé le plus tôt dans la voc, d'après l'ordre de Discord.
 function heir(room,ownerId){return [...room.members.values()].find(m=>!m.user.bot&&m.id!==ownerId)||null;}
 // Panel du tchat de la voc : contrôles de la voc et mention du propriétaire.
-function roomPanel(id,rec,ownerId){const p=require('./qgVoiceControls').controls(id,rec);return{...p,content:`<@${ownerId}> voici les réglages de ton vocal.`,allowedMentions:{parse:[],users:[ownerId]}};}
+function roomPanel(id,rec,ownerId){return require('./qgVoiceControls').controls(id,rec,{lead:`<@${ownerId}> voici les réglages de ton vocal.`,mention:ownerId});}
 // Anciens panneaux « Mon vocal temporaire » des salons commandes : supprimés une fois.
 async function retireCommandPanels(guild){
  const panels=state().schoolPanels||{};let removed=0;

@@ -210,8 +210,8 @@ test('voc temporaire : panel posté dans le tchat de la voc, historique visible 
  const owner=created.permissionOverwrites.find(o=>o.id===AUTHOR);
  assert.ok(owner.allow.includes(P.ReadMessageHistory));assert.ok(!owner.deny.includes(P.ReadMessageHistory));
  assert.ok(created.permissionOverwrites.filter(o=>o.id!==AUTHOR&&o.id!=='bot').every(o=>!(o.allow||[]).includes(P.ReadMessageHistory)));
- assert.equal(sent.length,1);assert.equal(sent[0].content,`<@${AUTHOR}> voici les réglages de ton vocal.`);
- const ids=sent[0].components.flatMap(r=>r.toJSON().components.map(c=>c.custom_id));
+ assert.equal(sent.length,1);assert.ok(JSON.stringify(sent[0].components[0].toJSON()).includes(`<@${AUTHOR}> voici les réglages de ton vocal.`));assert.deepEqual(sent[0].allowedMentions.users,[AUTHOR]);
+ const ids=[];const walk=c=>{if(c.custom_id)ids.push(c.custom_id);if(c.accessory)walk(c.accessory);for(const x of c.components||[])walk(x);};walk(sent[0].components[0].toJSON());
  assert.ok(ids.includes('qgs:voice:rename:room1')&&ids.includes('qgs:voice:lock:room1'));
  assert.equal(member.voice.channelId,'room1');
 });

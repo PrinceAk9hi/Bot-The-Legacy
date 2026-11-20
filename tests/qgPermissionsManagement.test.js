@@ -180,3 +180,16 @@ test('maintenance : la présentation du QG (publiée par son module) n’est ni 
  await panels(guild);
  assert.deepEqual(deleted,[]);assert.equal(sent.length,0);assert.ok(a.state().schoolPanels.communityHelp);
 });
+
+test('salons de réunion : déplacés dans la catégorie, Direction et rôle famille seulement, une fois',async()=>{
+ const meetings=require('../systems/qgMeetings'),{PermissionFlagsBits:P2}=require('discord.js'),edits=[];
+ a.save(s=>{s.schoolRoles={creator:'dir'};s.schoolChannels={meetingChat:'chat'};s.schoolMeetings={};delete s.schoolMeetingChannels;});
+ const ch=id=>({id,edit:async o=>edits.push([id,o])});
+ const guild={id:config.guildId,client:{user:{id:'bot'}},channels:{fetch:async id=>id===meetings.MEETING_CATEGORY?{id}:id==='1562077941469552680'?ch(id):id==='chat'?ch('chat'):null}};
+ assert.match((await meetings.setupChannels(guild)).detail,/refaits/);
+ assert.deepEqual(edits.map(e=>[e[0],e[1].parent]),[['1562077941469552680',meetings.MEETING_CATEGORY],['chat',meetings.MEETING_CATEGORY]]);
+ const o=edits[0][1].permissionOverwrites,find=id=>o.find(x=>x.id===id);
+ assert.deepEqual(find(config.guildId).deny,[P2.ViewChannel]);
+ assert.ok(find('dir').allow.includes(P2.ViewChannel));assert.ok(find('1561363081018474626').deny.includes(P2.ViewChannel),'fermé hors réunion');
+ assert.match((await meetings.setupChannels(guild)).detail,/déjà/);assert.equal(edits.length,2);
+});

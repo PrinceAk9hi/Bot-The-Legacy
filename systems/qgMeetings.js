@@ -222,6 +222,33 @@ async function tick(guild){
   await ch.send({embeds:[embed('Préparation de réunion ouverte',`**${prepared.name}**\nUtilise \`/réunion reunion:${prepared.id}\` pour préparer les notes et les décisions.\nRien ne sera appliqué avant \`/notesmp\`.`)],allowedMentions:{parse:[]}});
  }
 });}
+// Salons de réunion (conférence « réunion-famille » et « discu-réunion ») refaits une fois dans la catégorie
+// 1561157144731058236 : accès réservé à la Direction et au rôle de la famille (ouvert seulement pendant les réunions).
+const MEETING_CATEGORY='1561157144731058236';
+function meetingOverwrites(guild,{voice,open}){
+ const r=a.state().schoolRoles||{},direction=['creator','globalManager','referent'].map(k=>r[k]).filter(Boolean);
+ const talk=voice?[P.ViewChannel,P.Connect,P.Speak,P.UseVAD,P.ReadMessageHistory,P.SendMessages]:[P.ViewChannel,P.ReadMessageHistory,P.SendMessages];
+ return[
+  {id:guild.id,deny:[P.ViewChannel]},
+  {id:guild.client.user.id,allow:[...talk,P.ManageChannels,P.MuteMembers,P.MoveMembers]},
+  ...direction.map(id=>({id,allow:[...talk,P.MuteMembers,P.MoveMembers,P.ManageChannels]})),
+  {id:familyRole,allow:talk.filter(b=>b!==P.ViewChannel).concat(open?[P.ViewChannel]:[]),deny:open?[]:[P.ViewChannel]}];
+}
+async function setupChannels(guild){
+ if(a.state().schoolMeetingChannels?.done)return{detail:'Salons de réunion déjà en place'};
+ const cat=await guild.channels.fetch(MEETING_CATEGORY).catch(()=>null);
+ if(!cat)return{detail:'Catégorie des réunions introuvable',notices:['Catégorie 1561157144731058236 introuvable']};
+ const open=!!openVoice();
+ let voice=await guild.channels.fetch(voiceId()).catch(()=>null);
+ if(voice)await voice.edit({parent:cat.id,permissionOverwrites:meetingOverwrites(guild,{voice:true,open}),reason:'Salons de réunion refaits'});
+ else voice=await guild.channels.create({name:'♻️・réunion-famille',type:CT.GuildStageVoice,parent:cat.id,permissionOverwrites:meetingOverwrites(guild,{voice:true,open}),reason:'Salons de réunion refaits'});
+ let chat=a.state().schoolChannels?.meetingChat&&await guild.channels.fetch(a.state().schoolChannels.meetingChat).catch(()=>null);
+ if(!chat){await guild.channels.fetch();chat=guild.channels.cache.find(c=>c.type===CT.GuildText&&/discu-réunion/.test(c.name))||null;}
+ if(chat)await chat.edit({parent:cat.id,permissionOverwrites:meetingOverwrites(guild,{voice:false,open}),reason:'Salons de réunion refaits'});
+ else chat=await guild.channels.create({name:'🖋️・discu-réunion',type:CT.GuildText,parent:cat.id,permissionOverwrites:meetingOverwrites(guild,{voice:false,open}),reason:'Salons de réunion refaits'});
+ a.save(s=>{s.schoolChannels||={};s.schoolChannels.meetingVoice=voice.id;s.schoolChannels.meetingChat=chat.id;s.schoolMeetingChannels={done:Date.now()};});
+ return{detail:'Salons de réunion refaits dans la catégorie (Direction et famille seulement)'};
+}
 // Salon vocal de la réunion en cours (ouverte, pas encore close), sinon null.
 function openVoice(){return Object.values(a.state().schoolMeetings||{}).some(r=>r.openedAt&&!r.closedAt&&r.status!=='cancelled')?voiceId():null;}
-module.exports={voiceId,openVoice,OPEN_BEFORE,data,configData,notesData,execute,handle,tick,get,save,authorized,render,_test:{scheduledPayload,announceScheduled}};
+module.exports={setupChannels,meetingOverwrites,MEETING_CATEGORY,voiceId,openVoice,OPEN_BEFORE,data,configData,notesData,execute,handle,tick,get,save,authorized,render,_test:{scheduledPayload,announceScheduled}};

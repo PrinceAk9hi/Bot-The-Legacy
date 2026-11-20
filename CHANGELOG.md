@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 109 — Salons de réunion refaits, vocaux temporaires sans transfert automatique
+
+- Salons « réunion-famille » et « discu-réunion » refaits une fois dans la catégorie 1561157144731058236 :
+  accès réservé à la Direction et au rôle 1561363081018474626 (ouvert seulement pendant les réunions).
+- Vocaux temporaires : plus de transfert automatique quand le propriétaire part (seulement avec le menu
+  « Transférer »). Panel du vocal présenté comme le panel recruteur (boutons à droite, menus des membres dessous).
+- Modifiés : `systems/qgMeetings.js`, `systems/qgMaintenance.js`, `systems/qgVoiceControls.js`,
+  `systems/qgSchoolVoice.js`, tests.
+
 ## 108 — /musique par salon, réunions ouvertes 5 min avant et fin automatique
 
 - /accueil-vocal devient /musique ; /musique changer salon:(Attente entretien | Attente aide | Réunion) fichier:… pour

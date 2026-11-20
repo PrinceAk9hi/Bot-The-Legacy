@@ -14,6 +14,35 @@ const ROOMS=[{id:live.WAIT,announcement:'accueil',need:g=>live.state().queue.len
 const target=g=>ROOMS.find(r=>r.need(g))||null;
 let room=null;
 const config=()=>({...defaults,...a.state().voiceReception});
+// Musique de fond : celle envoyée avec /accueil-vocal musique si elle existe, sinon celle du projet.
+const customMusic=()=>path.join(require('../utils/recruitmentData').getDataDirectory(),'audio','attente-entretien.mp3');
+const musicPath=()=>fs.existsSync(customMusic())?customMusic():path.join(root,MUSIC+'.mp3');
+const MAX_MUSIC=25*1024*1024;
+// Vérifie que le fichier se lit (FFmpeg) avant de remplacer la musique.
+// Le résultat n'est rendu qu'une fois FFmpeg fermé (sous Windows, le fichier reste verrouillé tant qu'il tourne).
+function playable(file,ms=15000){return new Promise((resolve,reject)=>{let src;try{src=require('../utils/qgAudioMixer').decode(file);}catch(e){return reject(e);}let bytes=0,result=null,closed=false;
+ const finish=()=>{if(!result||!closed)return;clearTimeout(t);result.err?reject(result.err):resolve(bytes);};
+ const done=err=>{if(result)return;result={err};try{src.stream.destroy();src.process.kill();}catch{}finish();};
+ const t=setTimeout(()=>{bytes>0?done():done(Error('Lecture du fichier trop lente.'));closed=true;finish();},ms);
+ src.stream.on('data',b=>{bytes+=b.length;if(bytes>192000)done();});src.process.on('error',e=>{done(e);closed=true;finish();});
+ src.process.on('close',code=>{if(!result)done(code&&!bytes?Error('Fichier audio illisible.'):bytes?null:Error('Fichier audio vide.'));closed=true;finish();});});}
+// Remplace la musique : téléchargement, vérification, puis la boucle repart avec le nouveau fichier.
+async function setMusic(attachment,{download=url=>fetch(url).then(r=>{if(!r.ok)throw Error('Téléchargement impossible ('+r.status+').');return r.arrayBuffer();})}={}){
+ if(!attachment)throw Error('Joins un fichier audio.');
+ if(!/\.(mp3|ogg|wav|m4a|flac)$/i.test(attachment.name||''))throw Error('Format accepté : mp3, ogg, wav, m4a ou flac.');
+ if(attachment.size>MAX_MUSIC)throw Error('Fichier trop lourd (25 Mo maximum).');
+ const target=customMusic(),tmp=target+'.tmp';
+ fs.mkdirSync(path.dirname(target),{recursive:true});
+ fs.writeFileSync(tmp,Buffer.from(await download(attachment.url)));
+ try{await playable(tmp);}catch(e){fs.rmSync(tmp,{force:true});throw Error('Musique refusée : '+e.message);}
+ fs.renameSync(tmp,target);
+ persist({customMusic:{name:attachment.name,size:attachment.size,at:Date.now()}});
+ restartMusic();
+ return attachment.name;
+}
+function resetMusic(){fs.rmSync(customMusic(),{force:true});persist({customMusic:null});restartMusic();}
+// La boucle repart avec le nouveau fichier si le bot joue en ce moment.
+function restartMusic(){try{mixer?.destroy();}catch{}mixer=null;if(player&&connection)try{ensureMusic();}catch(e){lastError=e.message;}}
 const files=[...ANNOUNCEMENTS,MUSIC];
 const labels={accueil:'Bienvenue',deplacement:'Déplacement imminent'};
 let announcementVersion=0;let connection,player,mixer=null,busy=false,current=null,nextAt=0,welcome=false,lastError=null,reconnectAt=0,guildRef,stopped=false,testing=false,decoder=null;
@@ -29,7 +58,7 @@ function ensureMusic(){
  const voice=require('@discordjs/voice');
  if(!player){player=voice.createAudioPlayer({behaviors:{noSubscriber:voice.NoSubscriberBehavior.Play}});player.on('error',e=>{lastError=e.message;try{mixer?.destroy();}catch{}mixer=null;});connection.subscribe(player);}
  if(mixer&&!mixer.destroyed)return;
- mixer=new Mixer(path.join(root,MUSIC+'.mp3'),config());
+ mixer=new Mixer(musicPath(),config());
  mixer.on('error',e=>{lastError='Musique : '+e.message;});
  player.play(voice.createAudioResource(mixer,{inputType:voice.StreamType.Raw}));
 }
@@ -72,13 +101,14 @@ function status(guild){const c=config(),snap=live.snapshot(guild),next=choice(gu
  {name:'Connexion',value:`${c.enabled?'🟢 Activé':'🔴 Désactivé'} · ${connection?.state.status==='ready'?'Connecté':'Non connecté'}\nSalons : <#${live.WAIT}> (prioritaire) · <#${MOVE_ROOM}>${room?`\nEn cours : <#${room.id}>`:''}`},
  {name:'Annonce en cours',value:labels[current]||'Aucune',inline:true},
  {name:'Prochaine annonce',value:!c.enabled||!target(guild)?'En attente d’un membre':`${labels[next]} (toutes les ${Math.round(c.interval/1000)} s)`,inline:true},
- {name:'Recruteurs en bureau',value:String(snap.staff.length)});
+ {name:'Recruteurs en bureau',value:String(snap.staff.length)},{name:'Musique d’attente',value:c.customMusic?.name?'🎵 '+c.customMusic.name+' (envoyée sur Discord)':'🎵 Musique d’origine'});
  if(lastError)p.embeds[0].addFields({name:'À résoudre',value:lastError.slice(0,1024)});return p;}
 async function monitor(guild){return require('./qgRecruitmentHub').install(guild);}
 async function auth(i){const m=await a.actor(i);if(!a.isDirection(m)&&!a.has(m,['recruitmentLead']))throw Error('Réservé à la direction et au responsable recrutement.');return m;}
 const data=new u.SlashCommandBuilder().setName('accueil-vocal').setDescription('Configurer l’accueil vocal QG').setDMPermission(false);
+data.addSubcommand(s=>s.setName('musique').setDescription('Changer la musique d’attente (fichier audio) ou revenir à celle d’origine').addAttachmentOption(o=>o.setName('fichier').setDescription('Nouvelle musique : mp3, ogg, wav, m4a ou flac (25 Mo max)')).addBooleanOption(o=>o.setName('origine').setDescription('Revenir à la musique d’origine')));
 for(const name of ['activer','desactiver','statut','volume','intervalle','tester','reconnecter'])data.addSubcommand(s=>{s.setName(name).setDescription('Accueil vocal : '+name);if(name==='volume'){for(const [key,label,min,max]of [['musique','Musique normale (%)',1,100],['jessica-fond','Musique pendant Jessica (%)',1,100],['voix','Jessica (%)',1,100],['baisse','Baisse en millisecondes',100,10000],['remontee','Remontée en millisecondes',100,10000]])s.addIntegerOption(o=>o.setName(key).setDescription(label).setMinValue(min).setMaxValue(max));}if(name==='intervalle')s.addIntegerOption(o=>o.setName('secondes').setDescription('Délai après la fin d’une annonce').setRequired(true).setMinValue(5).setMaxValue(300));if(name==='tester')s.addStringOption(o=>o.setName('annonce').setDescription('Fichier à jouer').setRequired(true).addChoices(...ANNOUNCEMENTS.map(value=>({name:value,value}))));return s;});
-async function execute(i){await auth(i);await i.deferReply({flags:u.MessageFlags.Ephemeral});const op=i.options.getSubcommand();if(op==='activer'){require('../utils/qgDurability').assertDurable();persist({enabled:true,autoJoinVersion:1});reconnectAt=0;welcome=live.state().queue.length>0;await tick(i.guild,{force:true});}if(op==='desactiver'){persist({enabled:false,autoJoinVersion:1});disconnect();}if(op==='volume'){const before=config(),patch={};for(const [field,key,factor]of [['musique','normal',100],['jessica-fond','duck',100],['voix','voice',100],['baisse','downMs',1],['remontee','upMs',1]]){const value=i.options.getInteger(field);if(value!=null){if(!Number.isInteger(value)||value<1||value>(factor===100?100:10000))throw Error('Réglage de volume ou durée invalide.');patch[key]=value/factor;}}if((patch.duck??before.duck)>(patch.normal??before.normal))throw Error('Le volume réduit doit être inférieur ou égal au volume normal.');persist(patch);if(mixer){mixer.options=config();if(!current)mixer.fade(config().normal,config().upMs);}}
+async function execute(i){await auth(i);await i.deferReply({flags:u.MessageFlags.Ephemeral});const op=i.options.getSubcommand();if(op==='musique'){let text;if(i.options.getBoolean('origine')){resetMusic();text='🎵 Musique d’origine rétablie.';}else{const name=await setMusic(i.options.getAttachment('fichier'));text=`🎵 Nouvelle musique d’attente : **${name}**. Elle est déjà en place (et le reste après les mises à jour du bot).`;}await a.audit(i.guild,{action:'voice-reception.musique',actorId:i.user.id,after:a.state().voiceReception?.customMusic?.name||'origine'});return i.editReply({...status(i.guild),content:text});}if(op==='activer'){require('../utils/qgDurability').assertDurable();persist({enabled:true,autoJoinVersion:1});reconnectAt=0;welcome=live.state().queue.length>0;await tick(i.guild,{force:true});}if(op==='desactiver'){persist({enabled:false,autoJoinVersion:1});disconnect();}if(op==='volume'){const before=config(),patch={};for(const [field,key,factor]of [['musique','normal',100],['jessica-fond','duck',100],['voix','voice',100],['baisse','downMs',1],['remontee','upMs',1]]){const value=i.options.getInteger(field);if(value!=null){if(!Number.isInteger(value)||value<1||value>(factor===100?100:10000))throw Error('Réglage de volume ou durée invalide.');patch[key]=value/factor;}}if((patch.duck??before.duck)>(patch.normal??before.normal))throw Error('Le volume réduit doit être inférieur ou égal au volume normal.');persist(patch);if(mixer){mixer.options=config();if(!current)mixer.fade(config().normal,config().upMs);}}
  if(op==='intervalle'){const seconds=i.options.getInteger('secondes');if(!Number.isInteger(seconds)||seconds<5||seconds>300)throw Error('Intervalle entre 5 et 300 secondes.');persist({interval:seconds*1000});}if(op==='reconnecter'){disconnect();reconnectAt=0;await tick(i.guild,{force:true});}if(op==='tester'){if(!config().enabled)throw Error('Active d’abord l’accueil.');checkFiles();await connect(i.guild);if(!connection||connection.state.status!=='ready')throw Error('Connexion en cours. Réessaie.');if(current)throw Error('Une annonce est déjà en cours.');ensureMusic();testing=true;try{await announce(i.options.getString('annonce'));}finally{testing=false;}}
  if(op!=='statut')await a.audit(i.guild,{action:'voice-reception.'+op,actorId:i.user.id,after:config()});return i.editReply(status(i.guild));}
 async function handle(i){await i.deferReply({flags:u.MessageFlags.Ephemeral});const member=await a.actor(i);if(!a.isDirection(member)&&!a.has(member,['recruitmentLead','recruitmentManagement']))throw Error('Réservé au recrutement.');let content=null;if(i.customId.startsWith('qgv:play:')){content=await playNow(i.guild,i.customId.split(':')[2]);await a.audit(i.guild,{action:'voice-reception.manual',actorId:i.user.id,after:{announcement:i.customId.split(':')[2]}});}return i.editReply({...status(i.guild),content});}
@@ -87,4 +117,4 @@ function shutdown(){stopped=true;disconnect();}
 let held=false;
 async function pause(){held=true;for(let n=0;n<50&&busy;n++)await new Promise(r=>setTimeout(r,100));disconnect();}
 function resume(){held=false;reconnectAt=0;}
-module.exports={MUSIC,ANNOUNCEMENTS,ROOMS,MOVE_ROOM,target,choice,labels,pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};
+module.exports={setMusic,resetMusic,musicPath,customMusic,playable,MUSIC,ANNOUNCEMENTS,ROOMS,MOVE_ROOM,target,choice,labels,pause,resume,playNow,disconnect,listeners,migrateAutoJoin,voice,data,execute,handle,tick,monitor,status,config,persist,checkFiles,files,root,shutdown,connect};

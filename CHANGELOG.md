@@ -6,6 +6,14 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 106 — /accueil-vocal musique
+
+- Nouvelle sous-commande /accueil-vocal musique (Direction, Responsable recrutement) : joindre un fichier audio
+  (mp3, ogg, wav, m4a, flac ; 25 Mo max) remplace la musique d'attente des deux salons. Le fichier est vérifié
+  (lu par FFmpeg) avant d'être utilisé, la boucle repart tout de suite, et il est gardé dans le dossier de données
+  (il survit aux mises à jour). Option « origine » : revenir à la musique du projet. Le statut affiche la musique.
+- Modifiés : `systems/qgVoiceReception.js`, tests.
+
 ## 105 — Rôle mentionné par les annonces d'animation, musique remplaçable
 
 - Les annonces d'animation mentionnent le rôle 1561363081018474626 (au lieu du séparateur « A / Sanctions / Grade »).

@@ -152,3 +152,17 @@ test('bouton S’inscrire : emoji :statusonline: du serveur, sinon ✋',()=>{
  assert.match(btn,/"emoji":\{"id":"9","name":"statusonline","animated":false\}/);
  assert.match(JSON.stringify(anim.newsPayload({emojis:{cache:new Collection()},roles:{cache:new Map()}},e).components[0].toJSON()),/✋/);
 });
+
+test('/accueil-vocal musique : fichier vérifié puis utilisé, fichier illisible refusé, retour à l’origine',async()=>{
+ const audio=require('../systems/qgVoiceReception');
+ const good=fs.readFileSync(path.join(audio.root,'deplacement.mp3'));
+ assert.ok(audio.musicPath().endsWith('attente-entretien.mp3')&&!audio.musicPath().startsWith(dir));
+ assert.equal(await audio.setMusic({name:'ma-musique.mp3',size:good.length,url:'x'},{download:async()=>good}),'ma-musique.mp3');
+ assert.equal(audio.musicPath(),audio.customMusic());assert.ok(audio.musicPath().startsWith(dir));
+ assert.equal(audio.config().customMusic.name,'ma-musique.mp3');
+ await assert.rejects(audio.setMusic({name:'faux.mp3',size:10,url:'x'},{download:async()=>Buffer.from('pas du son')}),/Musique refusée/);
+ assert.equal(audio.musicPath(),audio.customMusic(),'l’ancienne musique reste en place');
+ await assert.rejects(audio.setMusic({name:'image.png',size:10,url:'x'}),/Format accepté/);
+ await assert.rejects(audio.setMusic({name:'gros.mp3',size:30*1024*1024,url:'x'}),/25 Mo/);
+ audio.resetMusic();assert.ok(!audio.musicPath().startsWith(dir));
+});

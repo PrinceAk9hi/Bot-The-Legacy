@@ -243,7 +243,8 @@ test('vocal temporaire : bloquer, expulser, caméra et stream, récupérer la pr
  a.save(s=>{s.schoolRoles={community:'comm'};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:true,allowed:['ami','bad']}};});
  const edits=[],deleted=[],disc=[],sent=[];
  const members=new Collection();
- const room={id:'v1',userLimit:0,isVoiceBased:()=>true,members,permissionOverwrites:{cache:new Collection([['comm',{id:'comm',type:0}]]),edit:async(id,p)=>edits.push([id,p]),delete:async id=>deleted.push(id)},send:async p=>{sent.push(p);return{id:'np'};}};
+ const {PermissionsBitField:PB}=require('discord.js'),sets=[];
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,members,permissionOverwrites:{cache:new Collection([['comm',{id:'comm',type:0,allow:new PB(0n),deny:new PB(0n)}]]),edit:async(id,p)=>edits.push([id,p]),delete:async id=>deleted.push(id),set:async list=>sets.push(list)},send:async p=>{sent.push(p);return{id:'np'};}};
  const mem=(id,inVoice=true)=>{const m={id,user:{bot:false,tag:id},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map([['comm',{}]])},voice:{channelId:inVoice?'v1':null,disconnect:async()=>disc.push(id)}};if(inVoice)members.set(id,m);return m;};
  const all={own:mem('own',false),ami:mem('ami'),bad:mem('bad'),troll:mem('troll')};
  const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room,cache:new Map([['v1',room]])},members:{fetch:async x=>all[typeof x==='string'?x:x.user]}};
@@ -257,7 +258,9 @@ test('vocal temporaire : bloquer, expulser, caméra et stream, récupérer la pr
  assert.ok(disc.includes('ami'));assert.ok(deleted.includes('ami'));assert.deepEqual(a.state().schoolTemporaryVoices.v1.allowed,[]);
  // Caméra et stream désactivés pour tous sauf le propriétaire.
  await vc.handle(i('qgs:voice:stream-off:v1'));
- assert.ok(edits.some(e=>e[0]===config.guildId&&e[1].Stream===false));assert.ok(edits.some(e=>e[0]==='comm'&&e[1].Stream===false));assert.ok(edits.some(e=>e[0]==='own'&&e[1].Stream===true));
+ const {PermissionFlagsBits:PF}=require('discord.js'),list=sets.at(-1),o=id=>list.find(x=>x.id===id);
+ assert.equal(sets.length,1,'une seule requête');
+ assert.ok(o(config.guildId).deny&PF.Stream);assert.ok(o('comm').deny&PF.Stream);assert.ok(o('own').allow&PF.Stream);assert.equal(o('own').type,1);
  assert.equal(a.state().schoolTemporaryVoices.v1.noStream,true);
  // Récupérer : refusé tant que le propriétaire n'est pas parti depuis 5 minutes.
  await vc.handle(i('qgs:voice:claim:v1','troll'));assert.match(sent.at(-1)[1],/quitté le vocal depuis 5 minutes/);
@@ -298,7 +301,7 @@ test('vocaux déjà ouverts : ancien panel remplacé, panel récent actualisé ;
 test('panel du vocal : deux actions rapprochées passent l’une après l’autre, sans refus',async()=>{
  const vc=require('../systems/qgVoiceControls');
  a.save(s=>{s.schoolRoles={community:'comm'};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false}};});
- const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{await new Promise(r=>setTimeout(r,30));},delete:async()=>{}},setUserLimit:async n=>{room.userLimit=n;}};
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{},set:async()=>{await new Promise(r=>setTimeout(r,30));},delete:async()=>{}},setUserLimit:async n=>{room.userLimit=n;}};
  const own={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map([['comm',{}]])},voice:{channelId:'v1'}};
  const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room},members:{fetch:async()=>own}};
  const errors=[],edits=[];
@@ -311,7 +314,7 @@ test('panel du vocal : panel impossible à modifier remplacé par un neuf ; erre
  const vc=require('../systems/qgVoiceControls');
  a.save(s=>{s.schoolRoles={};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false}};});
  const sent=[],deleted=[],notes=[];
- const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{}},send:async p=>{sent.push(p);return{id:'np'};}};
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async()=>{},set:async()=>{}},send:async p=>{sent.push(p);return{id:'np'};}};
  const own={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map()},voice:{channelId:'v1'}};
  const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room},members:{fetch:async()=>own}};
  const base={guildId:config.guildId,guild,user:{id:'own'},deferUpdate:async()=>{},followUp:async p=>notes.push(p.content)};

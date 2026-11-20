@@ -89,11 +89,16 @@ test('read-only reaction removal also prevents clicking existing reactions',asyn
 });
 test('vocal lock/unlock restores manual connect permissions instead of granting every role',async()=>{
  reset();const f=fixture();store.update('qgServer',s=>{s.schoolTemporaryVoices={room:{ownerId:'member',kind:'community',locked:false}};});
- const edits=[];const cache=new Collection([['community',{id:'community',type:0,allow:{has:()=>true},deny:{has:()=>false}}],['blocked',{id:'blocked',type:0,allow:{has:()=>false},deny:{has:()=>true}}]]);
- const room={isVoiceBased:()=>true,permissionOverwrites:{cache,edit:async(id,v)=>{edits.push([id,v.Connect]);}}};
+ const {PermissionsBitField:PB,PermissionFlagsBits:PF}=require('discord.js'),C=PF.Connect;
+ const entry=(id,allow,deny)=>({id,type:0,allow:new PB(allow),deny:new PB(deny),get bitfield(){return 0n;}});
+ const cache=new Collection([['community',entry('community',C,0n)],['blocked',entry('blocked',0n,C)]]);
+ const edits=[],sets=[];
+ // Une seule requête par changement : la liste complète des autorisations.
+ const room={isVoiceBased:()=>true,permissionOverwrites:{cache,set:async list=>{sets.push(list.length);for(const o of list){edits.push([o.id,o.allow&C?true:o.deny&C?false:null]);cache.set(o.id,entry(o.id,o.allow,o.deny));}}}};
  f.guild.channels.fetch=async()=>room;f.guild.roles={cache:new Collection()};
  const i=action=>({customId:`qgs:voice:${action}:room`,guildId:f.guild.id,guild:f.guild,user:{id:'member'},message:{id:'panel'},deferReply:async()=>{},deferUpdate:async()=>{},editReply:async()=>{},followUp:async()=>{}});
  await voice.handle(i('lock'));await voice.handle(i('unlock'));
+ assert.deepEqual(sets,[2,2],'une requête pour privé, une pour public');
  assert.deepEqual(edits,[['community',false],['blocked',false],['community',true],['blocked',false]]);
 });
 test('migration is repeatable, keeps separators and deletes only configured community giveaway',async()=>{

@@ -27,6 +27,19 @@ const icons=guild=>({crown:emoji(guild,'crown','👑',1),lock:emoji(guild,'padlo
 
 function panel(){return {embeds:[new EmbedBuilder().setFooter(require('../utils/qgBrand').footer()).setColor(0xffffff).setTitle('Mon vocal temporaire').setDescription('Rejoins « Créer sa voc », puis ouvre tes contrôles ici.\nRenomme ton salon, règle les places, verrouille l’accès et choisis les membres autorisés.')],components:[row(button('qgs:voice-controls','Gérer mon vocal',ButtonStyle.Primary))],allowedMentions:{parse:[]}};}
 
+// Plusieurs permissions changées en UNE seule requête (instantané, pas de limite Discord rôle par rôle).
+// change(id, bit, value) : true = accordée, false = refusée, null = neutre ; crée l'entrée si besoin.
+async function applyOverwrites(room,edits,reason){
+ const {PermissionFlagsBits:P}=require('discord.js');
+ const list=new Map([...room.permissionOverwrites.cache.values()].map(o=>[o.id,{id:o.id,type:o.type,allow:BigInt(o.allow.bitfield),deny:BigInt(o.deny.bitfield)}]));
+ for(const [id,type,name,value] of edits){
+  const bit=P[name],o=list.get(id)||{id,type,allow:0n,deny:0n};
+  o.allow&=~bit;o.deny&=~bit;
+  if(value===true)o.allow|=bit;else if(value===false)o.deny|=bit;
+  list.set(id,o);
+ }
+ await room.permissionOverwrites.set([...list.values()],reason);
+}
 // Ligne d'état de l'appel à un gérant, affichée dans le panel du vocal.
 function callLine(call){
  if(!call)return'';
@@ -189,8 +202,8 @@ async function handle(i){
      const previous={};
      for(const o of room.permissionOverwrites.cache.values())if(o.type===0&&!['creator','globalManager','administrator'].some(k=>s.schoolRoles?.[k]===o.id)&&!i.guild.roles.cache.get(o.id)?.tags?.botId)previous[o.id]=o.allow.has('Connect')?true:o.deny.has('Connect')?false:null;
      save(x=>{x.schoolTemporaryVoices[id].previousConnect=previous;});
-     await Promise.all(Object.keys(previous).map(key=>room.permissionOverwrites.edit(key,{Connect:false})));
-    }else await Promise.all(Object.entries(current.previousConnect||{}).map(([key,value])=>room.permissionOverwrites.edit(key,{Connect:value})));
+     await applyOverwrites(room,Object.keys(previous).map(key=>[key,0,'Connect',false]),'Vocal rendu privé');
+    }else await applyOverwrites(room,Object.entries(current.previousConnect||{}).map(([key,value])=>[key,0,'Connect',value]),'Vocal rendu public');
     save(x=>{x.schoolTemporaryVoices[id].locked=locked;});
    }
   }else if(action==='transfer'){
@@ -211,8 +224,7 @@ async function handle(i){
    // Caméra et partage d'écran : refusés à tous (rôles), le propriétaire les garde.
    const off=action==='stream-off';
    const roles=[...room.permissionOverwrites.cache.values()].filter(o=>o.type===0&&!i.guild.roles.cache.get(o.id)?.tags?.botId).map(o=>o.id);
-   await Promise.all([...new Set([i.guild.id,...roles])].map(rid=>room.permissionOverwrites.edit(rid,{Stream:off?false:null})));
-   await room.permissionOverwrites.edit(rec.ownerId,{Stream:off?true:null}).catch(()=>{});
+   await applyOverwrites(room,[...[...new Set([i.guild.id,...roles])].map(rid=>[rid,0,'Stream',off?false:null]),[rec.ownerId,1,'Stream',off?true:null]],off?'Caméra et stream désactivés':'Caméra et stream autorisés');
    save(x=>{x.schoolTemporaryVoices[id].noStream=off;});
   }else if(action==='kick'){
    const target=await i.guild.members.fetch(i.values[0]).catch(()=>null);
@@ -263,4 +275,4 @@ async function handle(i){
   return Promise.race([step().finally(()=>clearTimeout(timer)),slow]);
  });
 }
-module.exports={panel,controls,handle,eligible,transfer,refreshPanel,refreshAll,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles}};
+module.exports={panel,controls,handle,eligible,transfer,refreshPanel,refreshAll,voiceName,requestPayload,PREFIX,REQUEST_CHANNEL,_test:{callLine,emoji,callRoles,applyOverwrites}};

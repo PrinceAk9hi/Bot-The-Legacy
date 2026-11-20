@@ -14,7 +14,7 @@ const state=()=>read('qgServer');
 const save=fn=>update('qgServer',fn);
 const row=(...items)=>new ActionRowBuilder().addComponents(items);
 const button=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
-const PREFIX='🌲・',REQUEST_CHANNEL='1561157154507853875',CALL_COOLDOWN=10*60000,ABUSE_MUTE=6*3600000;
+const PREFIX='🌲・',REQUEST_CHANNEL='1561157154507853875',CALL_COOLDOWN=10*60000,ABUSE_MUTE=6*3600000,CLAIM_AFTER=5*60000;
 const voiceName=name=>(PREFIX+String(name||'').replace(/^\s*🌲\s*・?\s*/u,'').trim()).slice(0,95);
 
 // Emoji du serveur par nom (index : le 2e emoji du même nom pour crown~1), sinon l'emoji standard.
@@ -49,11 +49,15 @@ function controls(id,rec,{lead=null,mention=null,guild=null,limit=null}={}){
    item('✏️ Renommer','Le nom garde toujours « 🌲・ » devant.',button(`qgs:voice:rename:${id}`,'Renommer')),
    item(`${ic.people.text} Places`,`${limit?`**${limit}** places`:'Places illimitées'} (0 = illimité).`,button(`qgs:voice:limit:${id}`,'Places').setEmoji(ic.people.button)),
    item(`${ic.lock.text} Accès : ${rec.locked?'privé':'public'}`,rec.locked?'Seuls les membres autorisés peuvent entrer.':'Tous les membres qui ont accès au salon peuvent entrer.',button(`qgs:voice:${rec.locked?'unlock':'lock'}:${id}`,rec.locked?'Rendre public':'Rendre privé',ButtonStyle.Primary).setEmoji(ic.lock.button)),
-   item(`${ic.police.text} Appeler un gérant`,rec.call?callLine(rec.call):'Un problème dans le vocal ? Un gérant est prévenu. Appel abusif = 6 h d’exclusion.',button(`qgs:voice:call:${id}`,'Appeler',ButtonStyle.Danger).setEmoji(ic.police.button)))
+   item(`📷 Caméra et stream : ${rec.noStream?'désactivés':'autorisés'}`,rec.noStream?'Seul le propriétaire peut activer sa caméra ou partager son écran.':'Tout le monde peut activer sa caméra et partager son écran.',button(`qgs:voice:${rec.noStream?'stream-on':'stream-off'}:${id}`,rec.noStream?'Autoriser':'Désactiver')),
+   item(`${ic.police.text} Appeler un gérant`,rec.call?callLine(rec.call):'Un problème dans le vocal ? Un gérant est prévenu. Appel abusif = 6 h d’exclusion.',button(`qgs:voice:call:${id}`,'Appeler',ButtonStyle.Danger).setEmoji(ic.police.button)),
+   item(`${ic.crown.text} Récupérer la propriété`,`Si le propriétaire a quitté le vocal depuis ${CLAIM_AFTER/60000} minutes, un membre présent peut la reprendre.`,button(`qgs:voice:claim:${id}`,'Récupérer').setEmoji(ic.crown.button)))
   .addSeparatorComponents(new d.SeparatorBuilder())
-  .addTextDisplayComponents(text(`### ${ic.people.text} Membres autorisés\n-# Coche ou décoche les membres. Les autorisations n’ouvrent pas un vocal famille aux personnes extérieures à la famille.`))
+  .addTextDisplayComponents(text(`### ${ic.people.text} Membres\n-# Coche ou décoche. Les autorisations n’ouvrent pas un vocal famille aux personnes extérieures à la famille.`))
   .addActionRowComponents(
-   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:members:${id}`).setPlaceholder('Membres autorisés').setMinValues(0).setMaxValues(25).setDefaultUsers(allowed)),
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:members:${id}`).setPlaceholder('✅ Membres autorisés').setMinValues(0).setMaxValues(25).setDefaultUsers(allowed)),
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:blocked:${id}`).setPlaceholder('⛔ Membres bloqués (jamais dans ta voc)').setMinValues(0).setMaxValues(25).setDefaultUsers((rec.blocked||[]).slice(0,25))),
+   row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:kick:${id}`).setPlaceholder('👢 Expulser un membre du vocal').setMaxValues(1)),
    row(new UserSelectMenuBuilder().setCustomId(`qgs:voice:transfer:${id}`).setPlaceholder('👑 Transférer la propriété (membre dans la voc)').setMaxValues(1)));
  return {components:[box],flags:d.MessageFlags.IsComponentsV2,allowedMentions:{parse:[],users:mention?[mention]:[]}};
 }
@@ -126,8 +130,8 @@ async function handle(i){
  const id=i.customId==='qgs:voice-controls'?member.voice.channelId:i.customId.split(':')[3];
  const rec=s.schoolTemporaryVoices?.[id];
  const action=i.customId.split(':')[2];
- // Appeler un gérant : propriétaire ou membre présent dans le vocal.
- const callAllowed=action==='call'&&rec&&(member.voice.channelId===id||member.id===rec.ownerId);
+ // Appeler un gérant ou récupérer la propriété : aussi pour un membre présent dans le vocal.
+ const callAllowed=['call','claim'].includes(action)&&rec&&(member.voice.channelId===id||member.id===rec.ownerId);
  if(!rec||!(callAllowed||member.id===rec.ownerId||policy.exempt(member,s))){await i.reply({content:'Seuls le propriétaire de ce vocal et la Direction peuvent le modifier.',flags:MessageFlags.Ephemeral});return true;}
  if(['rename','limit','call'].includes(action)&&!i.customId.startsWith('qgs:voice-form:')){
   const label={rename:'Nouveau nom (après « 🌲・ »)',limit:'De 0 (illimité) à 99',call:'Raison de l’appel'}[action];
@@ -165,6 +169,40 @@ async function handle(i){
    if(target.user.bot||target.id===rec.ownerId)throw Error('Sélectionne un autre membre.');
    if(target.voice.channelId!==id)throw Error('Le nouveau propriétaire doit être dans le vocal.');
    await transfer(room,target,{reason:`Transfert par ${member.user.tag}`});
+  }else if(action==='claim'){
+   // Récupérer la propriété : seulement sur demande, propriétaire parti depuis assez longtemps.
+   if(member.id===rec.ownerId)throw Error('Tu es déjà le propriétaire de ce vocal.');
+   if(member.voice.channelId!==id)throw Error('Rejoins le vocal pour récupérer sa propriété.');
+   if(room.members?.has?.(rec.ownerId))throw Error('Le propriétaire est encore dans le vocal.');
+   const left=rec.ownerLeftAt;
+   if(!left||Date.now()-left<CLAIM_AFTER)throw Error(`Le propriétaire doit avoir quitté le vocal depuis ${CLAIM_AFTER/60000} minutes${left?` (encore <t:${Math.ceil((left+CLAIM_AFTER)/1000)}:R>)`:''}.`);
+   await transfer(room,member,{reason:'Propriété récupérée (propriétaire absent)'});
+   save(x=>{delete x.schoolTemporaryVoices[id].ownerLeftAt;});
+  }else if(['stream-on','stream-off'].includes(action)){
+   // Caméra et partage d'écran : refusés à tous (rôles), le propriétaire les garde.
+   const off=action==='stream-off';
+   const roles=[...room.permissionOverwrites.cache.values()].filter(o=>o.type===0&&!i.guild.roles.cache.get(o.id)?.tags?.botId).map(o=>o.id);
+   await Promise.all([...new Set([i.guild.id,...roles])].map(rid=>room.permissionOverwrites.edit(rid,{Stream:off?false:null})));
+   await room.permissionOverwrites.edit(rec.ownerId,{Stream:off?true:null}).catch(()=>{});
+   save(x=>{x.schoolTemporaryVoices[id].noStream=off;});
+  }else if(action==='kick'){
+   const target=await i.guild.members.fetch(i.values[0]).catch(()=>null);
+   if(!target||target.user.bot||target.id===rec.ownerId||policy.exempt(target,s))throw Error('Ce membre ne peut pas être expulsé d’ici.');
+   if(target.voice.channelId===id)await target.voice.disconnect('Expulsé du vocal par le propriétaire');
+   // Vocal privé : il perd aussi son autorisation.
+   if(rec.locked&&(rec.allowed||[]).includes(target.id)){await room.permissionOverwrites.delete(target.id).catch(()=>{});save(x=>{x.schoolTemporaryVoices[id].allowed=(x.schoolTemporaryVoices[id].allowed||[]).filter(u=>u!==target.id);});}
+  }else if(action==='blocked'){
+   // Bloqués : ne peuvent jamais entrer, même vocal public ; déconnectés s'ils y sont.
+   const before=new Set(rec.blocked||[]),after=new Set(i.values),refused=[];
+   for(const uid of [...after].filter(x=>!before.has(x))){
+    const target=await i.guild.members.fetch(uid).catch(()=>null);
+    if(!target||target.user.bot||target.id===rec.ownerId||policy.exempt(target,s)){after.delete(uid);refused.push(uid);continue;}
+    await room.permissionOverwrites.edit(uid,{Connect:false});
+    if(target.voice.channelId===id)await target.voice.disconnect('Bloqué par le propriétaire du vocal').catch(()=>{});
+   }
+   for(const uid of [...before].filter(x=>!after.has(x)))await room.permissionOverwrites.delete(uid).catch(()=>{});
+   save(x=>{const r=x.schoolTemporaryVoices[id];r.blocked=[...after];r.allowed=(r.allowed||[]).filter(u=>!after.has(u));});
+   if(refused.length)await i.followUp({content:`Impossible de bloquer : ${refused.map(x=>`<@${x}>`).join(', ')} (propriétaire, Direction ou bot).`,flags:MessageFlags.Ephemeral,allowedMentions:{parse:[]}});
   }else if(action==='members'){
    // Un seul menu : les membres cochés sont autorisés, ceux décochés perdent leur autorisation.
    const before=new Set(rec.allowed||[]),after=new Set(i.values);
@@ -175,7 +213,7 @@ async function handle(i){
     await room.permissionOverwrites.edit(uid,{ViewChannel:true,Connect:true,...Object.fromEntries(policy.voiceDenied.map(k=>[k,false]))});
    }
    for(const uid of removed)await room.permissionOverwrites.delete(uid).catch(()=>{});
-   save(x=>{x.schoolTemporaryVoices[id].allowed=[...after];});
+   save(x=>{const r=x.schoolTemporaryVoices[id];r.allowed=[...after];r.blocked=(r.blocked||[]).filter(u=>!after.has(u));});
    if(refused.length)await i.followUp({content:`Non autorisés (propriétaire, Direction, bot ou sans l’accès requis) : ${refused.map(x=>`<@${x}>`).join(', ')}`,flags:MessageFlags.Ephemeral,allowedMentions:{parse:[]}});
   }
   const fresh=await i.guild.channels.fetch(id).catch(()=>room);

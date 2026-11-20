@@ -6,6 +6,15 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 111 — Vocaux temporaires : bloquer, expulser, caméra et stream, récupérer la propriété
+
+- Menu « Membres bloqués » : ils ne peuvent jamais entrer, même si le vocal est public, et sont déconnectés.
+- Menu « Expulser » : déconnecte un membre ; en vocal privé, il perd aussi son autorisation.
+- Bouton caméra et stream : désactivés pour tous sauf le propriétaire, puis réautorisés.
+- Bouton « Récupérer la propriété » : un membre présent peut la reprendre si le propriétaire a quitté le vocal
+  depuis 5 minutes (jamais automatique ; le retour du propriétaire annule l'absence).
+- Modifiés : `systems/qgVoiceControls.js`, `systems/qgSchoolVoice.js`, tests.
+
 ## 110 — Vocaux temporaires : réglages sur le panel, appel d'un gérant, 🌲
 
 - Les réglages s'appliquent directement sur le panel du vocal (plus de copie privée du panel).

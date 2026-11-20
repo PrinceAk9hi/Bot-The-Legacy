@@ -237,3 +237,34 @@ test('appeler un gérant : notification dans gestion requête, réponses, abus =
  await ans('abuse','g2');assert.equal(timeout,6*3600000);assert.equal(a.state().schoolTemporaryVoices.v1.call.closed,'abuse');
  assert.ok(edits.at(-1).components[0].toJSON().components.every(c=>c.disabled));
 });
+
+test('vocal temporaire : bloquer, expulser, caméra et stream, récupérer la propriété',async()=>{
+ const vc=require('../systems/qgVoiceControls'),voice=require('../systems/qgSchoolVoice');
+ a.save(s=>{s.schoolRoles={community:'comm'};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:true,allowed:['ami','bad']}};});
+ const edits=[],deleted=[],disc=[],sent=[];
+ const members=new Collection();
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,members,permissionOverwrites:{cache:new Collection([['comm',{id:'comm',type:0}]]),edit:async(id,p)=>edits.push([id,p]),delete:async id=>deleted.push(id)},send:async p=>{sent.push(p);return{id:'np'};}};
+ const mem=(id,inVoice=true)=>{const m={id,user:{bot:false,tag:id},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map([['comm',{}]])},voice:{channelId:inVoice?'v1':null,disconnect:async()=>disc.push(id)}};if(inVoice)members.set(id,m);return m;};
+ const all={own:mem('own',false),ami:mem('ami'),bad:mem('bad'),troll:mem('troll')};
+ const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async()=>room,cache:new Map([['v1',room]])},members:{fetch:async x=>all[typeof x==='string'?x:x.user]}};
+ const i=(customId,user='own',extra={})=>({customId,guildId:config.guildId,guild,user:{id:user},message:{id:'panel'},deferUpdate:async()=>{},editReply:async()=>{},followUp:async p=>sent.push(['err',p.content]),...extra});
+ // Bloquer : déconnecté, ne peut plus entrer, retiré des autorisés.
+ await vc.handle(i('qgs:voice:blocked:v1','own',{values:['bad']}));
+ assert.deepEqual(edits.at(-1),['bad',{Connect:false}]);assert.ok(disc.includes('bad'));
+ assert.deepEqual(a.state().schoolTemporaryVoices.v1.blocked,['bad']);assert.deepEqual(a.state().schoolTemporaryVoices.v1.allowed,['ami']);
+ // Expulser (vocal privé) : déconnecté et autorisation retirée.
+ await vc.handle(i('qgs:voice:kick:v1','own',{values:['ami']}));
+ assert.ok(disc.includes('ami'));assert.ok(deleted.includes('ami'));assert.deepEqual(a.state().schoolTemporaryVoices.v1.allowed,[]);
+ // Caméra et stream désactivés pour tous sauf le propriétaire.
+ await vc.handle(i('qgs:voice:stream-off:v1'));
+ assert.ok(edits.some(e=>e[0]===config.guildId&&e[1].Stream===false));assert.ok(edits.some(e=>e[0]==='comm'&&e[1].Stream===false));assert.ok(edits.some(e=>e[0]==='own'&&e[1].Stream===true));
+ assert.equal(a.state().schoolTemporaryVoices.v1.noStream,true);
+ // Récupérer : refusé tant que le propriétaire n'est pas parti depuis 5 minutes.
+ await vc.handle(i('qgs:voice:claim:v1','troll'));assert.match(sent.at(-1)[1],/quitté le vocal depuis 5 minutes/);
+ // Le propriétaire quitte la voc : l'absence est notée ; après 5 minutes, un membre présent récupère.
+ await voice.voice({channelId:'v1',guild,member:all.own},{channelId:null,guild,member:all.own},{user:{id:'bot'}});
+ assert.ok(a.state().schoolTemporaryVoices.v1.ownerLeftAt);
+ a.save(s=>{s.schoolTemporaryVoices.v1.ownerLeftAt=Date.now()-6*60000;});
+ await vc.handle(i('qgs:voice:claim:v1','troll'));
+ assert.equal(a.state().schoolTemporaryVoices.v1.ownerId,'troll');assert.equal(a.state().schoolTemporaryVoices.v1.ownerLeftAt,undefined);
+});

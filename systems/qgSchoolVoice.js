@@ -33,11 +33,16 @@ async function voice(oldState,newState,client){
   }
   const fresh=await newState.guild.members.fetch(member.id);await fresh.voice.setChannel(room,'Création d’un vocal temporaire');return true;
  }
- const rec=oldState.channelId&&s.schoolTemporaryVoices?.[oldState.channelId];
+ // Retour du propriétaire dans sa voc : son absence est oubliée (plus de récupération possible).
+ const joined=newState.channelId&&s.schoolTemporaryVoices?.[newState.channelId];
+ if(joined&&joined.ownerId===member.id&&joined.ownerLeftAt&&oldState.channelId!==newState.channelId)save(x=>{delete x.schoolTemporaryVoices[newState.channelId].ownerLeftAt;});
+ const rec=oldState.channelId&&oldState.channelId!==newState.channelId&&s.schoolTemporaryVoices?.[oldState.channelId];
  if(rec){
   const room=oldState.guild.channels.cache.get(oldState.channelId);
-  // Le propriétaire garde sa voc même s'il s'absente : la propriété ne change qu'avec le menu « Transférer ».
+  // Le propriétaire garde sa voc même s'il s'absente : la propriété ne change qu'avec « Transférer » ou
+  // « Récupérer la propriété » (demandé par un membre présent, après quelques minutes d'absence).
   if(room&&room.members.size===0){await room.delete('Vocal temporaire vide');save(x=>{delete x.schoolTemporaryVoices[oldState.channelId];});}
+  else if(room&&member.id===rec.ownerId)save(x=>{if(x.schoolTemporaryVoices[oldState.channelId])x.schoolTemporaryVoices[oldState.channelId].ownerLeftAt=Date.now();});
  }
  return false;
 }

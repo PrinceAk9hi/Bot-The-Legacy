@@ -71,9 +71,9 @@ test('default layout hides welcome except rules, disables voice text and removes
 test('voice panel uses native member selectors and family access remains mandatory',()=>{
  const p=voice.controls('123',{locked:false}),box=p.components[0].toJSON(),selects=[];const walk=c=>{if(c.type===5)selects.push(c.custom_id);for(const x of c.components||[])walk(x);};walk(box);
  // Un seul menu pour les membres autorisés (cocher / décocher), puis le transfert.
- assert.deepEqual(selects,['qgs:voice:members:123','qgs:voice:transfer:123']);
+ assert.deepEqual(selects,['qgs:voice:members:123','qgs:voice:blocked:123','qgs:voice:kick:123','qgs:voice:transfer:123']);
  // Boutons à droite de leur fonction, comme le panel recruteur.
- assert.deepEqual(box.components.filter(c=>c.type===9).map(c=>c.accessory.custom_id),['qgs:voice:rename:123','qgs:voice:limit:123','qgs:voice:lock:123','qgs:voice:call:123']);
+ assert.deepEqual(box.components.filter(c=>c.type===9).map(c=>c.accessory.custom_id),['qgs:voice:rename:123','qgs:voice:limit:123','qgs:voice:lock:123','qgs:voice:stream-off:123','qgs:voice:call:123','qgs:voice:claim:123']);
  assert.equal(voice.eligible(fixture().member,{kind:'family'},store.read('qgServer')),false);
 });
 test('voice controls reject another member before any mutation',async()=>{

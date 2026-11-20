@@ -171,3 +171,12 @@ test('panel des gestions : rôle d’exécutant puis ses membres et les places l
  assert.ok(!rp.value.includes('<@chef>'),'le responsable n’occupe pas de place');
  assert.deepEqual(p.allowedMentions,{parse:[]});
 });
+
+test('maintenance : la présentation du QG (publiée par son module) n’est ni supprimée ni republiée',async()=>{
+ const {panels}=require('../systems/qgMaintenance'),deleted=[],sent=[];
+ a.save(s=>{s.schoolChannels={};s.schoolPanels={communityHelp:{channelId:'pres',messageId:'p1'}};});
+ const msg={id:'p1',author:{id:'bot'},delete:async()=>deleted.push('p1'),edit:async()=>{}};
+ const guild={id:config.guildId,client:{user:{id:'bot'}},channels:{fetch:async()=>({id:'pres',guildId:config.guildId,isTextBased:()=>true,send:async p=>sent.push(p),messages:{fetch:async()=>msg}})}};
+ await panels(guild);
+ assert.deepEqual(deleted,[]);assert.equal(sent.length,0);assert.ok(a.state().schoolPanels.communityHelp);
+});

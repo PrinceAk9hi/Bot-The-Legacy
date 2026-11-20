@@ -6,6 +6,12 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 107 — Présentation du QG plus republiée au démarrage
+
+- Correctif : la maintenance prenait la présentation du QG (publiée par son propre module) pour un panneau retiré,
+  la supprimait, puis elle était republiée à chaque démarrage. Seul le panneau des notifications est retiré.
+- Modifiés : `systems/qgMaintenance.js`, tests.
+
 ## 106 — /accueil-vocal musique
 
 - Nouvelle sous-commande /accueil-vocal musique (Direction, Responsable recrutement) : joindre un fichier audio

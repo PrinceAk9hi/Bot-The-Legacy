@@ -1,10 +1,15 @@
 const u=require('../utils/qgModuleUi'),{a}=u;
 function readable(error){return ({10003:'Salon supprimé ou introuvable',10008:'Message supprimé',50001:'Salon inaccessible au bot',50013:'Permissions du bot insuffisantes',50035:'Contenu refusé par Discord'})[error.code]||String(error.message||'Erreur inconnue');}
+// Panneaux retirés pour de bon : leur ancien message est supprimé. Les autres panneaux sans contenu ici sont
+// publiés par leur propre module et ne sont pas touchés.
+const RETIRED=new Set(['notifications']);
 async function panels(guild){return a.serial('maintenance-panels',async()=>{
  const saved=a.state().schoolPanels||{},notices=[];let count=0;
  for(const [key,record] of Object.entries(saved)){
   try{
    const payload=key==='managementFollowup'?await require('./qgSchoolManagementBoard').buildPanel(guild):await require('./qgSchoolSetup').panelPayload(key,guild);
+   // Panneau publié par son propre module (ex. présentation du QG) : on n'y touche pas ici.
+   if(!payload&&!RETIRED.has(key))continue;
    // Panneau retiré du bot (ex. notifications) : son message est supprimé et il n'est plus suivi.
    if(!payload){const old=await guild.channels.fetch(record.channelId).catch(()=>null);const m=old?.isTextBased?.()?await old.messages.fetch(record.messageId).catch(()=>null):null;if(m&&m.author.id===guild.client.user.id)await m.delete().catch(()=>{});a.save(s=>{delete s.schoolPanels[key];});notices.push(key+' : ancien panneau retiré');continue;}
    const current=a.state().schoolChannels?.[key]||record.channelId;

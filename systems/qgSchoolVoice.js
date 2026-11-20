@@ -25,10 +25,11 @@ async function voice(oldState,newState,client){
    const denied=require('./qgCommunityPolicy').voiceDenied.map(k=>P[k]);
    for(const item of overwrites)if(item.id!==client.user.id){item.allow=(item.allow||[]).filter(bit=>!denied.includes(bit));item.deny=[...(item.deny||[]),...denied];}
    overwrites.push({id:member.id,allow:[P.ViewChannel,P.Connect,P.Speak,P.UseVAD,P.ReadMessageHistory],deny:denied.filter(bit=>bit!==P.ReadMessageHistory)});
-   room=await newState.guild.channels.create({name:`🔊・Vocal de ${member.displayName}`.slice(0,95),type:ChannelType.GuildVoice,parent:parentId,permissionOverwrites:overwrites,reason:'Création d’un vocal temporaire SchoolRP'});
+   room=await newState.guild.channels.create({name:require('./qgVoiceControls').voiceName(`Salon de ${member.displayName}`),type:ChannelType.GuildVoice,parent:parentId,permissionOverwrites:overwrites,reason:'Création d’un vocal temporaire SchoolRP'});
    save(x=>{x.schoolTemporaryVoices||={};x.schoolTemporaryVoices[room.id]={ownerId:member.id,kind,createdAt:Date.now(),locked:false};x.schoolVoiceCreation||={};x.schoolVoiceCreation[member.id]=Date.now();});
    // Panel de gestion posté directement dans le tchat de la nouvelle voc.
-   await room.send(roomPanel(room.id,state().schoolTemporaryVoices[room.id],member.id)).catch(e=>console.error('Panel du vocal temporaire :',e.code||e.message));
+   const panelMsg=await room.send(roomPanel(room.id,state().schoolTemporaryVoices[room.id],member.id,room.guild)).catch(e=>{console.error('Panel du vocal temporaire :',e.code||e.message);return null;});
+   if(panelMsg)save(x=>{if(x.schoolTemporaryVoices[room.id])x.schoolTemporaryVoices[room.id].panelId=panelMsg.id;});
   }
   const fresh=await newState.guild.members.fetch(member.id);await fresh.voice.setChannel(room,'Création d’un vocal temporaire');return true;
  }
@@ -43,7 +44,7 @@ async function voice(oldState,newState,client){
 // Héritier : le membre (hors bots) arrivé le plus tôt dans la voc, d'après l'ordre de Discord.
 function heir(room,ownerId){return [...room.members.values()].find(m=>!m.user.bot&&m.id!==ownerId)||null;}
 // Panel du tchat de la voc : contrôles de la voc et mention du propriétaire.
-function roomPanel(id,rec,ownerId){return require('./qgVoiceControls').controls(id,rec,{lead:`<@${ownerId}> voici les réglages de ton vocal.`,mention:ownerId});}
+function roomPanel(id,rec,ownerId,guild=null){return require('./qgVoiceControls').controls(id,rec,{guild,lead:`<@${ownerId}> voici les réglages de ton vocal.`,mention:ownerId});}
 // Anciens panneaux « Mon vocal temporaire » des salons commandes : supprimés une fois.
 async function retireCommandPanels(guild){
  const panels=state().schoolPanels||{};let removed=0;

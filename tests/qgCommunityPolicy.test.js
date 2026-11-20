@@ -70,9 +70,10 @@ test('default layout hides welcome except rules, disables voice text and removes
 });
 test('voice panel uses native member selectors and family access remains mandatory',()=>{
  const p=voice.controls('123',{locked:false}),box=p.components[0].toJSON(),selects=[];const walk=c=>{if(c.type===5)selects.push(c.custom_id);for(const x of c.components||[])walk(x);};walk(box);
- assert.deepEqual(selects,['qgs:voice:allow:123','qgs:voice:remove:123','qgs:voice:transfer:123']);
+ // Un seul menu pour les membres autorisés (cocher / décocher), puis le transfert.
+ assert.deepEqual(selects,['qgs:voice:members:123','qgs:voice:transfer:123']);
  // Boutons à droite de leur fonction, comme le panel recruteur.
- assert.deepEqual(box.components.filter(c=>c.type===9).map(c=>c.accessory.custom_id),['qgs:voice:rename:123','qgs:voice:limit:123','qgs:voice:lock:123']);
+ assert.deepEqual(box.components.filter(c=>c.type===9).map(c=>c.accessory.custom_id),['qgs:voice:rename:123','qgs:voice:limit:123','qgs:voice:lock:123','qgs:voice:call:123']);
  assert.equal(voice.eligible(fixture().member,{kind:'family'},store.read('qgServer')),false);
 });
 test('voice controls reject another member before any mutation',async()=>{
@@ -91,7 +92,7 @@ test('vocal lock/unlock restores manual connect permissions instead of granting 
  const edits=[];const cache=new Collection([['community',{id:'community',type:0,allow:{has:()=>true},deny:{has:()=>false}}],['blocked',{id:'blocked',type:0,allow:{has:()=>false},deny:{has:()=>true}}]]);
  const room={isVoiceBased:()=>true,permissionOverwrites:{cache,edit:async(id,v)=>{edits.push([id,v.Connect]);}}};
  f.guild.channels.fetch=async()=>room;f.guild.roles={cache:new Collection()};
- const i=action=>({customId:`qgs:voice:${action}:room`,guildId:f.guild.id,guild:f.guild,user:{id:'member'},deferReply:async()=>{},editReply:async()=>{}});
+ const i=action=>({customId:`qgs:voice:${action}:room`,guildId:f.guild.id,guild:f.guild,user:{id:'member'},message:{id:'panel'},deferReply:async()=>{},deferUpdate:async()=>{},editReply:async()=>{},followUp:async()=>{}});
  await voice.handle(i('lock'));await voice.handle(i('unlock'));
  assert.deepEqual(edits,[['community',false],['blocked',false],['community',true],['blocked',false]]);
 });

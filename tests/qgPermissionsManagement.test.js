@@ -193,3 +193,47 @@ test('salons de réunion : déplacés dans la catégorie, Direction et rôle fam
  assert.ok(find('dir').allow.includes(P2.ViewChannel));assert.ok(find('1561363081018474626').deny.includes(P2.ViewChannel),'fermé hors réunion');
  assert.match((await meetings.setupChannels(guild)).detail,/déjà/);assert.equal(edits.length,2);
 });
+
+test('vocal temporaire : réglages appliqués sur le panel, menu unique des autorisations, nom en 🌲・',async()=>{
+ const vc=require('../systems/qgVoiceControls');
+ assert.equal(vc.voiceName('Salon de Sakura'),'🌲・Salon de Sakura');assert.equal(vc.voiceName('🌲・ Chill'),'🌲・Chill');assert.equal(vc.voiceName('🌲 Chill'),'🌲・Chill');
+ a.save(s=>{s.schoolRoles={community:'comm'};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false,allowed:['old']}};});
+ const overw=[],deleted=[];
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection(),edit:async(id,p)=>overw.push(id),delete:async id=>deleted.push(id)},setName:async n=>{room.name=n;}};
+ const mem=(id,roles=['comm'])=>({id,user:{bot:false,tag:id},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map(roles.map(r=>[r,{}]))},voice:{channelId:'v1'}});
+ const members={own:mem('own'),new1:mem('new1'),stranger:mem('stranger',[])};
+ const guild={id:config.guildId,ownerId:'x',emojis:{cache:new Collection([['5',{id:'5',name:'padlock_crown',available:true}]])},roles:{cache:new Map()},channels:{fetch:async()=>room},members:{fetch:async x=>members[typeof x==='string'?x:x.user]}};
+ const calls=[];
+ const i=(customId,extra={})=>({customId,guildId:config.guildId,guild,user:{id:'own'},message:{id:'panel1'},deferUpdate:async()=>calls.push('deferUpdate'),deferReply:async()=>calls.push('deferReply'),editReply:async p=>calls.push(['edit',p]),followUp:async p=>calls.push(['followUp',p.content]),...extra});
+ await vc.handle(i('qgs:voice:members:v1',{values:['new1','stranger']}));
+ assert.ok(calls.includes('deferUpdate')&&!calls.includes('deferReply'),'pas de copie privée du panel');
+ assert.deepEqual(overw,['new1']);assert.deepEqual(deleted,['old']);
+ assert.deepEqual(a.state().schoolTemporaryVoices.v1.allowed,['new1']);assert.equal(a.state().schoolTemporaryVoices.v1.panelId,'panel1');
+ assert.ok(calls.some(c=>c[0]==='followUp'&&/stranger/.test(c[1])));
+ const panel=calls.find(c=>c[0]==='edit')[1],json=JSON.stringify(panel.components[0].toJSON());
+ assert.ok(json.includes('<:padlock_crown:5>'));assert.match(json,/"default_values":\[\{"id":"new1","type":"user"\}\]/);
+ await vc.handle(i('qgs:voice-form:rename:v1',{fields:{getTextInputValue:()=>'Chill'}}));assert.equal(room.name,'🌲・Chill');
+});
+
+test('appeler un gérant : notification dans gestion requête, réponses, abus = exclusion 6 h',async()=>{
+ const vc=require('../systems/qgVoiceControls');
+ a.save(s=>{s.schoolRoles={};s.schoolTemporaryVoices={v1:{ownerId:'own',kind:'community',locked:false,panelId:'p1'}};});
+ const sent=[],panelEdits=[];let timeout=null;
+ const req={id:vc.REQUEST_CHANNEL,isTextBased:()=>true,send:async p=>{sent.push(p);return{id:'n1'};}};
+ const room={id:'v1',userLimit:0,isVoiceBased:()=>true,permissionOverwrites:{cache:new Collection()},messages:{fetch:async()=>({edit:async p=>panelEdits.push(p)})}};
+ const member={id:'own',user:{bot:false,tag:'own'},guild:{id:config.guildId,ownerId:'x'},roles:{cache:new Map()},voice:{channelId:'v1'},moderatable:true,timeout:async ms=>{timeout=ms;}};
+ const guild={id:config.guildId,ownerId:'x',client:{user:{id:'bot'}},emojis:{cache:new Collection()},roles:{cache:new Map()},channels:{fetch:async id=>id===vc.REQUEST_CHANNEL?req:room},members:{fetch:async()=>member}};
+ const base={guildId:config.guildId,guild,user:{id:'own',tag:'own'},message:{id:'p1'},deferUpdate:async()=>{},editReply:async()=>{},followUp:async()=>{},reply:async()=>{}};
+ await vc.handle({...base,customId:'qgs:voice-form:call:v1',fields:{getTextInputValue:()=>'Un membre crie'}});
+ assert.match(sent[0].embeds[0].data.description,/<#v1>[\s\S]*<@own>[\s\S]*Un membre crie[\s\S]*En attente/);
+ const edits=[];const ans=(op,uid)=>vc.handle({...base,user:{id:uid,tag:uid},customId:`qgs:vcall:${op}:v1`,editReply:async p=>edits.push(p)});
+ await ans('busy','g1');await ans('eta10','g2');
+ const call=a.state().schoolTemporaryVoices.v1.call;assert.equal(call.claimedBy,'g2');assert.equal(call.eta,10);assert.deepEqual(call.unavailable,['g1']);
+ assert.match(edits.at(-1).embeds[0].data.description,/<@g2> arrive dans \*\*10 min\*\*[\s\S]*Pas disponible : <@g1>/);
+ assert.match(JSON.stringify(panelEdits.at(-1).components[0].toJSON()),/<@g2> arrive dans \*\*10 min\*\*.*pas disponible : <@g1>/);
+ // Deuxième appel trop tôt : refusé.
+ const errors=[];await vc.handle({...base,customId:'qgs:voice-form:call:v1',fields:{getTextInputValue:()=>'Encore'},followUp:async p=>errors.push(p.content)});
+ assert.match(errors[0],/moins de 10 minutes/);
+ await ans('abuse','g2');assert.equal(timeout,6*3600000);assert.equal(a.state().schoolTemporaryVoices.v1.call.closed,'abuse');
+ assert.ok(edits.at(-1).components[0].toJSON().components.every(c=>c.disabled));
+});

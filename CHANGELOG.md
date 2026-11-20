@@ -6,6 +6,18 @@ Certains fichiers cités ont depuis été supprimés ou remplacés : la liste re
 l'état de la livraison, pas le dépôt actuel. Pour le détail de chaque version,
 consulter l'historique Git.
 
+## 110 — Vocaux temporaires : réglages sur le panel, appel d'un gérant, 🌲
+
+- Les réglages s'appliquent directement sur le panel du vocal (plus de copie privée du panel).
+- Accès public / privé : plus de chargement infini (permissions modifiées en parallèle, panel mis à jour sur place).
+- Un seul menu « Membres autorisés » : on coche ou décoche, les autorisations suivent.
+- Bouton « Appeler un gérant » (:gapolice:) : la raison part dans 1561157154507853875 avec « J'arrive dans 10 min »,
+  « 30 min », « Pas disponible » et « Abus · exclure 6 h ». Le panel du vocal affiche qui arrive et qui n'est pas
+  disponible, et l'auteur de l'appel. Un appel toutes les 10 minutes au plus.
+- Emojis du serveur : :crown: (crown~1) pour le propriétaire, :padlock_crown: pour l'accès, :strongpepe: pour les places et membres.
+- Nom du vocal à la création : « 🌲・Salon de … » ; un nom modifié garde toujours « 🌲・ » devant.
+- Modifiés : `systems/qgVoiceControls.js`, `systems/qgSchoolVoice.js`, tests.
+
 ## 109 — Salons de réunion refaits, vocaux temporaires sans transfert automatique
 
 - Salons « réunion-famille » et « discu-réunion » refaits une fois dans la catégorie 1561157144731058236 :
